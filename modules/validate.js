@@ -44,6 +44,7 @@ function getFullSchemaName (method, type) {
   return `${type}/${method}`;
 }
 
+// alternatives - init function
 (function registerSchemas () {
   const schemas = {};
 

@@ -106,6 +106,8 @@ router.post('/', async (ctx, next) => {
 
   validateResponse(stringified, parsed.method, `${format}rpc`);
 
+  // const mail = require('./modules/mailing');
+  // mail.notifyEmailSubscriptions();
   ctx.status = 200;
   ctx.body = stringified;
   await next();

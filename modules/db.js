@@ -159,6 +159,26 @@ module.exports = (() => {
     return subscriptions;
   }
 
+  // TODO move out with selectSubs...
+  async function selectEmailsToNotify () {
+    assertDB();
+
+    log('selecting emails to notify');
+    // TODO esub -> subcr or es
+    // renames are 4 symbols max
+    const emailSubIds = await db.all(`
+      SELECT esub.id, esub.email, esub.subscription_id, esub.date_from, esub.date_to 
+      FROM email_subscriptions esub
+      LEFT JOIN fetches ON esub.fetch_id_of_last_send = fetches.id
+      GROUP BY esub.id
+      HAVING fetches.timestamp IS NULL OR 
+        fetches.timestamp < MAX(fetches.timestamp);
+    `);
+    console.log('selected emails', emailSubIds);
+
+    return emailSubIds;
+  }
+
   async function insert (table, data) {
     assertDB();
     assertApp(
@@ -288,6 +308,7 @@ module.exports = (() => {
     insertIfNotExists,
     insertIfNotExistsSub,
     selectSubscriptions,
+    selectEmailsToNotify,
     selectRoutesFlights,
     selectWhere,
     delIfNotExistsSub,

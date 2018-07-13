@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS routes;
 DROP TABLE IF EXISTS fetches;
 DROP TABLE IF EXISTS airlines;
 DROP TABLE IF EXISTS subscriptions;
+DROP TABLE IF EXISTS email_subscriptions;
 DROP TABLE IF EXISTS airports;
 
 CREATE TABLE airports (
@@ -30,6 +31,18 @@ CREATE TABLE subscriptions (
 	CHECK(airport_from_id <> airport_to_id),
 	FOREIGN KEY(airport_from_id) REFERENCES airports(id),
 	FOREIGN KEY(airport_to_id) REFERENCES airports(id)
+);
+
+CREATE TABLE email_subscriptions (
+    id integer PRIMARY KEY,
+    email text NOT NULL,
+    subscription_id integer NOT NULL,
+    fetch_id_of_last_send integer,
+    date_from text NOT NULL,
+    date_to text NOT NULL,
+    UNIQUE(email, subscription_id, date_from, date_to),
+    FOREIGN KEY(subscription_id) REFERENCES subscriptions(id),
+    FOREIGN KEY(fetch_id_of_last_send) REFERENCES fetches(id)
 );
 
 CREATE TABLE fetches (
