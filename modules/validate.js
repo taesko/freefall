@@ -12,13 +12,11 @@ const SCHEMAS_DIR = path.join(__dirname, '..', 'api_schemas');
 const FORMATS = {
   'text/json': 'json',
   'application/json': 'json',
-  'text/yaml': 'yaml'
+  'text/yaml': 'yaml',
 };
 
 function getAPIRequestSchema (name) {
-  let schemaPath;
-
-  schemaPath = path.join(SCHEMAS_DIR, name + '.json');
+  const schemaPath = path.join(SCHEMAS_DIR, `${name}.json`);
 
   console.log('schema path: ', schemaPath);
 
@@ -34,20 +32,20 @@ for (const schemaName of SCHEMA_NAMES) {
   try {
     ajv.addSchema(getAPIRequestSchema(schemaName), schemaName);
   } catch (e) {
-    throw new AppError('Cannot add ' + schemaName + 'schema to ajv. Reason: ' + e);
+    throw new AppError(`Cannot add ${schemaName} schema to ajv. Reason: ${e}`);
   }
 }
 
 function validateRequest (responseBody, protocol = 'jsonrpc') {
-  console.log('validating response', responseBody);
-  assertApp(PROTOCOLS.indexOf(protocol) !== -1, 'Cannot validate protocol - ' + protocol);
+  assertApp(PROTOCOLS.indexOf(protocol) !== -1, `Cannot validate protocol - ${protocol}`);
   assertPeer(ajv.validate(protocol, responseBody));
 
   const bodySchemaName = responseBody.method;
   const bodyParams = responseBody.params;
 
+  assertPeer(METHODS.indexOf(bodySchemaName) !== -1, `Method not supported - ${bodySchemaName}`);
   assertPeer(ajv.validate(bodySchemaName, bodyParams),
-    'Invalid request for method ' + bodySchemaName
+    `Invalid params for method ${bodySchemaName}`
   );
 }
 
@@ -70,5 +68,5 @@ function validateRequestFormat ({headerParam, queryParam}) {
 }
 module.exports = {
   validateRequest,
-  validateRequestFormat
+  validateRequestFormat,
 };
