@@ -17,7 +17,7 @@ const { defineParsers, jsonParser, yamlParser } = require('./modules/normalize')
 const { PeerError, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
 const { log } = require('./modules/utils');
-const { validateRequest, validateRequestFormat } = require('./modules/validate');
+const { validateRequest, validateRequestFormat, validateResponse } = require('./modules/validate');
 
 const parser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(search, subscribe, unsubscribe, sendError);
@@ -27,6 +27,7 @@ const router = new Router();
 
 app.on('error', (err, ctx) => {
   log(err);
+  log('context of app is: ', ctx);
 });
 
 app.use(async (ctx, next) => {
@@ -84,14 +85,14 @@ app.context.db = db;
 router.post('/', async (ctx, next) => {
   const format = validateRequestFormat({
     headerParam: ctx.headers['content-type'],
-    queryParam: ctx.query.format
+    queryParam: ctx.query.format,
   });
   const parsed = parser.parse(ctx.request.body, {
     contentType: ctx.headers['content-type'],
     format: ctx.query.format,
   });
 
-  validateRequest(parsed, format + 'rpc');
+  validateRequest(parsed, `${format}rpc`);
 
   const result = await execute(parsed.method, parsed.params, ctx.db);
   const stringified = parser.stringify(result, {
@@ -103,13 +104,17 @@ router.post('/', async (ctx, next) => {
     id: parsed.id,
   });
 
+  validateResponse(stringified, parsed.method, `${format}rpc`);
+
   ctx.status = 200;
   ctx.body = stringified;
+  await next();
 });
 
 router.get('/', async (ctx, next) => {
   ctx.status = 200;
   await send(ctx, 'public/index.html');
+  await next();
 });
 
 app.use(router.routes());

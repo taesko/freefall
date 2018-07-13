@@ -84,11 +84,10 @@ function validateRequest (requestBody, protocol = 'jsonrpc') {
   validateProtocol(requestBody, protocol, 'request');
 
   const method = requestBody.method;
-  const apiResultSchema = getApiSchema(method, 'request');
-  const apiResult = requestBody.params;
+  const apiParams = requestBody.params;
 
   assertPeer(METHODS.indexOf(method) !== -1, `Method not supported - ${method}`);
-  assertPeer(ajv.validate(apiResultSchema, apiResult),
+  assertPeer(ajv.validate(getFullSchemaName(method, 'request'), apiParams),
     `Invalid params for method ${method}`
   );
 }
@@ -111,20 +110,22 @@ function validateRequestFormat ({headerParam, queryParam}) {
   return headerFormat || queryFormat;
 }
 
-function validateResponse(responseBody, protocol = 'jsonrpc') {
-  assertApp(PROTOCOLS.indexOf(protocol) !== -1, `Cannot validate protocol - ${protocol}`);
-  const protocolSchema = getApiSchema(getFullSchemaName(protocol, 'response'));
-  assertPeer(ajv.validate(protocolSchema, responseBody));
-
-  const bodySchemaName = getApiSchema(getFullSchemaName(responseBody.method, 'response'));
-  const bodyParams = responseBody.params;
-
-  assertPeer(METHODS.indexOf(bodySchemaName) !== -1, `Method not supported - ${bodySchemaName}`);
-  assertPeer(ajv.validate(bodySchemaName, bodyParams),
-    `Invalid params for method ${bodySchemaName}`
+function validateResponse (responseBody, method, protocol = 'jsonrpc') {
+  assertApp(
+    METHODS.indexOf(method) !== -1,
+    `Tried to validate an unknown method=${method}`
   );
+
+  validateProtocol(responseBody, protocol, 'response');
+
+  if (responseBody.error) {
+    assertApp(ajv.validate(getFullSchemaName('error', 'request'), responseBody.error));
+  } else {
+    assertApp(ajv.validate(getFullSchemaName(method, 'request'), responseBody.result));
+  }
 }
 module.exports = {
   validateRequest,
+  validateResponse,
   validateRequestFormat,
 };
