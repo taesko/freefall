@@ -26,6 +26,8 @@ CREATE TABLE subscriptions (
 	airport_from_id integer NOT NULL,
 	airport_to_id integer NOT NULL,
 	is_roundtrip integer NOT NULL DEFAULT 0,
+	date_from text NOT NULL, -- ISO 8601
+	date_to text NOT NULL, -- ISO 8601
 	UNIQUE(airport_from_id, airport_to_id, is_roundtrip),
 	CHECK(airport_from_id <> airport_to_id),
 	FOREIGN KEY(airport_from_id) REFERENCES airports(id),

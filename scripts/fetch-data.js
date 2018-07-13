@@ -10,9 +10,9 @@ const {
   selectWhere,
   insert,
 } = require('../modules/db');
-const { handleError, assertApp, assertPeer } = require('../modules/error-handling');
-const { log, requestJSON, toSmallestCurrencyUnit } = require('../modules/utils');
-const { isObject, each } = require('lodash');
+const {handleError, assertApp, assertPeer} = require('../modules/error-handling');
+const {log, requestJSON, toSmallestCurrencyUnit} = require('../modules/utils');
+const {isObject, each} = require('lodash');
 const moment = require('moment');
 
 process.on('error', (err) => {
@@ -25,7 +25,10 @@ process.on('unhandledRejection', (err) => {
 
 async function start () {
   await dbConnect();
-  const subscriptions = await select('subscriptions', ['id', 'airport_from_id', 'airport_to_id']);
+  const subscriptions = await select(
+    'subscriptions',
+    ['id', 'airport_from_id', 'airport_to_id', 'date_from', 'date_to']
+  );
 
   assertApp(Array.isArray(subscriptions), 'Invalid select subscriptions response.');
 
@@ -70,6 +73,10 @@ async function start () {
       Number.isInteger(sub.airport_to_id),
       'Invalid subscription data.'
     );
+    assertApp(
+      new Date(sub.date_from).getTime() < new Date(sub.date_to).getTime(),
+      `Subscription with id ${sub.id} has invalid date_from=${sub.date_from} and date_to=${sub.date_to} attributes.`
+    );
 
     const fetchId = await insertDataFetch(sub.id);
     const [airportFrom, airportTo] = await Promise.all([
@@ -95,23 +102,38 @@ async function start () {
     //   'Invalid airports data.'
     // );
 
-    const airportEndPoints = {
-      airportFrom: airportFrom.iata_code,
-      airportTo: airportTo.iata_code,
-    };
-
-    await getSubscriptionData(airportEndPoints, fetchId, 0);
+    await getSubscriptionData(
+      {
+        airportFrom: airportFrom.iata_code,
+        airportTo: airportTo.iata_code,
+        dateFrom: new Date(sub.date_from),
+        dateTo: new Date(sub.date_to),
+      },
+      fetchId,
+      0,
+    );
   }
 
   log(`Checked ${subscriptions.length} subscriptions.`);
 }
 
-async function getSubscriptionData (airportEndPoints, fetchId, offset) {
-  const { airportFrom, airportTo } = airportEndPoints;
+async function getSubscriptionData (
+  {
+    airportFrom,
+    airportTo,
+    dateFrom,
+    dateTo,
+  },
+  fetchId,
+  offset,
+) {
   assertApp(
     typeof airportFrom === 'string' &&
     typeof airportTo === 'string',
-    'Invalid airport data.'
+    `Invalid airport data. from=${airportFrom} to=${airportTo}`
+  );
+  assertApp(
+    new Date(dateFrom).getTime() < new Date(dateTo).getTime()
   );
 
   const flightsHash = {};
@@ -120,8 +142,8 @@ async function getSubscriptionData (airportEndPoints, fetchId, offset) {
   const response = await requestJSON('https://api.skypicker.com/flights', {
     flyFrom: airportFrom,
     to: airportTo,
-    dateFrom: moment().format(KIWI_API_DATE_FORMAT),
-    dateTo: moment().add(1, 'months').format(KIWI_API_DATE_FORMAT),
+    dateFrom: moment(dateFrom).format(KIWI_API_DATE_FORMAT),
+    dateTo: moment(dateTo).format(KIWI_API_DATE_FORMAT),
     typeFlight: 'oneway',
     partner: 'picky',
     v: '2',
@@ -130,6 +152,8 @@ async function getSubscriptionData (airportEndPoints, fetchId, offset) {
     offset: offset,
     limit: ROUTES_LIMIT,
   });
+
+  console.log(`Fetching data from kiwi from ${airportFrom} to ${airportTo} in date range: ${dateFrom} to ${dateTo}`);
 
   assertPeer(
     isObject(response) &&
@@ -263,7 +287,16 @@ async function getSubscriptionData (airportEndPoints, fetchId, offset) {
   await Promise.all(routesPromises);
 
   if (typeof response._next === 'string') {
-    await getSubscriptionData(airportEndPoints, fetchId, offset + ROUTES_LIMIT);
+    await getSubscriptionData(
+      {
+        airportFrom,
+        airportTo,
+        dateFrom,
+        dateTo,
+      },
+      fetchId,
+      offset + ROUTES_LIMIT,
+    );
   }
 }
 
@@ -303,12 +336,10 @@ async function getAirportIfNotExists (IATACode) {
       'API sent invalid airport data response.'
     );
 
-    const airportId = await insert('airports', {
+    return insert('airports', {
       iata_code: response.locations[0].code,
       name: `${response.locations[0].name}, ${response.locations[0].code}`,
     });
-
-    return airportId;
   }
 }
 
