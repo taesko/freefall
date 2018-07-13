@@ -1,4 +1,4 @@
 INSERT INTO subscriptions
-	(airport_from_id, airport_to_id, date_from, date_to)
+	(airport_from_id, airport_to_id)
 VALUES
-	(2, 3, strftime('%Y-%m-%dT%H:%M:%S', 'now', '+1 month'), strftime('%Y-%m-%dT%H:%M:%S', 'now', '+2 month'));
+	(2, 3);
