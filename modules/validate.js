@@ -6,7 +6,7 @@ const {assertApp, assertPeer, AppError} = require('./error-handling');
 const {log} = require('./utils');
 
 const PROTOCOLS = ['jsonrpc'];
-const METHODS = ['search', 'subscribe', 'unsubscribe'];
+const METHODS = ['search', 'subscribe', 'unsubscribe', 'senderror'];
 const SCHEMAS_DIR = path.join(__dirname, '..', 'api_schemas');
 
 const FORMATS = {
