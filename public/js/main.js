@@ -1,646 +1,837 @@
 'use strict';
-/* global $, _ */
-const MAX_ROUTES_PER_PAGE = 5;
-const SERVER_URL = '/';
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
-const WEEK_DAYS = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday'
-];
-let jsonRPCRequestId = 1; // closures
-let $errorBar; // closures
-const errorMessagesQueue = [];
 
-(function setupErrorMessages () {
-  setInterval(() => {
-    if (!$errorBar) {
-      return;
-    }
+function start () {
+  class BaseError extends Error {
+    constructor ({userMessage, msg}) {
+      super(userMessage);
 
-    if (errorMessagesQueue.length !== 0) {
-      $errorBar.text(errorMessagesQueue.shift());
-    } else {
-      $errorBar.text('');
-    }
-  },
-  5000);
-})();
+      this.userMessage = userMessage;
+      this.msg = msg;
 
-function displayErrorMessage (errMsg) {
-  errorMessagesQueue.push(errMsg);
-}
-
-class BaseError extends Error {
-  constructor ({userMessage, logs}) {
-    super(userMessage);
-
-    this.userMessage = userMessage;
-    this.logs = logs;
-
-    if (this.logs) {
-      console.error(...this.logs);
+      sendError({
+        msg,
+        trace: traceLog,
+      }, 'jsonrpc');
     }
   }
 
-  static assert (condition, errorParams) {
-    if (!condition) {
-      throw new BaseError(errorParams);
+  class ApplicationError extends BaseError {
+    constructor ({userMessage, msg}) {
+      if (!userMessage) {
+        userMessage = 'Application encountered an unexpected condition. Please refresh the page.';
+      }
+      super({userMessage, msg});
+
+      window.alert(userMessage);
     }
   }
-}
 
-class ApplicationError extends BaseError {
-  constructor ({userMessage, logs}) {
-    if (!userMessage) {
-      userMessage = 'Application encountered an unexpected condition. Please refresh the page.';
+  class PeerError extends BaseError {
+    constructor ({userMessage, msg}) {
+      if (!userMessage) {
+        userMessage = 'Service is not available at the moment. Please refresh the page and try' +
+                      ' later.';
+      }
+      super({userMessage, msg});
     }
-    super({userMessage, logs});
-
-    window.alert(userMessage);
   }
 
-  static assert (condition, errorParams) {
+  class UserError extends BaseError {
+    constructor ({userMessage, msg}) {
+      super({userMessage, msg});
+    }
+  }
+
+  function assertApp (condition, errorParams) {
     if (!condition) {
       throw new ApplicationError(errorParams);
     }
   }
-}
 
-class PeerError extends BaseError {
-  constructor ({userMessage, logs}) {
-    if (!userMessage) {
-      userMessage = 'Service is not available at the moment. Please refresh the page and try' +
-                    ' later.';
-    }
-    super({userMessage, logs});
-  }
-
-  static assert (condition, errorParams) {
+  function assertPeer (condition, errorParams) {
     if (!condition) {
       throw new PeerError(errorParams);
     }
   }
-}
 
-const AIRPORT_HASH = airportDump();
-
-function getAirportByString (term) {
-  term = term.toLowerCase();
-
-  for (let airport of Object.values(AIRPORT_HASH)) {
-    let strings = [
-      airport.iataID.toLowerCase(),
-      airport.latinName.toLowerCase(),
-      airport.nationalName.toLowerCase(),
-      airport.cityName.toLowerCase()
-    ];
-
-    if (_.includes(strings, term)) {
-      return airport;
+  function assertUser (condition, errorParams) {
+    if (!condition) {
+      throw new UserError(errorParams);
     }
   }
-}
 
-/**
- * Make a search method call to the server and retrieve possible routes
- * All parameters must be JS primitives with their corresponding type in
- * the API docs.
- *
- **/
-async function search ({
-  flyFrom,
-  flyTo,
-  priceTo,
-  currency,
-  dateFrom,
-  dateTo,
-  sort,
-  maxFlyDuration
-}) {
-  const required = ['fly_from', 'fly_to'];
-  const fixed = {sort: ['price', 'duration'], currency: ['USD', 'BGN']};
-  const params = validateParams(
-    {
-      v: '1.0', // this is better to be passed through the url for better optimization
-      fly_from: flyFrom.id,
-      fly_to: flyTo.id,
-      price_to: priceTo,
-      currency: currency,
-      date_from: dateFrom,
-      date_to: dateTo,
-      sort: sort,
-      max_fly_duration: maxFlyDuration
-    },
-    required,
-    fixed
-  );
+  function * idGenerator () {
+    let requestId = 1;
 
-  console.log('Searching', params);
-
-  let jsonRPCResponse = await jsonRPCRequest('search', params);
-  let response = switchStyle(jsonRPCResponse, snakeToCamel);
-
-  for (let routeObj of response.routes) {
-    // server doesn't provide currency yet
-    if (response.currency) {
-      routeObj.price += ' ' + response.currency;
-    } else {
-      routeObj.price += ' $';
+    while (true) {
+      yield requestId++;
     }
+  }
 
-    for (let flight of routeObj.route) {
-      flight.dtime = new Date(flight.dtime);
-      flight.atime = new Date(flight.atime);
+  const MAX_ROUTES_PER_PAGE = 5;
+  const SERVER_URL = '/';
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+  const WEEK_DAYS = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  const MAX_TRACE = 300;
+  let $errorBar; // closures
+  const errorMessagesQueue = [];
+  const validateSearchReq = getValidateSearchReq();
+  const validateSearchRes = getValidateSearchRes();
+  const validateSubscriptionReq = getValidateSubscriptionReq();
+  const validateSubscriptionRes = getValidateSubscriptionRes();
+  const validateSendErrorReq = getValidateSendErrorReq();
+  const validateSendErrorRes = getValidateSendErrorRes();
+  const traceLog = [];
 
-      // server doesn't provide city_from and city_to yet
-      flight.cityFrom = flight.cityFrom || '';
-      flight.cityTo = flight.cityTo || '';
+  const getParser = defineParsers(jsonParser, yamlParser);
+  const getId = idGenerator();
+
+  function trace (msg) {
+    if (traceLog.length > MAX_TRACE) {
+      traceLog.shift();
     }
-
-    routeObj.route = sortRoute(routeObj.route);
-    routeObj.dtime = routeObj.route[0].dtime;
-    routeObj.atime = routeObj.route[routeObj.route.length - 1].atime;
+    traceLog.push(msg);
   }
 
-  response.routes = _.sortBy(response.routes, [routeObj => routeObj.dtime]);
-
-  return response;
-}
-
-async function subscribe (fromAiport, toAirport) {
-  console.log('Subscribing', fromAiport, toAirport);
-
-  let response;
-  let params = {
-    v: '1.0',
-    fly_from: fromAiport.id,
-    fly_to: toAirport.id
-  };
-
-  try {
-    response = await jsonRPCRequest('subscribe', params);
-  } catch (e) {
-    e.userMessage = `Failed to subscribe for flights from airport ${fromAiport.nationalName} to airport ${toAirport.nationalName}.`;
-    throw e;
+  function objToString (obj) { // maybe JSON.stringify
+    return Object.entries(obj).map(pair => pair.join(':')).join(',');
   }
 
-  PeerError.assert(response.status_code >= 1000 && response.status_code < 2000,
-    {
-      userMessage: `Already subscribed for flights from ${fromAiport.latinName} to ${toAirport.latinName}.`,
-      logs: [
-        'Tried to subscribe but subscription already existed.',
-        'Sent params: ',
-        params,
-        'Got response: ',
-        response]
-    });
-}
-
-async function unsubscribe (fromAirport, toAirport) {
-  console.log('Unsubscribing', fromAirport, toAirport);
-
-  let response;
-  let params = {
-    v: '1.0',
-    fly_from: fromAirport.id,
-    fly_to: toAirport.id
-  };
-
-  try {
-    response = await jsonRPCRequest('unsubscribe', params);
-  } catch (e) {
-    e.userMessage = `Failed to unsubscribe for flights from airport ${fromAirport.nationalName} to airport ${toAirport.nationalName}.`;
-    throw e;
-  }
-
-  PeerError.assert(response.status_code >= 1000 && response.status_code < 2000,
-    {
-      userMessage: `You aren't subscribed for flights from airport ${fromAiport.nationalName} to airport ${toAirport.nationalName}.`,
-      logs: [
-        'Server returned unknown status code',
-        'Sent params: ',
-        params,
-        'Got response: ',
-        response]
-    });
-
-  return params;
-}
-
-async function jsonRPCRequest (method, params) {
-  let request = {
-    jsonrpc: '2.0',
-    method,
-    params: params,
-    id: jsonRPCRequestId
-  };
-  let response;
-
-  try {
-    response = await postJSON(SERVER_URL, request);
-  } catch (error) {
-    throw new PeerError({
-      logs: [
-        'failed to make a post request to server API', 'url: ', SERVER_URL,
-        'request data: ', request, 'error raised: ', error
-      ]
-    });
-  }
-
-  // increment id only on successful requests
-  jsonRPCRequestId++;
-
-  let logs = ['jsonrpc protocol error', 'sent data: ', request, 'got response', response];
-  let errorReport = {logs: logs};
-
-  PeerError.assert(['jsonrpc', 'id'].every(prop => _.has(response, prop)), errorReport);
-  PeerError.assert(!response.error, errorReport);
-  PeerError.assert(response.result, errorReport);
-  ApplicationError.assert(response.id !== null,
-    {
-      logs: [
-        'Server sent back a null id for request: ', request,
-        'Full response is: ', response]
-    }
-  );
-
-  if (response.id !== request.id) {
-    console.warn('Different id between response and request.');
-    console.warn(
-      'Ignoring because server always returns id = 1 at the moment.');
-    // throw new ApplicationError(
-    //     'An unexpected behaviour occurred. Please refresh the page.',
-    //     'json rpc response and request id are out of sync',
-    //     'request id =', request.id,
-    //     'response id =', response.id,
-    // );
-  }
-
-  return response.result;
-}
-
-async function postJSON (url, data) {
-  let serverResponse;
-
-  try {
-    serverResponse = await window.fetch(url, {
-      method: 'POST',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-  } catch (e) {
-    throw new PeerError({
-      userMessage: 'Service is not available at the moment due to network issues',
-      logs: ['Couldn\'t connect to server at url: ', url, 'Sent POST request with data: ', data]
-    });
-  }
-
-  PeerError.assert(serverResponse.ok, {
-    logs: ['Sent POST request with data: ', data, 'Got NOT OK response back', serverResponse]
-  });
-
-  return serverResponse.json();
-}
-
-function sortRoute (route) {
-  function comparison (a, b) {
-    return a.dtime - b.dtime;
-  }
-
-  let result = route.slice(0);
-
-  result.sort(comparison);
-
-  return result;
-}
-
-function timeStringFromDate (date) {
-  const hours = date.getUTCHours()
-    .toString()
-    .padStart(2, '0');
-  const minutes = date.getUTCMinutes()
-    .toString()
-    .padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
-
-function weeklyDateString (date) {
-  let monthName = MONTH_NAMES[date.getMonth()];
-  let dayName = WEEK_DAYS[date.getDay()];
-
-  return `${dayName} ${date.getDate()} ${monthName}`;
-}
-
-function cleanUndefinedFromObject (obj) {
-  return Object.entries(obj)
-    .reduce((newObj, entry) => {
-      let [key, value] = entry;
-
-      if (obj[key] !== undefined) {
-        newObj[key] = value;
+  (function setupErrorMessages () {
+    setInterval(() => {
+      if (!$errorBar) {
+        return;
       }
 
-      return newObj;
+      if (errorMessagesQueue.length !== 0) {
+        $errorBar.text(errorMessagesQueue.shift());
+      } else {
+        $errorBar.text('');
+      }
     },
-    {}
+    5000);
+  })();
+
+  function displayErrorMessage (errMsg) {
+    errorMessagesQueue.push(errMsg);
+  }
+
+  const AIRPORT_HASH = airportDump();
+
+  function getAirport (term) {
+    trace(`getAirport(${term}), typeof arg=${typeof term}`);
+
+    term = term.toLowerCase();
+
+    for (const airport of Object.values(AIRPORT_HASH)) {
+      const strings = [
+        airport.id,
+        airport.iataID.toLowerCase(),
+        airport.latinName.toLowerCase(),
+        airport.nationalName.toLowerCase(),
+        airport.cityName.toLowerCase(),
+      ];
+
+      if (_.includes(strings, term)) {
+        trace(`getAirport(${term}) returning ${strings.join(',')}`);
+        return airport;
+      }
+    }
+    trace(`getAirport(${term}) returning undefined`);
+    throw new UserError({
+      userMessage: 'Could not find an airport. Please try again.',
+      msg: `Term '${term}', provided by user, could not be resolved to an airport`,
+    });
+  }
+
+  /**
+   * Make a search method call to the server and retrieve possible routes
+   * All parameters must be JS primitives with their corresponding type in
+   * the API docs.
+   *
+   **/
+  async function search (params, requestFormat) {
+    trace(`search(${objToString(params)}), typeof arg=${typeof params}`);
+
+    assertApp(validateSearchReq(params), {
+      msg: 'Params do not adhere to searchRequestSchema.',
+    });
+
+    const { result } = await sendRequest(SERVER_URL, {
+      method: 'search',
+      params,
+    }, requestFormat);
+
+    assertPeer(validateSearchRes(result), {
+      msg: 'Params do not adhere to searchResponseSchema.',
+    });
+
+    for (const routeObj of result.routes) {
+      // server doesn't provide currency yet
+      if (result.currency) {
+        routeObj.price += ` ${result.currency}`;
+      } else {
+        routeObj.price += ' $';
+      }
+
+      for (const flight of routeObj.route) {
+        flight.dtime = new Date(flight.dtime);
+        flight.atime = new Date(flight.atime);
+
+        // server doesn't provide city_from and city_to yet
+        flight.cityFrom = flight.cityFrom || '';
+        flight.cityTo = flight.cityTo || '';
+      }
+
+      routeObj.route = sortRoute(routeObj.route);
+      routeObj.dtime = routeObj.route[0].dtime;
+      routeObj.atime = routeObj.route[routeObj.route.length - 1].atime;
+    }
+
+    result.routes = _.sortBy(result.routes, [routeObj => routeObj.dtime]);
+
+    return result;
+  }
+
+  async function subscribe (params, requestFormat) {
+    trace(`subscribe(${objToString(params)}), typeof arg=${typeof params}`);
+
+    assertApp(validateSubscriptionReq(params), {
+      msg: 'Params do not adhere to subscriptionRequestSchema',
+    });
+
+    const { latinName: fromAirportLatinName } = getAirport(params.fly_from);
+    const { latinName: toAirportLatinName } = getAirport(params.fly_to);
+
+    try {
+      const { result } = await sendRequest(SERVER_URL, {
+        method: 'subscribe',
+        params,
+      }, requestFormat);
+
+      assertPeer(validateSubscriptionRes(result), {
+        msg: 'Params do not adhere to subscriptionResponseSchema',
+      });
+      assertUser(result.status_code >= 1000 && result.status_code < 2000, {
+        userMessage: `Already subscribed for flights from ${fromAirportLatinName} to ${toAirportLatinName}.`,
+        msg: `Tried to subscribe but subscription already existed. Sent params: ${params}. Got result: ${result}`,
+      });
+
+      return params;
+    } catch (e) {
+      e.userMessage = `Failed to subscribe for flights from airport ${fromAirportLatinName} to airport ${toAirportLatinName}.`;
+      throw e;
+    }
+  }
+
+  async function unsubscribe (params, requestFormat) {
+    trace(`unsubscribe(${objToString(params)}), typeof arg=${typeof params}`);
+
+    assertApp(validateSubscriptionReq(params), {
+      msg: 'Params do not adhere to subscriptionRequestSchema',
+    });
+
+    const { latinName: fromAirportLatinName } = getAirport(params.fly_from);
+    const { latinName: toAirportLatinName } = getAirport(params.fly_to);
+
+    try {
+      const { result } = await sendRequest(SERVER_URL, {
+        method: 'unsubscribe',
+        params,
+      }, requestFormat);
+
+      assertPeer(validateSubscriptionRes(result), {
+        msg: 'Params do not adhere to subscriptionResponseSchema',
+      });
+      assertUser(result.status_code >= 1000 && result.status_code < 2000, {
+        userMessage: `You aren't subscribed for flights from airport ${fromAirportLatinName} to airport ${toAirportLatinName}.`,
+        msg: `Server returned ${result.status_code} status code. Sent params: ${params}. Got result: ${result}`,
+      });
+
+      return params;
+    } catch (e) {
+      e.userMessage = `Failed to unsubscribe for flights from airport ${fromAirportLatinName} to airport ${toAirportLatinName}.`;
+      throw e;
+    }
+  }
+
+  async function sendError (params, requestFormat) {
+    assertApp(validateSendErrorReq(params), {
+      msg: 'Params do not adhere to sendErrorRequestSchema',
+    });
+
+    try {
+      const { result } = await sendRequest(SERVER_URL, {
+        method: 'senderror',
+        params,
+      }, requestFormat);
+
+      assertPeer(validateSendErrorRes(result), {
+        msg: 'Params do not adhere to sendErrorResponseSchema',
+      });
+    } catch (e) {
+      e.userMessage = 'An error occurred in the application. Please refresh the page and try again.';
+      throw e;
+    }
+  }
+
+  async function sendRequest (url, data, protocolName) {
+    let serverResponse;
+    const parser = getParser(protocolName);
+
+    const { id } = getId.next();
+
+    try {
+      serverResponse = await window.fetch(url, {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Content-Type': parser.contentType,
+        },
+        body: parser.stringifyRequest(data, id),
+      });
+    } catch (e) {
+      // TODO - check if JSON.stringify threw an error
+      throw new PeerError({
+        userMessage: 'Service is not available at the moment due to network issues',
+        msg: `Couldn't connect to server at url: ${url}. Sent POST request with data: ${data}`,
+      });
+    }
+
+    assertPeer(
+      serverResponse.ok,
+      {
+        userMessage: 'There was a problem with your request. Please, try again.',
+        msg: `Sent POST request with data: ${data}. Got NOT OK response back: ${serverResponse}`,
+      }
     );
-}
 
-function setupLoading ($button, $routesList) {
-  const step = 5;
+    const responseParsed = await parser.parseResponse(serverResponse);
 
-  $button.click(() => {
-    let loaded = $routesList.children()
-      .filter(':visible').length;
-    $routesList.children()
-      .slice(loaded, loaded + step + 1)
-      .show();
-
-    if (loaded + step >= $routesList.children().length) {
-      $button.hide();
-    }
-  });
-}
-
-function displaySearchResult (searchResult, $routesList, $routeItemTemplate, $flightItemTemplate) {
-  console.log('Displaying search result', searchResult);
-  $routesList.find('li:not(:first)')
-    .remove();
-
-  if (
-    searchResult === undefined ||
-    (Object.keys(searchResult).length === 0 && searchResult.constructor === Object)
-  ) {
-    return;
+    return {
+      result: responseParsed.result || null,
+      error: responseParsed.error || null, // TODO handle error
+    };
   }
 
-  if (searchResult.routes.length === 0) {
-    $('#load-more-button').hide();
-    displayErrorMessage(`There are no known flights.`);
-  } else {
-    $('#load-more-button').show();
-  }
-
-  for (let [index, route] of searchResult.routes.entries()) {
-    let $clone = $routeItemTemplate.clone();
-    let $routeList = $clone.find('ul');
-    let $newRoute = fillListFromRoute($routeList, route.route, $flightItemTemplate);
-
-    if (index < MAX_ROUTES_PER_PAGE) {
-      $clone.show();
+  function sortRoute (route) {
+    function comparison (a, b) {
+      return a.dtime - b.dtime;
     }
 
-    $clone.find('.route-price')
-      .text(route.price);
-    $routesList.append($clone.append($newRoute));
+    const result = route.slice(0);
 
-    let $timeElements = $clone.find('time');
+    result.sort(comparison);
 
-    $($timeElements[0])
-      .attr('datetime', route.dtime)
-      .text(weeklyDateString(route.dtime) + ' ' + timeStringFromDate(route.dtime)
-      );
-    $($timeElements[1])
-      .attr('datetime', route.dtime)
-      .text(weeklyDateString(route.atime) + ' ' + timeStringFromDate(route.atime)
-      );
-  }
-}
-
-function fillListFromRoute ($listTemplate, route, $flightItemTemplate) {
-  $listTemplate.find('li:not(:first)')
-    .remove();
-
-  for (let flight of route) {
-    $listTemplate.append(makeFlightItem(flight, $flightItemTemplate));
+    return result;
   }
 
-  $listTemplate.show();
-
-  return $listTemplate;
-}
-
-function makeFlightItem (flight, $itemTemplate) {
-  let $clone = $itemTemplate.clone()
-    .removeAttr('id')
-    .removeClass('hidden');
-
-  let duration = flight.atime.getTime() - flight.dtime.getTime();
-
-  duration = (duration / 1000 / 60 / 60).toFixed(2);
-  duration = (duration + ' hours').replace(':');
-
-  $clone.find('.airline-logo')
-    .attr('src', flight.airlineLogo);
-  $clone.find('.airline-name')
-    .text(flight.airlineName);
-  $clone.find('.departure-time')
-    .text(timeStringFromDate(flight.dtime));
-  $clone.find('.arrival-time')
-    .text(timeStringFromDate(flight.atime));
-  $clone.find('.flight-date')
-    .text(weeklyDateString(flight.dtime));
-  $clone.find('.timezone')
-    .text('UTC');
-  $clone.find('.duration')
-    .text(duration);
-  // TODO later change to city when server implements the field
-  $clone.find('.from-to-display')
-    .text(`${flight.airportFrom} -----> ${flight.airportTo}`);
-
-  return $clone;
-}
-
-function watchInputField ($inputField, callback) {
-  let lastValue = '';
-
-  function callbackOnChange (event) {
-    let newVal = $inputField.serialize();
-    if (newVal !== lastValue) {
-      lastValue = newVal;
-      callback(event);
-    }
+  function timeStringFromDate (date) {
+    const hours = date.getUTCHours()
+      .toString()
+      .padStart(2, '0');
+    const minutes = date.getUTCMinutes()
+      .toString()
+      .padStart(2, '0');
+    return `${hours}:${minutes}`;
   }
 
-  $inputField.on('keyup', callbackOnChange);
-}
+  function weeklyDateString (date) {
+    const monthName = MONTH_NAMES[date.getMonth()];
+    const dayName = WEEK_DAYS[date.getDay()];
 
-function setupAutoComplete ({hash, $textInput, $dataList}) {
-  let keys = Object.keys(hash)
-    .sort();
+    return `${dayName} ${date.getDate()} ${monthName}`;
+  }
 
-  watchInputField($textInput, () => {
-    let minCharacters = 1;
-    let maxSuggestions = 100;
+  function setupLoading ($button, $routesList) {
+    const step = 5;
 
-    if ($textInput.val().length < minCharacters) {
+    $button.click(() => {
+      const loaded = $routesList.children()
+        .filter(':visible').length; // SUGGEST store visible and not visible in an array?
+      $routesList.children()
+        .slice(loaded, loaded + step + 1)
+        .show();
+
+      if (loaded + step >= $routesList.children().length) {
+        $button.hide();
+      }
+    });
+  }
+
+  function displaySearchResult (searchResult, $routesList, templates) {
+    trace(`executing displaySearchResult`);
+
+    const { $flightItemTemplate, $routeItemTemplate } = templates;
+
+    $routesList.find('li:not(:first)')
+      .remove();
+
+    if (
+      !_.isObject(searchResult) ||
+      (Object.keys(searchResult).length === 0 && _.isObject(searchResult))
+    ) {
       return;
     }
 
-    $dataList.empty();
-
-    let suggestionsCount = 0;
-
-    for (let key of keys) {
-      if (suggestionsCount === maxSuggestions) {
-        break;
-      }
-
-      if (key.indexOf($textInput.val()) !== -1) {
-        suggestionsCount += 1;
-
-        let newOption = `<option value="${key}">`;
-
-        $dataList.append(newOption);
-        console.log('appended option', newOption);
-      }
+    if (searchResult.routes.length === 0) {
+      $('#load-more-button').hide();
+      displayErrorMessage(`There are no known flights.`);
+    } else {
+      $('#load-more-button').show();
     }
-  });
-}
 
-function searchFormParams ($searchForm) {
-  let formData = objectifyForm($searchForm.serializeArray());
-  let flyFrom = getAirportByString(formData.from);
-  let flyTo = getAirportByString(formData.to);
+    for (let i = 0; i < searchResult.routes.length; i++) {
+      const route = searchResult.routes[i];
+      const $clone = $routeItemTemplate.clone();
+      const $routeList = $clone.find('ul');
+      const $newRoute = fillList($routeList, route.route, $flightItemTemplate);
 
-  console.log('Form data: ', formData);
+      if (i < MAX_ROUTES_PER_PAGE) {
+        $clone.show();
+      }
 
-  PeerError.assert(flyFrom,
-    {
+      $clone.find('.route-price')
+        .text(route.price);
+      $routesList.append($clone.append($newRoute));
+
+      const $timeElements = $clone.find('time');
+
+      $($timeElements[0])
+        .attr('datetime', route.dtime)
+        .text(`${weeklyDateString(route.dtime)} ${timeStringFromDate(route.dtime)}`);
+      $($timeElements[1])
+        .attr('datetime', route.dtime)
+        .text(`${weeklyDateString(route.atime)} ${timeStringFromDate(route.atime)}`);
+    }
+  }
+
+  function fillList ($listTemplate, route, $flightItemTemplate) {
+    $listTemplate.find('li:not(:first)')
+      .remove();
+
+    for (const flight of route) {
+      $listTemplate.append(makeFlightItem(flight, $flightItemTemplate));
+    }
+
+    $listTemplate.show();
+
+    return $listTemplate;
+  }
+
+  function makeFlightItem (flight, $itemTemplate) {
+    const $clone = $itemTemplate.clone()
+      .removeAttr('id')
+      .removeClass('hidden');
+
+    let duration = flight.atime.getTime() - flight.dtime.getTime();
+
+    duration = (duration / 1000 / 60 / 60).toFixed(2);
+    duration = (`${duration} hours`).replace(':');
+
+    $clone.find('.airline-logo')
+      .attr('src', flight.airline_logo);
+    $clone.find('.airline-name')
+      .text(flight.airline_name);
+    $clone.find('.departure-time')
+      .text(timeStringFromDate(flight.dtime));
+    $clone.find('.arrival-time')
+      .text(timeStringFromDate(flight.atime));
+    $clone.find('.flight-date')
+      .text(weeklyDateString(flight.dtime));
+    $clone.find('.timezone')
+      .text('UTC');
+    $clone.find('.duration')
+      .text(duration);
+    // TODO later change to city when server implements the field
+    $clone.find('.from-to-display')
+      .text(`${flight.airport_from} -----> ${flight.airport_to}`);
+
+    return $clone;
+  }
+
+  function getSearchFormParams ($searchForm) {
+    trace(`executing getSearchFormParams`);
+
+    const searchFormParams = {
+      v: '1.0', // TODO move to another function, this should not be here
+    };
+    const formData = objectifyForm($searchForm.serializeArray());
+
+    assertApp(
+      _.isObject(formData), {
+        msg: 'formData is not an object',
+      }
+    );
+
+    assertUser(
+      typeof formData.from === 'string' &&
+      typeof formData.to === 'string', {
+        userMessage: 'Please choose your departure airport and arrival airport.',
+        msg: 'User did not select flight from or flight to.',
+      }
+    );
+
+    const { id: airportFromId } = getAirport(formData.from);
+    const { id: airportToId } = getAirport(formData.to);
+
+    assertUser(airportFromId, {
       userMessage: `${formData.from} is not a location that has an airport!`,
-      logs: ['User entered an invalid string in #arrival-input - ', formData.to]
+      msg: `User entered a string in departure input, that cannot be resolved to an airport - ${formData.from}`,
+    });
+    assertUser(airportToId, {
+      userMessage: `${formData.to} is not a location that has an airport!`,
+      msg: `User entered a string in arrival input, that cannot be resolved to an airport - ${formData.to}`,
+    });
+
+    searchFormParams.fly_from = airportFromId;
+    searchFormParams.fly_to = airportToId;
+    searchFormParams.format = formData.format;
+
+    if (formData['price-to']) {
+      searchFormParams.price_to = parseInt(formData['price-to']);
     }
-  );
-  PeerError.assert(flyTo,
-    {userMessage: `${formData.to} is not a location that has an airport!`}
-  );
 
-  let dateFrom = dateFromFields({
-    monthField: formData['departure-month'],
-    dayField: formData['departure-day']
-  });
-  dateFrom.setUTCHours(0, 1, 1);
+    if (formData['date-from']) {
+      searchFormParams.date_from = formData['date-from'];
+    }
 
-  // TODO refactor
-  let dateTo;
+    if (formData['date-to']) {
+      searchFormParams.date_to = formData['date-to'];
+    }
 
-  if (formData['arrival-month'] || formData['arrival-day']) {
-    dateTo = dateFromFields({
-      monthField: formData['arrival-month'],
-      dayField: formData['arrival-day']
-    });
-    dateTo.setUTCHours(23, 59, 59);
+    trace(`getSearchFormParams returning ${objToString(searchFormParams)}`);
+    return searchFormParams;
   }
 
-  let priceTo;
-
-  if (formData['price-to']) {
-    priceTo = parseInt(formData['price-to']);
+  function objectifyForm (formArray) {
+    return formArray.reduce(
+      (obj, entry) => {
+        if (entry.value != null && entry.value !== '') { // '' check not needed
+          obj[entry.name] = entry.value; // overwrites similar names
+        }
+        return obj;
+      },
+      {});
   }
 
-  return cleanUndefinedFromObject({
-    flyFrom: flyFrom,
-    flyTo: flyTo,
-    dateFrom: dateFrom,
-    dateTo: dateTo,
-    priceTo: priceTo
-  });
-}
-
-function objectifyForm (formArray) {
-  return formArray.reduce(
-    (obj, entry) => {
-      if (entry.value != null && entry.value !== '') { // '' check not needed
-        obj[entry.name] = entry.value; // overwrites similar names
+  function yamlParser () {
+    const parseYAML = (yaml) => {
+      try {
+        return jsyaml.safeLoad(yaml);
+      } catch (error) {
+        throw new PeerError({
+          msg: 'Invalid yamlrpc format. Cannot parse YAML.',
+        });
       }
-      return obj;
-    },
-    {});
-}
+    };
 
-function dateFromFields ({yearField, monthField, dayField}) {
-  let date = new Date();
-
-  // TODO problematic when not all of the fields are set
-  if (yearField) {
-    date.setFullYear(yearField);
-  }
-  if (monthField) {
-    date.setMonth(monthField - 1);
-  }
-  if (dayField) {
-    date.setDate(dayField);
-  }
-
-  return date;
-}
-
-$(document).ready(() => {
-    $errorBar = $('#errorBar');
-
-    let $allRoutesList = $('#all-routes-list'); // consts
-    let $flightsListTemplate = $('#flights-list-item-template');
-    let $flightItemTemplate = $('#flight-item-template');
-
-    let $flightForm = $('#flight-form-input');
-    let flightFormData = '';
-    let subscribeFormData = '';
-    let unsubscribeFormData = '';
-
-    $('#subscribe-button').click(() => {
-
-    });
-    $flightForm.on('submit',
-      async event => {
-        event.preventDefault();
-
-        if ($flightForm.serialize() === flightFormData) {
-          return false;
+    const normalizeYAMLRequest = (yaml) => {
+      assertPeer(
+        _.isObject(yaml) &&
+        _.isObject(yaml.parameters) &&
+        typeof yaml.yamlrpc === 'string' &&
+        typeof yaml.action === 'string', {
+          msg: 'Invalid yamlrpc request format.',
         }
+      );
 
-        flightFormData = $flightForm.serialize();
+      return {
+        yamlrpc: yaml.yamlrpc,
+        method: yaml.action,
+        params: yaml.parameters,
+        id: yaml.id,
+      };
+    };
 
-        let formParams;
-
-        try {
-          formParams = searchFormParams($flightForm);
-        } catch (e) {
-          handleError(e);
-          return false;
+    const normalizeYAMLResponse = (yaml) => {
+      assertPeer(
+        _.isObject(yaml) &&
+        (
+          (!_.isObject(yaml.result) && _.isObject(yaml.error)) ||
+          (_.isObject(yaml.result) && !_.isObject(yaml.error))
+        ) &&
+        typeof yaml.yamlrpc === 'string', {
+          msg: 'Invalid yamlrpc response format.',
         }
+      );
 
-        try {
-          let response = await search(formParams);
+      const normalized = {
+        id: yaml.id,
+        yamlrpc: yaml.yamlrpc,
+      };
 
-          if (response.statusCode >= 1000 && response.statusCode < 2000) {
-            displaySearchResult(
-              response,
-              $allRoutesList,
-              $flightsListTemplate,
-              $flightItemTemplate
-            );
-          } else if (response.statusCode === 2000) {
-            displayErrorMessage('There is no information about this flight at the moment. Please come back in 15 minutes.');
-          }
-        } catch (e) {
-          handleError(e);
-        }
+      if (_.isObject(yaml.result)) {
+        normalized.result = yaml.result;
+      } else {
+        normalized.error = yaml.error;
+      }
 
-        return false;
+      return normalized;
+    };
+
+    const stringifyYAML = (yaml) => {
+      try {
+        return jsyaml.safeDump(yaml);
+      } catch (error) {
+        throw new ApplicationError({
+          msg: error,
+        });
+      }
+    };
+
+    const parseRequest = (data) => {
+      const normalized = normalizeYAMLRequest(parseYAML(data));
+      return {
+        ...normalized,
+        version: normalized.yamlrpc,
+      };
+    };
+
+    const parseResponse = async (response) => {
+      const data = await response.text();
+      const normalized = normalizeYAMLResponse(parseYAML(data));
+      return normalized;
+    };
+
+    const stringifyResponse = (data, id = null, yamlrpc = '2.0') => {
+      return stringifyYAML({ result: data, yamlrpc, id });
+    };
+
+    const stringifyRequest = (data, id = null, yamlrpc = '2.0') => {
+      const { method, params } = data;
+      return stringifyYAML({
+        action: method,
+        parameters: params,
+        yamlrpc,
+        id,
+      });
+    };
+
+    const error = (error, yamlrpc = '2.0') => {
+      return stringifyYAML({ yamlrpc, error, id: null });
+    };
+
+    return {
+      name: 'yamlrpc',
+      contentType: 'text/yaml',
+      format: 'yaml',
+      parseRequest,
+      parseResponse,
+      stringifyResponse,
+      stringifyRequest,
+      error,
+    };
+  }
+
+  function jsonParser () {
+    const parseRequest = (data) => {
+      return {
+        ...data,
+        version: data.jsonrpc,
+      };
+    };
+
+    const parseResponse = async (response) => {
+      const data = await response.json();
+      return {
+        ...data,
+        version: data.jsonrpc,
+      };
+    };
+
+    const stringifyRequest = (data, id = null, jsonrpc = '2.0') => {
+      const { method, params } = data;
+      return JSON.stringify({
+        method,
+        params,
+        jsonrpc,
+        id,
+      });
+    };
+
+    const stringifyResponse = (data, id = null, jsonrpc = '2.0') => {
+      try {
+        return JSON.stringify({ jsonrpc, id, result: data });
+      } catch (error) {
+        throw new ApplicationError({
+          msg: error,
+        });
+      }
+    };
+
+    const error = (error, jsonrpc = '2.0') => {
+      try {
+        return JSON.stringify({ jsonrpc, error, id: null });
+      } catch (error) {
+        throw new ApplicationError({
+          msg: error,
+        });
+      }
+    };
+
+    return {
+      name: 'jsonrpc',
+      contentType: 'application/json',
+      format: 'json',
+      parseRequest,
+      parseResponse,
+      stringifyResponse,
+      stringifyRequest,
+      error,
+    };
+  }
+
+  function defineParsers (...args) {
+    const parsers = args.map((arg) => arg());
+
+    const getParser = (parsers) => (name) => {
+      assertApp(typeof name === 'string', {
+        msg: `Can't get parser '${name}', typeof=${typeof name}`,
       });
 
-    let airportsByNames = Object.values(AIRPORT_HASH)
+      for (const parser of parsers) {
+        if (parser.name === name) {
+          return parser;
+        }
+      }
+
+      throw new ApplicationError({
+        msg: `No parser with name '${name}'`,
+      });
+    };
+
+    return getParser(parsers);
+  }
+
+  $(document).ready(() => {
+    // $('#test').autocomplete();
+    $errorBar = $('#errorBar');
+
+    const $allRoutesList = $('#all-routes-list'); // consts
+    const $routeItemTemplate = $('#flights-list-item-template');
+    const $flightItemTemplate = $('#flight-item-template');
+
+    const $flightForm = $('#flight-form-input');
+
+    $('#subscribe-button').click(async () => {
+      trace(`Subscribe button clicked`);
+
+      let formParams;
+      try {
+        formParams = getSearchFormParams($flightForm);
+      } catch (e) {
+        handleError(e);
+        return false;
+      }
+
+      try {
+        const result = await subscribe({
+          v: formParams.v,
+          fly_from: formParams.fly_from,
+          fly_to: formParams.fly_to,
+        }, formParams.format);
+
+        if (result.status_code >= 1000 && result.status_code < 2000) {
+          displaySearchResult(
+            result,
+            $allRoutesList,
+            { $routeItemTemplate, $flightItemTemplate }
+          );
+        } else if (result.status_code === 2000) {
+          displayErrorMessage('There is no information about this flight at the moment. Please come back in 15 minutes.');
+        }
+      } catch (e) {
+        handleError(e);
+      }
+
+      return false;
+    });
+
+    $('#unsubscribe-button').click(async () => {
+      trace(`Unsubscribe button clicked`);
+
+      let formParams;
+      try {
+        formParams = getSearchFormParams($flightForm);
+      } catch (e) {
+        handleError(e);
+        return false;
+      }
+
+      try {
+        const result = await unsubscribe({
+          v: formParams.v,
+          fly_from: formParams.fly_from,
+          fly_to: formParams.fly_to,
+        }, formParams.format);
+
+        if (result.status_code >= 1000 && result.status_code < 2000) {
+          displaySearchResult(
+            result,
+            $allRoutesList,
+            { $routeItemTemplate, $flightItemTemplate }
+          );
+        } else if (result.status_code === 2000) {
+          displayErrorMessage('There is no information about this flight at the moment. Please come back in 15 minutes.');
+        }
+      } catch (e) {
+        handleError(e);
+      }
+    });
+
+    $('#submit-button').click(async (event) => {
+      trace(`Submit button clicked`);
+
+      event.preventDefault();
+      let formParams;
+
+      try {
+        formParams = getSearchFormParams($flightForm);
+      } catch (e) {
+        handleError(e);
+        return false;
+      }
+
+      try {
+        const format = formParams.format;
+
+        delete formParams.format;
+
+        const result = await search(formParams, format);
+
+        if (result.status_code >= 1000 && result.status_code < 2000) {
+          displaySearchResult(
+            result,
+            $allRoutesList,
+            { $routeItemTemplate, $flightItemTemplate }
+          );
+        } else if (result.status_code === 2000) {
+          displayErrorMessage('There is no information about this flight at the moment. Please come back in 15 minutes.');
+        }
+      } catch (e) {
+        handleError(e);
+      }
+
+      return false;
+    });
+
+    $flightForm.on('submit', event => {
+      event.preventDefault();
+    });
+
+    const airportsByNames = Object.values(AIRPORT_HASH)
       .reduce(
         (hash, airport) => {
           hash[airport.latinName] = airport;
@@ -651,93 +842,25 @@ $(document).ready(() => {
         {}
       );
 
-    setupAutoComplete({
-      hash: airportsByNames,
-      $textInput: $('#from-input'),
-      $dataList: $('#from-airports')
-    });
-    setupAutoComplete({
-      hash: airportsByNames,
-      $textInput: $('#to-input'),
-      $dataList: $('#to-airports')
-    });
-
+    $('#from-input').autocomplete(airportsByNames);
+    $('#to-input').autocomplete(airportsByNames);
     setupLoading($('#load-more-button'), $allRoutesList);
   });
 
-window.addEventListener('error', (error) => {
-  handleError(error);
+  window.addEventListener('error', (error) => {
+    handleError(error);
 
-  // suppress
-  return true;
-});
+    // suppress
+    return true;
+  });
 
-function handleError (error) {
-  console.error(error);
+  function handleError (error) {
+    console.log(error);
 
-  if (error.userMessage) {
-    console.log('displaying user message');
-    displayErrorMessage(error.userMessage);
-  }
-}
-
-function validateParams (params, required, fixed) {
-  // TODO this might not be needed if the API can accept undefined values
-  params = cleanUndefinedFromObject(params);
-
-  for (let requiredParam of required) {
-    ApplicationError.assert(
-      !_.has(required, requiredParam),
-      {logs: ['Missing required keyword argument: ', requiredParam]}
-    );
-  }
-
-  for (let [fixedParam, possibleStates] of Object.entries(fixed)) {
-    ApplicationError.assert(
-      !_.has(params, fixedParam) && !_.includes(possibleStates, params[fixedParam]),
-      {
-        logs: [
-          'Paramater', fixedParam,
-          'is not one of:', fixed[fixedParam],
-          'instead got -', params[fixedParam]]
-      }
-    );
-  }
-
-  return params;
-}
-
-// TODO remove
-function switchStyle (json, converter) {
-  function switchHash (hash) {
-    return _.mapKeys(hash, (value, key) => converter(key));
-  }
-
-  function switcher (json) {
-    let converted = switchHash(json);
-
-    for (let [key, value] of Object.entries(converted)) {
-      if (_.isPlainObject(value)) {
-        value = switcher(value);
-      } else if (Array.isArray(value)) {
-        value = value.map(switcher);
-      }
-
-      converted[key] = value;
+    if (error.userMessage) {
+      displayErrorMessage(error.userMessage);
     }
-
-    return converted;
   }
-
-  return switcher(json);
 }
 
-function snakeToCamel (string) {
-  let words = string.split('_');
-  let top = words[0];
-
-  words.splice(0, 1);
-
-  return top + words.map(_.capitalize)
-    .join('');
-}
+start();
