@@ -18,8 +18,6 @@ const FORMATS = {
 function getAPIRequestSchema (name) {
   const schemaPath = path.join(SCHEMAS_DIR, `${name}.json`);
 
-  console.log('schema path: ', schemaPath);
-
   assertApp(
     fs.existsSync(schemaPath),
     'Missing schema', name
@@ -29,6 +27,7 @@ function getAPIRequestSchema (name) {
 }
 
 for (const schemaName of SCHEMA_NAMES) {
+  console.log(`registering schema ${schemaName}`);
   try {
     ajv.addSchema(getAPIRequestSchema(schemaName), schemaName);
   } catch (e) {

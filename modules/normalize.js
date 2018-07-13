@@ -77,9 +77,9 @@ function jsonParser () {
     }
   };
 
-  const error = (error, jsonrpc = '2.0') => {
+  const error = (error, jsonrpc = '2.0', id = null) => {
     try {
-      return JSON.stringify({ jsonrpc, error, id: null });
+      return JSON.stringify({ jsonrpc, error, id });
     } catch (error) {
       throw new AppError('Data could not be stringified.');
     }
@@ -104,7 +104,6 @@ function defineParsers (...args) {
   const parsers = args.map((arg) => arg());
 
   const assertType = (type) => {
-    console.log("asserting type", type);
     assertPeer(
       isObject(type) &&
       (!type.contentType || typeof type.contentType === 'string') &&
@@ -164,9 +163,7 @@ function defineParsers (...args) {
     throw new PeerError('Unknown content type.');
   };
 
-  const error = (error, type) => {
-    assertType(type);
-
+  const error = (error, {type}) => {
     for (const parser of parsers) {
       if (parser.contentType === type.contentType) {
         assertFormat(parser, type.format);
