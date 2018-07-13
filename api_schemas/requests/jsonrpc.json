@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "/api_schemas/protocol.json",
-  "title": "Subscribe request API method",
-  "description": "Body of the subscribe API method sent from the client.",
+  "title": "JSONRPC request protocol",
+  "description": "Skeleton of the JSONRPC protocol.",
   "type": "object",
   "properties": {
     "id": {

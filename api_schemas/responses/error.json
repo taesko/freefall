@@ -1,0 +1,9 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "/api_schemas/responses/yamlrpc.json",
+  "title": "YAMLRPC response",
+  "type": "object",
+  "properties": {
+
+  }
+}
