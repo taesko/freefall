@@ -17,7 +17,7 @@ function search () {
         typeof routeFlight.atime === 'string' &&
         typeof routeFlight.flightNumber === 'string' &&
         (routeFlight.isReturn === 1 || routeFlight.isReturn === 0),
-        'Invalid database flight response.'
+        'Invalid database flight response.',
       );
 
       return {
@@ -96,7 +96,7 @@ function search () {
 
     const areEndpointsCorrect = (route) => {
       return route.some(hasMatchingDepartureAirport) &&
-        route.some(hasMatchingArrivalAirport);
+             route.some(hasMatchingArrivalAirport);
     };
 
     assertPeer(
@@ -110,7 +110,7 @@ function search () {
       (!params.date_to || typeof params.date_to === 'string') &&
       (!params.sort || typeof params.sort === 'string') &&
       (!params.max_fly_duration || Number.isInteger(params.max_fly_duration)),
-      'Invalid search request.'
+      'Invalid search request.',
     );
 
     params.price_to = toSmallestCurrencyUnit(params.price_to);
@@ -130,7 +130,7 @@ function search () {
         fly_to: params.fly_to,
       }, db);
 
-      result.status_code = 2000;
+      result.status_code = '2000';
       result.routes = [];
 
       return result;
@@ -141,7 +141,7 @@ function search () {
       isObject(subs[0]) &&
       Number.isInteger(subs[0].fetchId) &&
       typeof subs[0].timestamp === 'string',
-      'Invalid subscription data.'
+      'Invalid subscription data.',
     );
 
     const fetchId = subs[0].fetchId;
@@ -149,7 +149,7 @@ function search () {
 
     assertApp(
       Array.isArray(routesAndFlights),
-      'Invalid database routes and flights response.'
+      'Invalid database routes and flights response.',
     );
 
     const routesHash = {};
@@ -160,7 +160,7 @@ function search () {
         Number.isInteger(routeFlight.routeId) &&
         typeof routeFlight.bookingToken === 'string' &&
         Number.isInteger(routeFlight.price),
-        'Invalid database route response.'
+        'Invalid database route response.',
       );
 
       routesHash[routeFlight.routeId] = routesHash[routeFlight.routeId] || {
@@ -180,7 +180,7 @@ function search () {
       assertApp(
         typeof routeId === 'string' &&
         isObject(routeData),
-        'Invalid database route response'
+        'Invalid database route response',
       );
 
       const route = routeData.route;
@@ -188,17 +188,17 @@ function search () {
       assertApp(
         route.every(flight => {
           return Number.isInteger(flight.afromId) &&
-            Number.isInteger(flight.atoId) &&
-            typeof flight.airlineName === 'string' &&
-            typeof flight.logoURL === 'string' &&
-            typeof flight.afromName === 'string' &&
-            typeof flight.atoName === 'string' &&
-            typeof flight.dtime === 'string' &&
-            typeof flight.atime === 'string' &&
-            typeof flight.flightNumber === 'string' &&
-            (flight.isReturn === 1 || flight.isReturn === 0);
+                 Number.isInteger(flight.atoId) &&
+                 typeof flight.airlineName === 'string' &&
+                 typeof flight.logoURL === 'string' &&
+                 typeof flight.afromName === 'string' &&
+                 typeof flight.atoName === 'string' &&
+                 typeof flight.dtime === 'string' &&
+                 typeof flight.atime === 'string' &&
+                 typeof flight.flightNumber === 'string' &&
+                 (flight.isReturn === 1 || flight.isReturn === 0);
         }),
-        'Invalid database flight response.'
+        'Invalid database flight response.',
       );
 
       if (areEndpointsCorrect(route)) {
@@ -218,7 +218,7 @@ function search () {
       .map(flyDurationExcluder)
       .sort(cmpPrices)
       .map(flightsInRouteSorter);
-    result.status_code = 1000;
+    result.status_code = '1000';
 
     return result;
   };
@@ -247,7 +247,7 @@ function subscribe (params, db) {
     });
 
     return {
-      status_code: (isSubscribed) ? 1000 : 2000,
+      status_code: (isSubscribed) ? '1000' : '2000',
     };
   };
 
@@ -256,15 +256,16 @@ function subscribe (params, db) {
     execute,
   };
 }
+
 function unsubscribe () {
   const execute = async function execute (params, db) {
     const isDel = await db.delIfNotExistsEmailSub(
       +params.fly_from,
       +params.fly_to,
-      params.email
+      params.email,
     );
     return {
-      status_code: (isDel) ? 1000 : 2000,
+      status_code: (isDel) ? '1000' : '2000',
     };
   };
 
@@ -284,7 +285,7 @@ function sendError () {
     log('Got trace from client: ', params);
 
     return {
-      status_code: 1000,
+      status_code: '1000',
     };
   };
 
@@ -297,24 +298,24 @@ function sendError () {
 function defineMethods (...args) {
   assertApp(
     args.every(isFunction),
-    'defineMethods received an argument that is not a function.'
+    'defineMethods received an argument that is not a function.',
   );
   const methods = args.map((arg) => arg());
 
   const execute = (methods) => (methodName, params, db) => {
     assertPeer(
       typeof methodName === 'string',
-      `Expected a name of method, got ${methodName}, type ${typeof methodName}`
+      `Expected a name of method, got ${methodName}, type ${typeof methodName}`,
     );
 
     assertPeer(
       isObject(params),
-      `Expected object params, got ${params}, not an object`
+      `Expected object params, got ${params}, not an object`,
     );
 
     assertPeer(
       isObject(db),
-      `Expected db object, got ${db}`
+      `Expected db object, got ${db}`,
     );
 
     for (const method of methods) {
