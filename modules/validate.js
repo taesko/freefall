@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const Ajv = require('ajv');
 const ajv = new Ajv();
-const {assertApp, assertPeer, AppError} = require('./error-handling');
-const {log} = require('./utils');
+const { assertApp, assertPeer, AppError } = require('./error-handling');
+const { log } = require('./utils');
 
 const PROTOCOLS = ['jsonrpc'];
 const METHODS = ['search', 'subscribe', 'unsubscribe', 'senderror'];
@@ -24,10 +24,10 @@ function getApiSchema (method, type = 'request') {
 
   assertApp(
     fs.existsSync(schemaPath),
-    `Missing schema ${method}`
+    `Missing schema ${method}`,
   );
 
-  return fs.readFileSync(schemaPath);
+  return JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
 }
 
 function getFullSchemaName (method, type) {
@@ -36,10 +36,11 @@ function getFullSchemaName (method, type) {
     METHODS.indexOf(method) !== -1 ||
     PROTOCOLS.indexOf(method) !== -1 ||
     method === 'error',
-    `there is no such method ${method}`
+    `there is no such method ${method}`,
   );
   assertApp(type === 'request' || type === 'response',
-    `invalid type=${type} parameter - must be one of ['request', 'response']`);
+    `invalid type=${type} parameter - must be one of ['request', 'response']`,
+  );
 
   return `${type}/${method}`;
 }
@@ -61,7 +62,7 @@ function getFullSchemaName (method, type) {
   for (const [name, schema] of Object.entries(schemas)) {
     try {
       ajv.addSchema(schema, name);
-      log(`Registered schema ${name}`);
+      log(`Registered schema with name=${name} and contents:`, schema);
     } catch (e) {
       throw new AppError(`Cannot add ${name} schema to ajv. Reason: ${e}`);
     }
@@ -70,7 +71,8 @@ function getFullSchemaName (method, type) {
 
 function validateProtocol (obj, protocol = 'jsonrpc', type = 'request') {
   assertApp(PROTOCOLS.indexOf(protocol) !== -1,
-    `Cannot validate protocol - ${protocol} is unknown`);
+    `Cannot validate protocol - ${protocol} is unknown`,
+  );
 
   if (type === 'request') {
     assertPeer(ajv.validate(`request/${protocol}`, obj));
@@ -86,26 +88,31 @@ function validateRequest (requestBody, protocol = 'jsonrpc') {
 
   const method = requestBody.method;
   const apiParams = requestBody.params;
+  const schemaName = getFullSchemaName(method, 'request');
 
   assertPeer(METHODS.indexOf(method) !== -1, `Method not supported - ${method}`);
-  assertPeer(ajv.validate(getFullSchemaName(method, 'request'), apiParams),
-    `Invalid params for method ${method}`
+  log('using schema', schemaName, 'to validate method', method);
+  assertPeer(ajv.validate(schemaName, apiParams),
+    `Invalid params for method ${method}`,
   );
+  log('ajv validate result: ', ajv.validate(schemaName, apiParams), 'error', ajv.errors);
+
+  log('validated method', method, 'with params', apiParams);
 }
 
-function validateRequestFormat ({headerParam, queryParam}) {
+function validateRequestFormat ({ headerParam, queryParam }) {
   const headerFormat = FORMATS[headerParam];
   const queryFormat = FORMATS[queryParam];
   assertPeer(
     headerFormat || queryFormat,
-    `neither of header parameter ${headerParam} and query parameter ${queryParam} are valid format parameters`
+    `neither of header parameter ${headerParam} and query parameter ${queryParam} are valid format parameters`,
   );
   assertPeer(
     !(
       headerFormat && queryFormat &&
       headerFormat.toLowerCase() === queryFormat.toLowerCase()
     ),
-    `header param ${headerParam} and query param ${queryParam} have different values.`
+    `header param ${headerParam} and query param ${queryParam} have different values.`,
   );
 
   return headerFormat || queryFormat;
@@ -114,17 +121,25 @@ function validateRequestFormat ({headerParam, queryParam}) {
 function validateResponse (responseBody, method, protocol = 'jsonrpc') {
   assertApp(
     METHODS.indexOf(method) !== -1,
-    `Tried to validate an unknown method=${method}`
+    `Tried to validate an unknown method=${method}`,
   );
 
+  log('validating method', method, 'with response: ', responseBody);
   validateProtocol(responseBody, protocol, 'response');
 
   if (responseBody.error) {
-    assertApp(ajv.validate(getFullSchemaName('error', 'request'), responseBody.error));
+    assertApp(
+      ajv.validate(getFullSchemaName('error', 'request'), responseBody.error),
+      `invalid error response for method ${method}`,
+    );
   } else {
-    assertApp(ajv.validate(getFullSchemaName(method, 'request'), responseBody.result));
+    assertApp(
+      ajv.validate(getFullSchemaName(method, 'request'), responseBody.result),
+      `invalid result in response for method ${method}`,
+    );
   }
 }
+
 module.exports = {
   validateRequest,
   validateResponse,

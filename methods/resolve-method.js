@@ -281,7 +281,7 @@ function sendError () {
       'Invalid senderror request',
     );
 
-    log(params);
+    log('Got trace from client: ', params);
 
     return {
       status_code: 1000,

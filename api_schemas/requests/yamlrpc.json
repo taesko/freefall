@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "/api_schemas/protocol.json",
+  "$id": "request/yamlrpc",
   "title": "YAMLRPC protocol (fork of JSONRPC)",
   "description": "Skeleton of the YAMLRPC protocol.",
   "type": "object",

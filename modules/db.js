@@ -336,6 +336,8 @@ module.exports = (() => {
   async function delIfNotExistsEmailSub (flyFrom, flyTo, email) {
     assertDB();
 
+    log('deleting subscription', flyFrom, flyTo, email);
+
     const deleteResult = await db.run(
       `
       DELETE FROM email_subscriptions

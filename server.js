@@ -18,11 +18,11 @@ const { PeerError, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
 const { log } = require('./modules/utils');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./modules/validate');
-const {notifyEmailSubscriptions} = require('./modules/mailing');
+const { notifyEmailSubscriptions } = require('./modules/mailing');
 
 const parser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(
-  search, subscribe, unsubscribe, sendError
+  search, subscribe, unsubscribe, sendError,
 );
 
 const app = new Koa();
@@ -97,6 +97,8 @@ router.post('/', async (ctx, next) => {
 
   validateRequest(parsed, `${format}rpc`);
 
+  log('Executing method', parsed.method, 'with params', parsed.params);
+
   const result = await execute(parsed.method, parsed.params, ctx.db);
   const stringified = parser.stringify(result, {
     type: {
@@ -107,7 +109,11 @@ router.post('/', async (ctx, next) => {
     id: parsed.id,
   });
 
-  validateResponse(stringified, parsed.method, `${format}rpc`);
+  validateResponse(
+    JSON.parse(stringified),
+    parsed.method,
+    `${format}rpc`,
+  );
   await notifyEmailSubscriptions();
   ctx.status = 200;
   ctx.body = stringified;

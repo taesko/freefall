@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "/api_schemas/responses/jsonrpc.json",
+  "$id": "responses/jsonrpc.json",
   "title": "JSONRPC response",
   "description": "Skeleton of the post body for JSONRPC.",
   "type": "object",

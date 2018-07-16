@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "/api_schemas/unsubscribe.json",
+  "$id": "request/unsubscribe",
   "title": "Unsubscribe request API method",
   "description": "Body of the unsubscribe API method sent from the client.",
   "type": "object",
