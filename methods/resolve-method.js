@@ -233,35 +233,8 @@ function search () {
 
 function subscribe (params, db) {
   const execute = async function execute (params, db) {
-    assertPeer(
-      isObject(params) &&
-      Number.isInteger(+params.v) &&
-      Number.isInteger(+params.fly_from) &&
-      Number.isInteger(+params.fly_to),
-      'Invalid subscribe request.'
-    );
-
     const flyFrom = +params.fly_from;
     const flyTo = +params.fly_to;
-
-    const isInserted = await db.insertIfNotExistsSub(flyFrom, flyTo);
-
-    return {
-      status_code: (isInserted) ? 1000 : 2000,
-    };
-  };
-
-  return {
-    name: 'subscribe',
-    execute,
-  };
-}
-
-function subscribeEmail (params, db) {
-  const execute = async function execute (params, db) {
-    const flyFrom = +params.fly_from;
-    const flyTo = +params.fly_to;
-    // TODO error handle with json schema
     const email = params.email;
     const dateFrom = params.date_from;
     const dateTo = params.date_to;
@@ -276,25 +249,17 @@ function subscribeEmail (params, db) {
     });
 
     return {
-      status_code: isSubscribed ? 1000 : 2000,
+      status_code: (isSubscribed) ? 1000 : 2000,
     };
   };
 
   return {
-    name: 'subscribe_email',
+    name: 'subscribe',
     execute,
   };
 }
 function unsubscribe () {
   const execute = async function execute (params, db) {
-    assertPeer(
-      isObject(params) &&
-      Number.isInteger(+params.v) &&
-      Number.isInteger(+params.fly_from) &&
-      Number.isInteger(+params.fly_to),
-      'Invalid unsubscribe request.'
-    );
-
     const isDel = await db.delIfNotExistsSub(+params.fly_from, +params.fly_to);
 
     return {
@@ -366,7 +331,6 @@ module.exports = {
   defineMethods,
   search,
   subscribe,
-  subscribeEmail,
   unsubscribe,
   sendError,
 };

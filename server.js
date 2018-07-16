@@ -10,7 +10,6 @@ const {
   defineMethods,
   search,
   subscribe,
-  subscribeEmail,
   unsubscribe,
   sendError,
 } = require('./methods/resolve-method');
@@ -23,7 +22,7 @@ const {notifyEmailSubscriptions} = require('./modules/mailing');
 
 const parser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(
-  search, subscribe, subscribeEmail, unsubscribe, sendError
+  search, subscribe, unsubscribe, sendError
 );
 
 const app = new Koa();
