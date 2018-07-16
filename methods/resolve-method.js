@@ -259,11 +259,7 @@ function subscribe (params, db) {
 
 function unsubscribe () {
   const execute = async function execute (params, db) {
-    const isDel = await db.delIfNotExistsEmailSub(
-      +params.fly_from,
-      +params.fly_to,
-      params.email,
-    );
+    const isDel = await db.delIfNotExistsEmailSub(params.email);
     return {
       status_code: (isDel) ? '1000' : '2000',
     };

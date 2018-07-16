@@ -62,7 +62,7 @@ function getFullSchemaName (method, type) {
   for (const [name, schema] of Object.entries(schemas)) {
     try {
       ajv.addSchema(schema, name);
-      log(`Registered schema with name=${name} and contents:`, schema);
+      log(`Registered schema with name=${name}`);
     } catch (e) {
       throw new AppError(`Cannot add ${name} schema to ajv. Reason: ${e}`);
     }
@@ -77,12 +77,12 @@ function validateProtocol (obj, protocol = 'jsonrpc', type = 'request') {
   if (type === 'request') {
     assertPeer(
       ajv.validate(`request/${protocol}`, obj),
-      `Bad protocol. Error: ${ajv.errorsText()}`
+      `Bad protocol. Error: ${ajv.errorsText()}`,
     );
   } else if (type === 'response') {
     assertApp(
       ajv.validate(`response/${protocol}`, obj),
-      `Bad response. Error: ${ajv.errorsText()}`
+      `Bad response. Error: ${ajv.errorsText()}`,
     );
   } else {
     assertApp(false, `Invalid parameter type=${type}`);
@@ -133,12 +133,12 @@ function validateResponse (responseBody, method, protocol = 'jsonrpc') {
 
   if (responseBody.error) {
     assertApp(
-      ajv.validate(getFullSchemaName('error', 'request'), responseBody.error),
+      ajv.validate(getFullSchemaName('error', 'response'), responseBody.error),
       `invalid error response for method ${method}. Error: ${ajv.errorsText()}`,
     );
   } else {
     assertApp(
-      ajv.validate(getFullSchemaName(method, 'request'), responseBody.result),
+      ajv.validate(getFullSchemaName(method, 'response'), responseBody.result),
       `invalid result in response for method ${method}. Error: ${ajv.errorsText()}`,
     );
   }

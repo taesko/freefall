@@ -333,30 +333,20 @@ module.exports = (() => {
     return deleteResult.stmt.changes > 0;
   }
 
-  async function delIfNotExistsEmailSub (flyFrom, flyTo, email) {
+  async function delIfNotExistsEmailSub (email) {
     assertDB();
 
-    log('deleting subscription', flyFrom, flyTo, email);
+    log('deleting subscriptions of email: ', email);
 
     const deleteResult = await db.run(
       `
       DELETE FROM email_subscriptions
-      WHERE email_subscriptions.id IN (
-        SELECT email.id 
-        FROM email_subscriptions email
-        JOIN subscriptions sub
-        ON email.subscription_id=sub.id
-        WHERE sub.airport_from_id=?
-          AND sub.airport_to_id=?
-      )
-        AND email_subscriptions.email=?
+      WHERE email_subscriptions.email=?
       ;
-    `,
-      +flyFrom,
-      +flyTo,
-      email,
+    `, email,
     );
 
+    log('delete query result: ', deleteResult);
     return deleteResult.stmt.changes > 0;
   }
 

@@ -1,187 +1,68 @@
 const YAMLParser = require('js-yaml');
-const { assertPeer, AppError, PeerError } = require('./error-handling');
-const { isObject } = require('lodash');
+const { assertApp, AppError } = require('./error-handling');
+const { log } = require('./utils');
+
+class UnsupportedFormat extends AppError {
+  constructor (format) {
+    super(`'${format}' format is not supported`);
+  }
+}
 
 function yamlParser () {
-  const parseYAML = (yaml) => {
-    try {
-      return YAMLParser.safeLoad(yaml);
-    } catch (error) {
-      throw new PeerError('Invalid input format. Cannot parse YAML.');
-    }
-  };
-
-  const normalizeYAML = (yaml) => {
-    assertPeer(
-      isObject(yaml) &&
-      isObject(yaml.parameters) &&
-      typeof yaml.yamlrpc === 'string' &&
-      typeof yaml.action === 'string',
-      'Invalid input format.'
-    );
-
-    return {
-      yamlrpc: yaml.yamlrpc,
-      method: yaml.action,
-      params: yaml.parameters,
-      id: yaml.id,
-    };
-  };
-
-  const stringifyYAML = (yaml) => {
-    try {
-      return YAMLParser.safeDump(yaml);
-    } catch (error) {
-      throw new AppError(error);
-    }
-  };
-
-  const execute = (data) => {
-    const normalized = normalizeYAML(parseYAML(data));
-    return {
-      ...normalized,
-      version: normalized.yamlrpc,
-    };
-  };
-
-  const stringify = (data, yamlrpc = '2.0', id = null) => {
-    return stringifyYAML({ result: data, yamlrpc, id });
-  };
-
-  const error = (error, yamlrpc = '2.0') => {
-    return stringifyYAML({ yamlrpc, error, id: null });
-  };
-
   return {
-    contentType: 'text/yaml',
     format: 'yaml',
-    execute,
-    stringify,
-    error,
+    parse: YAMLParser.safeLoad,
+    stringify: YAMLParser.safeDump,
   };
 }
 
 function jsonParser () {
-  const execute = (data) => {
-    return {
-      ...data,
-      version: data.jsonrpc,
-    };
-  };
-
-  const stringify = (data, jsonrpc = '2.0', id = null) => {
-    try {
-      return JSON.stringify({ jsonrpc, id, result: data });
-    } catch (error) {
-      throw new AppError(error);
-    }
-  };
-
-  const error = (error, jsonrpc = '2.0', id = null) => {
-    try {
-      return JSON.stringify({ jsonrpc, error, id });
-    } catch (error) {
-      throw new AppError('Data could not be stringified.');
-    }
-  };
-
   return {
-    contentType: 'application/json',
     format: 'json',
-    execute,
-    stringify,
-    error,
+    parse: JSON.parse,
+    stringify: JSON.stringify,
   };
 }
 
-// const closure = (param1) => {
-//   return (param2) => {
-//     return param1 + param2;
-//   }
-// };
-
 function defineParsers (...args) {
   const parsers = args.map((arg) => arg());
-
-  const assertType = (type) => {
-    assertPeer(
-      isObject(type) &&
-      (!type.contentType || typeof type.contentType === 'string') &&
-      (!type.format || typeof type.format === 'string'),
-      'Invalid content type.'
-    );
+  const supportsFormat = parsers => format => {
+    return parsers.some(parser => parser.format === format);
   };
 
-  const assertFormat = (parser, format) => {
-    assertPeer(
-      parser.format === format ||
-      !format,
-      'Ambiguous content type.'
-    );
-  };
-
-  const assertContentType = (parser, contentType) => {
-    assertPeer(
-      parser.contentType === contentType ||
-      !contentType,
-      'Ambiguous content type.'
-    );
-  };
-
-  const parse = (parsers) => (data, type) => {
-    assertType(type);
-
-    for (const parser of parsers) {
-      if (parser.contentType === type.contentType) {
-        assertFormat(parser, type.format);
-
-        return parser.execute(data);
-      } else if (parser.format === type.format) {
-        assertContentType(parser, type.contentType);
-
-        return parser.execute(data);
-      }
+  const findParser = (parsers, format) => {
+    const parser = parsers.find(parser => parser.format === format);
+    if (!parser) {
+      throw new UnsupportedFormat(format);
     }
-    throw new PeerError('Unknown content type.');
+    return parser;
   };
 
-  const stringify = (data, metadata) => {
-    const { type, version, id } = metadata;
-    assertType(type);
-
-    for (const parser of parsers) {
-      if (parser.contentType === type.contentType) {
-        assertFormat(parser, type.format);
-
-        return parser.stringify(data, version, id);
-      } else if (parser.format === type.format) {
-        assertContentType(parser, type.contentType);
-
-        return parser.stringify(data, version, id);
-      }
+  const parse = parsers => (data, format) => {
+    const parser = findParser(parsers, format);
+    try {
+      return parser.parse(data);
+    } catch (e) {
+      log('Attempted to parse data', data, 'in format', format);
+      assertApp(false, `Failed to parse data in format ${format}. Error: ${e}`);
     }
-    throw new PeerError('Unknown content type.');
   };
 
-  const error = (error, {type}) => {
-    for (const parser of parsers) {
-      if (parser.contentType === type.contentType) {
-        assertFormat(parser, type.format);
-
-        return parser.error(error);
-      } else if (parser.format === type.format) {
-        assertContentType(parser, type.contentType);
-
-        return parser.error(error);
-      }
+  const stringify = parsers => (data, format) => {
+    const parser = findParser(parsers, format);
+    try {
+      return parser.stringify(data);
+    } catch (e) {
+      log('Attempted to stringify object', data, 'in format', format);
+      assertApp(false, `Failed to stringify object in format ${format}. Error: ${e}`);
     }
-    throw new PeerError('Unknown content type.');
   };
 
   return {
     parse: parse(parsers),
-    stringify,
-    error,
+    stringify: stringify(parsers),
+    supportsFormat,
+    findParser,
   };
 }
 

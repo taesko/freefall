@@ -17,7 +17,12 @@
     "method": {
       "description": "Method name.",
       "type": "string",
-      "enum": ["search", "subscribe", "unsubscribe"]
+      "enum": [
+        "search",
+        "subscribe",
+        "unsubscribe",
+        "senderror"
+      ]
     },
     "params": {
       "description": "Method parameters.",

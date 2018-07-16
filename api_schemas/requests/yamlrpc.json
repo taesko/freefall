@@ -17,11 +17,22 @@
     "action": {
       "description": "Action name.",
       "type": "string",
-      "enum": ["search", "subscribe", "unsubscribe"]
+      "enum": [
+        "search",
+        "subscribe",
+        "unsubscribe",
+        "senderror"
+      ]
     },
     "parameters": {
       "description": "Action parameters.",
       "type": "object"
     }
-  }
+  },
+  "required": [
+    "id",
+    "yamlrpc",
+    "action",
+    "parameters"
+  ]
 }

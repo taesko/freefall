@@ -8,15 +8,12 @@
     "v": {
       "type": "string"
     },
-    "fly_from": {
-      "type": "string"
-    },
-    "fly_to": {
-      "type": "string"
-    },
     "email": {
       "type": "string"
     }
   },
-  "required": ["v", "fly_from", "fly_to", "email"]
+  "required": [
+    "v",
+    "email"
+  ]
 }

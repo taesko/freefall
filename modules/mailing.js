@@ -8,7 +8,7 @@ const callAPI = defineMethods(search);
 async function selectEmailsToNotify (db) {
   // TODO esub -> subcr or es
   // renames are 4 symbols max
-  return await db.all(`
+  return db.all(`
       SELECT esub.id, esub.email, esub.subscription_id, esub.date_from, esub.date_to 
       FROM email_subscriptions esub
       LEFT JOIN fetches ON esub.fetch_id_of_last_send = fetches.id
@@ -56,7 +56,6 @@ async function notifyEmailSubscriptions () {
         log(email.email, 'needs to be notified');
       } else {
         log(email.email, 'does not need to be notified');
-        log('search result was: ', routes);
       }
     } catch (e) {
       log(e);

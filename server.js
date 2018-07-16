@@ -14,13 +14,14 @@ const {
   sendError,
 } = require('./methods/resolve-method');
 const { defineParsers, jsonParser, yamlParser } = require('./modules/normalize');
+const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./modules/protocol');
 const { PeerError, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
 const { log } = require('./modules/utils');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./modules/validate');
 const { notifyEmailSubscriptions } = require('./modules/mailing');
 
-const parser = defineParsers(jsonParser, yamlParser);
+const multiParser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(
   search, subscribe, unsubscribe, sendError,
 );
@@ -42,30 +43,38 @@ app.use(async (ctx, next) => {
 
     ctx.status = 200;
 
-    const metadata = {
-      type: {
-        contentType: ctx.headers['content-type'],
-        format: ctx.query.format,
-      },
-      version: '1.0',
-      id: 1,
-    };
+    const format = validateRequestFormat({
+      headerParam: ctx.headers['content-type'],
+      queryParam: ctx.query.format,
+    });
+    const protocol = `${format}rpc`;
+    const version = '1.0';
+    const id = 1; // TODO ignore for now
+    let code;
+    let message;
+
     if (err instanceof PeerError) {
-      ctx.body = parser.error({
-        code: -32600,
-        message: err.message,
-      }, metadata);
+      code = -32600;
+      message = err.message;
     } else if (err instanceof UserError) {
-      ctx.body = parser.stringify({
-        code: 5000,
-        message: err.message,
-      }, metadata);
+      code = 5000;
+      message = err.message;
     } else {
-      ctx.body = parser.stringify({
-        code: 5000,
-        message: 'App error',
-      }, metadata);
+      code = 5000;
+      message = 'App error';
     }
+
+    const response = buildRPCErrorResponse({
+      protocol,
+      version,
+      id,
+      code,
+      message,
+      errorObject: {}, // TODO think about what to put inside here
+    });
+
+    ctx.body = multiParser.stringify(response, format);
+    log('error occurred and ctx.body was set to:', ctx.body);
   }
 });
 
@@ -75,7 +84,7 @@ app.use(logger());
 app.use(cors({
   origin: '*',
 }));
-app.use(bodyParser({
+app.use(bodyParser({ // TODO crashes on bad json, best avoid the inner parser
   extendTypes: {
     text: ['text/yaml'],
   },
@@ -86,37 +95,36 @@ app.use(serve(path.join(__dirname, 'public')));
 app.context.db = db;
 
 router.post('/', async (ctx, next) => {
+  log('getting post request');
   const format = validateRequestFormat({
     headerParam: ctx.headers['content-type'],
     queryParam: ctx.query.format,
   });
-  const parsed = parser.parse(ctx.request.body, {
-    contentType: ctx.headers['content-type'],
-    format: ctx.query.format,
+  log('got post request with body: ', ctx.request.body, 'and format: ', format);
+  const protocol = `${format}rpc`;
+  const parsed = format === 'json' ? ctx.request.body : multiParser.parse(ctx.request.body, format);
+
+  validateRequest(parsed, protocol);
+
+  const requestBody = normalizeRequest(parsed);
+
+  log('Executing method', requestBody.method, 'with params', requestBody.params);
+
+  const result = await execute(requestBody.method, requestBody.params, ctx.db);
+
+  log('executed method', requestBody.method);
+
+  const responseBody = buildRPCResponse({
+    protocol,
+    id: requestBody.id,
+    version: requestBody.jsonrpc,
+    resultObject: result,
   });
 
-  validateRequest(parsed, `${format}rpc`);
-
-  log('Executing method', parsed.method, 'with params', parsed.params);
-
-  const result = await execute(parsed.method, parsed.params, ctx.db);
-  const stringified = parser.stringify(result, {
-    type: {
-      contentType: ctx.headers['content-type'],
-      format: ctx.query.format,
-    },
-    version: parsed.version,
-    id: parsed.id,
-  });
-
-  validateResponse(
-    JSON.parse(stringified),
-    parsed.method,
-    `${format}rpc`,
-  );
-  await notifyEmailSubscriptions();
+  validateResponse(responseBody, parsed.method, `${format}rpc`);
+  await notifyEmailSubscriptions(); // TODO move out into a cron script
   ctx.status = 200;
-  ctx.body = stringified;
+  ctx.body = multiParser.stringify(responseBody, format);
   await next();
 });
 
