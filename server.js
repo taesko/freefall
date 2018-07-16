@@ -18,6 +18,7 @@ const { PeerError, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
 const { log } = require('./modules/utils');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./modules/validate');
+const {notifyEmailSubscriptions} = require('./modules/mailing');
 
 const parser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(search, subscribe, unsubscribe, sendError);
@@ -105,7 +106,7 @@ router.post('/', async (ctx, next) => {
   });
 
   validateResponse(stringified, parsed.method, `${format}rpc`);
-
+  await notifyEmailSubscriptions();
   // const mail = require('./modules/mailing');
   // mail.notifyEmailSubscriptions();
   ctx.status = 200;

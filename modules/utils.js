@@ -42,8 +42,8 @@ function fromSmallestCurrencyUnit (quantity) {
   return quantity / 100;
 }
 
-function log (msg) {
-  console.log(msg);
+function log (...msg) {
+  console.log(...msg);
 }
 
 module.exports = {

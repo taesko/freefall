@@ -1,7 +1,26 @@
 const db = require('./db');
 const { log } = require('./utils');
 const { assertApp } = require('./error-handling');
-const { search } = require('../methods/resolve-method');
+const { defineMethods, search } = require('../methods/resolve-method');
+
+const callAPI = defineMethods(search);
+
+async function selectEmailsToNotify (db) {
+  log('selecting emails to notify');
+  // TODO esub -> subcr or es
+  // renames are 4 symbols max
+  const emailSubIds = await db.all(`
+      SELECT esub.id, esub.email, esub.subscription_id, esub.date_from, esub.date_to 
+      FROM email_subscriptions esub
+      LEFT JOIN fetches ON esub.fetch_id_of_last_send = fetches.id
+      GROUP BY esub.id
+      HAVING fetches.timestamp IS NULL OR 
+        fetches.timestamp < MAX(fetches.timestamp);
+  `);
+  log('selected emails', emailSubIds);
+
+  return emailSubIds;
+}
 
 async function newRoutesForEmailSub (emailSub) {
   const rows = await db.selectWhere(
@@ -14,21 +33,34 @@ async function newRoutesForEmailSub (emailSub) {
     `email subscription with ID=${emailSub.id} has more than one subscription associated with it`,
   );
 
-  const [airportFrom, airportTo] = rows[0];
-  return search({
-    airport_from: airportFrom,
-    airport_to: airportTo,
+  const params = {
+    v: '1.0',
+    fly_from: rows[0].airport_from_id.toString(),
+    fly_to: rows[0].airport_to_id.toString(),
     date_from: emailSub.date_from,
     date_to: emailSub.date_to,
-  });
+  };
+
+  log(params);
+
+  return callAPI(
+    'search',
+    params,
+    db,
+  );
 }
 
 async function notifyEmailSubscriptions () {
-  const emails = await db.selectEmailsToNotify();
+  const emails = await selectEmailsToNotify(db);
 
   for (const email of emails) {
     try {
-      log(await newRoutesForEmailSub(email));
+      const routes = await newRoutesForEmailSub(email);
+      // TODO send email here
+      // only log that there are emails to send for now
+      if (routes.status_code === 1000) {
+        log(email, 'needs to be notified');
+      }
     } catch (e) {
       log(e);
     }
