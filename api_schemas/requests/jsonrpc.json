@@ -23,5 +23,6 @@
       "description": "Method parameters.",
       "type": "object"
     }
-  }
+  },
+  "required": ["id", "jsonrpc", "method", "params"]
 }

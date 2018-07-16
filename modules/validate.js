@@ -75,9 +75,15 @@ function validateProtocol (obj, protocol = 'jsonrpc', type = 'request') {
   );
 
   if (type === 'request') {
-    assertPeer(ajv.validate(`request/${protocol}`, obj));
+    assertPeer(
+      ajv.validate(`request/${protocol}`, obj),
+      `Bad protocol. Error: ${ajv.errorsText()}`
+    );
   } else if (type === 'response') {
-    assertApp(ajv.validate(`response/${protocol}`, obj));
+    assertApp(
+      ajv.validate(`response/${protocol}`, obj),
+      `Bad response. Error: ${ajv.errorsText()}`
+    );
   } else {
     assertApp(false, `Invalid parameter type=${type}`);
   }
@@ -93,10 +99,8 @@ function validateRequest (requestBody, protocol = 'jsonrpc') {
   assertPeer(METHODS.indexOf(method) !== -1, `Method not supported - ${method}`);
   log('using schema', schemaName, 'to validate method', method);
   assertPeer(ajv.validate(schemaName, apiParams),
-    `Invalid params for method ${method}`,
+    `Invalid params for method ${method}. Error: ${ajv.errorsText()}`,
   );
-  log('ajv validate result: ', ajv.validate(schemaName, apiParams), 'error', ajv.errors);
-
   log('validated method', method, 'with params', apiParams);
 }
 
@@ -130,12 +134,12 @@ function validateResponse (responseBody, method, protocol = 'jsonrpc') {
   if (responseBody.error) {
     assertApp(
       ajv.validate(getFullSchemaName('error', 'request'), responseBody.error),
-      `invalid error response for method ${method}`,
+      `invalid error response for method ${method}. Error: ${ajv.errorsText()}`,
     );
   } else {
     assertApp(
       ajv.validate(getFullSchemaName(method, 'request'), responseBody.result),
-      `invalid result in response for method ${method}`,
+      `invalid result in response for method ${method}. Error: ${ajv.errorsText()}`,
     );
   }
 }
