@@ -6,10 +6,9 @@ const { defineMethods, search } = require('../methods/resolve-method');
 const callAPI = defineMethods(search);
 
 async function selectEmailsToNotify (db) {
-  log('selecting emails to notify');
   // TODO esub -> subcr or es
   // renames are 4 symbols max
-  const emailSubIds = await db.all(`
+  return await db.all(`
       SELECT esub.id, esub.email, esub.subscription_id, esub.date_from, esub.date_to 
       FROM email_subscriptions esub
       LEFT JOIN fetches ON esub.fetch_id_of_last_send = fetches.id
@@ -17,9 +16,6 @@ async function selectEmailsToNotify (db) {
       HAVING fetches.timestamp IS NULL OR 
         fetches.timestamp < MAX(fetches.timestamp);
   `);
-  log('selected emails', emailSubIds);
-
-  return emailSubIds;
 }
 
 async function newRoutesForEmailSub (emailSub) {
@@ -57,9 +53,9 @@ async function notifyEmailSubscriptions () {
       // TODO send email here
       // only log that there are emails to send for now
       if (routes.status_code === 1000) {
-        log(email, 'needs to be notified');
+        log(email.email, 'needs to be notified');
       } else {
-        log(email, 'does not need to be notified');
+        log(email.email, 'does not need to be notified');
         log('search result was: ', routes);
       }
     } catch (e) {

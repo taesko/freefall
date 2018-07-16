@@ -212,14 +212,12 @@ function search () {
       }
     });
 
-    const routesFiltered = routes
+    result.routes = routes
       .map(flyDurationIncluder)
       .filter(flyDurationFilter)
       .map(flyDurationExcluder)
       .sort(cmpPrices)
       .map(flightsInRouteSorter);
-
-    result.routes = routesFiltered;
     result.status_code = 1000;
 
     return result;
@@ -260,8 +258,11 @@ function subscribe (params, db) {
 }
 function unsubscribe () {
   const execute = async function execute (params, db) {
-    const isDel = await db.delIfNotExistsSub(+params.fly_from, +params.fly_to);
-
+    const isDel = await db.delIfNotExistsEmailSub(
+      +params.fly_from,
+      +params.fly_to,
+      params.email
+    );
     return {
       status_code: (isDel) ? 1000 : 2000,
     };
