@@ -257,6 +257,34 @@ function subscribe (params, db) {
   };
 }
 
+function subscribeEmail (params, db) {
+  const execute = async function execute (params, db) {
+    const flyFrom = +params.fly_from;
+    const flyTo = +params.fly_to;
+    // TODO error handle with json schema
+    const email = params.email;
+    const dateFrom = params.date_from;
+    const dateTo = params.date_to;
+
+    await db.insertIfNotExistsSub(flyFrom, flyTo);
+    const isSubscribed = await db.insertEmailSubscription({
+      email,
+      airportFromId: flyFrom,
+      airportToId: flyTo,
+      dateFrom,
+      dateTo,
+    });
+
+    return {
+      status_code: isSubscribed ? 1000 : 2000,
+    };
+  };
+
+  return {
+    name: 'subscribe_email',
+    execute,
+  };
+}
 function unsubscribe () {
   const execute = async function execute (params, db) {
     assertPeer(
@@ -338,6 +366,7 @@ module.exports = {
   defineMethods,
   search,
   subscribe,
+  subscribeEmail,
   unsubscribe,
   sendError,
 };

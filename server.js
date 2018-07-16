@@ -10,6 +10,7 @@ const {
   defineMethods,
   search,
   subscribe,
+  subscribeEmail,
   unsubscribe,
   sendError,
 } = require('./methods/resolve-method');
@@ -21,7 +22,9 @@ const { validateRequest, validateRequestFormat, validateResponse } = require('./
 const {notifyEmailSubscriptions} = require('./modules/mailing');
 
 const parser = defineParsers(jsonParser, yamlParser);
-const execute = defineMethods(search, subscribe, unsubscribe, sendError);
+const execute = defineMethods(
+  search, subscribe, subscribeEmail, unsubscribe, sendError
+);
 
 const app = new Koa();
 const router = new Router();
@@ -107,8 +110,6 @@ router.post('/', async (ctx, next) => {
 
   validateResponse(stringified, parsed.method, `${format}rpc`);
   await notifyEmailSubscriptions();
-  // const mail = require('./modules/mailing');
-  // mail.notifyEmailSubscriptions();
   ctx.status = 200;
   ctx.body = stringified;
   await next();

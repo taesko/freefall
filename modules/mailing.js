@@ -41,8 +41,6 @@ async function newRoutesForEmailSub (emailSub) {
     date_to: emailSub.date_to,
   };
 
-  log(params);
-
   return callAPI(
     'search',
     params,
@@ -60,6 +58,9 @@ async function notifyEmailSubscriptions () {
       // only log that there are emails to send for now
       if (routes.status_code === 1000) {
         log(email, 'needs to be notified');
+      } else {
+        log(email, 'does not need to be notified');
+        log('search result was: ', routes);
       }
     } catch (e) {
       log(e);

@@ -27,7 +27,7 @@ module.exports = (() => {
       isObject(db) &&
       isObject(db.driver) &&
       db.driver.open,
-      'No database connection.'
+      'No database connection.',
     );
   }
 
@@ -35,13 +35,13 @@ module.exports = (() => {
     assertApp(
       columns instanceof Array &&
       columns.length > 0,
-      'Invalid argument columns.'
+      'Invalid argument columns.',
     );
 
     return columns.join(', ');
   }
 
-  async function all(statement) {
+  async function all (statement) {
     assertDB();
     return db.all(statement);
   }
@@ -50,7 +50,7 @@ module.exports = (() => {
     assertDB();
     assertApp(
       typeof table === 'string',
-      'Expected string for a name of table'
+      'Expected string for a name of table',
     );
 
     // TODO sql injection ?
@@ -64,19 +64,21 @@ module.exports = (() => {
       Array.isArray(columns) &&
       isObject(where) &&
       Object.keys(where).length === 1, // TODO add support for more than one
-      'Invalid select data'
+      'Invalid select data',
     );
 
     const whereCol = Object.keys(where)[0];
 
-    return db.all(`SELECT ${stringifyColumns(columns)} FROM ${table} WHERE ${whereCol} = ?;`, [where[whereCol]]);
+    return db.all(`SELECT ${stringifyColumns(columns)} FROM ${table} WHERE ${whereCol} = ?;`,
+      [where[whereCol]],
+    );
   }
 
   async function selectRoutesFlights (fetchId, params) {
     assertDB();
     assertApp(
       Number.isInteger(fetchId),
-      'Invalid fetch id.'
+      'Invalid fetch id.',
     );
 
     const queryParams = [fetchId];
@@ -133,7 +135,7 @@ module.exports = (() => {
 
     assertApp(
       Array.isArray(routesFlights),
-      'Invalid db routes and flights response.'
+      'Invalid db routes and flights response.',
     );
 
     return routesFlights;
@@ -144,7 +146,7 @@ module.exports = (() => {
     assertApp(
       Number.isInteger(airportFromId) &&
       Number.isInteger(airportToId),
-      'Invalid airport ids.'
+      'Invalid airport ids.',
     );
 
     const subscriptions = await db.all(`
@@ -159,19 +161,18 @@ module.exports = (() => {
 
     assertApp(
       Array.isArray(subscriptions),
-      'Invalid db select subscription response.'
+      'Invalid db select subscription response.',
     );
 
     return subscriptions;
   }
 
-  // TODO move out with selectSubs...
   async function insert (table, data) {
     assertDB();
     assertApp(
       typeof table === 'string' &&
       isObject(data),
-      'Invalid insert data.'
+      'Invalid insert data.',
     );
 
     const columns = [];
@@ -184,13 +185,15 @@ module.exports = (() => {
 
     const columnsStringified = columns.join(', ');
     const rowStringified = Array(values.length).fill('?').join(', ');
-    const insertResult = await db.run(`INSERT INTO ${table} (${columnsStringified}) VALUES (${rowStringified});`, values);
+    const insertResult = await db.run(`INSERT INTO ${table} (${columnsStringified}) VALUES (${rowStringified});`,
+      values,
+    );
 
     assertApp(
       isObject(insertResult) &&
       isObject(insertResult.stmt) &&
       Number.isInteger(insertResult.stmt.lastID),
-      'Incorrect db response.'
+      'Incorrect db response.',
     );
 
     return insertResult.stmt.lastID;
@@ -199,13 +202,16 @@ module.exports = (() => {
   async function insertDataFetch (subscriptionId) {
     assertDB();
 
-    const newFetchResult = await db.run('INSERT INTO fetches(timestamp, subscription_id) VALUES (strftime(\'%Y-%m-%dT%H:%M:%SZ\' ,\'now\'), ?);', [subscriptionId]);
+    const newFetchResult = await db.run(
+      'INSERT INTO fetches(timestamp, subscription_id) VALUES (strftime(\'%Y-%m-%dT%H:%M:%SZ\' ,\'now\'), ?);',
+      [subscriptionId],
+    );
 
     assertApp(
       isObject(newFetchResult) &&
       isObject(newFetchResult.stmt) &&
       Number.isInteger(newFetchResult.stmt.lastID),
-      'Incorrect db response.'
+      'Incorrect db response.',
     );
 
     return newFetchResult.stmt.lastID;
@@ -229,10 +235,48 @@ module.exports = (() => {
 
     assertApp(
       Number.isInteger(insertResult),
-      'Incorrect db response.'
+      'Incorrect db response.',
     );
 
     return true;
+  }
+
+  // TODO move out with selectSubs...
+  async function insertEmailSubscription ({
+    email,
+    airportFromId,
+    airportToId,
+    dateFrom,
+    dateTo,
+  }) {
+    const subs = await db.all(
+      `
+      SELECT id
+      FROM subscriptions
+      WHERE airport_from_id=? AND airport_to_id=?
+      ;
+      `,
+      airportFromId, airportToId,
+    );
+    assertApp(subs.length ===
+              1, `Found more than one unique subscription between two airports with ids from=${airportFromId} to=${airportToId}`);
+
+    log('Subscribing to email:', email, 'with dates:', dateFrom, dateTo);
+
+    try {
+      await insert('email_subscriptions', {
+        email,
+        subscription_id: subs[0].id,
+        fetch_id_of_last_send: null,
+        date_from: dateFrom,
+        date_to: dateTo,
+      });
+      log('Successfully subscribed email: ', email);
+      return true;
+    } catch (e) {
+      log('While subscribing email: ', email, 'an error occurred: ', e);
+      return false;
+    }
   }
 
   async function insertIfNotExistsSub (flyFrom, flyTo) {
@@ -252,7 +296,8 @@ module.exports = (() => {
     assertApp(Array.isArray(subscriptions), 'Invalid select subscriptions response.');
 
     if (subscriptions.length > 0) {
-      assertApp(subscriptions.length === 1, `Unexpected subscriptions length of ${subscriptions.length}.`);
+      assertApp(subscriptions.length ===
+                1, `Unexpected subscriptions length of ${subscriptions.length}.`);
 
       return false;
     } else {
@@ -282,7 +327,7 @@ module.exports = (() => {
       isObject(deleteResult) &&
       isObject(deleteResult.stmt) &&
       Number.isInteger(deleteResult.stmt.changes),
-      'Incorrect db response.'
+      'Incorrect db response.',
     );
 
     return deleteResult.stmt.changes > 0;
@@ -295,6 +340,7 @@ module.exports = (() => {
     insertDataFetch,
     insertIfNotExists,
     insertIfNotExistsSub,
+    insertEmailSubscription,
     selectSubscriptions,
     selectRoutesFlights,
     selectWhere,
