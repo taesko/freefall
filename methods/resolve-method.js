@@ -231,6 +231,10 @@ function search () {
 
 function subscribe (params, db) {
   const execute = async function execute (params, db) {
+    assertPeer(
+      Number.isInteger(+params.fly_from) && Number.isInteger(+params.fly_to),
+      'subscribe params fly_from and fly_to must be an integer wrapped in a string',
+    );
     const flyFrom = +params.fly_from;
     const flyTo = +params.fly_to;
     const email = params.email;
