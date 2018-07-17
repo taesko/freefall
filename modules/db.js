@@ -350,6 +350,39 @@ module.exports = (() => {
     return deleteResult.stmt.changes > 0;
   }
 
+  async function updateEmailSub (email) {
+    let rows;
+
+    try {
+      rows = await db.all(`
+      SELECT id, MAX(DateTime(timestamp))
+      FROM fetches
+    `);
+    } catch (e) {
+      assertApp(false, `Couldn't fetch most recent fetch id. Reason: ${e}`);
+    }
+
+    log('Row of most recent timestamp: ', rows);
+    assertApp(
+      rows.length === 1,
+      'There are different recent fetches with the same timestamp',
+    );
+
+    const fetchId = rows[0].id;
+
+    const query = await db.prepare(
+      `
+      UPDATE email_subscriptions
+      SET fetch_id_of_last_send=?
+      WHERE email=?`,
+      [fetchId, email],
+    );
+
+    log('Executing query', query);
+
+    return query.all();
+  }
+
   return {
     all,
     select,
@@ -363,6 +396,7 @@ module.exports = (() => {
     selectWhere,
     delIfNotExistsSub,
     delIfNotExistsEmailSub,
+    updateEmailSub,
     dbConnect,
   };
 })();

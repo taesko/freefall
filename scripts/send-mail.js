@@ -27,7 +27,29 @@ const [FREEFALL_MAIL, mailTransporter] = (function init () {
   ];
 })();
 
-async function sendEmails (destinationEmail, {
+async function sendNotifications () {
+  const notifications = await findNotificationsToSend();
+  for (const email of Object.keys(notifications)) {
+    try {
+      await sendEmail(email, {});
+      log('sent notification to', email);
+    } catch (e) {
+      log('failed to send notification to', email);
+      continue;
+    }
+    try {
+      await db.updateEmailSub(email);
+    } catch (e) {
+      // should this crash ?
+      assertApp(
+        false,
+        `Failed to update email sub for email ${email} after sending notification. Reason: ${e}`,
+      );
+    }
+  }
+}
+
+async function sendEmail (destinationEmail, {
   subject = 'Freefall subscriptions',
   text = `A flight has been found that might be to your liking. Head over to our site to check it out.`,
 }) {
@@ -38,39 +60,32 @@ async function sendEmails (destinationEmail, {
     text,
   };
 
-  log('Sending email to', destinationEmail);
   return new Promise((resolve, reject) => {
-    log('executing promise');
     mailTransporter.sendMail(mail, (error, response) => {
       if (error) {
-        log('promise rejected with error: ', error);
+        log('Got error response for email', mail, 'Error:', error);
         reject(error);
       } else {
-        log('promise resolved with response: ', response);
         resolve(response);
       }
     });
   });
 }
 
-async function sendNotifications () {
-  const notifications = await findNotificationsToSend();
-
-  for (const email of Object.keys(notifications)) {
-    await sendEmails(email, {});
-  }
-}
-
 async function selectEmailsToNotify (db) {
   // TODO esub -> subcr or es
   // renames are 4 symbols max
   return db.all(`
-      SELECT esub.id, esub.email, esub.subscription_id, esub.date_from, esub.date_to 
-      FROM email_subscriptions esub
-      LEFT JOIN fetches ON esub.fetch_id_of_last_send = fetches.id
-      GROUP BY esub.id
-      HAVING fetches.timestamp IS NULL OR 
-        fetches.timestamp < MAX(fetches.timestamp);
+      SELECT *
+      FROM email_subscriptions
+      WHERE fetch_id_of_last_send IS NULL OR
+       fetch_id_of_last_send NOT IN 
+        (
+        SELECT id 
+        FROM fetches
+        WHERE timestamp=(select MAX(timestamp) from fetches)
+        )
+      ;
   `);
 }
 
@@ -124,30 +139,6 @@ async function findNotificationsToSend () {
   }
 
   return notifications;
-}
-
-function blockPromise (promise) {
-  // TODO ugly
-  let finished = false;
-  let value;
-  let error;
-  promise.then(result => {
-    finished = true;
-    value = result;
-  })
-    .catch(e => {
-      finished = false;
-      error = e;
-    });
-
-  // eslint-disable-next-line no-empty
-  while (!finished) {
-  }
-  if (error) {
-    throw error;
-  } else {
-    return value;
-  }
 }
 
 async function start () {
