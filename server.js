@@ -19,7 +19,6 @@ const { PeerError, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
 const { log } = require('./modules/utils');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./modules/validate');
-const { notifyEmailSubscriptions } = require('./modules/mailing');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(
@@ -142,7 +141,6 @@ router.post('/', async (ctx, next) => {
   });
 
   validateResponse(responseBody, parsed.method, `${format}rpc`);
-  await notifyEmailSubscriptions(); // TODO move out into a cron script
   ctx.status = 200;
   ctx.body = multiParser.stringify(responseBody, format);
   await next();
