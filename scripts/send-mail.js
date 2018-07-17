@@ -1,10 +1,11 @@
-const db = require('./db');
-const { log } = require('./utils');
-const { assertApp } = require('./error-handling');
+/* eslint-disable no-unmodified-loop-condition */
+const db = require('../modules/db');
+const { log } = require('../modules/utils');
+const { assertApp } = require('../modules/error-handling');
 const { defineMethods, search } = require('../methods/resolve-method');
 const mailer = require('nodemailer');
 
-db.dbConnect();
+// TODO fix after decoupling the API from the search methods
 const callAPI = defineMethods(search);
 
 const [FREEFALL_MAIL, mailTransporter] = (function init () {
@@ -108,7 +109,6 @@ async function findNotificationsToSend () {
   for (const email of emails) {
     try {
       const routes = await newRoutesForEmailSub(email);
-      log('search API response for email', email, 'is', Object.keys(routes), routes.status_code);
       if (+routes.status_code === 1000) {
         log(email.email, 'needs to be notified');
         notifications[email.email] = routes;
@@ -126,6 +126,33 @@ async function findNotificationsToSend () {
   return notifications;
 }
 
-module.exports = {
-  sendNotifications,
-};
+function blockPromise (promise) {
+  // TODO ugly
+  let finished = false;
+  let value;
+  let error;
+  promise.then(result => {
+    finished = true;
+    value = result;
+  })
+    .catch(e => {
+      finished = false;
+      error = e;
+    });
+
+  // eslint-disable-next-line no-empty
+  while (!finished) {
+  }
+  if (error) {
+    throw error;
+  } else {
+    return value;
+  }
+}
+
+async function start () {
+  await db.dbConnect();
+  return sendNotifications();
+}
+
+start();
