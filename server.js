@@ -99,15 +99,17 @@ app.use(views(path.join(__dirname, 'templates/'), {
 }));
 
 router.get('/', async (ctx, next) => {
+  const airports = await db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('index.html', {
-    airports: [],
+    airports,
   });
   await next();
 });
 
 router.get('/subscribe', async (ctx, next) => {
+  const airports = db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('subscribe.html', {
-    airports: [],
+    airports,
   });
   await next();
 });
