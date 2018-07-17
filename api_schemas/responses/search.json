@@ -6,7 +6,11 @@
   "properties": {
     "status_code": {
       "type": "string",
-      "enum": ["1000", "2000", "3000"]
+      "enum": [
+        "1000",
+        "2000",
+        "3000"
+      ]
     },
     "currency": {
       "type": "string"
@@ -23,31 +27,34 @@
             "type": "integer"
           },
           "route": {
-            "type": "object",
-            "properties": {
-              "airport_from": {
-                "type": "string"
-              },
-              "airport_to": {
-                "type": "string"
-              },
-              "return": {
-                "type": "boolean"
-              },
-              "dtime": {
-                "type": "string"
-              },
-              "atime": {
-                "type": "string"
-              },
-              "airline_logo": {
-                "type": "string"
-              },
-              "airline_name": {
-                "type": "string"
-              },
-              "flight_number": {
-                "type": "string"
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "airport_from": {
+                  "type": "string"
+                },
+                "airport_to": {
+                  "type": "string"
+                },
+                "return": {
+                  "type": "boolean"
+                },
+                "dtime": {
+                  "type": "string"
+                },
+                "atime": {
+                  "type": "string"
+                },
+                "airline_logo": {
+                  "type": "string"
+                },
+                "airline_name": {
+                  "type": "string"
+                },
+                "flight_number": {
+                  "type": "string"
+                }
               }
             }
           }
