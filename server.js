@@ -4,7 +4,7 @@ const Router = require('koa-router');
 const logger = require('koa-logger');
 const bodyParser = require('koa-bodyparser');
 const serve = require('koa-static');
-const send = require('koa-send');
+const views = require('koa-views');
 const cors = require('@koa/cors');
 const {
   defineMethods,
@@ -79,6 +79,7 @@ app.use(async (ctx, next) => {
 });
 
 db.dbConnect();
+app.context.db = db;
 
 app.use(logger());
 app.use(cors({
@@ -91,8 +92,25 @@ app.use(bodyParser({ // TODO crashes on bad json, best avoid the inner parser
   enableTypes: ['json', 'form', 'text'],
 }));
 app.use(serve(path.join(__dirname, 'public')));
+app.use(views(path.join(__dirname, 'templates/'), {
+  map: {
+    html: 'mustache',
+  },
+}));
 
-app.context.db = db;
+router.get('/', async (ctx, next) => {
+  await ctx.render('index.html', {
+    airports: [],
+  });
+  await next();
+});
+
+router.get('/subscribe', async (ctx, next) => {
+  await ctx.render('subscribe.html', {
+    airports: [],
+  });
+  await next();
+});
 
 router.post('/', async (ctx, next) => {
   log('getting post request');
@@ -128,14 +146,8 @@ router.post('/', async (ctx, next) => {
   await next();
 });
 
-router.get('/', async (ctx, next) => {
-  ctx.status = 200;
-  await send(ctx, 'public/index.html');
-  await next();
-});
-
 app.use(router.routes());
 
-app.listen(3000);
+app.listen(process.env.FREEFALL_PORT || 3000);
 
 // console.log('Listening on 3000...');
