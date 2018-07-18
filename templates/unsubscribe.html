@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>Subscribe</title>
+    <title>Unsubscribe</title>
     <!-- Bootstrap -->
     <link href="css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
@@ -20,41 +20,21 @@
           <nav class="navbar navbar-default navbar-static-top">
             <ul class="nav navbar-nav">
               <li><a href="index.html">Search</a></li>
-              <li class="active"><a href="#">Subscribe</a></li>
-              <li><a href="unsubscribe.html">Unsubscribe</a></li>
+              <li><a href="subscribe.html">Subscribe</a></li>
+              <li class="active"><a href="#">Unsubscribe</a></li>
             </ul>
           </nav>
         </div>
       </div>
-      <form id="subscribe-form" class="row">
+      <form id="unsubscribe-form" class="row">
         <div class="col-md-6 col-md-offset-3">
           <div class="form-group">
             <div class="form-group fixed-form-height">
               <label for="email" text-center">Email</labeL>
               <input id="email" class="form-control" name="email" type="email" placeholder="Email" required>
             </div>
-            <div class="form-group fixed-form-height">
-              <label for="from-input" text-center">From</labeL>
-              <input id="from-input" class="form-control" name="from" type="text" placeholder="From" list="from-airports" required>
-            </div>
-            <div class="form-group fixed-form-height">
-              <label for="to-input" text-center">To</label>
-              <input id="to-input" name="to" class="form-control" type="text" placeholder="To" list="to-airports" required>
-            </div>
-            <div class="form-group fixed-form-height">
-              <label for="date-from" text-center">Departure</label>
-              <input id="date-from" class="form-control" name="date-from" type="date" required>
-  <!--                 <input id="departure-month" class="col-md-6" name="departure-month" type="number" placeholder="mm" min="0">
-                  <input id="departure-day" class="col-md-6" name="departure-day" type="number" placeholder="dd" min="0"> -->
-            </div>
-            <div class="form-group fixed-form-height">
-              <label for="date-to" text-center">Arrival</label>
-              <input name="date-to" class="form-control" type="date" required>
-  <!--                 <input id="arrival-month" class="col-md-6" name="arrival-month" type="number" placeholder="mm" min="0">
-                  <input id="arrival-day" class="col-md-6" name="arrival-day" type="number" placeholder="dd" min="0"> -->
-            </div>
             <div class="form-group fixed-form-height text-center">
-              <button id="subscribe-button" type="submit" class="btn btn-primary">Subscribe</button>
+              <button id="unsubscribe-button" type="submit" class="btn btn-danger">Unsubscribe</button>
             </div>
           </div>
         </div>
