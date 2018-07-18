@@ -351,6 +351,7 @@ module.exports = (() => {
   }
 
   async function updateEmailSub (email) {
+    // TODO bad name rename if you can
     let rows;
 
     try {

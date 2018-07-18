@@ -1,6 +1,7 @@
 const { assertApp } = require('./error-handling');
 
 function normalizeRequest (requestObject) {
+  // TODO modularize if
   if (Object.hasOwnProperty(requestObject, 'yamlrpc')) {
     return {
       jsonrpc: requestObject.yamlrpc,
@@ -19,6 +20,7 @@ function buildRPCResponse ({ protocol, version, resultObject, id }) {
     resultObject != null && id !== undefined,
     'all arguments to buildRPCResponse are required.',
   );
+  // TODO modularize
   if (protocol === 'jsonrpc') {
     return {
       jsonrpc: version,

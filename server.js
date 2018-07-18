@@ -37,6 +37,7 @@ app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
+    // TODO don't try to report through jsonrpc if it wasn't an API call that raised the error.
     log(err);
     // assertPeer(0, `The password: ${ pass } is not valid`)
 
@@ -120,11 +121,12 @@ router.post('/', async (ctx, next) => {
     queryParam: ctx.query.format,
   });
   log('got post request with body: ', ctx.request.body, 'and format: ', format);
-  const protocol = `${format}rpc`;
+  const protocol = `${format}rpc`; // {json: jsonrpc, yaml: yamlrpc}[format];
   const parsed = format === 'json' ? ctx.request.body : multiParser.parse(ctx.request.body, format);
 
   validateRequest(parsed, protocol);
 
+  // TODO modularize and pass a format/protocol parameter
   const requestBody = normalizeRequest(parsed);
 
   log('Executing method', requestBody.method, 'with params', requestBody.params);

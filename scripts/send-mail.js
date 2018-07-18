@@ -8,7 +8,8 @@ const mailer = require('nodemailer');
 const callAPI = defineMethods(search);
 
 const [FREEFALL_MAIL, mailTransporter] = (function init () {
-  const username = process.env.FREEFALL_EMAIL;
+  // TODO get another environment variable for service
+  const username = process.env.FREEFALL_EMAIL; // TODO rename to username
   const password = process.env.FREEFALL_PASSWORD;
   assertApp(
     username && password,
@@ -87,6 +88,7 @@ async function selectEmailsToNotify (db) {
 }
 
 async function newRoutesForEmailSub (emailSub) {
+  // TODO rename or refactor
   const rows = await db.selectWhere(
     'subscriptions',
     ['airport_from_id', 'airport_to_id'],
@@ -116,6 +118,7 @@ async function newRoutesForEmailSub (emailSub) {
 }
 
 async function findNotificationsToSend () {
+  // TODO rename to emailRecords
   const emails = await selectEmailsToNotify(db);
   const notifications = {};
 
