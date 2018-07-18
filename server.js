@@ -93,7 +93,7 @@ app.use(bodyParser({ // TODO crashes on bad json, best avoid the inner parser
 app.use(serve(path.join(__dirname, 'public')));
 app.use(views(path.join(__dirname, 'templates/'), {
   map: {
-    html: 'mustache',
+    html: 'handlebars',
   },
 }));
 
@@ -111,6 +111,26 @@ router.get('/subscribe', async (ctx, next) => {
     airports,
   });
   await next();
+});
+
+router.get('/unsubscribe', async (ctx) => {
+  await ctx.render('unsubscribe.html', {});
+});
+
+router.get('/login', async (ctx) => {
+  await ctx.render('login.html', {});
+});
+
+router.get('/old', async (ctx) => {
+  await ctx.render('index-ff20.html', {});
+});
+
+router.get('/old/subscribe', async (ctx) => {
+  await ctx.render('subscribe-ff20.html', {});
+});
+
+router.get('/old/unsubscribe', async (ctx) => {
+  await ctx.render('unsubscribe-ff20.html', {});
 });
 
 router.post('/', async (ctx, next) => {
