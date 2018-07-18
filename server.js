@@ -6,6 +6,7 @@ const bodyParser = require('koa-bodyparser');
 const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
+const session = require('koa-session');
 const {
   defineMethods,
   search,
@@ -28,9 +29,33 @@ const execute = defineMethods(
 const app = new Koa();
 const router = new Router();
 
+app.keys = ['freefall is love freefall is life'];
+
 app.on('error', (err, ctx) => {
   log(err);
   log('context of app is: ', ctx);
+});
+
+const SESSION_CONFIG = {
+  key: 'koa:sess',
+  maxAge: 1000 * 60 * 60 * 24, // 24 hours in miliseconds
+  // overwrite: true,
+  // httpOnly: true,
+  // signed: false,
+  // rolling: false,
+  // renew: false,
+};
+
+app.use(session(SESSION_CONFIG, app));
+app.use(async (ctx, next) => {
+  // ignore favicon
+  if (ctx.path === '/favicon.ico') return;
+
+  let n = ctx.session.views || 0;
+  ctx.session.views = ++n;
+  // log('current session views are: ', ctx.session.views);
+  // log('current session is: ', ctx.session);
+  await next();
 });
 
 app.use(async (ctx, next) => {
@@ -99,6 +124,7 @@ app.use(views(path.join(__dirname, 'templates/'), {
 }));
 
 router.get('/', async (ctx, next) => {
+  log('session at index is: ', ctx.session);
   const airports = await db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('index.html', {
     airports,
@@ -114,7 +140,36 @@ router.get('/subscribe', async (ctx, next) => {
   await next();
 });
 
+router.post('/login', async (ctx, next) => {
+  log('trying to login user. Current session: ', ctx.session, 'full context is:', ctx);
+  if (ctx.session.user != null) {
+    log('already logged in with session: ', ctx.session);
+    ctx.redirect('/');
+    await next();
+    return;
+  }
+  log('getting ctx request body on login page: ', ctx.request.body);
+  ctx.session.user = ctx.request.body.email;
+  log('successfully logged in user');
+  ctx.redirect('/');
+  await next();
+});
+
+router.get('/logout', async (ctx, next) => {
+  log('trying to logout from session: ', ctx.session);
+  if (ctx.session.user == null) {
+    ctx.redirect('/');
+    await next();
+    return;
+  }
+  log('logging out with ctx.request.body=', ctx.request.body);
+  delete ctx.session.user;
+  await next();
+  ctx.redirect('/');
+});
+
 router.post('/', async (ctx, next) => {
+  // TODO set ctx.state to hold current jsonrpc request and don't try to report errors when it isn't
   log('getting post request');
   const format = validateRequestFormat({
     headerParam: ctx.headers['content-type'],
