@@ -1,6 +1,6 @@
 const { AppError } = require('./error-handling');
-const { log } = require('./utils');
-const passport = require('passport');
+
+class InvalidCredentials extends AppError {}
 
 const users = [
   {
@@ -10,60 +10,49 @@ const users = [
   },
 ];
 
-async function fetchUserByCredentials ({ email, password }) {
-  return users.find(user => user.email === email && user.password === password);
+async function login (ctx, email, password) {
+  let user;
+
+  try {
+    user = fetchUserByCredentials({ email, password });
+  } catch (e) {
+    throw new AppError(`Tried to login with email=${email} and password=${password}. But failed checking credentials through database. Error: ${e}`);
+  }
+
+  if (!user) {
+    throw new InvalidCredentials(`Tried to login with email=${email} and password=${password}.`);
+  }
+
+  ctx.session.userID = serializeUser(user);
+}
+
+function logout (ctx) {
+  ctx.session.userID = null;
+}
+
+function isLoggedIn (ctx) {
+  return ctx.session.userID != null;
+}
+
+async function getLoggedInUser (ctx) {
+  return fetchUserById(ctx.session.userID);
+}
+
+function serializeUser (user) {
+  return user.id;
 }
 
 async function fetchUserById (id) {
   return users.find(user => user.id === id);
 }
 
-passport.serializeUser((user, done) => {
-  done(null, user.id);
-});
+async function fetchUserByCredentials ({ email, password }) {
+  return users.find(user => user.email === email && user.password === password);
+}
 
-passport.deserializeUser(async (id, done) => {
-  let user;
-
-  try {
-    user = await fetchUserById(id);
-  } catch (e) {
-    log('Tried to deserializeUser but couldn\'t fetch user by id: ', id);
-    done(e);
-  }
-
-  if (!user) {
-    done(new AppError(
-      `Couldn't deserialize user by id ${id}. There is no user with this id`,
-    ));
-  } else {
-    done(null, user);
-  }
-});
-
-const LocalStrategy = require('passport-local').Strategy;
-
-passport.use(new LocalStrategy(
-  {
-    usernameField: 'email',
-    passwordField: 'password',
-    session: false, // TODO flip when using koa-session
-  },
-  async (email, password, done) => {
-    // can this even be async ?
-    let user;
-
-    try {
-      user = await fetchUserByCredentials({ email: email, password: password });
-    } catch (e) {
-      log(`Tried to execute LocalStrategy for params email=${email} and password=${password}. But fetchUserByCredentials failed`);
-      done(e);
-    }
-
-    if (user) {
-      done(null, user);
-    } else {
-      done(null, false); // why false ?
-    }
-  },
-));
+module.exports = {
+  login,
+  logout,
+  getLoggedInUser,
+  isLoggedIn,
+};
