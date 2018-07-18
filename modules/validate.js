@@ -105,7 +105,8 @@ function validateRequest (requestBody, protocol = 'jsonrpc') {
 }
 
 function validateRequestFormat ({ headerParam, queryParam }) {
-  const headerFormat = FORMATS[headerParam];
+  const [contentFormat] = headerParam.split(';'); // ignore charset:utf-8
+  const headerFormat = FORMATS[contentFormat];
   const queryFormat = FORMATS[queryParam];
   assertPeer(
     headerFormat || queryFormat,
