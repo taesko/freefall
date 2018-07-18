@@ -362,7 +362,6 @@ module.exports = (() => {
       assertApp(false, `Couldn't fetch most recent fetch id. Reason: ${e}`);
     }
 
-    log('Row of most recent timestamp: ', rows);
     assertApp(
       rows.length === 1,
       'There are different recent fetches with the same timestamp',
@@ -378,6 +377,7 @@ module.exports = (() => {
       [fetchId, email],
     );
 
+    log('Updating email', email, 'to most recent fetch_id', fetchId);
     log('Executing query', query);
 
     return query.all();

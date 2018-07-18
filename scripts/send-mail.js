@@ -1,4 +1,3 @@
-/* eslint-disable no-unmodified-loop-condition */
 const db = require('../modules/db');
 const { log } = require('../modules/utils');
 const { assertApp } = require('../modules/error-handling');
@@ -73,8 +72,6 @@ async function sendEmail (destinationEmail, {
 }
 
 async function selectEmailsToNotify (db) {
-  // TODO esub -> subcr or es
-  // renames are 4 symbols max
   return db.all(`
       SELECT *
       FROM email_subscriptions
@@ -96,11 +93,12 @@ async function newRoutesForEmailSub (emailSub) {
     { 'id': emailSub.subscription_id },
   );
 
+  // TODO ask Ivan if database constraints should be double checked like this
+  // alternative results in removing rows[0]
   assertApp(rows.length === 1,
     `email subscription with ID=${emailSub.id} has more than one subscription associated with it`,
   );
 
-  log('found subscription for email', emailSub, rows[0]);
   const params = {
     v: '1.0',
     fly_from: rows[0].airport_from_id.toString(),
@@ -109,7 +107,7 @@ async function newRoutesForEmailSub (emailSub) {
     date_to: emailSub.date_to,
   };
 
-  log('searching with params', params);
+  log('Searching flights for email', emailSub.email, 'with params: \n\t', params);
   return callAPI(
     'search',
     params,
@@ -121,14 +119,16 @@ async function findNotificationsToSend () {
   const emails = await selectEmailsToNotify(db);
   const notifications = {};
 
+  log('emails that are awaiting notification are: \n\t', emails.map(e => e.email));
+
   for (const email of emails) {
     try {
       const routes = await newRoutesForEmailSub(email);
       if (+routes.status_code === 1000) {
-        log(email.email, 'needs to be notified');
+        log(email.email, 'will be notified');
         notifications[email.email] = routes;
       } else {
-        log(email.email, 'does not need to be notified');
+        log(email.email, 'will NOT be notified');
       }
     } catch (e) {
       log(
