@@ -93,44 +93,70 @@ app.use(bodyParser({ // TODO crashes on bad json, best avoid the inner parser
 app.use(serve(path.join(__dirname, 'public')));
 app.use(views(path.join(__dirname, 'templates/'), {
   map: {
-    html: 'handlebars',
+    hbs: 'handlebars',
+  },
+  options: {
+    helpers: {
+      is_active: (a, b) => {
+        if (a === b) {
+          return 'active';
+        } else {
+          return '';
+        }
+      },
+    },
+    partials: {
+      menu: 'menu',
+      heading: 'heading',
+      messages: 'messages',
+    },
   },
 }));
 
 router.get('/', async (ctx, next) => {
   const airports = await db.select('airports', ['id', 'iata_code', 'name']);
-  await ctx.render('index.html', {
+  await ctx.render('index.hbs', {
     airports,
+    item: 'search',
   });
   await next();
 });
 
 router.get('/subscribe', async (ctx, next) => {
   const airports = db.select('airports', ['id', 'iata_code', 'name']);
-  await ctx.render('subscribe.html', {
+  await ctx.render('subscribe.hbs', {
     airports,
+    item: 'subscribe',
   });
   await next();
 });
 
 router.get('/unsubscribe', async (ctx) => {
-  await ctx.render('unsubscribe.html', {});
+  await ctx.render('unsubscribe.hbs', {
+    item: 'unsubscribe',
+  });
 });
 
 router.get('/login', async (ctx) => {
-  await ctx.render('login.html', {});
+  await ctx.render('login.hbs', {});
 });
 
 router.get('/old', async (ctx) => {
-  await ctx.render('index-ff20.html', {});
+  await ctx.render('index-ff20.hbs', {
+    item: 'search',
+  });
 });
 
 router.get('/old/subscribe', async (ctx) => {
-  await ctx.render('subscribe-ff20.html', {});
+  await ctx.render('subscribe-ff20.hbs', {
+    item: 'subscribe',
+  });
 });
 
 router.get('/old/unsubscribe', async (ctx) => {
-  await ctx.render('unsubscribe-ff20.html', {});
+  await ctx.render('unsubscribe-ff20.hbs', {
+    item: 'unsubscribe',
+  });
 });
 
 router.post('/', async (ctx, next) => {
