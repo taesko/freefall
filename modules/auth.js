@@ -80,10 +80,16 @@ async function fetchUserByCredentials ({ email, password }) {
   return user;
 }
 
+async function emailIsRegistered (email) {
+  const result = await db.selectWhere('users', ['email'], { email });
+  return result.length !== 0;
+}
+
 module.exports = {
   login,
   logout,
   register,
+  emailIsRegistered,
   getLoggedInUser,
   isLoggedIn,
   UserExists,

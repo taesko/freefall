@@ -197,6 +197,44 @@ router.get('/logout', async (ctx, next) => {
   await next();
 });
 
+router.get('/register', async (ctx) => {
+  if (auth.isLoggedIn(ctx)) {
+    ctx.redirect('/');
+    return;
+  }
+
+  await ctx.render('register.hbs', getContextForRoute(ctx, '/register', 'get'));
+});
+
+router.post('/register', async (ctx) => {
+  if (auth.isLoggedIn(ctx)) {
+    ctx.redirect('/');
+    return;
+  }
+
+  const errors = [];
+  const {
+    email,
+    password,
+    confirm_password: confirmPassword,
+  } = ctx.request.body;
+
+  if (password !== confirmPassword) {
+    errors.push('Passwords are not the same.');
+  }
+
+  if (auth.emailIsRegistered(email)) {
+    errors.push('Email is already taken');
+  }
+
+  if (errors.length === 0) {
+    await auth.register(email, password);
+  }
+
+  ctx.state.register_errors = errors;
+  await ctx.render('register.hbs', getContextForRoute(ctx, '/register', 'get'));
+});
+
 router.get('/old', async (ctx) => {
   const airports = await db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('index-ff20.hbs', {
