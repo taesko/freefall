@@ -249,13 +249,14 @@ module.exports = (() => {
     dateFrom,
     dateTo,
   }) {
-    const userRows = await db.selectWhere('users', ['id'], { email });
+    const userRows = await selectWhere('users', ['id'], { email });
 
     assertApp(
       userRows != null && userRows.length === 1,
       `cannot subscribe email ${email} because it isn't registered`,
     );
 
+    const userId = userRows[0].id;
     const subs = await db.all(
       `
       SELECT id
@@ -270,12 +271,12 @@ module.exports = (() => {
 
     log(
       'Subscribing to email:', email, 'with dates:', dateFrom, dateTo,
-      'user id is: ', userRows.id,
+      'user id is: ', userId,
     );
 
     try {
-      await db.insert('user_subscriptions', {
-        user_id: userRows.id,
+      await insert('user_subscriptions', {
+        user_id: userId,
         subscription_id: subs[0].id,
         fetch_id_of_last_send: null,
         date_from: dateFrom,

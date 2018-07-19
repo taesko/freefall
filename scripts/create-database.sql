@@ -36,7 +36,7 @@ CREATE TABLE subscriptions (
 
 CREATE TABLE user_subscriptions (
     id integer PRIMARY KEY,
-    user_id integer,
+    user_id integer NOT NULL,
     subscription_id integer NOT NULL,
     fetch_id_of_last_send integer,
     date_from text NOT NULL,
