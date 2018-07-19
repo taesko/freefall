@@ -109,6 +109,8 @@ app.use(views(path.join(__dirname, 'templates/'), {
       menu: 'menu',
       heading: 'heading',
       messages: 'messages',
+      auth_message_success: 'auth-message-success',
+      auth_message_error: 'auth-message-error',
     },
   },
 }));
@@ -138,7 +140,10 @@ router.get('/unsubscribe', async (ctx) => {
 });
 
 router.get('/login', async (ctx) => {
-  await ctx.render('login.hbs', {});
+  await ctx.render('login.hbs', {
+    error_message: 'Success!',
+    item: 'login',
+  });
 });
 
 router.get('/old', async (ctx) => {
