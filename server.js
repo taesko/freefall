@@ -137,7 +137,7 @@ router.get('/', async (ctx, next) => {
   const airports = await db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('index.hbs', {
     airports,
-    item: 'search',
+    ...await getContextForRoute(ctx, 'get', '/'),
   });
   await next();
 });
@@ -146,15 +146,13 @@ router.get('/subscribe', async (ctx, next) => {
   const airports = db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('subscribe.hbs', {
     airports,
-    item: 'subscribe',
+    ...await getContextForRoute(ctx, 'get', '/subscribe'),
   });
   await next();
 });
 
 router.get('/unsubscribe', async (ctx) => {
-  await ctx.render('unsubscribe.hbs', {
-    item: 'unsubscribe',
-  });
+  await ctx.render('unsubscribe.hbs', await getContextForRoute(ctx, 'get', '/unsubscribe'));
 });
 
 router.get('/login', async (ctx) => {
@@ -165,7 +163,7 @@ router.get('/login', async (ctx) => {
     return;
   }
 
-  await ctx.render('login.hbs', getContextForRoute(ctx, '/login', 'get'));
+  await ctx.render('login.hbs', await getContextForRoute(ctx, 'get', '/login'));
 });
 
 router.post('/login', async (ctx) => {
@@ -188,7 +186,7 @@ router.post('/login', async (ctx) => {
     }
   }
 
-  await ctx.render('login.hbs', getContextForRoute(ctx, '/login', 'post'));
+  await ctx.render('login.hbs', await getContextForRoute(ctx, 'post', '/login'));
 });
 
 router.get('/logout', async (ctx, next) => {
@@ -203,7 +201,7 @@ router.get('/register', async (ctx) => {
     return;
   }
 
-  await ctx.render('register.hbs', getContextForRoute(ctx, '/register', 'get'));
+  await ctx.render('register.hbs', await getContextForRoute(ctx, 'get', '/register'));
 });
 
 router.post('/register', async (ctx) => {
@@ -232,7 +230,7 @@ router.post('/register', async (ctx) => {
   }
 
   ctx.state.register_errors = errors;
-  await ctx.render('register.hbs', getContextForRoute(ctx, '/register', 'get'));
+  await ctx.render('register.hbs', await getContextForRoute(ctx, 'post', '/register'));
 });
 
 router.get('/old', async (ctx) => {
