@@ -9,7 +9,7 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
 ROUTES_LIMIT = 30
-SERVER_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
+SERVER_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 KIWI_API_DATE_FORMAT = '%d/%m/%Y'
 
 class BaseError(Exception):
