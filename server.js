@@ -117,7 +117,7 @@ app.use(views(path.join(__dirname, 'templates/'), {
 
 router.get('/', async (ctx, next) => {
   const airports = await db.select('airports', ['id', 'iata_code', 'name']);
-  await ctx.render('index.hbs', {
+  await ctx.render('index-ff20.hbs', {
     airports,
     item: 'search',
   });
@@ -126,7 +126,7 @@ router.get('/', async (ctx, next) => {
 
 router.get('/subscribe', async (ctx, next) => {
   const airports = db.select('airports', ['id', 'iata_code', 'name']);
-  await ctx.render('subscribe.hbs', {
+  await ctx.render('subscribe-ff20.hbs', {
     airports,
     item: 'subscribe',
   });
@@ -134,7 +134,7 @@ router.get('/subscribe', async (ctx, next) => {
 });
 
 router.get('/unsubscribe', async (ctx) => {
-  await ctx.render('unsubscribe.hbs', {
+  await ctx.render('unsubscribe-ff20.hbs', {
     item: 'unsubscribe',
   });
 });
@@ -143,6 +143,12 @@ router.get('/login', async (ctx) => {
   await ctx.render('login.hbs', {
     error_message: 'Success!',
     item: 'login',
+  });
+});
+
+router.get('/profile', async (ctx) => {
+  await ctx.render('profile.hbs', {
+    item: 'profile',
   });
 });
 
