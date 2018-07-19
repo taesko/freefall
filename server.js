@@ -18,6 +18,7 @@ const { defineParsers, jsonParser, yamlParser } = require('./modules/normalize')
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./modules/protocol');
 const { PeerError, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
+const auth = require('./modules/auth');
 const { log } = require('./modules/utils');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./modules/validate');
 
@@ -47,16 +48,6 @@ const SESSION_CONFIG = {
 };
 
 app.use(session(SESSION_CONFIG, app));
-app.use(async (ctx, next) => {
-  // ignore favicon
-  if (ctx.path === '/favicon.ico') return;
-
-  let n = ctx.session.views || 0;
-  ctx.session.views = ++n;
-  // log('current session views are: ', ctx.session.views);
-  // log('current session is: ', ctx.session);
-  await next();
-});
 
 app.use(async (ctx, next) => {
   try {
@@ -124,7 +115,6 @@ app.use(views(path.join(__dirname, 'templates/'), {
 }));
 
 router.get('/', async (ctx, next) => {
-  log('session at index is: ', ctx.session);
   const airports = await db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('index.html', {
     airports,
@@ -141,31 +131,27 @@ router.get('/subscribe', async (ctx, next) => {
 });
 
 router.post('/login', async (ctx, next) => {
-  log('trying to login user. Current session: ', ctx.session, 'full context is:', ctx);
-  if (ctx.session.user != null) {
-    log('already logged in with session: ', ctx.session);
-    ctx.redirect('/');
-    await next();
-    return;
+  log('trying to login user. Current session: ', ctx.session);
+  try {
+    await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
+  } catch (e) {
+    if (e instanceof auth.AlreadyLoggedIn) {
+      ctx.redirect('/');
+    } else if (e instanceof auth.InvalidCredentials) {
+      log('invalid credentials on login. Redirecting to /login');
+      ctx.redirect('/login');
+    } else {
+      throw e;
+    }
   }
-  log('getting ctx request body on login page: ', ctx.request.body);
-  ctx.session.user = ctx.request.body.email;
-  log('successfully logged in user');
   ctx.redirect('/');
   await next();
 });
 
 router.get('/logout', async (ctx, next) => {
-  log('trying to logout from session: ', ctx.session);
-  if (ctx.session.user == null) {
-    ctx.redirect('/');
-    await next();
-    return;
-  }
-  log('logging out with ctx.request.body=', ctx.request.body);
-  delete ctx.session.user;
-  await next();
+  auth.logout(ctx);
   ctx.redirect('/');
+  await next();
 });
 
 router.post('/', async (ctx, next) => {

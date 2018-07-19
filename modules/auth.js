@@ -1,33 +1,53 @@
+const db = require('./db');
 const { AppError } = require('./error-handling');
+const { log } = require('./utils');
 
 class InvalidCredentials extends AppError {}
 
-const users = [
-  {
-    id: 1,
-    email: 'taeskow@gmail.com',
-    password: '123456',
-  },
-];
+class UserExists extends AppError {}
+
+class AlreadyLoggedIn extends AppError {}
+
+db.dbConnect();
 
 async function login (ctx, email, password) {
+  log('Trying to login with credentials: ', email, password);
+
+  if (ctx.session.userID != null) {
+    throw new AlreadyLoggedIn(`Already logged in as user with id ${ctx.session.userID}`);
+  }
   let user;
 
   try {
-    user = fetchUserByCredentials({ email, password });
+    user = await fetchUserByCredentials({ email, password });
   } catch (e) {
-    throw new AppError(`Tried to login with email=${email} and password=${password}. But failed checking credentials through database. Error: ${e}`);
+    throw new AppError(`Tried to login with email=${email} and password=${password}. But failed checking credentials through database. ${e}`);
   }
 
   if (!user) {
-    throw new InvalidCredentials(`Tried to login with email=${email} and password=${password}.`);
+    throw new InvalidCredentials(`Failed to login with email=${email} and password=${password}.`);
   }
 
   ctx.session.userID = serializeUser(user);
+  log('Logged in as user', user);
 }
 
 function logout (ctx) {
+  log('Logging out from session:', ctx.session);
   ctx.session.userID = null;
+}
+
+async function register (email, password) {
+  if (await fetchUserByCredentials({ email, password })) {
+    throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`);
+  }
+
+  try {
+    await db.insert('users', { email, password });
+  } catch (e) {
+    log(`Couldn't register user with credentials email=${email} password=${password}. ${e}`);
+    throw e;
+  }
 }
 
 function isLoggedIn (ctx) {
@@ -43,16 +63,30 @@ function serializeUser (user) {
 }
 
 async function fetchUserById (id) {
-  return users.find(user => user.id === id);
+  const [user] = db.selectWhere('users', ['id', 'email', 'password'], { id });
+  return user;
 }
 
 async function fetchUserByCredentials ({ email, password }) {
-  return users.find(user => user.email === email && user.password === password);
+  const [user] = await db.executeAll(
+    `
+    SELECT *
+    FROM users
+    WHERE email=? AND password=?
+    ;
+    `,
+    [email, password],
+  );
+  return user;
 }
 
 module.exports = {
   login,
   logout,
+  register,
   getLoggedInUser,
   isLoggedIn,
+  UserExists,
+  AlreadyLoggedIn,
+  InvalidCredentials,
 };
