@@ -6,6 +6,7 @@ const bodyParser = require('koa-bodyparser');
 const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
+const session = require('koa-session');
 const {
   defineMethods,
   search,
@@ -17,6 +18,7 @@ const { defineParsers, jsonParser, yamlParser } = require('./modules/normalize')
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./modules/protocol');
 const { PeerError, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
+const auth = require('./modules/auth');
 const { log } = require('./modules/utils');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./modules/validate');
 
@@ -28,15 +30,30 @@ const execute = defineMethods(
 const app = new Koa();
 const router = new Router();
 
+app.keys = ['freefall is love freefall is life'];
+
 app.on('error', (err, ctx) => {
   log(err);
   log('context of app is: ', ctx);
 });
 
+const SESSION_CONFIG = {
+  key: 'koa:sess',
+  maxAge: 1000 * 60 * 60 * 24, // 24 hours in miliseconds
+  // overwrite: true,
+  // httpOnly: true,
+  // signed: false,
+  // rolling: false,
+  // renew: false,
+};
+
+app.use(session(SESSION_CONFIG, app));
+
 app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
+    // TODO don't try to report through jsonrpc if it wasn't an API call that raised the error.
     log(err);
     // assertPeer(0, `The password: ${ pass } is not valid`)
 
@@ -146,6 +163,30 @@ router.get('/login', async (ctx) => {
   });
 });
 
+router.post('/login', async (ctx, next) => {
+  log('trying to login user. Current session: ', ctx.session);
+  try {
+    await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
+  } catch (e) {
+    if (e instanceof auth.AlreadyLoggedIn) {
+      ctx.redirect('/');
+    } else if (e instanceof auth.InvalidCredentials) {
+      log('invalid credentials on login. Redirecting to /login');
+      ctx.redirect('/login');
+    } else {
+      throw e;
+    }
+  }
+  ctx.redirect('/');
+  await next();
+});
+
+router.get('/logout', async (ctx, next) => {
+  auth.logout(ctx);
+  ctx.redirect('/');
+  await next();
+});
+
 router.get('/old', async (ctx) => {
   await ctx.render('index-ff20.hbs', {
     item: 'search',
@@ -165,6 +206,7 @@ router.get('/old/unsubscribe', async (ctx) => {
 });
 
 router.post('/', async (ctx, next) => {
+  // TODO set ctx.state to hold current jsonrpc request and don't try to report errors when it isn't
   log('getting post request');
   const format = validateRequestFormat({
     headerParam: ctx.headers['content-type'],
@@ -176,6 +218,7 @@ router.post('/', async (ctx, next) => {
 
   validateRequest(parsed, protocol);
 
+  // TODO modularize and pass a format/protocol parameter
   const requestBody = normalizeRequest(parsed);
 
   log('Executing method', requestBody.method, 'with params', requestBody.params);

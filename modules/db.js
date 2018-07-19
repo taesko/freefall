@@ -41,9 +41,9 @@ module.exports = (() => {
     return columns.join(', ');
   }
 
-  async function all (statement) {
+  async function executeAll (...args) {
     assertDB();
-    return db.all(statement);
+    return db.all(...args);
   }
 
   async function select (table, columns) {
@@ -249,6 +249,13 @@ module.exports = (() => {
     dateFrom,
     dateTo,
   }) {
+    const userRows = await db.selectWhere('users', ['id'], { email });
+
+    assertApp(
+      userRows != null && userRows.length === 1,
+      `cannot subscribe email ${email} because it isn't registered`,
+    );
+
     const subs = await db.all(
       `
       SELECT id
@@ -261,11 +268,14 @@ module.exports = (() => {
     assertApp(subs.length ===
               1, `Found more than one unique subscription between two airports with ids from=${airportFromId} to=${airportToId}`);
 
-    log('Subscribing to email:', email, 'with dates:', dateFrom, dateTo);
+    log(
+      'Subscribing to email:', email, 'with dates:', dateFrom, dateTo,
+      'user id is: ', userRows.id,
+    );
 
     try {
-      await insert('email_subscriptions', {
-        email,
+      await db.insert('user_subscriptions', {
+        user_id: userRows.id,
         subscription_id: subs[0].id,
         fetch_id_of_last_send: null,
         date_from: dateFrom,
@@ -340,8 +350,12 @@ module.exports = (() => {
 
     const deleteResult = await db.run(
       `
-      DELETE FROM email_subscriptions
-      WHERE email_subscriptions.email=?
+      DELETE FROM user_subscriptions
+      WHERE user_subscriptions.user_id IN (
+          SELECT id 
+          FROM users
+          WHERE email=?
+        )
       ;
     `, email,
     );
@@ -351,6 +365,7 @@ module.exports = (() => {
   }
 
   async function updateEmailSub (email) {
+    // TODO bad name rename if you can
     let rows;
 
     try {
@@ -371,20 +386,25 @@ module.exports = (() => {
 
     const query = await db.prepare(
       `
-      UPDATE email_subscriptions
+      UPDATE user_subscriptions
       SET fetch_id_of_last_send=?
-      WHERE email=?`,
+      WHERE user_id IN (
+        SELECT id 
+        FROM users
+        WHERE email=?
+      )
+      `,
       [fetchId, email],
     );
 
-    log('Updating email', email, 'to most recent fetch_id', fetchId);
+    log('Updating subscription on email', email, 'to most recent fetch_id', fetchId);
     log('Executing query', query);
 
     return query.all();
   }
 
   return {
-    all,
+    executeAll,
     select,
     insert,
     insertDataFetch,
