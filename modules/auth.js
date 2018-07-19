@@ -63,7 +63,7 @@ function serializeUser (user) {
 }
 
 async function fetchUserById (id) {
-  const [user] = db.selectWhere('users', ['id', 'email', 'password'], { id });
+  const [user] = await db.selectWhere('users', ['id', 'email', 'password'], { id });
   return user;
 }
 
