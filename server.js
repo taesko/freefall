@@ -21,6 +21,7 @@ const db = require('./modules/db');
 const auth = require('./modules/auth');
 const { log } = require('./modules/utils');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./modules/validate');
+const { getContextForRoute } = require('./modules/render-contexts');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(
@@ -157,28 +158,37 @@ router.get('/unsubscribe', async (ctx) => {
 });
 
 router.get('/login', async (ctx) => {
-  await ctx.render('login.hbs', {
-    error_message: 'Success!',
-    item: 'login',
-  });
+  log('getting login page.');
+  if (auth.isLoggedIn(ctx)) {
+    log('User already logged in. Redirecting to /');
+    ctx.redirect('/');
+    return;
+  }
+
+  await ctx.render('login.hbs', getContextForRoute(ctx, '/login', 'get'));
 });
 
-router.post('/login', async (ctx, next) => {
+router.post('/login', async (ctx) => {
   log('trying to login user. Current session: ', ctx.session);
+
   try {
     await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
+    ctx.redirect('/');
+    return;
   } catch (e) {
     if (e instanceof auth.AlreadyLoggedIn) {
+      log('User already logged in. Redirect to /');
       ctx.redirect('/');
+      return;
     } else if (e instanceof auth.InvalidCredentials) {
-      log('invalid credentials on login. Redirecting to /login');
-      ctx.redirect('/login');
+      log('Invalid credentials on login. Setting ctx.state.login_error_message');
+      ctx.state.login_error_message = 'Invalid username or password.';
     } else {
       throw e;
     }
   }
-  ctx.redirect('/');
-  await next();
+
+  await ctx.render('login.hbs', getContextForRoute(ctx, '/login', 'post'));
 });
 
 router.get('/logout', async (ctx, next) => {
@@ -188,13 +198,17 @@ router.get('/logout', async (ctx, next) => {
 });
 
 router.get('/old', async (ctx) => {
+  const airports = await db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('index-ff20.hbs', {
+    airports,
     item: 'search',
   });
 });
 
 router.get('/old/subscribe', async (ctx) => {
+  const airports = db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('subscribe-ff20.hbs', {
+    airports,
     item: 'subscribe',
   });
 });
