@@ -152,7 +152,7 @@ router.get('/subscribe', async (ctx, next) => {
 });
 
 router.get('/unsubscribe', async (ctx) => {
-  await ctx.render('unsubscribe.hbs', await getContextForRoute(ctx, 'get', '/unsubscribe'));
+  await ctx.render('unsubscribe-ff20.hbs', await getContextForRoute(ctx, 'get', '/unsubscribe'));
 });
 
 router.get('/login', async (ctx) => {
@@ -231,6 +231,12 @@ router.post('/register', async (ctx) => {
 
   ctx.state.register_errors = errors;
   await ctx.render('register.hbs', await getContextForRoute(ctx, 'post', '/register'));
+});
+
+router.get('/profile', async (ctx) => {
+  await ctx.render('profile.hbs', {
+    item: 'profile',
+  });
 });
 
 router.get('/old', async (ctx) => {
