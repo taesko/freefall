@@ -36,13 +36,9 @@
   "globals": {
     "_": true,
     "$": true,
-    "airportDump": true,
-    "getValidateSearchReq": true,
-    "getValidateSearchRes": true,
-    "getValidateSubscriptionReq": true,
-    "getValidateSubscriptionRes": true,
-    "getValidateSendErrorReq": true,
-    "getValidateSendErrorRes": true,
+    "jQuery": true,
+    "validators": true,
+    "main": true,
     "Ajv": true,
     "jsyaml": true,
     "window": true

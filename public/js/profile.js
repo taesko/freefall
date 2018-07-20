@@ -1,13 +1,6 @@
 'use strict';
 
 function start () {
-  function listAirports () {
-
-    return {
-
-    }
-  }
-
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const AIRPORT_HASH = airportDump();
     var key; // eslint-disable-line no-var
