@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/list_airports",
+  "title": "Body of the list_airports API method sent from the client.",
+  "type": "object",
+  "properties": {}
+}

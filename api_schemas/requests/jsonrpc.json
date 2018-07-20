@@ -21,6 +21,9 @@
         "search",
         "subscribe",
         "unsubscribe",
+        "list_airports",
+        "list_subscriptions",
+        "list_users",
         "senderror"
       ]
     },

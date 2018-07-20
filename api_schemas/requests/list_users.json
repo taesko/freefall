@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/list_users",
+  "title": "Body of the list_users API method sent from the client.",
+  "type": "object",
+  "properties": {}
+}

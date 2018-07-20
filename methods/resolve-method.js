@@ -229,7 +229,7 @@ function search () {
   };
 }
 
-function subscribe (params, db) {
+function subscribe () {
   const execute = async function execute (params, db) {
     assertPeer(
       Number.isInteger(+params.fly_from) && Number.isInteger(+params.fly_to),
@@ -275,8 +275,80 @@ function unsubscribe () {
   };
 }
 
-function sendError () {
+function listAirports () {
   const execute = async function execute (params, db) {
+    const airports = await db.select('airports', ['id', 'iata_code', 'name']);
+
+    for (const air of airports) {
+      air.id = `${air.id}`;
+    }
+
+    return {
+      airports,
+    };
+  };
+
+  return {
+    name: 'list_airports',
+    execute,
+  };
+}
+
+function listSubscriptions () {
+  const execute = async function execute (params, db) {
+    const {email} = params;
+    const subRows = await db.executeAll(
+      `
+        SELECT usub.id, usub.date_from, usub.date_to, 
+          users.id user_id, users.email,
+          ap_from.name airport_from, ap_to.name airport_to
+        FROM user_subscriptions usub
+        JOIN users ON usub.user_id=users.id
+        JOIN subscriptions sub ON usub.subscription_id=sub.id
+        JOIN airports ap_from ON sub.airport_from_id=ap_from.id
+        JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+        WHERE users.email=?
+      `,
+      email
+    );
+
+    for (const sr of subRows) {
+      sr.id = `${sr.id}`;
+      sr.user_id = `${sr.user_id}`;
+    }
+
+    return {
+      subscriptions: subRows,
+    };
+  };
+
+  return {
+    name: 'list_subscriptions',
+    execute,
+  };
+}
+
+function listUsers () {
+  const execute = async function execute (params, db) {
+    const users = await db.select('users', ['id', 'email']);
+
+    for (const user of users) {
+      user.id = `${user.id}`;
+    }
+
+    return {
+      users,
+    };
+  };
+
+  return {
+    name: 'list_users',
+    execute,
+  };
+}
+
+function sendError () {
+  const execute = async function execute (params) {
     assertPeer(
       isObject(params),
       'Invalid senderror request',
@@ -334,5 +406,8 @@ module.exports = {
   search,
   subscribe,
   unsubscribe,
+  listAirports,
+  listSubscriptions,
+  listUsers,
   sendError,
 };
