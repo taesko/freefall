@@ -10,6 +10,7 @@ addContextForRoute('get', '/login', loginPageContext);
 addContextForRoute('post', '/login', loginPageContext);
 addContextForRoute('get', '/register', registerPageContext);
 addContextForRoute('post', '/register', registerPageContext);
+addContextForRoute('get', '/profile', profilePageContext);
 
 async function defaultContext (appCtx) {
   if (auth.isLoggedIn(appCtx)) {
@@ -55,6 +56,20 @@ function registerPageContext (appCtx) {
   };
 }
 
+async function profilePageContext (appCtx) {
+  const user = await auth.getLoggedInUser(appCtx);
+  const context = {
+    item: 'profile',
+  };
+
+  if (user) {
+    delete user.password;
+    context.user = user;
+  }
+
+  return context;
+}
+
 function addContextForRoute (request, route, ...functions) {
   request = request.toUpperCase();
   route = route.toLowerCase();
@@ -92,7 +107,7 @@ async function getContextForRoute (appCtx, request, route) {
   }
 
   for (const getContext of contextFunctions[route][request]) {
-    context = Object.assign(context, getContext(appCtx));
+    context = Object.assign(context, await getContext(appCtx));
   }
   log('Context for request/route', request, '-', route, 'is', context);
   return context;

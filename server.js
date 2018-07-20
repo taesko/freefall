@@ -234,9 +234,7 @@ router.post('/register', async (ctx) => {
 });
 
 router.get('/profile', async (ctx) => {
-  await ctx.render('profile.hbs', {
-    item: 'profile',
-  });
+  await ctx.render('profile.hbs', await getContextForRoute(ctx, 'get', '/profile'));
 });
 
 router.get('/old', async (ctx) => {
