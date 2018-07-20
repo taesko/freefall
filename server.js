@@ -12,6 +12,9 @@ const {
   search,
   subscribe,
   unsubscribe,
+  listAirports,
+  listSubscriptions,
+  listUsers,
   sendError,
 } = require('./methods/resolve-method');
 const { defineParsers, jsonParser, yamlParser } = require('./modules/normalize');
@@ -25,7 +28,7 @@ const { getContextForRoute } = require('./modules/render-contexts');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(
-  search, subscribe, unsubscribe, sendError,
+  search, subscribe, unsubscribe, listAirports, listSubscriptions, listUsers, sendError,
 );
 
 const app = new Koa();

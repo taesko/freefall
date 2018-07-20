@@ -275,6 +275,62 @@ function unsubscribe () {
   };
 }
 
+function listAirports () {
+  const execute = async function execute (params, db) {
+    const airports = await db.select('airports', ['id', 'iata_code', 'name']);
+    return {
+      airports,
+    };
+  };
+
+  return {
+    name: 'list_airports',
+    execute,
+  };
+}
+
+function listSubscriptions () {
+  const execute = async function execute (params, db) {
+    const {email} = params;
+    const subRows = await db.executeAll(
+      `
+        SELECT usub.id, usub.date_from, usub.date_to, 
+          users.id user_id, users.email,
+          ap_from.name airport_from, ap_to.name airport_to
+        FROM user_subscriptions usub
+        JOIN users ON usub.user_id=users.id
+        JOIN subscriptions sub ON usub.subscription_id=sub.id
+        JOIN airports ap_from ON sub.airport_from_id=ap_from.id
+        JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+        WHERE users.email=?
+      `,
+      email
+    );
+
+    return {
+      subscriptions: subRows,
+    };
+  };
+
+  return {
+    name: 'list_subscriptions',
+    execute,
+  };
+}
+
+function listUsers () {
+  const execute = async function execute (params, db) {
+    const users = db.select('users', ['id', 'name']);
+    return {
+      users,
+    };
+  };
+
+  return {
+    name: 'list_users',
+    execute,
+  };
+}
 function sendError () {
   const execute = async function execute (params, db) {
     assertPeer(
@@ -334,5 +390,8 @@ module.exports = {
   search,
   subscribe,
   unsubscribe,
+  listAirports,
+  listSubscriptions,
+  listUsers,
   sendError,
 };

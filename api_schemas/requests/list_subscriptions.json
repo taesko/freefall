@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/list_subscriptions",
+  "title": "Body of the list_subscriptions API method sent from the client.",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string"
+    }
+  }
+}
