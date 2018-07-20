@@ -166,7 +166,7 @@ router.get('/unsubscribe', async (ctx) => {
 
 router.get('/login', async (ctx) => {
   log('getting login page.');
-  if (auth.isLoggedIn(ctx)) {
+  if (await auth.isLoggedIn(ctx)) {
     log('User already logged in. Redirecting to /');
     ctx.redirect('/');
     return;
@@ -205,7 +205,7 @@ router.get('/logout', async (ctx, next) => {
 });
 
 router.get('/register', async (ctx) => {
-  if (auth.isLoggedIn(ctx)) {
+  if (await auth.isLoggedIn(ctx)) {
     ctx.redirect('/');
     return;
   }
@@ -214,7 +214,7 @@ router.get('/register', async (ctx) => {
 });
 
 router.post('/register', async (ctx) => {
-  if (auth.isLoggedIn(ctx)) {
+  if (await auth.isLoggedIn(ctx)) {
     ctx.redirect('/');
     return;
   }
