@@ -6,6 +6,7 @@ const bodyParser = require('koa-bodyparser');
 const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
+const session = require('koa-session');
 const {
   defineMethods,
   search,
@@ -17,8 +18,10 @@ const { defineParsers, jsonParser, yamlParser } = require('./modules/normalize')
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./modules/protocol');
 const { PeerError, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
+const auth = require('./modules/auth');
 const { log } = require('./modules/utils');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./modules/validate');
+const { getContextForRoute } = require('./modules/render-contexts');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(
@@ -28,15 +31,30 @@ const execute = defineMethods(
 const app = new Koa();
 const router = new Router();
 
+app.keys = ['freefall is love freefall is life'];
+
 app.on('error', (err, ctx) => {
   log(err);
   log('context of app is: ', ctx);
 });
 
+const SESSION_CONFIG = {
+  key: 'koa:sess',
+  maxAge: 1000 * 60 * 60 * 24, // 24 hours in miliseconds
+  // overwrite: true,
+  // httpOnly: true,
+  // signed: false,
+  // rolling: false,
+  // renew: false,
+};
+
+app.use(session(SESSION_CONFIG, app));
+
 app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
+    // TODO don't try to report through jsonrpc if it wasn't an API call that raised the error.
     log(err);
     // assertPeer(0, `The password: ${ pass } is not valid`)
 
@@ -119,7 +137,7 @@ router.get('/', async (ctx, next) => {
   const airports = await db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('index-ff20.hbs', {
     airports,
-    item: 'search',
+    ...await getContextForRoute(ctx, 'get', '/'),
   });
   await next();
 });
@@ -128,38 +146,105 @@ router.get('/subscribe', async (ctx, next) => {
   const airports = db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('subscribe-ff20.hbs', {
     airports,
-    item: 'subscribe',
+    ...await getContextForRoute(ctx, 'get', '/subscribe'),
   });
   await next();
 });
 
 router.get('/unsubscribe', async (ctx) => {
-  await ctx.render('unsubscribe-ff20.hbs', {
-    item: 'unsubscribe',
-  });
+  await ctx.render('unsubscribe.hbs', await getContextForRoute(ctx, 'get', '/unsubscribe'));
 });
 
 router.get('/login', async (ctx) => {
-  await ctx.render('login.hbs', {
-    error_message: 'Success!',
-    item: 'login',
-  });
+  log('getting login page.');
+  if (auth.isLoggedIn(ctx)) {
+    log('User already logged in. Redirecting to /');
+    ctx.redirect('/');
+    return;
+  }
+
+  await ctx.render('login.hbs', await getContextForRoute(ctx, 'get', '/login'));
 });
 
-router.get('/profile', async (ctx) => {
-  await ctx.render('profile.hbs', {
-    item: 'profile',
-  });
+router.post('/login', async (ctx) => {
+  log('trying to login user. Current session: ', ctx.session);
+
+  try {
+    await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
+    ctx.redirect('/');
+    return;
+  } catch (e) {
+    if (e instanceof auth.AlreadyLoggedIn) {
+      log('User already logged in. Redirect to /');
+      ctx.redirect('/');
+      return;
+    } else if (e instanceof auth.InvalidCredentials) {
+      log('Invalid credentials on login. Setting ctx.state.login_error_message');
+      ctx.state.login_error_message = 'Invalid username or password.';
+    } else {
+      throw e;
+    }
+  }
+
+  await ctx.render('login.hbs', await getContextForRoute(ctx, 'post', '/login'));
+});
+
+router.get('/logout', async (ctx, next) => {
+  auth.logout(ctx);
+  ctx.redirect('/');
+  await next();
+});
+
+router.get('/register', async (ctx) => {
+  if (auth.isLoggedIn(ctx)) {
+    ctx.redirect('/');
+    return;
+  }
+
+  await ctx.render('register.hbs', await getContextForRoute(ctx, 'get', '/register'));
+});
+
+router.post('/register', async (ctx) => {
+  if (auth.isLoggedIn(ctx)) {
+    ctx.redirect('/');
+    return;
+  }
+
+  const errors = [];
+  const {
+    email,
+    password,
+    confirm_password: confirmPassword,
+  } = ctx.request.body;
+
+  if (password !== confirmPassword) {
+    errors.push('Passwords are not the same.');
+  }
+
+  if (auth.emailIsRegistered(email)) {
+    errors.push('Email is already taken');
+  }
+
+  if (errors.length === 0) {
+    await auth.register(email, password);
+  }
+
+  ctx.state.register_errors = errors;
+  await ctx.render('register.hbs', await getContextForRoute(ctx, 'post', '/register'));
 });
 
 router.get('/old', async (ctx) => {
+  const airports = await db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('index-ff20.hbs', {
+    airports,
     item: 'search',
   });
 });
 
 router.get('/old/subscribe', async (ctx) => {
+  const airports = db.select('airports', ['id', 'iata_code', 'name']);
   await ctx.render('subscribe-ff20.hbs', {
+    airports,
     item: 'subscribe',
   });
 });
@@ -171,6 +256,7 @@ router.get('/old/unsubscribe', async (ctx) => {
 });
 
 router.post('/', async (ctx, next) => {
+  // TODO set ctx.state to hold current jsonrpc request and don't try to report errors when it isn't
   log('getting post request');
   const format = validateRequestFormat({
     headerParam: ctx.headers['content-type'],
@@ -182,6 +268,7 @@ router.post('/', async (ctx, next) => {
 
   validateRequest(parsed, protocol);
 
+  // TODO modularize and pass a format/protocol parameter
   const requestBody = normalizeRequest(parsed);
 
   log('Executing method', requestBody.method, 'with params', requestBody.params);

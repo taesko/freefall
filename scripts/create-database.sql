@@ -6,7 +6,8 @@ DROP TABLE IF EXISTS routes;
 DROP TABLE IF EXISTS fetches;
 DROP TABLE IF EXISTS airlines;
 DROP TABLE IF EXISTS subscriptions;
-DROP TABLE IF EXISTS email_subscriptions;
+DROP TABLE IF EXISTS user_subscriptions;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS airports;
 
 CREATE TABLE airports (
@@ -33,16 +34,24 @@ CREATE TABLE subscriptions (
 	FOREIGN KEY(airport_to_id) REFERENCES airports(id)
 );
 
-CREATE TABLE email_subscriptions (
+CREATE TABLE user_subscriptions (
     id integer PRIMARY KEY,
-    email text NOT NULL,
+    user_id integer NOT NULL,
     subscription_id integer NOT NULL,
     fetch_id_of_last_send integer,
     date_from text NOT NULL,
     date_to text NOT NULL,
-    UNIQUE(email, subscription_id, date_from, date_to),
+    UNIQUE(user_id, subscription_id, date_from, date_to),
     FOREIGN KEY(subscription_id) REFERENCES subscriptions(id),
-    FOREIGN KEY(fetch_id_of_last_send) REFERENCES fetches(id)
+    FOREIGN KEY(fetch_id_of_last_send) REFERENCES fetches(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE users (
+    id integer PRIMARY KEY,
+    email text NOT NULL,
+    password text NOT NULL,
+    UNIQUE(email)
 );
 
 CREATE TABLE fetches (
