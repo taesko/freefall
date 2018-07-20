@@ -13,8 +13,9 @@ addContextForRoute('post', '/register', registerPageContext);
 addContextForRoute('get', '/profile', profilePageContext);
 
 async function defaultContext (appCtx) {
-  if (auth.isLoggedIn(appCtx)) {
-    const { email } = await auth.getLoggedInUser(appCtx);
+  if (await auth.isLoggedIn(appCtx)) {
+    const { email } = await auth.getLoggedInUser(appCtx); // typeerror when user is missing from
+    // the database
 
     return {
       username: email,

@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const db = require('./db');
 const { AppError } = require('./error-handling');
 const { log } = require('./utils');
@@ -13,7 +14,7 @@ db.dbConnect();
 async function login (ctx, email, password) {
   log('Trying to login with credentials: ', email, password);
 
-  if (ctx.session.userID != null) {
+  if (await isLoggedIn(ctx)) {
     throw new AlreadyLoggedIn(`Already logged in as user with id ${ctx.session.userID}`);
   }
   let user;
@@ -43,15 +44,16 @@ async function register (email, password) {
   }
 
   try {
-    await db.insert('users', { email, password });
+    await db.insert('users', { email, password: hashPassword(password) });
   } catch (e) {
     log(`Couldn't register user with credentials email=${email} password=${password}. ${e}`);
     throw e;
   }
 }
 
-function isLoggedIn (ctx) {
-  return ctx.session.userID != null;
+async function isLoggedIn (ctx) {
+  const id = ctx.session.userID;
+  return id != null && await fetchUserById(id) != null;
 }
 
 async function getLoggedInUser (ctx) {
@@ -75,11 +77,14 @@ async function fetchUserByCredentials ({ email, password }) {
     WHERE email=? AND password=?
     ;
     `,
-    [email, password],
+    [email, hashPassword(password)],
   );
   return user;
 }
 
+function hashPassword (password) {
+  return crypto.createHash('md5').update(password).digest('hex');
+}
 async function emailIsRegistered (email) {
   const result = await db.selectWhere('users', ['email'], { email });
   return result.length !== 0;
