@@ -229,7 +229,7 @@ function search () {
   };
 }
 
-function subscribe (params, db) {
+function subscribe () {
   const execute = async function execute (params, db) {
     assertPeer(
       Number.isInteger(+params.fly_from) && Number.isInteger(+params.fly_to),
@@ -278,6 +278,11 @@ function unsubscribe () {
 function listAirports () {
   const execute = async function execute (params, db) {
     const airports = await db.select('airports', ['id', 'iata_code', 'name']);
+
+    for (const air of airports) {
+      air.id = `${air.id}`;
+    }
+
     return {
       airports,
     };
@@ -307,6 +312,11 @@ function listSubscriptions () {
       email
     );
 
+    for (const sr of subRows) {
+      sr.id = `${sr.id}`;
+      sr.user_id = `${sr.user_id}`;
+    }
+
     return {
       subscriptions: subRows,
     };
@@ -320,7 +330,12 @@ function listSubscriptions () {
 
 function listUsers () {
   const execute = async function execute (params, db) {
-    const users = db.select('users', ['id', 'name']);
+    const users = await db.select('users', ['id', 'email']);
+
+    for (const user of users) {
+      user.id = `${user.id}`;
+    }
+
     return {
       users,
     };
@@ -331,8 +346,9 @@ function listUsers () {
     execute,
   };
 }
+
 function sendError () {
-  const execute = async function execute (params, db) {
+  const execute = async function execute (params) {
     assertPeer(
       isObject(params),
       'Invalid senderror request',
