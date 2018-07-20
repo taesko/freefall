@@ -28,7 +28,13 @@ const { getContextForRoute } = require('./modules/render-contexts');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 const execute = defineMethods(
-  search, subscribe, unsubscribe, listAirports, listSubscriptions, listUsers, sendError,
+  search,
+  subscribe,
+  unsubscribe,
+  listAirports,
+  listSubscriptions,
+  listUsers,
+  sendError,
 );
 
 const app = new Koa();
@@ -212,6 +218,7 @@ router.post('/register', async (ctx) => {
     ctx.redirect('/');
     return;
   }
+  log('Attempting to register user with credentials:', ctx.request.body);
 
   const errors = [];
   const {
@@ -224,12 +231,15 @@ router.post('/register', async (ctx) => {
     errors.push('Passwords are not the same.');
   }
 
-  if (auth.emailIsRegistered(email)) {
+  if (await auth.emailIsRegistered(email)) {
     errors.push('Email is already taken');
   }
 
   if (errors.length === 0) {
     await auth.register(email, password);
+    await auth.login(ctx, email, password);
+    ctx.redirect('/');
+    return;
   }
 
   ctx.state.register_errors = errors;
