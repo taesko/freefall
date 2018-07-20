@@ -51,7 +51,7 @@ function start () {
         msg: 'Expected airports[' + i + '] to be an object, but got ' + typeof airports[i], // eslint-disable-line prefer-template
       });
 
-      for (const prop in airports[i]) {
+      for (var prop in airports[i]) { // eslint-disable-line no-var
         if (
           airports[i].hasOwnProperty(prop) &&
           airports[i][prop].toLowerCase().indexOf(term.toLowerCase()) !== -1

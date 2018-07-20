@@ -32,7 +32,7 @@ function start () {
     for (i = 0; i < airports.length; i++) {
       assertApp(_.isObject(airports[i]), 'Expected airports[' + i + '] to be an object, but got ' + typeof airports[i]); // eslint-disable-line prefer-template
 
-      for (const prop in airports[i]) {
+      for (var prop in airports[i]) { // eslint-disable-line no-var
         if (
           airports[i].hasOwnProperty(prop) &&
           airports[i][prop].toLowerCase().indexOf(term.toLowerCase()) !== -1
@@ -168,6 +168,13 @@ function start () {
       $('#from-input').autocomplete(airportNames);
       $('#to-input').autocomplete(airportNames);
     });
+
+    const datepickerOptions = {
+      dateFormat: 'yy-mm-dd',
+    };
+
+    $('#date-from').datepicker(datepickerOptions);
+    $('#date-to').datepicker(datepickerOptions);
   });
 }
 
