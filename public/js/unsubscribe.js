@@ -9,8 +9,9 @@ function start () {
   const sendRequest = mainUtils.sendRequest;
   const displayUserMessage = mainUtils.displayUserMessage;
   const SERVER_URL = mainUtils.SERVER_URL;
+  const getValidatorMsg = mainUtils.getValidatorMsg;
   const validateSubscriptionRes = validators.getValidateSubscriptionRes();
-  const validateSubscriptionReq = validators.getValidateSubscriptionReq();
+  const validateSubscribeReq = validators.getValidateSubscribeReq();
   const validateErrorRes = validators.getValidateErrorRes();
   const $unsubscribeForm = $('#unsubscribe-form');
   const $unsubscribeBtn = $('#unsubscribe-button');
@@ -20,8 +21,8 @@ function start () {
 
     const { email } = params;
 
-    assertApp(validateSubscriptionReq(params), {
-      msg: 'Params do not adhere to subscriptionRequestSchema',
+    assertApp(validateSubscribeReq(params), {
+      msg: 'Params do not adhere to subscriptionRequestSchema: ' + getValidatorMsg(validateSubscribeReq), // eslint-disable-line prefer-template
     });
 
     sendRequest({
@@ -34,7 +35,7 @@ function start () {
     }, function (result, error) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema',
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
         });
 
         trace('Error in unsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
@@ -44,7 +45,7 @@ function start () {
       }
 
       assertPeer(validateSubscriptionRes(result), {
-        msg: 'Params do not adhere to subscriptionResponseSchema',
+        msg: 'Params do not adhere to subscriptionResponseSchema: ' + getValidatorMsg(validateSubscriptionRes), // eslint-disable-line prefer-template
       });
       assertUser(result.status_code >= 1000 && result.status_code < 2000, {
         userMessage: 'There was no subscription with email ' + email + '.', // eslint-disable-line prefer-template

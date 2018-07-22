@@ -38,6 +38,7 @@
     "$": true,
     "jQuery": true,
     "validators": true,
+    "adminValidators": true,
     "main": true,
     "Ajv": true,
     "jsyaml": true,

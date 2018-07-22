@@ -11,6 +11,7 @@ function start () {
   const assertPeer = mainUtils.assertPeer;
   const trace = mainUtils.trace;
   const handleError = mainUtils.handleError;
+  const getValidatorMsg = mainUtils.getValidatorMsg;
   const sendRequest = mainUtils.sendRequest;
   const displayUserMessage = mainUtils.displayUserMessage;
   const listAirports = mainUtils.listAirports;
@@ -294,7 +295,7 @@ function start () {
     // JSON.stringify - handle potential exception in a new function - stringifyObject
 
     assertApp(validateSearchReq(params), {
-      msg: 'Params do not adhere to searchRequestSchema.',
+      msg: 'Params do not adhere to searchRequestSchema: ' + getValidatorMsg(validateSearchReq), // eslint-disable-line prefer-template
     });
 
     sendRequest({
@@ -307,7 +308,7 @@ function start () {
     }, function (result, error) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema',
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
         });
 
         trace('Error in search:' + JSON.stringify(error)); // eslint-disable-line prefer-template
@@ -317,7 +318,7 @@ function start () {
       }
 
       assertPeer(validateSearchRes(result), {
-        msg: 'Params do not adhere to searchResponseSchema.',
+        msg: 'Params do not adhere to searchResponseSchema: ' + getValidatorMsg(validateSearchRes), // eslint-disable-line prefer-template
       });
 
       var i, k; // eslint-disable-line no-var

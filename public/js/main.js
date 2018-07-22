@@ -2,15 +2,17 @@
 
 function main () {
   function BaseError (messages, shouldSend) {
-    Error.call(this, messages.msg);
+    const error = Error.call(this, messages.msg);
 
     this.userMessage = messages.userMessage;
     this.msg = messages.msg;
 
     shouldSend &&
     sendError({
+      v: '2.0',
       msg: messages.msg,
       trace: traceLog,
+      stack_trace: error.stack,
     }, 'jsonrpc');
 
     handleError(messages, 'error');
@@ -76,6 +78,33 @@ function main () {
     };
   }
 
+  function getValidatorMsg (validator) {
+    assertApp(_.isObject(validator), {
+      msg: 'Expected validator to be an object, but was ' + typeof validator, // eslint-disable-line prefer-template
+    }); // eslint-disable-line prefer-template
+    assertApp(
+      validator.errors instanceof Array ||
+      validator.errors === null, {
+        msg: 'Expected validator errors to be array or null, but was ' + typeof validator.errors, // eslint-disable-line prefer-template
+      },
+    );
+
+    if (validator.errors === null) {
+      return '';
+    } else {
+      return validator.errors.map(function (error) { // eslint-disable-line prefer-arrow-callback
+        assertApp(_.isObject(error), {
+          msg: 'Expected validation error to be an object, but was ' + typeof error, // eslint-disable-line prefer-template
+        });
+        assertApp(typeof error.message === 'string', {
+          msg: 'Expected validation error message to be a string, but was ' + typeof error.message, // eslint-disable-line prefer-template
+        });
+
+        return error.message;
+      }).join(';');
+    }
+  }
+
   const SERVER_URL = '/';
   // const SERVER_URL = 'http://127.0.0.1:3000';
   const MAX_TRACE = 300;
@@ -137,8 +166,9 @@ function main () {
   }
 
   function sendError (params, protocolName) {
+    console.log(params);
     assertApp(validateSendErrorReq(params), {
-      msg: 'Params do not adhere to sendErrorRequestSchema',
+      msg: 'Params do not adhere to sendErrorRequestSchema: ' + getValidatorMsg(validateSendErrorReq), // eslint-disable-line prefer-template
     });
 
     sendRequest({
@@ -150,7 +180,7 @@ function main () {
       protocolName: protocolName,
     }, function (result, error) { // eslint-disable-line prefer-arrow-callback
       assertPeer(validateSendErrorRes(result), {
-        msg: 'Params do not adhere to sendErrorResponseSchema',
+        msg: 'Params do not adhere to sendErrorResponseSchema: ' + getValidatorMsg(validateSendErrorRes), // eslint-disable-line prefer-template
       });
     });
   }
@@ -195,7 +225,7 @@ function main () {
     }, function (result, error) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema',
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
         });
 
         trace('Error in listAirports:' + JSON.stringify(error)); // eslint-disable-line prefer-template
@@ -205,7 +235,7 @@ function main () {
       }
 
       assertPeer(validateListAirportsRes(result), {
-        msg: 'Params do not adhere to listAirportsResponseSchema',
+        msg: 'Params do not adhere to listAirportsResponseSchema: ' + getValidatorMsg(validateListAirportsRes), // eslint-disable-line prefer-template
       });
 
       callback(result);
@@ -445,6 +475,7 @@ function main () {
     assertApp: assertApp,
     assertPeer: assertPeer,
     assertUser: assertUser,
+    getValidatorMsg: getValidatorMsg,
     trace: trace,
     sendRequest: sendRequest,
     sendError: sendError,

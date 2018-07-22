@@ -1,12 +1,12 @@
 const ajv = new Ajv();
 
 const validators = { // eslint-disable-line no-unused-vars
-  getValidateSubscriptionReq: function () {
-    const subscriptionRequestSchema = {
+  getValidateSubscribeReq: function () {
+    const subscribeRequestSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',
-      '$id': 'http://10.20.1.155:3000/subscriptionrequest.schema.json',
-      'title': 'Subscription request',
-      'description': 'Contains the request of subscribe or unsubscribe method',
+      '$id': 'http://10.20.1.155:3000/subscriberequest.schema.json',
+      'title': 'Subscribe request',
+      'description': 'Contains the request of subscribe method',
       'type': 'object',
       'properties': {
         'v': {
@@ -17,18 +17,82 @@ const validators = { // eslint-disable-line no-unused-vars
         'fly_from': {
           'title': 'Departure airport',
           'description': 'The id of the departure airport',
-          'type': ['number', 'string'],
+          'type': 'string',
         },
         'fly_to': {
           'title': 'Arrival airport',
           'description': 'The id of the arrival airport',
-          'type': ['number', 'string'],
+          'type': 'string',
+        },
+        'date_from': {
+          'title': 'Earliest flight departure',
+          'type': 'string',
+          'format': 'date-time',
+        },
+        'date_to': {
+          'title': 'Latest flight arrival',
+          'type': 'string',
+          'format': 'date-time',
+        },
+        'api_key': {
+          'title': 'API key',
+          'type': 'string',
         },
       },
+      'required': ['v', 'fly_from', 'fly_to', 'date_from', 'date_to', 'api_key'],
     };
-    return ajv.compile(subscriptionRequestSchema);
+    return ajv.compile(subscribeRequestSchema);
   },
 
+  getValidateUnsubscribeReq: function () {
+    const unsubscribeRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/unsubscriberequest.schema.json',
+      'title': 'Unsubscribe request',
+      'description': 'Contains the request of unsubscribe method',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+        'user_subscription_id': {
+          'title': 'User subscription ID',
+          'type': 'string',
+        },
+        'api_key': {
+          'title': 'API key',
+          'type': 'string',
+        },
+      },
+      'required': ['v', 'api_key', 'user_subscription_id'],
+    };
+    return ajv.compile(unsubscribeRequestSchema);
+  },
+
+  getValidateUnsubscribeAllReq: function () {
+    const unsubscribeAllRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/unsubscribeallrequest.schema.json',
+      'title': 'Unsubscribe all request',
+      'description': 'Contains the request of unsubscribe all method',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+        'api_key': {
+          'title': 'API key',
+          'type': 'string',
+        },
+      },
+      'required': ['v', 'api_key'],
+    };
+    return ajv.compile(unsubscribeAllRequestSchema);
+  },
+
+  // Same for subscribe, unsubscribe and unsubscribe_all method responses
   getValidateSubscriptionRes: function () {
     const subscriptionResponseSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',
@@ -38,11 +102,12 @@ const validators = { // eslint-disable-line no-unused-vars
       'type': 'object',
       'properties': {
         'status_code': {
-          'title': 'Title',
+          'title': 'Status code',
           'description': 'Indicator for the result of the request',
-          'type': ['string', 'number'],
+          'type': 'string',
         },
       },
+      'required': ['status_code'],
     };
     return ajv.compile(subscriptionResponseSchema);
   },
@@ -63,12 +128,12 @@ const validators = { // eslint-disable-line no-unused-vars
         'fly_from': {
           'title': 'Departure airport id',
           'description': 'The id of the departure airport',
-          'type': ['number', 'string'],
+          'type': 'string',
         },
         'fly_to': {
           'title': 'Arrival airport id',
           'description': 'The id of the arrival airport',
-          'type': ['number', 'string'],
+          'type': 'string',
         },
         'price_to': {
           'title': 'Maximum price',
@@ -107,7 +172,7 @@ const validators = { // eslint-disable-line no-unused-vars
           'minimum': 0,
         },
       },
-      'required': ['v', 'fly_from', 'fly_to'],
+      'required': ['v', 'fly_from', 'fly_to', 'currency', 'sort'],
     };
     return ajv.compile(searchRequestSchema);
   },
@@ -198,12 +263,15 @@ const validators = { // eslint-disable-line no-unused-vars
                       'type': 'string',
                     },
                   },
+                  'required': ['airport_from', 'airport_to', 'return', 'dtime', 'atime', 'airline_logo', 'airline_name', 'flight_number'],
                 },
               },
             },
+            'required': ['booking_token', 'price', 'route'],
           },
         },
       },
+      'required': ['status_code', 'currency', 'routes'],
     };
     return ajv.compile(searchResponseSchema);
   },
@@ -234,7 +302,12 @@ const validators = { // eslint-disable-line no-unused-vars
             'type': 'string',
           },
         },
+        'stack_trace': {
+          'title': 'Stack trace',
+          'type': 'string',
+        },
       },
+      'required': ['v', 'msg', 'trace', 'stack_trace'],
     };
     return ajv.compile(sendErrorRequestSchema);
   },
@@ -250,9 +323,10 @@ const validators = { // eslint-disable-line no-unused-vars
         'status_code': {
           'title': 'Status code',
           'description': 'Indicator for the result of the request',
-          'type': ['string', 'number'],
+          'type': 'string',
         },
       },
+      'required': ['status_code'],
     };
     return ajv.compile(sendErrorResponseSchema);
   },
@@ -277,12 +351,30 @@ const validators = { // eslint-disable-line no-unused-vars
           'type': 'object',
         },
       },
+      'required': ['code', 'message', 'data'],
     };
     return ajv.compile(errorResponseSchema);
   },
 
+  getValidateListAirportsReq: function () {
+    const listAirportsRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/listairportsrequest.schema.json',
+      'title': 'List airports request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+      },
+      'required': ['v'],
+    };
+    return ajv.compile(listAirportsRequestSchema);
+  },
+
   getValidateListAirportsRes: function () {
-    const listAirportsSchema = {
+    const listAirportsResponseSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',
       '$id': 'http://10.20.1.155:3000/listairportsresponse.schema.json',
       'title': 'List airports response',
@@ -307,10 +399,78 @@ const validators = { // eslint-disable-line no-unused-vars
                 'type': 'string',
               },
             },
+            'required': ['id', 'iata_code', 'name'],
           },
         },
       },
+      'required': ['airports'],
     };
-    return ajv.compile(listAirportsSchema);
+    return ajv.compile(listAirportsResponseSchema);
+  },
+
+  getValidateListSubscriptionsReq: function () {
+    const validateSubscriptionsRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/listsubscriptionsrequest.schema.json',
+      'title': 'List subscriptions request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+        'api_key': {
+          'title': 'API key',
+          'type': 'string',
+        },
+      },
+      'required': ['v', 'api_key'],
+    };
+    return ajv.compile(validateSubscriptionsRequestSchema);
+  },
+
+  getValidateListSubscriptionsRes: function () {
+    const validateSubscriptionsResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/listsubscriptionsresponse.schema.json',
+      'title': 'List subscriptions response',
+      'type': 'object',
+      'properties': {
+        'subscriptions': {
+          'type': 'array',
+          'title': 'Subscriptions list',
+          'items': {
+            'type': 'object',
+            'properties': {
+              'id': {
+                'title': 'Subscription id',
+                'type': 'string',
+              },
+              'fly_from': {
+                'title': 'Departure airport database id',
+                'type': 'string',
+              },
+              'fly_to': {
+                'title': 'Arrival airport database id',
+                'type': 'string',
+              },
+              'date_from': {
+                'title': 'Earliest flight departure',
+                'type': 'string',
+                'format': 'date-time',
+              },
+              'date_to': {
+                'title': 'Latest flight arrival',
+                'type': 'string',
+                'format': 'date-time',
+              },
+            },
+            'required': ['id', 'fly_from', 'fly_to', 'date_from', 'date_to'],
+          },
+        },
+      },
+      'required': ['subscriptions'],
+    };
+    return ajv.compile(validateSubscriptionsResponseSchema);
   },
 };

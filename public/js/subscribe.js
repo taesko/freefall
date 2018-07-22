@@ -10,9 +10,10 @@ function start () {
   const displayUserMessage = mainUtils.displayUserMessage;
   const SERVER_URL = mainUtils.SERVER_URL;
   const listAirports = mainUtils.listAirports;
+  const getValidatorMsg = mainUtils.getValidatorMsg;
   const validateErrorRes = validators.getValidateErrorRes();
   const validateSubscriptionRes = validators.getValidateSubscriptionRes();
-  const validateSubscriptionReq = validators.getValidateSubscriptionReq();
+  const validateSubscribeReq = validators.getValidateSubscribeReq();
 
   var airports = []; // eslint-disable-line no-var
 
@@ -58,8 +59,8 @@ function start () {
   function subscribe (params, protocolName, callback) {
     trace('subscribe(' + JSON.stringify(params) + '), typeof arg=' + typeof params + ''); // eslint-disable-line prefer-template
 
-    assertApp(validateSubscriptionReq(params), {
-      msg: 'Params do not adhere to subscriptionRequestSchema',
+    assertApp(validateSubscribeReq(params), {
+      msg: 'Params do not adhere to subscriptionRequestSchema: ' + getValidatorMsg(validateSubscribeReq), // eslint-disable-line prefer-template
     });
 
     const airportFrom = getAirport(params.fly_from, airports);
@@ -82,7 +83,7 @@ function start () {
     }, function (result, error) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema',
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
         });
 
         trace('Error in subscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
@@ -92,7 +93,7 @@ function start () {
       }
 
       assertPeer(validateSubscriptionRes(result), {
-        msg: 'Params do not adhere to subscriptionResponseSchema',
+        msg: 'Params do not adhere to subscriptionResponseSchema: ' + getValidatorMsg(validateSubscriptionRes), // eslint-disable-line prefer-template
       });
       assertUser(result.status_code >= 1000 && result.status_code < 2000, {
         userMessage: 'Already subscribed for flights from ' + airportFrom.name + ' to ' + airportTo.name + '.', // eslint-disable-line prefer-template
