@@ -473,4 +473,38 @@ const validators = { // eslint-disable-line no-unused-vars
     };
     return ajv.compile(validateSubscriptionsResponseSchema);
   },
+
+  getValidateGetAPIKeyReq: function () {
+    const getAPIKeyRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/getapikeyrequest.schema.json',
+      'title': 'Get API key request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+      },
+      'required': ['v'],
+    };
+    return ajv.compile(getAPIKeyRequestSchema);
+  },
+
+  getValidateGetAPIKeyRes: function () {
+    const getAPIKeyResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/getapikeyresponse.schema.json',
+      'title': 'Get API key response',
+      'type': 'object',
+      'properties': {
+        'api_key': {
+          'type': ['string', 'null'],
+          'title': 'API key',
+        },
+      },
+      'required': ['api_key'],
+    };
+    return ajv.compile(getAPIKeyResponseSchema);
+  },
 };

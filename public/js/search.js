@@ -237,6 +237,8 @@ function start () {
 
     const searchFormParams = {
       v: '1.0', // TODO move to another function, this should not be here
+      currency: 'USD',
+      sort: 'price',
     };
     const formData = objectifyForm($searchForm.serializeArray());
 
