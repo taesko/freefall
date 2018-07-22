@@ -120,7 +120,7 @@ app.use(bodyParser({ // TODO crashes on bad json, best avoid the inner parser
 app.use(serve(path.join(__dirname, 'public')));
 app.use(views(path.join(__dirname, 'templates/'), {
   map: {
-    hbs: 'handlebars',
+    html: 'handlebars',
   },
   options: {
     helpers: {
@@ -144,7 +144,7 @@ app.use(views(path.join(__dirname, 'templates/'), {
 
 router.get('/', async (ctx, next) => {
   const airports = await db.select('airports', ['id', 'iata_code', 'name']);
-  await ctx.render('index-ff20.hbs', {
+  await ctx.render('index.html', {
     airports,
     ...await getContextForRoute(ctx, 'get', '/'),
   });
@@ -153,7 +153,7 @@ router.get('/', async (ctx, next) => {
 
 router.get('/subscribe', async (ctx, next) => {
   const airports = db.select('airports', ['id', 'iata_code', 'name']);
-  await ctx.render('subscribe-ff20.hbs', {
+  await ctx.render('subscribe.html', {
     airports,
     ...await getContextForRoute(ctx, 'get', '/subscribe'),
   });
@@ -161,7 +161,7 @@ router.get('/subscribe', async (ctx, next) => {
 });
 
 router.get('/unsubscribe', async (ctx) => {
-  await ctx.render('unsubscribe-ff20.hbs', await getContextForRoute(ctx, 'get', '/unsubscribe'));
+  await ctx.render('unsubscribe.html', await getContextForRoute(ctx, 'get', '/unsubscribe'));
 });
 
 router.get('/login', async (ctx) => {
@@ -172,7 +172,7 @@ router.get('/login', async (ctx) => {
     return;
   }
 
-  await ctx.render('login.hbs', await getContextForRoute(ctx, 'get', '/login'));
+  await ctx.render('login.html', await getContextForRoute(ctx, 'get', '/login'));
 });
 
 router.post('/login', async (ctx) => {
@@ -195,7 +195,7 @@ router.post('/login', async (ctx) => {
     }
   }
 
-  await ctx.render('login.hbs', await getContextForRoute(ctx, 'post', '/login'));
+  await ctx.render('login.html', await getContextForRoute(ctx, 'post', '/login'));
 });
 
 router.get('/logout', async (ctx, next) => {
@@ -210,7 +210,7 @@ router.get('/register', async (ctx) => {
     return;
   }
 
-  await ctx.render('register.hbs', await getContextForRoute(ctx, 'get', '/register'));
+  await ctx.render('register.html', await getContextForRoute(ctx, 'get', '/register'));
 });
 
 router.post('/register', async (ctx) => {
@@ -243,33 +243,11 @@ router.post('/register', async (ctx) => {
   }
 
   ctx.state.register_errors = errors;
-  await ctx.render('register.hbs', await getContextForRoute(ctx, 'post', '/register'));
+  await ctx.render('register.html', await getContextForRoute(ctx, 'post', '/register'));
 });
 
 router.get('/profile', async (ctx) => {
-  await ctx.render('profile.hbs', await getContextForRoute(ctx, 'get', '/profile'));
-});
-
-router.get('/old', async (ctx) => {
-  const airports = await db.select('airports', ['id', 'iata_code', 'name']);
-  await ctx.render('index-ff20.hbs', {
-    airports,
-    item: 'search',
-  });
-});
-
-router.get('/old/subscribe', async (ctx) => {
-  const airports = db.select('airports', ['id', 'iata_code', 'name']);
-  await ctx.render('subscribe-ff20.hbs', {
-    airports,
-    item: 'subscribe',
-  });
-});
-
-router.get('/old/unsubscribe', async (ctx) => {
-  await ctx.render('unsubscribe-ff20.hbs', {
-    item: 'unsubscribe',
-  });
+  await ctx.render('profile.html', await getContextForRoute(ctx, 'get', '/profile'));
 });
 
 router.post('/', async (ctx, next) => {

@@ -5,35 +5,38 @@
         .attr('id', $(this).attr('list'))
         .insertAfter($(this));
 
-      const onInput = (data) => (event) => {
-        const newVal = $(this).val();
+      const onInput = function (data) {
+        return function (event) {
+          const newVal = $(this).val();
 
-        const minCharacters = 1;
-        const maxSuggestions = 20;
+          const minCharacters = 1;
+          const maxSuggestions = 20;
 
-        if (newVal.length < minCharacters) {
-          return;
-        }
-
-        $dataList.empty();
-        let suggestionsCount = 0;
-
-        for (const value of data) {
-          if (suggestionsCount === maxSuggestions) {
-            break;
+          if (newVal.length < minCharacters) {
+            return;
           }
 
-          if (value.toLowerCase().indexOf(newVal.toLowerCase()) !== -1) {
-            suggestionsCount += 1;
+          $dataList.empty();
+          var suggestionsCount = 0; // eslint-disable-line no-var
 
-            $(`<option></option>`)
-              .attr('value', value)
-              .appendTo($dataList);
+          var i; // eslint-disable-line no-var
+          for (i = 0; i < data.length; i++) {
+            if (suggestionsCount === maxSuggestions) {
+              break;
+            }
+
+            if (data[i].toLowerCase().indexOf(newVal.toLowerCase()) !== -1) {
+              suggestionsCount += 1;
+
+              $('<option></option>')
+                .attr('value', data[i])
+                .appendTo($dataList);
+            }
           }
-        }
+        };
       };
 
-      $(this).on('input', onInput(Object.keys(data).sort()));
+      $(this).on('input', onInput(data));
     });
   };
 })(jQuery);
