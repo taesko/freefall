@@ -39,7 +39,7 @@ function getApiSchema (method, type = 'request') {
 
 function getFullSchemaName (method, type) {
   type = type.toLowerCase();
-  assertApp(
+  assertPeer(
     METHODS.indexOf(method) !== -1 ||
     PROTOCOLS.indexOf(method) !== -1 ||
     method === 'error',
