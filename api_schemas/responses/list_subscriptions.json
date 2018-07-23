@@ -19,10 +19,12 @@
             "type": "string"
           },
           "date_from": {
-            "type": "date"
+            "type": "string",
+            "format": "date"
           },
           "date_to": {
-            "type": "date"
+            "type": "string",
+            "format": "date"
           }
         },
         "required": [
