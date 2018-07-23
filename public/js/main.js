@@ -22,6 +22,9 @@ function main () {
   // BaseError.prototype.constructor = BaseError;
 
   const ApplicationError = function (messages) {
+    messages.userMessage = messages.userMessage ||
+      'Application encountered an unexpected condition. Please refresh the page.';
+
     BaseError.call(this, messages, true);
   };
 
@@ -29,6 +32,9 @@ function main () {
   // ApplicationError.prototype.constructor = ApplicationError;
 
   const PeerError = function (messages) {
+    messages.userMessage = messages.userMessage ||
+      'Service is not available at the moment. Please refresh the page and try again later.';
+
     BaseError.call(this, messages, true);
   };
 
@@ -87,7 +93,7 @@ function main () {
       validator.errors instanceof Array ||
       validator.errors === null, {
         msg: 'Expected validator errors to be array or null, but was ' + typeof validator.errors, // eslint-disable-line prefer-template
-      },
+      }
     );
 
     if (validator.errors === null) {
@@ -318,11 +324,41 @@ function main () {
     return getParser(parsers);
   };
 
+  const getElementUniqueId = function (element, idPrefix) {
+    trace('getElementUniqueId');
+
+    assertApp(element instanceof window.HTMLElement, {
+      msg: 'Expected element to be HTMLElement, but got ' + typeof element, // eslint-disable-line prefer-template
+    });
+
+    const idAttr = $(element).attr('id');
+
+    assertApp(typeof idAttr === 'string', {
+      msg: 'Expected element to have a string id attribute, but id attribute is ' + typeof idAttr, // eslint-disable-line prefer-template
+    });
+
+    const idResult = idAttr.replace(idPrefix, '');
+
+    assertApp(idResult.length > 0, {
+      msg: 'Expected result id to be a string with length > 0, but length is ' + idResult.length, // eslint-disable-line prefer-template
+    });
+
+    return idResult;
+  };
+
+  const onCloseMessageClick = function (event) {
+    const closeMessageButton = event.target;
+
+    console.log(closeMessageButton);
+
+    const uniqueId = getElementUniqueId(closeMessageButton, 'close-msg-btn-');
+    $('#msg-' + uniqueId).remove(); // eslint-disable-line prefer-template
+  };
+
   const SERVER_URL = '/';
   // const SERVER_URL = 'http://127.0.0.1:3000';
   const MAX_TRACE = 300;
-  var $messageBar; // eslint-disable-line no-var
-  const messagesQueue = [];
+  var $messagesList; // eslint-disable-line no-var
   const validateSendErrorReq = validators.getValidateSendErrorReq();
   const validateSendErrorRes = validators.getValidateSendErrorRes();
   const validateErrorRes = validators.getValidateErrorRes();
@@ -331,7 +367,7 @@ function main () {
   const traceLog = [];
 
   const getParser = defineParsers([jsonParser, yamlParser]);
-  const getId = idGenerator();
+  const getUniqueId = idGenerator();
 
   const trace = function (msg) {
     if (traceLog.length > MAX_TRACE) {
@@ -339,30 +375,6 @@ function main () {
     }
     traceLog.push(msg);
   };
-
-  (function setupErrorMessages () {
-    setInterval(function () { // eslint-disable-line prefer-arrow-callback
-      if (!$messageBar) {
-        return;
-      }
-
-      if (messagesQueue.length !== 0) {
-        const message = messagesQueue.shift();
-        $messageBar.text(message.msg);
-
-        const msgTypeToClassMap = {
-          'info': 'info-msg',
-          'error': 'error-msg',
-          'success': 'success-msg',
-        };
-
-        $messageBar.removeClass().addClass(msgTypeToClassMap[message.type]);
-      } else {
-        $messageBar.text('');
-      }
-    },
-    5000);
-  })();
 
   const displayUserMessage = function (msg, type = 'info') {
     const allowedMsgTypes = ['info', 'error', 'success'];
@@ -373,10 +385,23 @@ function main () {
       'Invalid message type "' + type + '"' // eslint-disable-line prefer-template
     );
 
-    messagesQueue.push({
-      msg: msg,
-      type: type || 'info',
-    });
+    const msgTypeToClassMap = {
+      'info': 'bg-info',
+      'error': 'bg-danger',
+      'success': 'bg-success',
+    };
+
+    const msgId = getUniqueId();
+    const closeMessageButton = $('<button type="button" class="close" aria-label="Close">X</button>')
+      .attr('id', 'close-msg-btn-' + msgId) // eslint-disable-line prefer-template
+      .click(onCloseMessageClick);
+
+    $('<p></p>')
+      .addClass(msgTypeToClassMap[type])
+      .attr('id', 'msg-' + msgId) // eslint-disable-line prefer-template
+      .text(msg)
+      .append(closeMessageButton)
+      .appendTo($messagesList);
   };
 
   const sendError = function (params, protocolName) {
@@ -423,7 +448,7 @@ function main () {
 
     xhr.open('POST', url);
     xhr.setRequestHeader('Content-Type', parser.contentType);
-    xhr.send(parser.stringifyRequest(data, getId()));
+    xhr.send(parser.stringifyRequest(data, getUniqueId()));
   };
 
   const listAirports = function (protocolName, callback) {
@@ -554,7 +579,7 @@ function main () {
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    $messageBar = $('#message-bar');
+    $messagesList = $('#messages-list');
   });
 
   window.addEventListener('error', function (error) { // eslint-disable-line prefer-arrow-callback
@@ -578,7 +603,8 @@ function main () {
     listAirports: listAirports,
     getAirportName: getAirportName,
     getAirportId: getAirportId,
-    getId: getId,
+    getUniqueId: getUniqueId,
+    getElementUniqueId: getElementUniqueId,
     getAPIKey: getAPIKey,
     yamlParser: yamlParser,
     jsonParser: jsonParser,

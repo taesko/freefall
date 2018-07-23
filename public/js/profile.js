@@ -13,9 +13,10 @@ function start () {
   const getAirportName = mainUtils.getAirportName;
   const getAirportId = mainUtils.getAirportId;
   const SERVER_URL = mainUtils.SERVER_URL;
-  const getId = mainUtils.getId;
+  const getUniqueId = mainUtils.getUniqueId;
   const displayUserMessage = mainUtils.displayUserMessage;
   const getAPIKey = mainUtils.getAPIKey;
+  const getElementUniqueId = mainUtils.getElementUniqueId;
   const validateErrorRes = validators.getValidateErrorRes();
   const validateListSubscriptionsRes = validators.getValidateListSubscriptionsRes();
   const validateSubscribeReq = validators.getValidateSubscribeReq();
@@ -65,7 +66,7 @@ function start () {
       const airportToName = getAirportName(airports, subscription.fly_to);
 
       const newRow = $tableBody[0].insertRow();
-      const rowId = String(getId()); // TODO change getId to getUniqueId
+      const rowId = String(getUniqueId());
       const rowValues = [
         airportFromName,
         airportToName,
@@ -84,7 +85,7 @@ function start () {
   const onEditClick = function (event) {
     trace('edit button click');
 
-    const rowId = getRowId(event.target, 'edit-btn-');
+    const rowId = getElementUniqueId(event.target, 'edit-btn-');
     const rowValues = rowIdSubscriptionMap[rowId];
     const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
 
@@ -104,7 +105,7 @@ function start () {
     const saveButton = event.target;
     saveButton.disabled = true;
 
-    const rowId = getRowId(event.target, 'save-btn-');
+    const rowId = getElementUniqueId(event.target, 'save-btn-');
     const rowValues = rowIdSubscriptionMap[rowId];
 
     const airportFrom = $('#airport-from-' + rowId).val(); // eslint-disable-line prefer-template
@@ -176,7 +177,7 @@ function start () {
   const onCancelClick = function (event) {
     trace('cancel button click');
 
-    const rowId = getRowId(event.target, 'cancel-btn-');
+    const rowId = getElementUniqueId(event.target, 'cancel-btn-');
     const rowValues = rowIdSubscriptionMap[rowId];
     const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
 
@@ -194,7 +195,7 @@ function start () {
 
     const removeButton = event.target;
     removeButton.disabled = true;
-    const rowId = getRowId(event.target, 'remove-btn-');
+    const rowId = getElementUniqueId(event.target, 'remove-btn-');
     const rowValues = rowIdSubscriptionMap[rowId];
 
     // TODO asserts
@@ -261,7 +262,7 @@ function start () {
         // TODO check if table empty
 
         const newRow = $('#subscriptions-table tbody')[0].insertRow();
-        const rowId = String(getId()); // TODO change getId to getUniqueId
+        const rowId = String(getUniqueId());
         const rowValues = [
           airportFrom,
           airportTo,
@@ -293,7 +294,7 @@ function start () {
 
     $(rowElement).find('td').remove();
 
-    const rowId = getRowId(rowElement, 'row-');
+    const rowId = getElementUniqueId(rowElement, 'row-');
 
     var i; // eslint-disable-line no-var
 
@@ -338,7 +339,7 @@ function start () {
 
     $(rowElement).find('td').remove();
 
-    const rowId = getRowId(rowElement, 'row-');
+    const rowId = getElementUniqueId(rowElement, 'row-');
 
     var i; // eslint-disable-line no-var
 
@@ -355,28 +356,6 @@ function start () {
 
       $(newCol).text(rowValues[i]);
     }
-  }
-
-  function getRowId (element, idPrefix) {
-    trace('getRowId');
-
-    assertApp(element instanceof window.HTMLElement, {
-      msg: 'Expected element to be HTMLElement, but got ' + typeof element, // eslint-disable-line prefer-template
-    });
-
-    const idAttr = $(element).attr('id');
-
-    assertApp(typeof idAttr === 'string', {
-      msg: 'Expected element to have a string id attribute, but id attribute is ' + typeof idAttr, // eslint-disable-line prefer-template
-    });
-
-    const idResult = idAttr.replace(idPrefix, '');
-
-    assertApp(idResult.length > 0, {
-      msg: 'Expected result id to be a string with length > 0, but length is ' + idResult.length, // eslint-disable-line prefer-template
-    });
-
-    return idResult;
   }
 
   function applyDatePicker () {
