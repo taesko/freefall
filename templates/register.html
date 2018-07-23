@@ -10,6 +10,8 @@
     {{> heading }}
     {{> menu }}
     <div class="col-md-4 col-md-offset-4">
+      <h3 class="text-center">Register</h3>
+      <hr>
       <form method="post" action="/register">
         <div class="form-group">
           <div class="form-group fixed-form-height">
@@ -31,6 +33,7 @@
           {{> auth_message_error }}
         </div>
       </form>
+      <p class="text-center"><a href="/login">Already have an account? Log in -></a></p>
     </div>
   </div>
   <script src="js/jquery/jquery-2.2.4.js"></script>

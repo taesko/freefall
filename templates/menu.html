@@ -3,18 +3,20 @@
     <div class="navbar navbar-default navbar-static-top">
       <ul class="nav navbar-nav">
         <li class="{{is_active item "search"}}"><a href="/">Search</a></li>
-        <li class="{{is_active item "login"}}"><a href="login">Log in</a></li>
-        <li class="{{is_active item "register"}}"><a href="register">Register</a></li>
-        <li class="dropdown">
-          <a class="dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown">Profile <span class="caret"></span></a>
-          <ul class="dropdown-menu">
-            <li class="text-center">{{ user.email }}</li>
-            <li role="separator" class="divider"></li>
-            <li><a href="/profile">Settings</a></li>
-            <li role="separator" class="divider"></li>
-            <li><a href="/logout">Log out</a></li>
-          </ul>
-        </li>
+        {{#if user}}
+          <li class="{{is_active item "profile"}} dropdown">
+            <a class="dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown">Profile <span class="caret"></span></a>
+            <ul class="dropdown-menu">
+              <li class="text-center">{{ user.email }}</li>
+              <li role="separator" class="divider"></li>
+              <li class="{{is_active item "profile"}}"><a href="/profile">Profile</a></li>
+              <li role="separator" class="divider"></li>
+              <li><a href="/logout">Log out</a></li>
+            </ul>
+          </li>
+        {{else}}
+          <li class="{{is_active item "login"}}"><a href="login">Log in</a></li>
+        {{/if}}
       </ul>
     </div>
   </div>
