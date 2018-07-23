@@ -2,31 +2,11 @@ const { defineParsers, jsonParser, yamlParser } = require('./normalize');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./validate');
 const { PeerError, UserError } = require('./error-handling');
 const compose = require('koa-compose');
-const {
-  defineMethods,
-  search,
-  subscribe,
-  unsubscribe,
-  listAirports,
-  getAPIKey,
-  listSubscriptions,
-  listUsers,
-  sendError,
-} = require('../methods/resolve-method');
+const methods = require('../methods/resolve-method');
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./protocol');
 const { log } = require('./utils');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
-const execute = defineMethods(
-  search,
-  subscribe,
-  unsubscribe,
-  listAirports,
-  getAPIKey,
-  listSubscriptions,
-  listUsers,
-  sendError,
-);
 
 async function errorHandling (ctx, next) {
   ctx.state.api = {};
@@ -91,7 +71,7 @@ async function api (ctx, next) {
 
   log('Executing method', requestBody.method, 'with params', requestBody.params);
 
-  const result = await execute({
+  const result = await methods.execute({
     methodName: requestBody.method,
     params: requestBody.params,
     db: ctx.db,
