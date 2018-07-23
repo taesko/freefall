@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "responses/yamlrpc.json",
+  "$id": "response/yamlrpc",
   "title": "YAMLRPC response",
   "description": "Skeleton of the post body for YAMLRPC.",
   "type": "object",

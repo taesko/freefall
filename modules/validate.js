@@ -2,20 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const Ajv = require('ajv');
 const ajv = new Ajv();
-const { assertApp, assertPeer, AppError } = require('./error-handling');
+const { assertApp, assertPeer } = require('./error-handling');
 const { log } = require('./utils');
 
-const PROTOCOLS = ['jsonrpc'];
-const METHODS = [
-  'search',
-  'subscribe',
-  'unsubscribe',
-  'list_airports',
-  'get_api_key',
-  'list_subscriptions',
-  'list_users',
-  'senderror',
-];
 const SCHEMAS_DIR = path.join(__dirname, '..', 'api_schemas');
 const FORMATS = {
   'text/json': 'json',
@@ -23,78 +12,59 @@ const FORMATS = {
   'text/yaml': 'yaml',
 };
 
-function getApiSchema (method, type = 'request') {
-  const typeDirs = {
-    'request': 'requests',
-    'response': 'responses',
-  };
-  const schemaPath = path.join(SCHEMAS_DIR, typeDirs[type], `${method}.json`);
+const REQUESTS_SCHEMAS_DIR = path.join(SCHEMAS_DIR, 'requests');
+const RESPONSE_SCHEMAS_DIR = path.join(SCHEMAS_DIR, 'responses');
 
-  assertApp(
-    fs.existsSync(schemaPath),
-    `Missing schema ${method}`,
-  );
-
-  return JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
-}
-
-function getFullSchemaName (method, type) {
-  type = type.toLowerCase();
-  assertPeer(
-    METHODS.indexOf(method) !== -1 ||
-    PROTOCOLS.indexOf(method) !== -1 ||
-    method === 'error',
-    `there is no such method ${method}`,
-  );
-  assertApp(type === 'request' || type === 'response',
-    `invalid type=${type} parameter - must be one of ['request', 'response']`,
-  );
-
-  return `${type}/${method}`;
-}
-
-// alternatives - init function
 (function registerSchemas () {
-  const schemas = {};
+  const schemas = discoverSchemaPaths()
+    .map(path => [path, JSON.parse(fs.readFileSync(path))])
+    .reduce(
+      (hash, entry) => {
+        hash[entry[0]] = entry[1];
+        return hash;
+      },
+      {},
+    );
 
-  for (const type of ['request', 'response']) {
-    for (const shortName of METHODS.concat(PROTOCOLS)) {
-      const name = getFullSchemaName(shortName, type);
-      schemas[name] = getApiSchema(shortName, type);
-    }
-  }
-
-  const err = getFullSchemaName('error', 'response');
-  schemas[err] = getApiSchema('error', 'response');
-
-  for (const [name, schema] of Object.entries(schemas)) {
+  for (const [path, schema] of Object.entries(schemas)) {
     try {
-      ajv.addSchema(schema, name);
-      log(`Registered schema with name=${name}`);
+      ajv.addSchema(schema);
+      log(`Registered schema on path=${path}`);
     } catch (e) {
-      throw new AppError(`Cannot add ${name} schema to ajv. Reason: ${e}`);
+      log(`Couldn't add schema on path=${path}. Reason: ${e}`);
     }
   }
 })();
 
-function validateProtocol (obj, protocol = 'jsonrpc', type = 'request') {
-  assertApp(PROTOCOLS.indexOf(protocol) !== -1,
-    `Cannot validate protocol - ${protocol} is unknown`,
+function discoverSchemaPaths () {
+  const requests = fs.readdirSync(REQUESTS_SCHEMAS_DIR)
+    .map(fileName => path.join(REQUESTS_SCHEMAS_DIR, fileName));
+  const responses = fs.readdirSync(RESPONSE_SCHEMAS_DIR)
+    .map(fileName => path.join(RESPONSE_SCHEMAS_DIR, fileName));
+
+  return requests.concat(responses);
+}
+
+function getSchemaId (type, name) {
+  const hash = {
+    'request': `request/${name}`,
+    'response': `response/${name}`,
+  };
+  const id = hash[type];
+
+  assertApp(
+    id != null,
+    'Invalid parameter type to getSchemaId. Expected one of: [\'request\', \'response\']',
   );
 
-  if (type === 'request') {
-    assertPeer(
-      ajv.validate(`request/${protocol}`, obj),
-      `Bad protocol. Error: ${ajv.errorsText()}`,
-    );
-  } else if (type === 'response') {
-    assertApp(
-      ajv.validate(`response/${protocol}`, obj),
-      `Bad response. Error: ${ajv.errorsText()}`,
-    );
-  } else {
-    assertApp(false, `Invalid parameter type=${type}`);
-  }
+  return id;
+}
+
+function validateProtocol (obj, protocol = 'jsonrpc', type = 'request') {
+  assertPeer(
+    ajv.validate(getSchemaId(type, protocol), obj),
+    `Bad protocol. Error: ${ajv.errorsText()}`,
+  );
 }
 
 function validateRequest (requestBody, protocol = 'jsonrpc') {
@@ -102,9 +72,8 @@ function validateRequest (requestBody, protocol = 'jsonrpc') {
 
   const method = requestBody.method;
   const apiParams = requestBody.params;
-  const schemaName = getFullSchemaName(method, 'request');
+  const schemaName = getSchemaId('request', method);
 
-  assertPeer(METHODS.indexOf(method) !== -1, `Method not supported - ${method}`);
   log('using schema', schemaName, 'to validate method', method);
   assertPeer(ajv.validate(schemaName, apiParams),
     `Invalid params for method ${method}. Error: ${ajv.errorsText()}`,
@@ -132,25 +101,15 @@ function validateRequestFormat ({ headerParam, queryParam }) {
 }
 
 function validateResponse (responseBody, method, protocol = 'jsonrpc') {
-  assertApp(
-    METHODS.indexOf(method) !== -1,
-    `Tried to validate an unknown method=${method}`,
-  );
-
   log('validating method', method, 'with response: ', responseBody);
   validateProtocol(responseBody, protocol, 'response');
 
-  if (responseBody.error) {
-    assertApp(
-      ajv.validate(getFullSchemaName('error', 'response'), responseBody.error),
-      `invalid error response for method ${method}. Error: ${ajv.errorsText()}`,
-    );
-  } else {
-    assertApp(
-      ajv.validate(getFullSchemaName(method, 'response'), responseBody.result),
-      `invalid result in response for method ${method}. Error: ${ajv.errorsText()}`,
-    );
-  }
+  const schemaName = (responseBody.error == null) ? 'error' : method;
+  const schemaId = getSchemaId('response', schemaName);
+  assertApp(
+    ajv.validate(schemaId, responseBody.error || responseBody.result),
+    `invalid error response for method ${method}. Error: ${ajv.errorsText()}`,
+  );
 }
 
 module.exports = {

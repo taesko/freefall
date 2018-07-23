@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "response/get_api_key.json",
+  "$id": "response/get_api_key",
   "title": "Body of the get_api_key response.",
   "type": "object",
   "properties": {

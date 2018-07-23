@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "responses/senderror.json",
+  "$id": "response/senderror",
   "title": "API response of senderror method",
   "type": "object",
   "properties": {
