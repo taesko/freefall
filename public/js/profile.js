@@ -91,8 +91,8 @@ function start () {
 
     // TODO - change to hidden row and clone
     renderRowEditMode(rowElement, [
-      '<input id="airport-from-' + rowId + '" class="form-control airport-select" name="from" type="text" placeholder="Airport from" list="from-airports" value="' + getAirportName(airports, rowValues.fly_from) + '" required>', // eslint-disable-line prefer-template
-      '<input id="airport-to-' + rowId + '" name="to" class="form-control airport-select" type="text" placeholder="Airport to" list="to-airports" value="' + getAirportName(airports, rowValues.fly_to) + '" required>', // eslint-disable-line prefer-template
+      '<input id="airport-from-' + rowId + '" class="form-control airport-select" name="from" type="text" placeholder="Airport from" list="from-airports-' + rowId + '" value="' + getAirportName(airports, rowValues.fly_from) + '" required>', // eslint-disable-line prefer-template
+      '<input id="airport-to-' + rowId + '" name="to" class="form-control airport-select" type="text" placeholder="Airport to" list="to-airports-' + rowId + '" value="' + getAirportName(airports, rowValues.fly_to) + '" required>', // eslint-disable-line prefer-template
       '<input id="date-from-' + rowId + '" class="form-control date-select" name="date-from" type="text" placeholder="Date from" value="' + rowValues.date_from + '" required>', // eslint-disable-line prefer-template
       '<input id="date-to-' + rowId + '" name="date-to" class="form-control date-select" type="text" placeholder="Date to" value="' + rowValues.date_to + '" required>', // eslint-disable-line prefer-template
       'options',

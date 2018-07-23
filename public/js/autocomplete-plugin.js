@@ -1,9 +1,15 @@
 (function ($) {
   $.fn.autocomplete = function (data) {
     return this.each(function () {
-      const $dataList = $('<datalist></dataList>')
-        .attr('id', $(this).attr('list'))
-        .insertAfter($(this));
+      let $dataList;
+
+      if ($(this).siblings('datalist').length > 0) {
+        $dataList = $(this).siblings('datalist')[0];
+      } else {
+        $dataList = $('<datalist></datalist>')
+          .attr('id', $(this).attr('list'))
+          .insertAfter($(this));
+      }
 
       const onInput = function (data) {
         return function (event) {
