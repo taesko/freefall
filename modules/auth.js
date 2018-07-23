@@ -43,8 +43,10 @@ async function register (email, password) {
     throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`);
   }
 
+  const apiKey = hashToken(`${email}:${password}`);
+
   try {
-    await db.insert('users', { email, password: hashPassword(password) });
+    await db.insert('users', { email, password: hashPassword(password), api_key: apiKey });
   } catch (e) {
     log(`Couldn't register user with credentials email=${email} password=${password}. ${e}`);
     throw e;
@@ -60,15 +62,6 @@ async function getLoggedInUser (ctx) {
   return fetchUserById(ctx.session.userID);
 }
 
-function generateAPIKey (user) {
-  assertApp(
-    user.hasOwnProperty('email') && user.hasOwnProperty('password'),
-    'Object passed to generateAPIkey must have an \'email\' and \'password\' fields.',
-  );
-
-  return hashToken(`${user.email}:${user.password}`);
-}
-
 function hashToken (token) {
   return crypto.createHash('md5').update(token).digest('hex');
 }
@@ -78,7 +71,7 @@ function serializeUser (user) {
 }
 
 async function fetchUserById (id) {
-  const [user] = await db.selectWhere('users', ['id', 'email', 'password'], { id });
+  const [user] = await db.selectWhere('users', ['id', 'email', 'password', 'api_key'], { id });
   return user;
 }
 
@@ -110,7 +103,6 @@ module.exports = {
   emailIsRegistered,
   getLoggedInUser,
   isLoggedIn,
-  generateAPIKey,
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,

@@ -319,8 +319,8 @@ async function listUsers (params, db) {
 
 async function getAPIKey (params, db, ctx) {
   const user = await auth.getLoggedInUser(ctx);
-  const apiKey = (user == null) ? null : auth.generateAPIKey(user);
-  const statusCode = (user == null) ? '2000' : '1000';
+  const apiKey = (user == null) ? null : user.api_key;
+  const statusCode = (apiKey == null) ? '2000' : '1000';
 
   return {
     api_key: apiKey,
