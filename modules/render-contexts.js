@@ -14,12 +14,11 @@ addContextForRoute('get', '/profile', profilePageContext);
 
 async function defaultContext (appCtx) {
   if (await auth.isLoggedIn(appCtx)) {
-    const { email } = await auth.getLoggedInUser(appCtx); // typeerror when user is missing from
-    // the database
+    const user = await auth.getLoggedInUser(appCtx);
 
-    return {
-      username: email,
-    };
+    delete user.password;
+
+    return { user };
   }
 
   return {};
@@ -57,18 +56,10 @@ function registerPageContext (appCtx) {
   };
 }
 
-async function profilePageContext (appCtx) {
-  const user = await auth.getLoggedInUser(appCtx);
-  const context = {
+async function profilePageContext () {
+  return {
     item: 'profile',
   };
-
-  if (user) {
-    delete user.password;
-    context.user = user;
-  }
-
-  return context;
 }
 
 function addContextForRoute (request, route, ...functions) {
