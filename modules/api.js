@@ -26,8 +26,7 @@ const execute = defineMethods(
   sendError,
 );
 
-
-async function error_handling(ctx, next) {
+async function errorHandling (ctx, next) {
   ctx.state.api = {};
   try {
     await next();
@@ -110,5 +109,5 @@ async function api (ctx, next) {
 }
 
 module.exports = {
-  rpcAPILayer: compose([error_handling, api]),
+  rpcAPILayer: compose([errorHandling, api]),
 };
