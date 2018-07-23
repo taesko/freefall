@@ -84,7 +84,7 @@ app.use(views(path.join(__dirname, 'templates/'), {
 }));
 
 router.get('/', async (ctx, next) => {
-  const airports = await db.select('airports', ['id', 'iata_code', 'name']);
+  const airports = await db.select('airports');
   await ctx.render('index.html', {
     airports,
     ...await getContextForRoute(ctx, 'get', '/'),
@@ -93,7 +93,7 @@ router.get('/', async (ctx, next) => {
 });
 
 router.get('/subscribe', async (ctx, next) => {
-  const airports = db.select('airports', ['id', 'iata_code', 'name']);
+  const airports = db.select('airports');
   await ctx.render('subscribe.html', {
     airports,
     ...await getContextForRoute(ctx, 'get', '/subscribe'),

@@ -306,7 +306,7 @@ async function unsubscribe (params, db) {
 }
 
 async function listAirports (params, db) {
-  const airports = await db.select('airports', ['id', 'iata_code', 'name']);
+  const airports = await db.select('airports');
 
   for (const air of airports) {
     air.id = `${air.id}`;
