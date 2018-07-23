@@ -3,6 +3,7 @@ const { assertPeer, assertApp, PeerError } = require('../modules/error-handling'
 const { toSmallestCurrencyUnit, fromSmallestCurrencyUnit } = require('../modules/utils');
 const { isFunction, isObject, each, forOwn } = require('lodash');
 const { log } = require('../modules/utils.js');
+const auth = require('../modules/auth');
 const moment = require('moment');
 
 function search () {
@@ -347,6 +348,23 @@ function listUsers () {
   };
 }
 
+function getAPIKey () {
+  const execute = async function execute (params, db, ctx) {
+    const user = await auth.getLoggedInUser(ctx);
+    const apiKey = (user == null) ? null : auth.generateAPIKey(user);
+    const statusCode = (user == null) ? '2000' : '1000';
+    return {
+      api_key: apiKey,
+      status_code: statusCode,
+    };
+  };
+
+  return {
+    name: 'get_api_key',
+    execute,
+  };
+}
+
 function sendError () {
   const execute = async function execute (params) {
     assertPeer(
@@ -374,7 +392,7 @@ function defineMethods (...args) {
   );
   const methods = args.map((arg) => arg());
 
-  const execute = (methods) => (methodName, params, db) => {
+  const execute = (methods) => ({ methodName, params, db, appCtx }) => {
     assertPeer(
       typeof methodName === 'string',
       `Expected a name of method, got ${methodName}, type ${typeof methodName}`,
@@ -392,7 +410,7 @@ function defineMethods (...args) {
 
     for (const method of methods) {
       if (method.name === methodName) {
-        return method.execute(params, db);
+        return method.execute(params, db, appCtx);
       }
     }
     throw new PeerError(`Unknown method '${methodName}'`);
@@ -409,5 +427,6 @@ module.exports = {
   listAirports,
   listSubscriptions,
   listUsers,
+  getAPIKey,
   sendError,
 };

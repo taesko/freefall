@@ -11,6 +11,7 @@ const METHODS = [
   'subscribe',
   'unsubscribe',
   'list_airports',
+  'get_api_key',
   'list_subscriptions',
   'list_users',
   'senderror',

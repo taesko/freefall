@@ -8,6 +8,7 @@ const {
   subscribe,
   unsubscribe,
   listAirports,
+  getAPIKey,
   listSubscriptions,
   listUsers,
   sendError,
@@ -21,6 +22,7 @@ const execute = defineMethods(
   subscribe,
   unsubscribe,
   listAirports,
+  getAPIKey,
   listSubscriptions,
   listUsers,
   sendError,
@@ -89,7 +91,12 @@ async function api (ctx, next) {
 
   log('Executing method', requestBody.method, 'with params', requestBody.params);
 
-  const result = await execute(requestBody.method, requestBody.params, ctx.db);
+  const result = await execute({
+    methodName: requestBody.method,
+    params: requestBody.params,
+    db: ctx.db,
+    appCtx: ctx,
+  });
 
   log('Executed method', requestBody.method, 'with params', requestBody.params);
 
