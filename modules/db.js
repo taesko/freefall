@@ -50,14 +50,13 @@ module.exports = (() => {
     assertDB();
     return db.run(...args);
   }
-  async function select (table, columns) {
+  async function select (table, columns='*') {
     assertDB();
     assertApp(
       typeof table === 'string',
       'Expected string for a name of table',
     );
 
-    // TODO sql injection ?
     return db.all(`SELECT ${stringifyColumns(columns)} FROM ${table};`);
   }
 
