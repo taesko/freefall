@@ -18,17 +18,19 @@ const router = new Router();
 
 app.keys = ['freefall is love freefall is life'];
 
-app.on('error', (err, ctx) => {
-  log(err);
-  log('context of app is: ', ctx);
-});
-
 app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
+    ctx.status = 500;
     ctx.body = 'Our servers our currently experiencing problems. Please try again later.';
+    ctx.app.emit('error', err, ctx);
   }
+});
+
+app.on('error', (err, ctx) => {
+  log('An unhandled error occurred: ', err);
+  log('Context of app is: ', ctx);
 });
 
 const SESSION_CONFIG = {
