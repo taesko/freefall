@@ -543,9 +543,7 @@ function main () {
       }
     }
 
-    throw new PeerError({
-      msg: 'Could not find airport with name ' + name, // eslint-disable-line prefer-template
-    });
+    return null;
   };
 
   const getAPIKey = function (params, protocolName, callback) {

@@ -132,6 +132,16 @@ function start () {
     const airportFromId = getAirportId(airports, airportFrom);
     const airportToId = getAirportId(airports, airportTo);
 
+    assertUser(typeof airportFromId === 'string', {
+      userMessage: 'Could not find selected departure airport.',
+      msg: 'Expected airportFromId to be a string, but was ' + typeof airportFromId, // eslint-disable-line prefer-template
+    });
+
+    assertUser(typeof airportToId === 'string', {
+      userMessage: 'Could not find selected departure airport.',
+      msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
+    });
+
     unsubscribe({
       v: '2.0',
       user_subscription_id: rowValues.id,
@@ -259,10 +269,23 @@ function start () {
     const dateFrom = $('#subscribe-date-from').val();
     const dateTo = $('#subscribe-date-to').val();
 
+    const airportFromId = getAirportId(airports, airportFrom);
+    const airportToId = getAirportId(airports, airportTo);
+
+    assertUser(typeof airportFromId === 'string', {
+      userMessage: 'Could not find selected departure airport.',
+      msg: 'Expected airportFromId to be a string, but was ' + typeof airportFromId, // eslint-disable-line prefer-template
+    });
+
+    assertUser(typeof airportToId === 'string', {
+      userMessage: 'Could not find selected departure airport.',
+      msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
+    });
+
     subscribe({
       v: '2.0',
-      fly_from: getAirportId(airports, airportFrom),
-      fly_to: getAirportId(airports, airportTo),
+      fly_from: airportFromId,
+      fly_to: airportToId,
       date_from: dateFrom,
       date_to: dateTo,
       api_key: APIKey,
@@ -276,8 +299,8 @@ function start () {
 
         const newSubscription = {
           id: result.subscription_id,
-          fly_from: getAirportId(airports, airportFrom),
-          fly_to: getAirportId(airports, airportTo),
+          fly_from: airportFromId,
+          fly_to: airportToId,
           date_from: dateFrom,
           date_to: dateTo,
         };
