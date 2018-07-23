@@ -4,6 +4,9 @@
   "title": "API response of subscribe method",
   "type": "object",
   "properties": {
+    "subscription_id": {
+      "type": "string"
+    },
     "status_code": {
       "type": "string",
       "enum": [

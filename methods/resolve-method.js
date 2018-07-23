@@ -259,7 +259,13 @@ async function subscribe (params, db) {
     dateTo,
   });
 
+  const [subRow] = await db.selectWhere(
+    'user_subscriptions',
+    ['id'],
+    {user_id: user.id},
+  );
   return {
+    subscription_id: (subRow != null) ? `${subRow.id}` : null,
     status_code: (isSubscribed) ? '1000' : '2000',
   };
 }
@@ -275,7 +281,7 @@ async function unsubscribe (params, db) {
       FROM user_subscriptions
       WHERE user_id=?
     `,
-    user.id
+    user.id,
   );
 
   log('full list of user subscriptions is: ', userSubscriptions, 'with user id: ', user.id);
@@ -290,7 +296,7 @@ async function unsubscribe (params, db) {
       FROM user_subscriptions
       WHERE id=?
     `,
-    params.user_subscription_id
+    params.user_subscription_id,
   );
   log('delete result is: ', deleteResult);
 
@@ -315,7 +321,6 @@ async function listSubscriptions (params, db) {
   const subRows = await db.executeAll(
     `
       SELECT usub.id, usub.date_from, usub.date_to, 
-        users.email,
         ap_from.id fly_from, ap_to.id fly_to
       FROM user_subscriptions usub
       JOIN users ON usub.user_id=users.id
@@ -329,9 +334,12 @@ async function listSubscriptions (params, db) {
 
   for (const sr of subRows) {
     sr.id = `${sr.id}`;
-    sr.user_id = `${sr.user_id}`;
     sr.fly_from = `${sr.fly_from}`;
     sr.fly_to = `${sr.fly_to}`;
+    const dateFrom = new Date(sr.date_from);
+    const dateTo = new Date(sr.date_to);
+    sr.date_from = dateFrom.toISOString().split('T')[0]; // ISO 8601 is delimited with T in JS
+    sr.date_to = dateTo.toISOString().split('T')[0];
   }
 
   return {
