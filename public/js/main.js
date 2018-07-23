@@ -78,6 +78,7 @@ function main () {
     };
   };
 
+  // maybe getAJVError
   const getValidatorMsg = function (validator) {
     assertApp(_.isObject(validator), {
       msg: 'Expected validator to be an object, but was ' + typeof validator, // eslint-disable-line prefer-template
@@ -469,6 +470,7 @@ function main () {
     });
 
     var i; // eslint-disable-line no-var
+
     for (i = 0; i < airports.length; i++) {
       const expectedProps = ['id', 'name'];
 
@@ -523,6 +525,7 @@ function main () {
 
   const getAPIKey = function (params, protocolName, callback) {
     trace('getAPIKey(' + JSON.stringify(params) + '), typeof arg=' + typeof params + ''); // eslint-disable-line prefer-template
+
     sendRequest({
       url: SERVER_URL,
       data: {

@@ -5,22 +5,47 @@
   <title>Profile</title>
   <link href="css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
 	<div class="container">
     {{> heading }}
     {{> menu }}
-    <table id="subscriptions-table" class="table table-bordered">
-      <thead>
-        <tr>
-          <th>Airport from</th>
-          <th>Airport to</th>
-          <th>Date from</th>
-          <th>Date to</th>
-          <th>Options</th>
-        </tr>
-      </thead>
-    </table>
+    <div>
+      <h3>Add new subscription:</h3>
+      <div class="row">
+        <div class="col-md-2">
+          <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text" placeholder="Airport from" list="from-airports" required>
+        </div>
+        <div class="col-md-2">
+          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text" placeholder="Airport to" list="to-airports" required>
+        </div>
+        <div class="col-md-2">
+          <input id="subscribe-date-from" class="form-control date-select" name="date-from" type="text" placeholder="Date from" required>
+        </div>
+        <div class="col-md-2">
+          <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to" required>
+        </div>
+        <div class="col-md-4">
+          <button id="subscribe-submit-btn" class="btn btn-primary btn-block">Subscribe</button>
+        </div>
+      </div>
+    </div>
+    <hr>
+    <div>
+      <h3>Your subscriptions:</h3>
+      <table id="subscriptions-table" class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Airport from</th>
+            <th>Airport to</th>
+            <th>Date from</th>
+            <th>Date to</th>
+            <th>Options</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/lodash@3.10.1/index.min.js"></script>
   <script src="js/jquery/jquery-2.2.4.js"></script>

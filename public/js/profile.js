@@ -26,7 +26,7 @@ function start () {
   var airports = []; // eslint-disable-line no-var
   var subscriptions = []; // eslint-disable-line no-var
   var rowIdSubscriptionMap = {}; // eslint-disable-line no-var
-  var APIKey;
+  var APIKey; // eslint-disable-line no-var
 
   function renderSubscriptions ($subscriptionsTable, subscriptions) {
     trace('renderSubscriptions');
@@ -45,7 +45,7 @@ function start () {
     });
 
     $subscriptionsTable.find('tbody').remove();
-    const tableBody = $('<tbody></tbody>').appendTo($subscriptionsTable);
+    const $tableBody = $('<tbody></tbody>').appendTo($subscriptionsTable);
     rowIdSubscriptionMap = {};
 
     _.each(subscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
@@ -64,8 +64,8 @@ function start () {
       const airportFromName = getAirportName(airports, subscription.fly_from);
       const airportToName = getAirportName(airports, subscription.fly_to);
 
-      const newRow = tableBody[0].insertRow();
-      const rowId = String(getId());
+      const newRow = $tableBody[0].insertRow();
+      const rowId = String(getId()); // TODO change getId to getUniqueId
       const rowValues = [
         airportFromName,
         airportToName,
@@ -88,11 +88,12 @@ function start () {
     const rowValues = rowIdSubscriptionMap[rowId];
     const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
 
+    // TODO - change to hidden row and clone
     renderRowEditMode(rowElement, [
-      '<input id="from-input" class="form-control" name="from" type="text" placeholder="Airport from" list="from-airports" value="' + getAirportName(airports, rowValues.fly_from) + '" required>', // eslint-disable-line prefer-template
-      '<input id="to-input" name="to" class="form-control" type="text" placeholder="Airport to" list="to-airports" value="' + getAirportName(airports, rowValues.fly_to) + '" required>', // eslint-disable-line prefer-template
-      '<input id="date-from" class="form-control" name="date-from" type="text" placeholder="Date from" value="' + rowValues.date_from + '" required>', // eslint-disable-line prefer-template
-      '<input id="date-to" name="date-to" class="form-control" type="text" placeholder="Date to" value="' + rowValues.date_to + '" required>', // eslint-disable-line prefer-template
+      '<input id="airport-from-' + rowId + '" class="form-control airport-select" name="from" type="text" placeholder="Airport from" list="from-airports" value="' + getAirportName(airports, rowValues.fly_from) + '" required>', // eslint-disable-line prefer-template
+      '<input id="airport-to-' + rowId + '" name="to" class="form-control airport-select" type="text" placeholder="Airport to" list="to-airports" value="' + getAirportName(airports, rowValues.fly_to) + '" required>', // eslint-disable-line prefer-template
+      '<input id="date-from-' + rowId + '" class="form-control date-select" name="date-from" type="text" placeholder="Date from" value="' + rowValues.date_from + '" required>', // eslint-disable-line prefer-template
+      '<input id="date-to-' + rowId + '" name="date-to" class="form-control date-select" type="text" placeholder="Date to" value="' + rowValues.date_to + '" required>', // eslint-disable-line prefer-template
       'options',
     ]);
   }
@@ -106,15 +107,15 @@ function start () {
     const rowId = getRowId(event.target, 'save-btn-');
     const rowValues = rowIdSubscriptionMap[rowId];
 
-    const airportFrom = $('#from-input').val();
-    const airportTo = $('#to-input').val();
-    const dateFrom = $('#date-from').val();
-    const dateTo = $('#date-to').val();
+    const airportFrom = $('#airport-from-' + rowId).val(); // eslint-disable-line prefer-template
+    const airportTo = $('#airport-to-' + rowId).val(); // eslint-disable-line prefer-template
+    const dateFrom = $('#date-from-' + rowId).val(); // eslint-disable-line prefer-template
+    const dateTo = $('#date-to-' + rowId).val(); // eslint-disable-line prefer-template
 
     unsubscribe({
       v: '2.0',
       user_subscription_id: rowValues.id,
-      api_key: '1234567890', // TODO change fake api_key to real one
+      api_key: APIKey,
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === 2000) {
         trace('unsubscribe method error');
@@ -130,7 +131,7 @@ function start () {
           fly_to: getAirportId(airports, airportTo),
           date_from: dateFrom,
           date_to: dateTo,
-          api_key: '1234567890',
+          api_key: APIKey,
         }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
           if (result.status_code === 2000) {
             trace('subscribe method error');
@@ -197,12 +198,11 @@ function start () {
     const rowValues = rowIdSubscriptionMap[rowId];
 
     // TODO asserts
-    // TODO send remove request
 
     unsubscribe({
       v: '2.0',
       user_subscription_id: rowValues.id,
-      api_key: '1234567890', // TODO change fake api_key to real one
+      api_key: APIKey,
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === 2000) {
         trace('unsubscribe method error');
@@ -326,13 +326,11 @@ function start () {
       dateFormat: 'yy-mm-dd',
     };
 
-    $('#date-from').datepicker(datepickerOptions);
-    $('#date-to').datepicker(datepickerOptions);
+    $('.date-select').datepicker(datepickerOptions);
   }
 
   function applyAutocomplete (values) {
-    $('#from-input').autocomplete(values);
-    $('#to-input').autocomplete(values);
+    $('.airport-select').autocomplete(values);
   }
 
   function listSubscriptions (protocolName, callback) {
@@ -344,6 +342,7 @@ function start () {
         method: 'list_subscriptions',
         params: {
           v: '2.0',
+          api_key: APIKey,
         },
       },
       protocolName: protocolName,
@@ -450,11 +449,13 @@ function start () {
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
+    const $subscribeSubmitBtn = $('#subscribe-submit-btn');
+
     getAPIKey({
       v: '2.0',
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code < 1000 || result.status_code >= 2000) {
-        window.replace('/login');
+        window.location.replace('/login');
       } else {
         APIKey = result.api_key;
         const $subsTable = $('#subscriptions-table');
