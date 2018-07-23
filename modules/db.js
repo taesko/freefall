@@ -57,7 +57,9 @@ module.exports = (() => {
       'Expected string for a name of table',
     );
 
-    return db.all(`SELECT ${stringifyColumns(columns)} FROM ${table};`);
+    const columnString = columns === '*' ? columns : stringifyColumns(columns);
+
+    return db.all(`SELECT ${columnString} FROM ${table};`);
   }
 
   async function selectWhere (table, columns, where) {
@@ -70,7 +72,7 @@ module.exports = (() => {
     );
 
     const whereEntries = Object.entries(where);
-    const whereClause = whereEntries.map(([column, value]) => `${column}=?`)
+    const whereClause = whereEntries.map(([column]) => `${column}=?`)
       .join(' AND ');
     const whereValues = whereEntries.map(([column, value]) => value);
 
