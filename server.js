@@ -186,6 +186,10 @@ router.post('/register', async (ctx) => {
 });
 
 router.get('/profile', async (ctx) => {
+  if (!await auth.isLoggedIn(ctx)) {
+    ctx.redirect('/login');
+    return;
+  }
   await ctx.render('profile.html', await getContextForRoute(ctx, 'get', '/profile'));
 });
 
