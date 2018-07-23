@@ -27,12 +27,12 @@ const validators = { // eslint-disable-line no-unused-vars
         'date_from': {
           'title': 'Earliest flight departure',
           'type': 'string',
-          'format': 'date-time',
+          'format': 'date',
         },
         'date_to': {
           'title': 'Latest flight arrival',
           'type': 'string',
-          'format': 'date-time',
+          'format': 'date',
         },
         'api_key': {
           'title': 'API key',
@@ -479,12 +479,12 @@ const validators = { // eslint-disable-line no-unused-vars
               'date_from': {
                 'title': 'Earliest flight departure',
                 'type': 'string',
-                'format': 'date-time',
+                'format': 'date',
               },
               'date_to': {
                 'title': 'Latest flight arrival',
                 'type': 'string',
-                'format': 'date-time',
+                'format': 'date',
               },
             },
             'required': ['id', 'fly_from', 'fly_to', 'date_from', 'date_to'],

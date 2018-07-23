@@ -126,12 +126,12 @@ const adminValidators = { // eslint-disable-line no-unused-vars
               'date_from': {
                 'type': 'string',
                 'title': 'Earliest departure time',
-                'format': 'date-time',
+                'format': 'date',
               },
               'date_to': {
                 'type': 'string',
                 'title': 'Latest arrival time',
-                'format': 'date-time',
+                'format': 'date',
               },
             },
             'required': ['id', 'user', 'fly_from', 'fly_to', 'date_from', 'date_to'],
@@ -248,12 +248,12 @@ const adminValidators = { // eslint-disable-line no-unused-vars
         'date_from': {
           'title': 'Earliest flight departure',
           'type': 'string',
-          'format': 'date-time',
+          'format': 'date',
         },
         'date_to': {
           'title': 'Latest flight arrival',
           'type': 'string',
-          'format': 'date-time',
+          'format': 'date',
         },
         'api_key': {
           'title': 'API key',

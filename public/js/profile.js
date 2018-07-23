@@ -81,7 +81,7 @@ function start () {
     });
   }
 
-  function onEditClick (event) {
+  const onEditClick = function (event) {
     trace('edit button click');
 
     const rowId = getRowId(event.target, 'edit-btn-');
@@ -96,9 +96,9 @@ function start () {
       '<input id="date-to-' + rowId + '" name="date-to" class="form-control date-select" type="text" placeholder="Date to" value="' + rowValues.date_to + '" required>', // eslint-disable-line prefer-template
       'options',
     ]);
-  }
+  };
 
-  function onSaveClick (event) {
+  const onSaveClick = function (event) {
     trace('save button click');
 
     const saveButton = event.target;
@@ -171,9 +171,9 @@ function start () {
         });
       }
     });
-  }
+  };
 
-  function onCancelClick (event) {
+  const onCancelClick = function (event) {
     trace('cancel button click');
 
     const rowId = getRowId(event.target, 'cancel-btn-');
@@ -187,9 +187,9 @@ function start () {
       rowValues.date_to,
       'options',
     ]);
-  }
+  };
 
-  function onRemoveClick (event) {
+  const onRemoveClick = function (event) {
     trace('remove button click');
 
     const removeButton = event.target;
@@ -220,7 +220,65 @@ function start () {
         $('#row-' + rowId).remove(); // eslint-disable-line prefer-template
       }
     });
-  }
+  };
+
+  const onSubscribeSubmitClick = function (event) {
+    trace('Subscribe submit click');
+
+    const subscribeBtn = event.target;
+    subscribeBtn.disabled = true;
+
+    const airportFrom = $('#subscribe-airport-from').val();
+    const airportTo = $('#subscribe-airport-to').val();
+    const dateFrom = $('#subscribe-date-from').val();
+    const dateTo = $('#subscribe-date-to').val();
+
+    subscribe({
+      v: '2.0',
+      fly_from: getAirportId(airports, airportFrom),
+      fly_to: getAirportId(airports, airportTo),
+      date_from: dateFrom,
+      date_to: dateTo,
+      api_key: APIKey,
+    }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      if (result.status_code === 2000) {
+        trace('subscribe method error');
+
+        // TODO handle ERROR
+      } else if (result.status_code >= 1000 && result.status_code < 2000) {
+        trace('subscribe method success');
+
+        const newSubscription = {
+          id: result.subscription_id,
+          fly_from: getAirportId(airports, airportFrom),
+          fly_to: getAirportId(airports, airportTo),
+          date_from: dateFrom,
+          date_to: dateTo,
+        };
+
+        subscriptions = subscriptions.concat([newSubscription]);
+
+        // TODO check if table empty
+
+        const newRow = $('#subscriptions-table tbody')[0].insertRow();
+        const rowId = String(getId()); // TODO change getId to getUniqueId
+        const rowValues = [
+          airportFrom,
+          airportTo,
+          dateFrom,
+          dateTo,
+          'options',
+        ];
+
+        rowIdSubscriptionMap[rowId] = newSubscription;
+        $(newRow).attr('id', 'row-' + rowId); // eslint-disable-line prefer-template
+
+        renderRowViewMode(newRow, rowValues);
+
+        subscribeBtn.disabled = false;
+      }
+    });
+  };
 
   function renderRowEditMode (rowElement, rowValues) {
     trace('renderRowEditMode');
@@ -413,7 +471,7 @@ function start () {
     assertApp(typeof airportFrom === 'string', {
       msg: 'Could not find airport "' + params.fly_from + '"', // eslint-disable-line prefer-template
     });
-    assertApp(typeof airport === 'string', {
+    assertApp(typeof airportTo === 'string', {
       msg: 'Could not find airport "' + params.fly_to + '"', // eslint-disable-line prefer-template
     });
 
@@ -450,6 +508,8 @@ function start () {
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $subscribeSubmitBtn = $('#subscribe-submit-btn');
+
+    $subscribeSubmitBtn.click(onSubscribeSubmitClick);
 
     getAPIKey({
       v: '2.0',
