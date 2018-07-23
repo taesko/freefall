@@ -5,6 +5,7 @@ const { isObject, each, forOwn } = require('lodash');
 const { log } = require('../modules/utils.js');
 const auth = require('../modules/auth');
 const moment = require('moment');
+const subscriptions = require('../modules/subscriptions');
 
 const API_METHODS = {
   search,
@@ -54,7 +55,10 @@ async function search (params, db) {
     const accInitValue = 0;
     const flyDuration = route.route.reduce(flyDurationCalc, accInitValue);
 
-    return { route, flyDuration };
+    return {
+      route,
+      flyDuration,
+    };
   };
 
   const flyDurationFilter = (route) => {
@@ -234,7 +238,7 @@ async function search (params, db) {
   return result;
 }
 
-async function subscribe (params, db) {
+async function subscribe (params) {
   assertPeer(
     Number.isInteger(+params.fly_from) && Number.isInteger(+params.fly_to),
     'subscribe params fly_from and fly_to must be an integer wrapped in a string',
@@ -248,25 +252,32 @@ async function subscribe (params, db) {
 
   assertPeer(user != null, 'invalid api key');
 
-  const { email } = user;
+  let subscriptionId;
+  let statusCode;
+  try {
+    subscriptionId = await subscriptions.subscribeUser(
+      user,
+      {
+        airportFromId: flyFrom,
+        airportToId: flyTo,
+        dateFrom,
+        dateTo,
+      }
+    );
+    statusCode = 1000;
+  } catch (e) {
+    // TODO this try catch should be at an upper level
+    // and the method's response object should be built there - setting status_code properly
+    // handling the request by sending back the response
+    // and rethrowing the exception
+    log('An error occurred while subscribing user.', e);
+    subscriptionId = null;
+    statusCode = 2000;
+  }
 
-  await db.insertIfNotExistsSub(flyFrom, flyTo);
-  const isSubscribed = await db.insertEmailSubscription({
-    email,
-    airportFromId: flyFrom,
-    airportToId: flyTo,
-    dateFrom,
-    dateTo,
-  });
-
-  const [subRow] = await db.selectWhere(
-    'user_subscriptions',
-    ['id'],
-    {user_id: user.id},
-  );
   return {
-    subscription_id: (subRow != null) ? `${subRow.id}` : null,
-    status_code: (isSubscribed) ? '1000' : '2000',
+    subscription_id: subscriptionId,
+    status_code: statusCode,
   };
 }
 
@@ -290,19 +301,15 @@ async function unsubscribe (params, db) {
     'This api key is not allowed to modify this subscription.',
   );
 
-  const deleteResult = await db.executeRun(
-    `
-      DELETE 
-      FROM user_subscriptions
-      WHERE id=?
-    `,
-    params.user_subscription_id,
-  );
-  log('delete result is: ', deleteResult);
+  let statusCode;
+  try {
+    await subscriptions.removeUserSubscription(params.user_subscription_id);
+    statusCode = 1000;
+  } catch (e) {
+    statusCode = 2000;
+  }
 
-  return {
-    status_code: (deleteResult.stmt.changes > 0) ? '1000' : '2000',
-  };
+  return { status_code: statusCode };
 }
 
 async function listAirports (params, db) {
