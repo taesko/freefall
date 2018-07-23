@@ -46,6 +46,10 @@ module.exports = (() => {
     return db.all(...args);
   }
 
+  async function executeRun (...args) {
+    assertDB();
+    return db.run(...args);
+  }
   async function select (table, columns) {
     assertDB();
     assertApp(
@@ -406,6 +410,7 @@ module.exports = (() => {
 
   return {
     executeAll,
+    executeRun,
     select,
     insert,
     insertDataFetch,

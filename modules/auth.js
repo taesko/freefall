@@ -70,6 +70,17 @@ function serializeUser (user) {
   return user.id;
 }
 
+async function fetchUserByAPIKey (token) {
+  const [user] = await db.selectWhere(
+    'users',
+    ['id', 'email', 'password', 'api_key'],
+    { api_key: token },
+  );
+
+  log('fetched user by api key: ', user);
+  return user;
+}
+
 async function fetchUserById (id) {
   const [user] = await db.selectWhere('users', ['id', 'email', 'password', 'api_key'], { id });
   return user;
@@ -91,6 +102,7 @@ async function fetchUserByCredentials ({ email, password }) {
 function hashPassword (password) {
   return crypto.createHash('md5').update(password).digest('hex');
 }
+
 async function emailIsRegistered (email) {
   const result = await db.selectWhere('users', ['email'], { email });
   return result.length !== 0;
@@ -103,6 +115,7 @@ module.exports = {
   emailIsRegistered,
   getLoggedInUser,
   isLoggedIn,
+  fetchUserByAPIKey,
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,

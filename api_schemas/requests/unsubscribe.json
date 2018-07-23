@@ -8,12 +8,16 @@
     "v": {
       "type": "string"
     },
-    "email": {
+    "api_key": {
+      "type": "string"
+    },
+    "user_subscription_id": {
       "type": "string"
     }
   },
   "required": [
     "v",
-    "email"
+    "api_key",
+    "user_subscription_id"
   ]
 }
