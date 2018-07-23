@@ -50,7 +50,7 @@ module.exports = (() => {
     assertDB();
     return db.run(...args);
   }
-  async function select (table, columns='*') {
+  async function select (table, columns = '*') {
     assertDB();
     assertApp(
       typeof table === 'string',

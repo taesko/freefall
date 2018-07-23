@@ -85,6 +85,7 @@ app.use(views(path.join(__dirname, 'templates/'), {
 
 router.get('/', async (ctx, next) => {
   const airports = await db.select('airports');
+
   await ctx.render('index.html', {
     airports,
     ...await getContextForRoute(ctx, 'get', '/'),
@@ -94,6 +95,7 @@ router.get('/', async (ctx, next) => {
 
 router.get('/subscribe', async (ctx, next) => {
   const airports = db.select('airports');
+
   await ctx.render('subscribe.html', {
     airports,
     ...await getContextForRoute(ctx, 'get', '/subscribe'),
@@ -107,6 +109,7 @@ router.get('/unsubscribe', async (ctx) => {
 
 router.get('/login', async (ctx) => {
   log('getting login page.');
+
   if (await auth.isLoggedIn(ctx)) {
     log('User already logged in. Redirecting to /');
     ctx.redirect('/');
@@ -122,6 +125,7 @@ router.post('/login', async (ctx) => {
   try {
     await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
     ctx.redirect('/');
+
     return;
   } catch (e) {
     if (e instanceof auth.AlreadyLoggedIn) {
@@ -159,6 +163,7 @@ router.post('/register', async (ctx) => {
     ctx.redirect('/');
     return;
   }
+
   log('Attempting to register user with credentials:', ctx.request.body);
 
   const errors = [];
