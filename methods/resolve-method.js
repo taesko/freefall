@@ -1,7 +1,7 @@
 const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
 const { assertPeer, assertApp, PeerError } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit, fromSmallestCurrencyUnit } = require('../modules/utils');
-const { isFunction, isObject, each, forOwn } = require('lodash');
+const { isObject, each, forOwn } = require('lodash');
 const { log } = require('../modules/utils.js');
 const auth = require('../modules/auth');
 const moment = require('moment');
@@ -9,7 +9,7 @@ const moment = require('moment');
 const API_METHODS = {
   search,
   subscribe,
-  unsubsribe,
+  unsubscribe,
   list_airports: listAirports,
   list_subscriptions: listSubscriptions,
   list_users: listUsers,
@@ -241,9 +241,14 @@ async function subscribe (params, db) {
   );
   const flyFrom = +params.fly_from;
   const flyTo = +params.fly_to;
-  const email = params.email;
   const dateFrom = params.date_from;
   const dateTo = params.date_to;
+
+  const user = await auth.fetchUserByAPIKey(params.api_key);
+
+  assertPeer(user != null, 'invalid api key');
+
+  const { email } = user;
 
   await db.insertIfNotExistsSub(flyFrom, flyTo);
   const isSubscribed = await db.insertEmailSubscription({
@@ -259,10 +264,38 @@ async function subscribe (params, db) {
   };
 }
 
-async function unsubsribe (params, db) {
-  const isDel = await db.delIfNotExistsEmailSub(params.email);
+async function unsubscribe (params, db) {
+  const user = await auth.fetchUserByAPIKey(params.api_key);
+
+  assertPeer(user, 'invalid api key');
+
+  const userSubscriptions = await db.executeAll(
+    `
+      SELECT *
+      FROM user_subscriptions
+      WHERE user_id=?
+    `,
+    user.id
+  );
+
+  log('full list of user subscriptions is: ', userSubscriptions, 'with user id: ', user.id);
+  assertPeer(
+    userSubscriptions.some(sub => +sub.id === +params.user_subscription_id),
+    'This api key is not allowed to modify this subscription.',
+  );
+
+  const deleteResult = await db.executeRun(
+    `
+      DELETE 
+      FROM user_subscriptions
+      WHERE id=?
+    `,
+    params.user_subscription_id
+  );
+  log('delete result is: ', deleteResult);
+
   return {
-    status_code: (isDel) ? '1000' : '2000',
+    status_code: (deleteResult.stmt.changes > 0) ? '1000' : '2000',
   };
 }
 
@@ -279,25 +312,26 @@ async function listAirports (params, db) {
 }
 
 async function listSubscriptions (params, db) {
-  const { email } = params;
   const subRows = await db.executeAll(
     `
-        SELECT usub.id, usub.date_from, usub.date_to, 
-          users.id user_id, users.email,
-          ap_from.name airport_from, ap_to.name airport_to
-        FROM user_subscriptions usub
-        JOIN users ON usub.user_id=users.id
-        JOIN subscriptions sub ON usub.subscription_id=sub.id
-        JOIN airports ap_from ON sub.airport_from_id=ap_from.id
-        JOIN airports ap_to ON sub.airport_to_id=ap_to.id
-        WHERE users.email=?
-      `,
-    email,
+      SELECT usub.id, usub.date_from, usub.date_to, 
+        users.email,
+        ap_from.id fly_from, ap_to.id fly_to
+      FROM user_subscriptions usub
+      JOIN users ON usub.user_id=users.id
+      JOIN subscriptions sub ON usub.subscription_id=sub.id
+      JOIN airports ap_from ON sub.airport_from_id=ap_from.id
+      JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+      WHERE users.api_key=?
+    `,
+    params.api_key,
   );
 
   for (const sr of subRows) {
     sr.id = `${sr.id}`;
     sr.user_id = `${sr.user_id}`;
+    sr.fly_from = `${sr.fly_from}`;
+    sr.fly_to = `${sr.fly_to}`;
   }
 
   return {

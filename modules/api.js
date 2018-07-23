@@ -54,7 +54,6 @@ async function errorHandling (ctx, next) {
 }
 
 async function api (ctx, next) {
-  log('Getting post request: ', ctx.request);
   const format = validateRequestFormat({
     headerParam: ctx.headers['content-type'],
     queryParam: ctx.query.format,
@@ -87,7 +86,13 @@ async function api (ctx, next) {
     resultObject: result,
   });
 
-  validateResponse(responseBody, parsed.method, `${format}rpc`);
+  // TODO move inside validate
+  try {
+    validateResponse(responseBody, parsed.method, `${format}rpc`);
+  } catch (e) {
+    log('Build an invalid response: ', responseBody);
+    throw e;
+  }
   ctx.status = 200;
   ctx.body = multiParser.stringify(responseBody, format);
 

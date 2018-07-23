@@ -12,10 +12,10 @@
           "id": {
             "type": "string"
           },
-          "user_id": {
+          "fly_from": {
             "type": "string"
           },
-          "email": {
+          "fly_to": {
             "type": "string"
           },
           "date_from": {
@@ -23,22 +23,14 @@
           },
           "date_to": {
             "type": "string"
-          },
-          "airport_from": {
-            "type": "string"
-          },
-          "airport_to": {
-            "type": "string"
           }
         },
         "required": [
           "id",
-          "user_id",
-          "email",
+          "fly_from",
+          "fly_to",
           "date_from",
-          "date_to",
-          "airport_from",
-          "airport_to"
+          "date_to"
         ]
       }
     }
