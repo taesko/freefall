@@ -24,6 +24,13 @@ app.on('error', (err, ctx) => {
   log('context of app is: ', ctx);
 });
 
+app.use(async (ctx, next) => {
+  try {
+    await next();
+  } catch(err) {
+    ctx.body = "Our servers our currently experiencing problems. Please try again later."
+  }
+});
 const SESSION_CONFIG = {
   key: 'koa:sess',
   maxAge: 1000 * 60 * 60 * 24, // 24 hours in miliseconds
