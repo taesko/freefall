@@ -66,14 +66,17 @@ module.exports = (() => {
       typeof table === 'string' &&
       Array.isArray(columns) &&
       isObject(where) &&
-      Object.keys(where).length === 1, // TODO add support for more than one
       'Invalid select data',
     );
 
-    const whereCol = Object.keys(where)[0];
+    const whereEntries = Object.entries(where);
+    const whereClause = whereEntries.map(([column, value]) => `${column}=?`)
+      .join(' AND ');
+    const whereValues = whereEntries.map(([column, value]) => value);
 
-    return db.all(`SELECT ${stringifyColumns(columns)} FROM ${table} WHERE ${whereCol} = ?;`,
-      [where[whereCol]],
+    return db.all(
+      `SELECT ${stringifyColumns(columns)} FROM ${table} WHERE ${whereClause}`,
+      whereValues,
     );
   }
 
@@ -260,14 +263,10 @@ module.exports = (() => {
     );
 
     const userId = userRows[0].id;
-    const subs = await db.all(
-      `
-      SELECT id
-      FROM subscriptions
-      WHERE airport_from_id=? AND airport_to_id=?
-      ;
-      `,
-      airportFromId, airportToId,
+    const subs = await selectWhere(
+      'subscriptions',
+      ['id'],
+      {airport_from_id: airportFromId, airport_to_id: airportToId},
     );
     assertApp(subs.length ===
               1, `Found more than one unique subscription between two airports with ids from=${airportFromId} to=${airportToId}`);
@@ -298,14 +297,11 @@ module.exports = (() => {
 
     const flyFromParsed = Number(flyFrom);
     const flyToParsed = Number(flyTo);
-    const subscriptions = await db.all(`
-      SELECT id
-      FROM subscriptions
-      WHERE airport_from_id = ? AND airport_to_id = ?;
-    `, [
-      flyFromParsed,
-      flyToParsed,
-    ]);
+    const subscriptions = await selectWhere(
+      'subscriptions',
+      ['id'],
+      {airport_from_id: flyFromParsed, airport_to_id: flyToParsed},
+    );
 
     assertApp(Array.isArray(subscriptions), 'Invalid select subscriptions response.');
 
