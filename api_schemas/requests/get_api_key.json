@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/get_api_key",
+  "title": "Body of the get_api_key API method sent from the client.",
+  "type": "object",
+  "properties": {}
+}

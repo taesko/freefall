@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "response/get_api_key",
+  "title": "Body of the get_api_key response.",
+  "type": "object",
+  "properties": {
+    "api_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status_code": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "api_key",
+    "status_code"
+  ]
+}

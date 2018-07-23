@@ -1,11 +1,8 @@
 const db = require('../modules/db');
 const { log } = require('../modules/utils');
 const { assertApp } = require('../modules/error-handling');
-const { defineMethods, search } = require('../methods/resolve-method');
+const { execute: callAPI } = require('../methods/resolve-method');
 const mailer = require('nodemailer');
-
-// TODO fix after decoupling the API from the search methods
-const callAPI = defineMethods(search);
 
 const [FREEFALL_MAIL, mailTransporter] = (function init () {
   // TODO get another environment variable for service

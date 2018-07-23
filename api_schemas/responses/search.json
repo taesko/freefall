@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "responses/search.json",
+  "$id": "response/search",
   "title": "API response of search method",
   "type": "object",
   "properties": {

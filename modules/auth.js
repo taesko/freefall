@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const db = require('./db');
-const { AppError } = require('./error-handling');
+const { assertApp, AppError } = require('./error-handling');
 const { log } = require('./utils');
 
 class InvalidCredentials extends AppError {}
@@ -60,6 +60,19 @@ async function getLoggedInUser (ctx) {
   return fetchUserById(ctx.session.userID);
 }
 
+function generateAPIKey (user) {
+  assertApp(
+    user.hasOwnProperty('email') && user.hasOwnProperty('password'),
+    'Object passed to generateAPIkey must have an \'email\' and \'password\' fields.',
+  );
+
+  return hashToken(`${user.email}:${user.password}`);
+}
+
+function hashToken (token) {
+  return crypto.createHash('md5').update(token).digest('hex');
+}
+
 function serializeUser (user) {
   return user.id;
 }
@@ -97,6 +110,7 @@ module.exports = {
   emailIsRegistered,
   getLoggedInUser,
   isLoggedIn,
+  generateAPIKey,
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,
