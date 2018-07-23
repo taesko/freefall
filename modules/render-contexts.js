@@ -52,7 +52,7 @@ function loginPageContext (appCtx) {
 function registerPageContext (appCtx) {
   return {
     item: 'register',
-    error_messages: appCtx.state.register_errors,
+    error_messages: appCtx.state.register_errors || [],
   };
 }
 
