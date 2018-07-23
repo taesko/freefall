@@ -326,6 +326,7 @@ function main () {
   const validateSendErrorRes = validators.getValidateSendErrorRes();
   const validateErrorRes = validators.getValidateErrorRes();
   const validateListAirportsRes = validators.getValidateListAirportsRes();
+  const validateGetAPIKeyRes = validators.getValidateGetAPIKeyRes();
   const traceLog = [];
 
   const getParser = defineParsers([jsonParser, yamlParser]);
@@ -398,6 +399,8 @@ function main () {
   };
 
   const sendRequest = function (requestData, callback) {
+    trace('sendRequest');
+
     var url = requestData.url; // eslint-disable-line no-var
     var data = requestData.data; // eslint-disable-line no-var
     var protocolName = requestData.protocolName; // eslint-disable-line no-var
@@ -480,7 +483,7 @@ function main () {
       }
     }
 
-    throw new PeerError({
+    throw new UserError({
       msg: 'Could not find airport with id ' + id, // eslint-disable-line prefer-template
     });
   };
@@ -516,7 +519,36 @@ function main () {
     throw new PeerError({
       msg: 'Could not find airport with name ' + name, // eslint-disable-line prefer-template
     });
-  }
+  };
+
+  const getAPIKey = function (params, protocolName, callback) {
+    trace('getAPIKey(' + JSON.stringify(params) + '), typeof arg=' + typeof params + ''); // eslint-disable-line prefer-template
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'get_api_key',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in subscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateGetAPIKeyRes(result), {
+        msg: 'Params do not adhere to getAPIKeyResponseSchema: ' + getValidatorMsg(validateGetAPIKeyRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $messageBar = $('#message-bar');
@@ -544,6 +576,7 @@ function main () {
     getAirportName: getAirportName,
     getAirportId: getAirportId,
     getId: getId,
+    getAPIKey: getAPIKey,
     yamlParser: yamlParser,
     jsonParser: jsonParser,
     defineParsers: defineParsers,

@@ -1,6 +1,6 @@
 const ajv = new Ajv();
 
-const adminValidators = {
+const adminValidators = { // eslint-disable-line no-unused-vars
   getValidateAdminListAirportsReq: function () {
     const adminListAirportsRequestSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',
@@ -315,13 +315,35 @@ const adminValidators = {
     return ajv.compile(adminUnsubscribeRequestSchema);
   },
 
-  // Same for subscribe, unsubscribe and unsubscribe_all method responses
-  getValidateAdminSubscriptionRes: function () {
-    const adminSubscriptionResponseSchema = {
+  getValidateAdminSubscribeRes: function () {
+    const adminSubscribeResponseSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',
-      '$id': 'http://10.20.1.155:3000/adminsubscriptionresponse.schema.json',
-      'title': 'Admin subscription response',
-      'description': 'Contains the response of admin_subscribe or admin_unsubscribe method',
+      '$id': 'http://10.20.1.155:3000/adminsubscriberesponse.schema.json',
+      'title': 'Admin subscribe response',
+      'description': 'Contains the response of admin_subscribe method',
+      'type': 'object',
+      'properties': {
+        'subscription_id': {
+          'title': 'Subscription id',
+          'type': ['string', 'null'],
+        },
+        'status_code': {
+          'title': 'Status code',
+          'description': 'Indicator for the result of the request',
+          'type': 'string',
+        },
+      },
+      'required': ['status_code', 'subscription_id'],
+    };
+    return ajv.compile(adminSubscribeResponseSchema);
+  },
+
+  getValidateAdminUnsubscribeRes: function () {
+    const adminUnsubscribeResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/adminunsubscriberesponse.schema.json',
+      'title': 'Admin unsubscribe response',
+      'description': 'Contains the response of admin_unsubscribe method',
       'type': 'object',
       'properties': {
         'status_code': {
@@ -332,7 +354,7 @@ const adminValidators = {
       },
       'required': ['status_code'],
     };
-    return ajv.compile(adminSubscriptionResponseSchema);
+    return ajv.compile(adminUnsubscribeResponseSchema);
   },
 
   getValidateGetAPIKeyReq: function () {

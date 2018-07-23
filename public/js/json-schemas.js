@@ -92,13 +92,35 @@ const validators = { // eslint-disable-line no-unused-vars
     return ajv.compile(unsubscribeAllRequestSchema);
   },
 
-  // Same for subscribe, unsubscribe and unsubscribe_all method responses
-  getValidateSubscriptionRes: function () {
-    const subscriptionResponseSchema = {
+  getValidateSubscribeRes: function () {
+    const subscribeResponseSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',
-      '$id': 'http://10.20.1.155:3000/subscriptionresponse.schema.json',
-      'title': 'Subscription response',
-      'description': 'Contains the response of subscribe or unsubscribe method',
+      '$id': 'http://10.20.1.155:3000/subscriberesponse.schema.json',
+      'title': 'Subscribe response',
+      'description': 'Contains the response of subscribe method',
+      'type': 'object',
+      'properties': {
+        'subscription_id': {
+          'title': 'Subscription id',
+          'type': ['string', 'null'],
+        },
+        'status_code': {
+          'title': 'Status code',
+          'description': 'Indicator for the result of the request',
+          'type': 'string',
+        },
+      },
+      'required': ['status_code', 'subscription_id'],
+    };
+    return ajv.compile(subscribeResponseSchema);
+  },
+
+  getValidateUnsubscribeRes: function () {
+    const unsubscribeResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/unsubscriberesponse.schema.json',
+      'title': 'Unsubscribe response',
+      'description': 'Contains the response of unsubscribe method',
       'type': 'object',
       'properties': {
         'status_code': {
@@ -109,7 +131,7 @@ const validators = { // eslint-disable-line no-unused-vars
       },
       'required': ['status_code'],
     };
-    return ajv.compile(subscriptionResponseSchema);
+    return ajv.compile(unsubscribeResponseSchema);
   },
 
   getValidateSearchReq: function () {
