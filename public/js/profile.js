@@ -129,6 +129,9 @@ function start () {
     const dateFrom = $('#date-from-' + rowId).val(); // eslint-disable-line prefer-template
     const dateTo = $('#date-to-' + rowId).val(); // eslint-disable-line prefer-template
 
+    const airportFromId = getAirportId(airports, airportFrom);
+    const airportToId = getAirportId(airports, airportTo);
+
     unsubscribe({
       v: '2.0',
       user_subscription_id: rowValues.id,
@@ -144,8 +147,8 @@ function start () {
         // displayUserMessage('Successfully unsubscribed!', 'success');
         subscribe({
           v: '2.0',
-          fly_from: getAirportId(airports, airportFrom),
-          fly_to: getAirportId(airports, airportTo),
+          fly_from: airportFromId,
+          fly_to: airportToId,
           date_from: dateFrom,
           date_to: dateTo,
           api_key: APIKey,
@@ -164,8 +167,8 @@ function start () {
 
               const newSubscription = {
                 id: result.subscription_id,
-                fly_from: getAirportId(airports, airportFrom),
-                fly_to: getAirportId(airports, airportTo),
+                fly_from: airportFromId,
+                fly_to: airportToId,
                 date_from: dateFrom,
                 date_to: dateTo,
               };
