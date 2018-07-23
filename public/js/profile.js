@@ -29,8 +29,24 @@ function start () {
   var rowIdSubscriptionMap = {}; // eslint-disable-line no-var
   var APIKey; // eslint-disable-line no-var
 
+  function showSubscriptionsTable ($subscriptionsTable) {
+    $('#subscriptions-table').removeAttr('hidden');
+    $('#no-subscriptions-msg').attr('hidden', 'true');
+  }
+
+  function hideSubscriptionTable ($subscriptionsTable) {
+    $('#subscriptions-table').attr('hidden', 'true');
+    $('#no-subscriptions-msg').removeAttr('hidden');
+  }
+
   function renderSubscriptions ($subscriptionsTable, subscriptions) {
     trace('renderSubscriptions');
+
+    if (subscriptions.length > 0) {
+      showSubscriptionsTable($('#subscriptions-table'));
+    } else {
+      hideSubscriptionTable($('#subscriptions-table'));
+    }
 
     assertApp($subscriptionsTable instanceof jQuery, {
       msg: 'Expected $subscriptionsTable to be instance of jQuery, but was ' + typeof $subscriptionsTable, // eslint-disable-line prefer-template
@@ -219,6 +235,12 @@ function start () {
         delete rowIdSubscriptionMap[rowId];
 
         $('#row-' + rowId).remove(); // eslint-disable-line prefer-template
+
+        if (subscriptions.length > 0) {
+          showSubscriptionsTable($('#subscriptions-table'));
+        } else {
+          hideSubscriptionTable($('#subscriptions-table'));
+        }
       }
     });
   };
@@ -329,6 +351,12 @@ function start () {
   function renderRowViewMode (rowElement, rowValues) {
     trace('renderRowViewMode');
 
+    if (subscriptions.length > 0) {
+      showSubscriptionsTable($('#subscriptions-table'));
+    } else {
+      hideSubscriptionTable($('#subscriptions-table'));
+    }
+
     assertApp(rowElement instanceof window.HTMLTableRowElement, {
       msg: 'Expected rowElement to be HTMLTableRowElement, but got ' + typeof rowElement, // eslint-disable-line prefer-template
     });
@@ -347,7 +375,7 @@ function start () {
       const newCol = rowElement.insertCell(i);
 
       if (rowValues[i] === 'options') {
-        $('<button id="edit-btn-' + rowId + '" type="button" class="btn btn-primary">Edit</button>') // eslint-disable-line prefer-template
+        $('<button id="edit-btn-' + rowId + '" type="button" class="btn btn-primary btn-block">Edit</button>') // eslint-disable-line prefer-template
           .appendTo(newCol)
           .click(onEditClick);
 
@@ -497,7 +525,7 @@ function start () {
         window.location.replace('/login');
       } else {
         APIKey = result.api_key;
-        const $subsTable = $('#subscriptions-table');
+        const $subscriptionsTable = $('#subscriptions-table');
 
         listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
           airports = result.airports;
@@ -512,7 +540,7 @@ function start () {
 
           listSubscriptions('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
             subscriptions = result.subscriptions;
-            renderSubscriptions($subsTable, subscriptions);
+            renderSubscriptions($subscriptionsTable, subscriptions);
           });
         });
 

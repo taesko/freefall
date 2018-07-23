@@ -1,7 +1,7 @@
 (function ($) {
   $.fn.autocomplete = function (data) {
     return this.each(function () {
-      let $dataList;
+      var $dataList; // eslint-disable-line no-var
 
       if ($(this).siblings('datalist').length > 0) {
         $dataList = $(this).siblings('datalist')[0];

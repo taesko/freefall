@@ -35,7 +35,7 @@
     {{> messages }}
     <div>
       <h3>Your subscriptions:</h3>
-      <table id="subscriptions-table" class="table table-bordered">
+      <table id="subscriptions-table" class="table table-bordered" hidden="true">
         <thead>
           <tr>
             <th>Airport from</th>
@@ -46,6 +46,7 @@
           </tr>
         </thead>
       </table>
+      <p id="no-subscriptions-msg" class="text-center" hidden="true">No subscriptions found</p>
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/lodash@3.10.1/index.min.js"></script>
