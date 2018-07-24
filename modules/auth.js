@@ -76,7 +76,7 @@ async function getLoggedInUser (ctx) {
 }
 
 async function tokenHasRole (token, role) {
-  const [user] = db.selectWhere(
+  const [user] = await db.selectWhere(
     'users',
     '*',
     { api_key: token, role },
