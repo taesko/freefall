@@ -1,9 +1,15 @@
-class CustomError extends Error {}
+class CustomError extends Error {
+  constructor (errMsg, errCode = '0') {
+    super(errMsg);
+    this.code = errCode;
+  }
+}
 class PeerError extends CustomError {}
 class AppError extends CustomError {}
 class UserError extends CustomError {}
 
 /*
+  0 - null error code
   2000-3000 - Peer errors
     2000-2100 - Protocol errors
     2100-2200 - Subscription errors
@@ -21,21 +27,21 @@ const errorCodes = {
   unknownAirport: '2900',
 };
 
-function assertApp (assert, errMsg) {
+function assertApp (assert, errMsg, errCode) {
   if (!assert) {
-    throw new AppError(errMsg);
+    throw new AppError(errMsg, errCode);
   }
 }
 
-function assertUser (assert, errMsg) {
+function assertUser (assert, errMsg, errCode) {
   if (!assert) {
-    throw new UserError(errMsg);
+    throw new UserError(errMsg, errCode);
   }
 }
 
-function assertPeer (assert, errMsg) {
+function assertPeer (assert, errMsg, errCode) {
   if (!assert) {
-    throw new PeerError(errMsg);
+    throw new PeerError(errMsg, errCode);
   }
 }
 
