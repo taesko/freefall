@@ -1,5 +1,5 @@
 const fetch = require('node-fetch');
-const { assertApp, handleError } = require('./error-handling');
+const { assertApp } = require('./error-handling');
 
 function toQueryString (params) {
   const paramsList = [];
@@ -48,7 +48,6 @@ function log (...msg) {
 
 module.exports = {
   log,
-  handleError,
   requestJSON,
   toSmallestCurrencyUnit,
   fromSmallestCurrencyUnit,

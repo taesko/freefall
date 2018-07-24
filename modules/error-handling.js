@@ -21,12 +21,6 @@ function assertPeer (assert, errMsg) {
   }
 }
 
-function handleError (err) {
-  console.error('Error while fetching data:');
-  console.error(err);
-  process.exit();
-}
-
 module.exports = {
   assertApp,
   assertPeer,
@@ -34,5 +28,4 @@ module.exports = {
   PeerError,
   AppError,
   UserError,
-  handleError,
 };

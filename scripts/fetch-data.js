@@ -10,10 +10,15 @@ const {
   selectWhere,
   insert,
 } = require('../modules/db');
-const { handleError, assertApp, assertPeer } = require('../modules/error-handling');
+const { assertApp, assertPeer } = require('../modules/error-handling');
 const { log, requestJSON, toSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject, each } = require('lodash');
 const moment = require('moment');
+
+function handleError (err) {
+  console.error('Error while fetching data:', err);
+  process.exit();
+}
 
 process.on('error', (err) => {
   handleError(err);
