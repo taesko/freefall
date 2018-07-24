@@ -25,6 +25,10 @@
         "get_api_key",
         "list_subscriptions",
         "list_users",
+        "admin_list_subscriptions",
+        "admin_list_users",
+        "admin_subscribe",
+        "admin_unsubscribe",
         "senderror"
       ]
     },

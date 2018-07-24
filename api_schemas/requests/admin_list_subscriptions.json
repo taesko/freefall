@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/admin_list_subscriptions",
+  "title": "Admin list subscriptions response",
+  "type": "object",
+  "properties": {
+    "v": {
+      "title": "API version",
+      "type": "string"
+    },
+    "user_id": {
+      "title": "User id",
+      "type": "string"
+    },
+    "api_key": {
+      "title": "API key",
+      "type": "string"
+    }
+  },
+  "required": ["v", "api_key"]
+}
