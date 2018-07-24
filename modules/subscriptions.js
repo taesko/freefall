@@ -55,14 +55,9 @@ async function removeUserSubscription (userSubscriptionId) {
 async function listUserSubscriptions (user) {
   return db.executeAll(
     `
-      SELECT usub.id, usub.date_from, usub.date_to, 
-        ap_from.id fly_from, ap_to.id fly_to
-      FROM user_subscriptions usub
-      JOIN users ON usub.user_id=users.id
-      JOIN subscriptions sub ON usub.subscription_id=sub.id
-      JOIN airports ap_from ON sub.airport_from_id=ap_from.id
-      JOIN airports ap_to ON sub.airport_to_id=ap_to.id
-      WHERE users.id=?
+      SELECT * 
+      FROM user_subscriptions
+      WHERE user_subscriptions.user_id=?
     `,
     user.id,
   );
