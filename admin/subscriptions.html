@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile</title>
+  <link href="css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
+<!--   <link href="css/style.css" rel="stylesheet"> -->
+</head>
+<body>
+  <div class="container">
+    <!-- {{> heading }} -->
+    <!-- {{> menu }} -->
+    <div>
+      <h3>Add new guest subscription:</h3>
+      <div class="row">
+        <div class="col-md-2">
+          <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text" placeholder="Airport from" list="from-airports" required>
+        </div>
+        <div class="col-md-2">
+          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text" placeholder="Airport to" list="to-airports" required>
+        </div>
+        <div class="col-md-4">
+          <button id="subscribe-submit-btn" class="btn btn-primary btn-block">Subscribe</button>
+        </div>
+      </div>
+    </div>
+    <hr>
+    <!-- {{> messages }} -->
+    <ul class="nav nav-tabs">
+      <li role="presentation" class="active"><a href="#">Home</a></li>
+      <li role="presentation"><a href="#">Profile</a></li>
+      <li role="presentation"><a href="#">Messages</a></li>
+    </ul>
+    <div>
+      <h3>Subscriptions:</h3>
+      <table id="subscriptions-table" class="table table-bordered" hidden="true">
+        <thead>
+          <tr>
+            <th>Airport from</th>
+            <th>Airport to</th>
+            <th>Date from</th>
+            <th>Date to</th>
+            <th>Options</th>
+          </tr>
+        </thead>
+      </table>
+      <p id="no-subscriptions-msg" class="text-center" hidden="true">No subscriptions found</p>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@3.10.1/index.min.js"></script>
+  <script src="js/jquery/jquery-2.2.4.js"></script>
+  <script src="css/bootstrap/js/bootstrap.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+  <script src="js/autocomplete-plugin.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/6.5.2/ajv.min.js"></script>
+  <script src="js/json-schemas.js"></script>
+  <!-- <script src="js/main.js"></script> -->
+  <!-- <script type="text/javascript" src="js/profile.js"></script> -->
+</body>
+</html>

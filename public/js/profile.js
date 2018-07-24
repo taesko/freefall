@@ -119,7 +119,6 @@ function start () {
     trace('save button click');
 
     const saveButton = event.target;
-    saveButton.disabled = true;
 
     const rowId = getElementUniqueId(event.target, 'save-btn-');
     const rowValues = rowIdSubscriptionMap[rowId];
@@ -142,6 +141,8 @@ function start () {
       msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
     });
 
+    saveButton.disabled = true;
+
     unsubscribe({
       v: '2.0',
       user_subscription_id: rowValues.id,
@@ -163,6 +164,8 @@ function start () {
           date_to: dateTo,
           api_key: APIKey,
         }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+          saveButton.disabled = false;
+
           if (result.status_code === 2000) {
             trace('subscribe method error');
 
@@ -223,17 +226,20 @@ function start () {
     trace('remove button click');
 
     const removeButton = event.target;
-    removeButton.disabled = true;
     const rowId = getElementUniqueId(event.target, 'remove-btn-');
     const rowValues = rowIdSubscriptionMap[rowId];
 
     // TODO asserts
+
+    removeButton.disabled = true;
 
     unsubscribe({
       v: '2.0',
       user_subscription_id: rowValues.id,
       api_key: APIKey,
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      removeButton.disabled = false;
+
       if (result.status_code === 2000) {
         trace('unsubscribe method error');
 
@@ -262,7 +268,6 @@ function start () {
     trace('Subscribe submit click');
 
     const subscribeBtn = event.target;
-    subscribeBtn.disabled = true;
 
     const airportFrom = $('#subscribe-airport-from').val();
     const airportTo = $('#subscribe-airport-to').val();
@@ -282,6 +287,8 @@ function start () {
       msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
     });
 
+    subscribeBtn.disabled = true;
+
     subscribe({
       v: '2.0',
       fly_from: airportFromId,
@@ -290,6 +297,8 @@ function start () {
       date_to: dateTo,
       api_key: APIKey,
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      subscribeBtn.disabled = false;
+
       if (result.status_code === 2000) {
         trace('subscribe method error');
 
@@ -323,8 +332,6 @@ function start () {
         $(newRow).attr('id', 'row-' + rowId); // eslint-disable-line prefer-template
 
         renderRowViewMode(newRow, rowValues);
-
-        subscribeBtn.disabled = false;
       }
     });
   };
