@@ -17,6 +17,7 @@ const API_METHODS = {
   admin_list_users: adminListUsers,
   admin_subscribe: adminSubscribe,
   admin_unsubscribe: adminUnsubscribe,
+  admin_remove_user: adminRemoveUser,
   get_api_key: getAPIKey,
   senderror: sendError,
 };
@@ -432,7 +433,7 @@ async function adminListSubscriptions (params, db) {
   }
 }
 
-async function adminSubscribe(params, db) {
+async function adminSubscribe (params) {
   assertPeer(
     await auth.tokenHasRole(params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
@@ -447,7 +448,7 @@ async function adminSubscribe(params, db) {
   const flyTo = +params.fly_to;
   const dateFrom = params.date_from;
   const dateTo = params.date_to;
-  const user = {id: +params.user_id};
+  const user = { id: +params.user_id };
 
   let subscriptionId;
   let statusCode;
@@ -483,6 +484,7 @@ async function adminUnsubscribe (params) {
     await auth.tokenHasRole(params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
+
   async function removeSubscription (params) {
     let statusCode;
 
@@ -496,6 +498,7 @@ async function adminUnsubscribe (params) {
 
     return { status_code: `${statusCode}` };
   }
+
   async function removeAllSubscriptions (params) {
     assertPeer(Number.isInteger(params.user_id), 'user_id must be an integer wrapped in string.');
     await subscriptions.removeAllSubscriptionsOfUser(params.user_id);
@@ -509,6 +512,32 @@ async function adminUnsubscribe (params) {
     return removeSubscription(params);
   }
 }
+
+async function adminRemoveUser (params, db) {
+  assertPeer(
+    await auth.tokenHasRole(params.api_key, 'admin'),
+    'You do not have sufficient permission to call admin_list_subscriptions method.',
+  );
+  await db.executeRun(
+    `
+      DELETE
+      FROM user_subscriptions
+      WHERE user_id=?
+    `,
+    [+params.user_id],
+  );
+  await db.executeRun(
+    `
+      DELETE 
+      FROM users
+      WHERE id=? AND role='user'
+    `,
+    [+params.user_id],
+  );
+  // TODO refactor out into a user module
+  return { status_code: '1000' };
+}
+
 async function getAPIKey (params, db, ctx) {
   const user = await auth.getLoggedInUser(ctx);
   const apiKey = (user == null) ? null : user.api_key;

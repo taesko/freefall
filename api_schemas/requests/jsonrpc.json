@@ -29,6 +29,8 @@
         "admin_list_users",
         "admin_subscribe",
         "admin_unsubscribe",
+        "admin_remove_user",
+        "admin_edit_user",
         "senderror"
       ]
     },
