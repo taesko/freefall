@@ -13,7 +13,10 @@ const API_METHODS = {
   unsubscribe,
   list_airports: listAirports,
   list_subscriptions: listSubscriptions,
-  list_users: listUsers,
+  admin_list_subscriptions: adminListSubscriptions,
+  admin_list_users: adminListUsers,
+  admin_subscribe: adminSubscribe,
+  admin_unsubscribe: adminUnsubscribe,
   get_api_key: getAPIKey,
   senderror: sendError,
 };
@@ -352,7 +355,11 @@ async function listSubscriptions (params, db) {
   };
 }
 
-async function listUsers (params, db) {
+async function adminListUsers (params, db) {
+  assertPeer(
+    await auth.tokenHasRole(params.api_key, 'admin'),
+    'You do not have sufficient permission to call admin_list_users method.',
+  );
   const users = await db.select('users', ['id', 'email']);
 
   for (const user of users) {
@@ -364,6 +371,144 @@ async function listUsers (params, db) {
   };
 }
 
+async function adminListSubscriptions (params, db) {
+  // TODO handle errors how ?
+  assertPeer(
+    await auth.tokenHasRole(params.api_key, 'admin'),
+    'You do not have sufficient permission to call admin_list_subscriptions method.',
+  );
+  const mainQuery = `
+      SELECT user_sub.id, user_sub.date_from, user_sub.date_to, 
+        ap_from.id fly_from, ap_to.id fly_to,
+        users.id user_id, users.email user_email
+      FROM user_subscriptions user_sub
+      JOIN users ON user_sub.user_id=users.id
+      JOIN subscriptions sub ON user_sub.subscription_id=sub.id
+      JOIN airports ap_from ON sub.airport_from_id=ap_from.id
+      JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+    `;
+  let userSubscriptions;
+  let globalSubscriptions;
+
+  if (!params.user_id) {
+    userSubscriptions = await db.executeAll(mainQuery);
+    globalSubscriptions = await subscriptions.listGlobalSubscriptions();
+  } else {
+    userSubscriptions = await db.executeAll(
+      `
+        ${mainQuery}
+        WHERE users.id = ?
+      `,
+      params.user_id,
+    );
+    globalSubscriptions = null;
+  }
+
+  userSubscriptions = userSubscriptions.map(sub => {
+    return {
+      id: `${sub.id}`,
+      user: {
+        id: `${sub.user_id}`,
+        email: `${sub.user_email}`,
+      },
+      date_from: moment(sub.date_from).format('Y-MM-DD'),
+      date_to: moment(sub.date_to).format('Y-MM-DD'),
+      fly_from: `${sub.fly_from}`,
+      fly_to: `${sub.fly_to}`,
+    };
+  });
+
+  if (globalSubscriptions == null) {
+    return {
+      status_code: '1000',
+      user_subscriptions: userSubscriptions,
+    };
+  } else {
+    return {
+      status_code: '1000',
+      user_subscriptions: userSubscriptions,
+      global_subscriptions: globalSubscriptions,
+    };
+  }
+}
+
+async function adminSubscribe(params, db) {
+  assertPeer(
+    await auth.tokenHasRole(params.api_key, 'admin'),
+    'You do not have sufficient permission to call admin_list_subscriptions method.',
+  );
+  assertPeer(
+    Number.isInteger(+params.fly_from) &&
+    Number.isInteger(+params.fly_to) &&
+    Number.isInteger(+params.user_id),
+    'subscribe params fly_from and fly_to must be an integer wrapped in a string',
+  );
+  const flyFrom = +params.fly_from;
+  const flyTo = +params.fly_to;
+  const dateFrom = params.date_from;
+  const dateTo = params.date_to;
+  const user = {id: +params.user_id};
+
+  let subscriptionId;
+  let statusCode;
+  try {
+    subscriptionId = await subscriptions.subscribeUser(
+      user,
+      {
+        airportFromId: flyFrom,
+        airportToId: flyTo,
+        dateFrom,
+        dateTo,
+      },
+    );
+    statusCode = 1000;
+  } catch (e) {
+    // TODO this try catch should be at an upper level
+    // and the method's response object should be built there - setting status_code properly
+    // handling the request by sending back the response
+    // and rethrowing the exception
+    log('An error occurred while subscribing user.', e);
+    subscriptionId = null;
+    statusCode = 2000;
+  }
+
+  return {
+    subscription_id: `${subscriptionId}`,
+    status_code: `${statusCode}`,
+  };
+}
+
+async function adminUnsubscribe (params) {
+  assertPeer(
+    await auth.tokenHasRole(params.api_key, 'admin'),
+    'You do not have sufficient permission to call admin_list_subscriptions method.',
+  );
+  async function removeSubscription (params) {
+    let statusCode;
+
+    try {
+      await subscriptions.removeUserSubscription(params.user_subscription_id);
+      statusCode = '1000';
+    } catch (e) {
+      log('An error occurred while removing subscription: ', params.user_subscription_id, e);
+      statusCode = '2000';
+    }
+
+    return { status_code: `${statusCode}` };
+  }
+  async function removeAllSubscriptions (params) {
+    assertPeer(Number.isInteger(params.user_id), 'user_id must be an integer wrapped in string.');
+    await subscriptions.removeAllSubscriptionsOfUser(params.user_id);
+    // this method never fails ?
+    return { status_code: '1000' };
+  }
+
+  if (params.user_id) {
+    return removeAllSubscriptions(params);
+  } else {
+    return removeSubscription(params);
+  }
+}
 async function getAPIKey (params, db, ctx) {
   const user = await auth.getLoggedInUser(ctx);
   const apiKey = (user == null) ? null : user.api_key;

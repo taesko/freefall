@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "response/admin_list_users",
+  "title": "Admin list users response",
+  "type": "object",
+  "properties": {
+    "users": {
+      "type": "array",
+      "title": "List of users",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "User id"
+          },
+          "email": {
+            "type": "string",
+            "title": "User email",
+            "format": "email"
+          }
+        },
+        "required": ["id", "email"]
+      }
+    }
+  },
+  "required": ["users"]
+}

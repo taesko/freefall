@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://10.20.1.155:3000/adminunsubscribereqest.schema.json",
+  "title": "Admin unsubscribe request",
+  "description": "Contains the request of admin_unsubscribe method",
+  "oneOf": [
+    {
+      "type": "object",
+      "title": "All subscriptions of user remove",
+      "properties": {
+        "v": {
+          "type": "string",
+          "title": "API version"
+        },
+        "user_id": {
+          "type": "string",
+          "title": "User ID"
+        },
+        "api_key": {
+          "type": "string",
+          "title": "API key"
+        }
+      },
+      "required": [
+        "v",
+        "user_id",
+        "api_key"
+      ]
+    },
+    {
+      "type": "object",
+      "title": "Remove subscription from user",
+      "properties": {
+        "v": {
+          "type": "string",
+          "title": "API version"
+        },
+        "user_subscription_id": {
+          "type": "string",
+          "title": "User subscription ID"
+        },
+        "api_key": {
+          "type": "string",
+          "title": "API key"
+        }
+      },
+      "required": [
+        "v",
+        "user_subscription_id",
+        "api_key"
+      ]
+    }
+  ]
+}

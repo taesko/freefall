@@ -52,6 +52,16 @@ async function removeUserSubscription (userSubscriptionId) {
   );
 }
 
+async function removeAllSubscriptionsOfUser (user) {
+  return db.executeRun(
+    `
+      DELETE
+      FROM user_subscriptions
+      WHERE user_id = ?
+    `,
+    [user.id],
+  );
+}
 async function listUserSubscriptions (user) {
   return db.executeAll(
     `
@@ -111,6 +121,7 @@ async function subscribeGlobally (airportFromId, airportToId) {
 module.exports = {
   subscribeUser,
   removeUserSubscription,
+  removeAllSubscriptionsOfUser,
   listUserSubscriptions,
   listGlobalSubscriptions,
 };
