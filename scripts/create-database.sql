@@ -53,6 +53,7 @@ CREATE TABLE users (
     email text NOT NULL,
     password text NOT NULL,
     api_key text NOT NULL,
+    role text NOT NULL,
     UNIQUE(email)
 );
 

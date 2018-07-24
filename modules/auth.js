@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const db = require('./db');
-const { assertApp, AppError } = require('./error-handling');
+const { AppError } = require('./error-handling');
 const { log } = require('./utils');
 
 class InvalidCredentials extends AppError {}
@@ -8,6 +8,11 @@ class InvalidCredentials extends AppError {}
 class UserExists extends AppError {}
 
 class AlreadyLoggedIn extends AppError {}
+
+const USER_ROLES = {
+  admin: 'admin',
+  user: 'user',
+};
 
 db.dbConnect();
 
@@ -46,7 +51,15 @@ async function register (email, password) {
   const apiKey = hashToken(`${email}:${password}`);
 
   try {
-    await db.insert('users', { email, password: hashPassword(password), api_key: apiKey });
+    await db.insert(
+      'users',
+      {
+        email,
+        password: hashPassword(password),
+        api_key: apiKey,
+        role: USER_ROLES.user,
+      },
+    );
   } catch (e) {
     log(`Couldn't register user with credentials email=${email} password=${password}. ${e}`);
     throw e;
@@ -62,6 +75,16 @@ async function getLoggedInUser (ctx) {
   return fetchUserById(ctx.session.userID);
 }
 
+async function tokenHasRole (token, role) {
+  const [user] = db.selectWhere(
+    'users',
+    '*',
+    { api_key: token, role },
+  );
+
+  return !!user;
+}
+
 function hashToken (token) {
   return crypto.createHash('md5').update(token).digest('hex');
 }
@@ -73,7 +96,7 @@ function serializeUser (user) {
 async function fetchUserByAPIKey (token) {
   const [user] = await db.selectWhere(
     'users',
-    ['id', 'email', 'password', 'api_key'],
+    '*',
     { api_key: token },
   );
 
@@ -82,11 +105,12 @@ async function fetchUserByAPIKey (token) {
 }
 
 async function fetchUserById (id) {
-  const [user] = await db.selectWhere('users', ['id', 'email', 'password', 'api_key'], { id });
+  const [user] = await db.selectWhere('users', '*', { id });
   return user;
 }
 
 async function fetchUserByCredentials ({ email, password }) {
+  log('querying database for credentials: ', email, password);
   const [user] = await db.executeAll(
     `
     SELECT *
@@ -104,7 +128,7 @@ function hashPassword (password) {
 }
 
 async function emailIsRegistered (email) {
-  const result = await db.selectWhere('users', ['email'], { email });
+  const result = await db.selectWhere('users', '*', { email });
   return result.length !== 0;
 }
 
@@ -116,6 +140,7 @@ module.exports = {
   getLoggedInUser,
   isLoggedIn,
   fetchUserByAPIKey,
+  tokenHasRole,
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,
