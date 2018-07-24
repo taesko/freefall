@@ -262,7 +262,7 @@ async function subscribe (params) {
         airportToId: flyTo,
         dateFrom,
         dateTo,
-      }
+      },
     );
     statusCode = 1000;
   } catch (e) {
@@ -276,8 +276,8 @@ async function subscribe (params) {
   }
 
   return {
-    subscription_id: subscriptionId,
-    status_code: statusCode,
+    subscription_id: `${subscriptionId}`,
+    status_code: `${statusCode}`,
   };
 }
 
@@ -286,30 +286,28 @@ async function unsubscribe (params, db) {
 
   assertPeer(user, 'invalid api key');
 
-  const userSubscriptions = await db.executeAll(
-    `
-      SELECT *
-      FROM user_subscriptions
-      WHERE user_id=?
-    `,
-    user.id,
+  const userSubscriptions = await db.selectWhere(
+    'user_subscriptions',
+    '*',
+    { user_id: user.id },
   );
 
-  log('full list of user subscriptions is: ', userSubscriptions, 'with user id: ', user.id);
   assertPeer(
     userSubscriptions.some(sub => +sub.id === +params.user_subscription_id),
     'This api key is not allowed to modify this subscription.',
   );
 
   let statusCode;
+
   try {
     await subscriptions.removeUserSubscription(params.user_subscription_id);
     statusCode = 1000;
   } catch (e) {
+    log('An error occurred while removing subscription: ', params.user_subscription_id, e);
     statusCode = 2000;
   }
 
-  return { status_code: statusCode };
+  return { status_code: `${statusCode}` };
 }
 
 async function listAirports (params, db) {

@@ -32,13 +32,11 @@ module.exports = (() => {
   }
 
   function stringifyColumns (columns) {
-    assertApp(
-      columns instanceof Array &&
-      columns.length > 0,
-      'Invalid argument columns.',
-    );
-
-    return columns.join(', ');
+    if (columns == null || columns === '*') {
+      return '*';
+    } else {
+      return columns.join(', ');
+    }
   }
 
   async function executeAll (...args) {
@@ -57,16 +55,13 @@ module.exports = (() => {
       'Expected string for a name of table',
     );
 
-    const columnString = columns === '*' ? columns : stringifyColumns(columns);
-
-    return db.all(`SELECT ${columnString} FROM ${table};`);
+    return db.all(`SELECT ${stringifyColumns(columns)} FROM ${table};`);
   }
 
   async function selectWhere (table, columns, where) {
     assertDB();
     assertApp(
       typeof table === 'string' &&
-      Array.isArray(columns) &&
       isObject(where) &&
       'Invalid select data',
     );
@@ -250,121 +245,6 @@ module.exports = (() => {
   }
 
   // TODO move out with selectSubs...
-  async function insertEmailSubscription ({
-    email,
-    airportFromId,
-    airportToId,
-    dateFrom,
-    dateTo,
-  }) {
-    const userRows = await selectWhere('users', ['id'], { email });
-
-    assertApp(
-      userRows != null && userRows.length === 1,
-      `cannot subscribe email ${email} because it isn't registered`,
-    );
-
-    const userId = userRows[0].id;
-    const subs = await selectWhere(
-      'subscriptions',
-      ['id'],
-      {airport_from_id: airportFromId, airport_to_id: airportToId},
-    );
-    assertApp(subs.length ===
-              1, `Found more than one unique subscription between two airports with ids from=${airportFromId} to=${airportToId}`);
-
-    log(
-      'Subscribing to email:', email, 'with dates:', dateFrom, dateTo,
-      'user id is: ', userId,
-    );
-
-    try {
-      await insert('user_subscriptions', {
-        user_id: userId,
-        subscription_id: subs[0].id,
-        fetch_id_of_last_send: null,
-        date_from: dateFrom,
-        date_to: dateTo,
-      });
-      log('Successfully subscribed email: ', email);
-      return true;
-    } catch (e) {
-      log('While subscribing email: ', email, 'an error occurred: ', e);
-      return false;
-    }
-  }
-
-  async function insertIfNotExistsSub (flyFrom, flyTo) {
-    assertDB();
-
-    const flyFromParsed = Number(flyFrom);
-    const flyToParsed = Number(flyTo);
-    const subscriptions = await selectWhere(
-      'subscriptions',
-      ['id'],
-      {airport_from_id: flyFromParsed, airport_to_id: flyToParsed},
-    );
-
-    assertApp(Array.isArray(subscriptions), 'Invalid select subscriptions response.');
-
-    if (subscriptions.length > 0) {
-      assertApp(subscriptions.length ===
-                1, `Unexpected subscriptions length of ${subscriptions.length}.`);
-
-      return false;
-    } else {
-      await insert('subscriptions', {
-        airport_from_id: flyFromParsed,
-        airport_to_id: flyToParsed,
-      });
-
-      return true;
-    }
-  }
-
-  async function delIfNotExistsSub (flyFrom, flyTo) {
-    assertDB();
-
-    const flyFromParsed = Number(flyFrom);
-    const flyToParsed = Number(flyTo);
-
-    const deleteResult = await db.run(`
-
-      DELETE FROM subscriptions
-      WHERE airport_from_id = ? AND airport_to_id = ?;
-
-    `, [flyFromParsed, flyToParsed]);
-
-    assertApp(
-      isObject(deleteResult) &&
-      isObject(deleteResult.stmt) &&
-      Number.isInteger(deleteResult.stmt.changes),
-      'Incorrect db response.',
-    );
-
-    return deleteResult.stmt.changes > 0;
-  }
-
-  async function delIfNotExistsEmailSub (email) {
-    assertDB();
-
-    log('deleting subscriptions of email: ', email);
-
-    const deleteResult = await db.run(
-      `
-      DELETE FROM user_subscriptions
-      WHERE user_subscriptions.user_id IN (
-          SELECT id 
-          FROM users
-          WHERE email=?
-        )
-      ;
-    `, email,
-    );
-
-    log('delete query result: ', deleteResult);
-    return deleteResult.stmt.changes > 0;
-  }
 
   async function updateEmailSub (email) {
     // TODO bad name rename if you can
@@ -412,13 +292,9 @@ module.exports = (() => {
     insert,
     insertDataFetch,
     insertIfNotExists,
-    insertIfNotExistsSub,
-    insertEmailSubscription,
     selectSubscriptions,
     selectRoutesFlights,
     selectWhere,
-    delIfNotExistsSub,
-    delIfNotExistsEmailSub,
     updateEmailSub,
     dbConnect,
   };
