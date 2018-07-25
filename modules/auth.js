@@ -140,6 +140,7 @@ module.exports = {
   getLoggedInUser,
   isLoggedIn,
   fetchUserByAPIKey,
+  fetchUserById,
   tokenHasRole,
   hashPassword,
   UserExists,

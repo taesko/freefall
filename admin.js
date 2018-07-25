@@ -147,7 +147,15 @@ router.get('/users/:user_id', async (ctx) => {
     ctx.redirect('/');
     return;
   }
-  return ctx.render('user.html', {});
+
+  const defaultContext = await getAdminContext(ctx, 'get', '/users/:user_id');
+  const user = await auth.fetchUserById(ctx.params.user_id);
+
+  if (!user) {
+    ctx.status = 404;
+  } else {
+    return ctx.render('user.html', Object.assign(defaultContext, { user_credentials: user }));
+  }
 });
 
 router.get('/fetches', async (ctx) => {
