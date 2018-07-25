@@ -19,6 +19,7 @@ const API_METHODS = {
   admin_unsubscribe: adminUnsubscribe,
   admin_edit_subscription: adminEditSubscription,
   admin_remove_user: adminRemoveUser,
+  admin_edit_user: adminEditUser,
   admin_list_fetches: adminListFetches,
   get_api_key: getAPIKey,
   senderror: sendError,
@@ -605,6 +606,45 @@ async function adminRemoveUser (params, db) {
   );
   // TODO refactor out into a user module
   return { status_code: '1000' };
+}
+
+async function adminEditUser (params, db) {
+  assertPeer(
+    await auth.tokenHasRole(params.api_key, 'admin'),
+    'You do not have sufficient permission to call admin_list_subscriptions method.',
+  );
+
+  let result;
+
+  if (params.email) {
+    result = await db.executeAll(
+      `
+      UPDATE users
+      SET email=$email
+      WHERE id=$id
+      `,
+      {
+        $email: params.email,
+        $id: params.id,
+      },
+    );
+  } else {
+    result = await db.executeAll(
+      `
+      UPDATE users
+      SET password=$password
+      WHERE id=$id
+      `,
+      {
+        $password: auth.hashPassword(params.password),
+        $id: params.id,
+      },
+    );
+  }
+
+  const statusCode = (result.stmt.changes > 0) ? '1000' : '2000';
+
+  return { status_code: statusCode };
 }
 
 async function adminListFetches (params, db) {

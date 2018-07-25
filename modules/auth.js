@@ -141,6 +141,7 @@ module.exports = {
   isLoggedIn,
   fetchUserByAPIKey,
   tokenHasRole,
+  hashPassword,
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,
