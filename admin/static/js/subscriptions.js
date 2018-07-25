@@ -9,15 +9,29 @@ function start () {
   const getAPIKey = mainUtils.getAPIKey;
   const listAirports = mainUtils.listAirports;
   const getElementUniqueId = mainUtils.getElementUniqueId;
+  const sendRequest = mainUtils.sendRequest;
+  const getValidatorMsg = mainUtils.getValidatorMsg;
+  const SERVER_URL = mainUtils.SERVER_URL;
+  const assertPeer = mainUtils.assertPeer;
+  const PeerError = mainUtils.PeerError;
+  const displayUserMessage = mainUtils.displayUserMessage;
+  const validateErrorRes = validators.getValidateErrorRes();
+  const validateAdminListSubscriptionsReq = adminValidators.getValidateAdminListSubscriptionsReq();
+  const validateAdminListSubscriptionsRes = adminValidators.getValidateAdminListSubscriptionsRes();
+  const validateAdminSubscribeReq = adminValidators.getValidateAdminSubscribeReq();
+  const validateAdminSubscribeRes = adminValidators.getValidateAdminSubscribeRes();
+  const validateAdminUnsubscribeReq = adminValidators.getValidateAdminUnsubscribeReq();
+  const validateAdminUnsubscribeRes = adminValidators.getValidateAdminUnsubscribeRes();
 
-  var airports; // eslint-disable-line no-var
-  var usersSubscriptions; // eslint-disable-line no-var
-  var rowIdUserSubscriptionMap; // eslint-disable-line no-var
-  var guestSubscriptions; // eslint-disable-line no-var
-  var rowIdGuestSubscriptionMap; // eslint-disable-line no-var
+  var airports = []; // eslint-disable-line no-var
+  var userSubscriptions = []; // eslint-disable-line no-var
+  var rowIdUserSubscriptionMap = {}; // eslint-disable-line no-var
+  var guestSubscriptions = []; // eslint-disable-line no-var
+  var rowIdGuestSubscriptionMap = {}; // eslint-disable-line no-var
   var APIKey; // eslint-disable-line no-var
 
   function applyDatePicker () {
+    console.log($('.date-select'));
     const datepickerOptions = {
       dateFormat: 'yy-mm-dd',
     };
@@ -29,14 +43,14 @@ function start () {
     $('.airport-select').autocomplete(values);
   }
 
-  function showUsersSubscriptionsTable () {
-    $('#users-subscriptions-table').removeAttr('hidden');
+  function showUserSubscriptionsTable () {
+    $('#user-subscriptions-table').removeAttr('hidden');
     $('#no-subscriptions-msg').attr('hidden', 'true');
   }
 
-  function hideUsersSubscriptionsTable () {
+  function hideUserSubscriptionsTable () {
     $('#no-subscriptions-msg').removeAttr('hidden');
-    $('#users-subscriptions-table').attr('hidden', 'true');
+    $('#user-subscriptions-table').attr('hidden', 'true');
   }
 
   function showGuestSubscriptionsTable () {
@@ -67,8 +81,8 @@ function start () {
     assertApp($guestSubscriptionsTable[0] instanceof window.HTMLTableElement, {
       msg: 'Expected element in jQuery object to be HTMLTableElement, but got ' + typeof $guestSubscriptionsTable[0], // eslint-disable-line prefer-template
     });
-    assertApp(usersSubscriptions instanceof Array, {
-      msg: 'Expected usersSubscriptions to be instance of array, but was ' + typeof usersSubscriptions, // eslint-disable-line prefer-template
+    assertApp(userSubscriptions instanceof Array, {
+      msg: 'Expected userSubscriptions to be instance of array, but was ' + typeof userSubscriptions, // eslint-disable-line prefer-template
     });
 
     rowIdGuestSubscriptionMap = {};
@@ -184,6 +198,108 @@ function start () {
     $row.replaceWith($guestSubscriptionEditModeClone);
   }
 
+  function adminListSubscriptions (params, protocolName, callback) {
+    trace('adminListSubscriptions');
+
+    assertApp(validateAdminListSubscriptionsReq(params), {
+      msg: 'Params do not adhere to adminListSubscriptionsRequestSchema: ' + getValidatorMsg(validateAdminListSubscriptionsReq), // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_list_subscriptions',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminListSubscriptions:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminListSubscriptionsRes(result), {
+        msg: 'Params do not adhere to adminListSubscriptionsResponseSchema: ' + getValidatorMsg(validateAdminListSubscriptionsRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  }
+
+  function adminSubscribe (params, protocolName, callback) {
+    trace('adminSubscrbe');
+
+    assertApp(validateAdminSubscribeReq(params), {
+      msg: 'Params do not adhere to adminSubscribeRequestSchema: ' + getValidatorMsg(validateAdminSubscribeReq), // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_subscribe',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminSubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminSubscribeRes(result), {
+        msg: 'Params do not adhere to adminSubscribeResponseSchema: ' + getValidatorMsg(validateAdminSubscribeRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  }
+
+  function adminUnsubscribe (params, protocolName, callback) {
+    trace('adminUnsubscribe');
+
+    assertApp(validateAdminUnsubscribeReq(params), {
+      msg: 'Params do not adhere to adminUnsubscribeRequestSchema: ' + getValidatorMsg(validateAdminUnsubscribeReq) // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_unsubscribe',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminUnsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminUnsubscribeRes(result), {
+        msg: 'Params do not adhere to adminUnsubscribeResponseSchema: ' + getValidatorMsg(validateAdminUnsubscribeRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  }
+
   const onEditGuestSubscriptionClick = function (event) {
     trace('onEditGuestSubscriptionClick');
 
@@ -290,31 +406,31 @@ function start () {
     }
   };
 
-  function renderUsersSubscriptions ($usersSubscriptionsTable) {
-    trace('renderUsersSubscriptions');
+  function renderUserSubscriptions ($userSubscriptionsTable) {
+    trace('renderUserSubscriptions');
 
-    if (usersSubscriptions.length > 0) {
-      showUsersSubscriptionsTable();
+    if (userSubscriptions.length > 0) {
+      showUserSubscriptionsTable();
     } else {
-      hideUsersSubscriptionsTable();
+      hideUserSubscriptionsTable();
     }
 
-    assertApp($usersSubscriptionsTable instanceof jQuery, {
-      msg: 'Expected $usersSubscriptionsTable to be instance of jQuery, but was ' + typeof $usersSubscriptionsTable, // eslint-disable-line prefer-template
+    assertApp($userSubscriptionsTable instanceof jQuery, {
+      msg: 'Expected $userSubscriptionsTable to be instance of jQuery, but was ' + typeof $userSubscriptionsTable, // eslint-disable-line prefer-template
     });
-    assertApp($usersSubscriptionsTable.length === 1, {
-      msg: 'Expected only one element in jQuery object, but got ' + $usersSubscriptionsTable.length, // eslint-disable-line prefer-template
+    assertApp($userSubscriptionsTable.length === 1, {
+      msg: 'Expected only one element in jQuery object, but got ' + $userSubscriptionsTable.length, // eslint-disable-line prefer-template
     });
-    assertApp($usersSubscriptionsTable[0] instanceof window.HTMLTableElement, {
-      msg: 'Expected element in jQuery object to be HTMLTableElement, but got ' + typeof $usersSubscriptionsTable[0], // eslint-disable-line prefer-template
+    assertApp($userSubscriptionsTable[0] instanceof window.HTMLTableElement, {
+      msg: 'Expected element in jQuery object to be HTMLTableElement, but got ' + typeof $userSubscriptionsTable[0], // eslint-disable-line prefer-template
     });
-    assertApp(usersSubscriptions instanceof Array, {
-      msg: 'Expected usersSubscriptions to be instance of array, but was ' + typeof usersSubscriptions, // eslint-disable-line prefer-template
+    assertApp(userSubscriptions instanceof Array, {
+      msg: 'Expected userSubscriptions to be instance of array, but was ' + typeof userSubscriptions, // eslint-disable-line prefer-template
     });
 
     rowIdUserSubscriptionMap = {};
 
-    _.each(usersSubscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
+    _.each(userSubscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
       renderUserSubscriptionRow('view', subscription);
     });
   }
@@ -328,7 +444,7 @@ function start () {
 
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-user-email')
       .attr('id', 'user-subscription-view-mode-user-email-' + rowId) // eslint-disable-line prefer-template
-      .attr('href', '/users?id=' + subscription.user.id) // eslint-disable-line prefer-template
+      .attr('href', '/users/' + subscription.user.id) // eslint-disable-line prefer-template
       .text(subscription.user.email);
 
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-airport-from')
@@ -353,7 +469,7 @@ function start () {
 
     if ($row == null) {
       $userSubscriptionViewModeClone.appendTo(
-        $('#users-subscriptions-table tbody')
+        $('#user-subscriptions-table tbody')
       );
     } else {
       $row.replaceWith($userSubscriptionViewModeClone);
@@ -369,7 +485,7 @@ function start () {
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-user-email')
       .attr('id', 'user-subscription-edit-mode-user-email-' + rowId) // eslint-disable-line prefer-template
-      .attr('href', '/users?id=' + subscription.user.id) // eslint-disable-line prefer-template
+      .attr('href', '/users/' + subscription.user.id) // eslint-disable-line prefer-template
       .text(subscription.user.email);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-airport-from')
@@ -385,10 +501,14 @@ function start () {
       .attr('value', getAirportName(airports, subscription.fly_to));
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-date-from')
+      .addClass('date-select') // Necessary!! items with date-select class will be used with jQuery datepicker (see function applyDatePicker).
+      // datepicker won't work with the new clone element if the original cloned element has date-select class (datepicker adds hasDatepicker class and ignores elements with this class)
       .attr('id', 'user-subscription-edit-mode-date-from-' + rowId) // eslint-disable-line prefer-template
       .attr('value', subscription.date_from);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-date-to')
+      .addClass('date-select') // Necessary!! items with date-select class will be used with jQuery datepicker (see function applyDatePicker).
+      // datepicker won't work with the new clone element if the original cloned element has date-select class (datepicker adds hasDatepicker class and ignores elements with this class)
       .attr('id', 'user-subscription-edit-mode-date-to-' + rowId) // eslint-disable-line prefer-template
       .attr('value', subscription.date_to);
 
@@ -517,32 +637,56 @@ function start () {
 
     saveButton.disabled = true;
 
-    // TODO send request
-
-    saveButton.disabled = false;
-
-    const newSubscription = {
-      id: oldSubscription.id, // result.subscription_id,
-      user: oldSubscription.user,
-      fly_from: airportFromId,
-      fly_to: airportToId,
-      date_from: dateFrom,
-      date_to: dateTo,
+    const unsubscribeParams = {
+      v: '2.0',
+      user_subscription_id: oldSubscription.id,
+      api_key: APIKey,
     };
 
-    rowIdUserSubscriptionMap[rowId] = newSubscription;
-    usersSubscriptions = usersSubscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
-      if (subscription.id !== oldSubscription.id) {
-        return subscription;
-      }
-      return newSubscription;
-    });
+    adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      if (result.status_code === 2000) {
+        displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+      } else if (result.status_code >= 1000 && result.status_code < 2000) {
+        const subscribeParams = {
+          v: '2.0',
+          user_id: oldSubscription.user.id,
+          fly_from: airportFromId,
+          fly_to: airportToId,
+          date_from: dateFrom,
+          date_to: dateTo,
+          api_key: APIKey,
+        };
 
-    renderUserSubscriptionRow(
-      'view',
-      newSubscription,
-      $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
-    );
+        adminSubscribe(subscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+          saveButton.disabled = false;
+
+          const newSubscription = {
+            id: result.subscription_id,
+            user: oldSubscription.user,
+            fly_from: airportFromId,
+            fly_to: airportToId,
+            date_from: dateFrom,
+            date_to: dateTo,
+          };
+
+          rowIdUserSubscriptionMap[rowId] = newSubscription;
+          userSubscriptions = userSubscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
+            if (subscription.id !== oldSubscription.id) {
+              return subscription;
+            }
+            return newSubscription;
+          });
+
+          renderUserSubscriptionRow(
+            'view',
+            newSubscription,
+            $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
+          );
+
+          displayUserMessage('Successfully edited user subscription!', 'success');
+        });
+      }
+    });
   };
 
   const onRemoveUserSubscriptionClick = function (event) {
@@ -555,38 +699,48 @@ function start () {
 
     removeButton.disabled = true;
 
-    // TODO send request to server
+    const unsubscribeParams = {
+      v: '2.0',
+      user_subscription_id: oldSubscription.id,
+      api_key: APIKey,
+    };
 
-    removeButton.disabled = false;
+    adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      if (result.status_code === 2000) {
+        displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+      } else if (result.status_code >= 1000 && result.status_code < 2000) {
+        removeButton.disabled = false;
 
-    usersSubscriptions = usersSubscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
-      return subscription.id !== oldSubscription.id;
+        userSubscriptions = userSubscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
+          return subscription.id !== oldSubscription.id;
+        });
+
+        delete rowIdUserSubscriptionMap[rowId];
+
+        $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
+
+        if (userSubscriptions.length > 0) {
+          showUserSubscriptionsTable();
+        } else {
+          hideUserSubscriptionsTable();
+        }
+      }
     });
-
-    delete rowIdUserSubscriptionMap[rowId];
-
-    $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
-
-    if (usersSubscriptions.length > 0) {
-      showUsersSubscriptionsTable();
-    } else {
-      hideUsersSubscriptionsTable();
-    }
   };
 
-  const onUsersSubscriptionsTabClick = function () {
+  const onUserSubscriptionsTabClick = function () {
     trace('clicked users tab');
 
-    if (usersSubscriptions.length > 0) {
-      showUsersSubscriptionsTable();
+    if (userSubscriptions.length > 0) {
+      showUserSubscriptionsTable();
     } else {
-      hideUsersSubscriptionsTable();
+      hideUserSubscriptionsTable();
     }
 
-    $('#users-subscriptions-section').removeAttr('hidden');
+    $('#user-subscriptions-section').removeAttr('hidden');
     $('#guest-subscriptions-section').attr('hidden', 'true');
 
-    $('#users-subscriptions-tab').parent().addClass('active');
+    $('#user-subscriptions-tab').parent().addClass('active');
     $('#guest-subscriptions-tab').parent().removeClass('active');
   };
 
@@ -600,23 +754,36 @@ function start () {
     }
 
     $('#guest-subscriptions-section').removeAttr('hidden');
-    $('#users-subscriptions-section').attr('hidden', 'true');
+    $('#user-subscriptions-section').attr('hidden', 'true');
 
     $('#guest-subscriptions-tab').parent().addClass('active');
-    $('#users-subscriptions-tab').parent().removeClass('active');
+    $('#user-subscriptions-tab').parent().removeClass('active');
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    const $usersSubscriptionsTab = $('#users-subscriptions-tab');
+    const $userSubscriptionsTab = $('#user-subscriptions-tab');
     const $guestSubscriptionsTab = $('#guest-subscriptions-tab');
 
     getAPIKey({
       v: '2.0',
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code < 1000 || result.status_code >= 2000) {
-        // window.location.replace('/login');
+        window.location.replace('/login');
       } else {
         APIKey = result.api_key;
+
+        const params = {
+          v: '2.0',
+          api_key: APIKey,
+        };
+
+        adminListSubscriptions(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+          userSubscriptions = result.user_subscriptions;
+          guestSubscriptions = result.guest_subscriptions;
+
+          renderUserSubscriptions($('#user-subscriptions-table'));
+          renderGuestSubscriptions($('#guest-subscriptions-table'));
+        });
       }
     });
 
@@ -629,57 +796,51 @@ function start () {
 
       const airportNames = airports.map(toAirportName);
 
-      usersSubscriptions = [
-        {
-          id: '2',
-          user: {
-            id: '5',
-            email: 'sample@text.com',
-          },
-          fly_from: '2',
-          fly_to: '3',
-          date_from: '2018-07-23',
-          date_to: '2018-10-23',
-        },
-        {
-          id: '3',
-          user: {
-            id: '6',
-            email: 'sample@yahoo.com',
-          },
-          fly_from: '3',
-          fly_to: '2',
-          date_from: '2018-08-23',
-          date_to: '2018-11-23',
-        },
-      ];
-      guestSubscriptions = [
-        {
-          id: '4',
-          fly_from: '1',
-          fly_to: '5',
-        },
-        {
-          id: '6',
-          fly_from: '1',
-          fly_to: '18',
-        },
-      ];
+      // userSubscriptions = [
+      //   {
+      //     id: '2',
+      //     user: {
+      //       id: '5',
+      //       email: 'sample@text.com',
+      //     },
+      //     fly_from: '2',
+      //     fly_to: '3',
+      //     date_from: '2018-07-23',
+      //     date_to: '2018-10-23',
+      //   },
+      //   {
+      //     id: '3',
+      //     user: {
+      //       id: '6',
+      //       email: 'sample@yahoo.com',
+      //     },
+      //     fly_from: '3',
+      //     fly_to: '2',
+      //     date_from: '2018-08-23',
+      //     date_to: '2018-11-23',
+      //   },
+      // ];
+      // guestSubscriptions = [
+      //   {
+      //     id: '4',
+      //     fly_from: '1',
+      //     fly_to: '5',
+      //   },
+      //   {
+      //     id: '6',
+      //     fly_from: '1',
+      //     fly_to: '18',
+      //   },
+      // ];
 
-      $usersSubscriptionsTab.click(onUsersSubscriptionsTabClick);
+      $userSubscriptionsTab.click(onUserSubscriptionsTabClick);
       $guestSubscriptionsTab.click(onGuestSubscriptionsTabClick);
 
-      renderUsersSubscriptions($('#users-subscriptions-table'));
-      renderGuestSubscriptions($('#guest-subscriptions-table'));
+      // renderUserSubscriptions($('#user-subscriptions-table'));
+      // renderGuestSubscriptions($('#guest-subscriptions-table'));
 
       applyAutocomplete(airportNames);
     });
-
-    // listSubscriptions('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-    //   subscriptions = result.subscriptions;
-    //   renderUsersSubscriptions($('#users-subscriptions-table'));
-    //   renderGuestSubscriptions($('#guest-subscriptions-table'));
-    // });
 
     applyDatePicker();
   });
