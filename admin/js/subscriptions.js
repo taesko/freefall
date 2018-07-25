@@ -574,44 +574,41 @@ function start () {
     }
   };
 
+  const onUsersSubscriptionsTabClick = function () {
+    trace('clicked users tab');
+
+    if (usersSubscriptions.length > 0) {
+      showUsersSubscriptionsTable();
+    } else {
+      hideUsersSubscriptionsTable();
+    }
+
+    $('#users-subscriptions-section').removeAttr('hidden');
+    $('#guest-subscriptions-section').attr('hidden', 'true');
+
+    $('#users-subscriptions-tab').parent().addClass('active');
+    $('#guest-subscriptions-tab').parent().removeClass('active');
+  };
+
+  const onGuestSubscriptionsTabClick = function () {
+    trace('clicked guest tab');
+
+    if (guestSubscriptions.length > 0) {
+      showGuestSubscriptionsTable();
+    } else {
+      hideGuestSubscriptionsTable();
+    }
+
+    $('#guest-subscriptions-section').removeAttr('hidden');
+    $('#users-subscriptions-section').attr('hidden', 'true');
+
+    $('#guest-subscriptions-tab').parent().addClass('active');
+    $('#users-subscriptions-tab').parent().removeClass('active');
+  };
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $usersSubscriptionsTab = $('#users-subscriptions-tab');
     const $guestSubscriptionsTab = $('#guest-subscriptions-tab');
-
-    const $usersSubscriptionsSection = $('#users-subscriptions-section');
-    const $guestSubscriptionsSection = $('#guest-subscriptions-section');
-
-    $usersSubscriptionsTab.click(function () { // eslint-disable-line prefer-arrow-callback
-      trace('clicked users tab');
-
-      if (usersSubscriptions.length > 0) {
-        showUsersSubscriptionsTable();
-      } else {
-        hideUsersSubscriptionsTable();
-      }
-
-      $usersSubscriptionsSection.removeAttr('hidden');
-      $guestSubscriptionsSection.attr('hidden', 'true');
-
-      $usersSubscriptionsTab.parent().addClass('active');
-      $guestSubscriptionsTab.parent().removeClass('active');
-    });
-
-    $guestSubscriptionsTab.click(function () { // eslint-disable-line prefer-arrow-callback
-      trace('clicked guest tab');
-
-      if (guestSubscriptions.length > 0) {
-        showGuestSubscriptionsTable();
-      } else {
-        hideGuestSubscriptionsTable();
-      }
-
-      $guestSubscriptionsSection.removeAttr('hidden');
-      $usersSubscriptionsSection.attr('hidden', 'true');
-
-      $guestSubscriptionsTab.parent().addClass('active');
-      $usersSubscriptionsTab.parent().removeClass('active');
-    });
 
     getAPIKey({
       v: '2.0',
@@ -668,6 +665,9 @@ function start () {
           fly_to: '18',
         },
       ];
+
+      $usersSubscriptionsTab.click(onUsersSubscriptionsTabClick);
+      $guestSubscriptionsTab.click(onGuestSubscriptionsTabClick);
 
       renderUsersSubscriptions($('#users-subscriptions-table'));
       renderGuestSubscriptions($('#guest-subscriptions-table'));
