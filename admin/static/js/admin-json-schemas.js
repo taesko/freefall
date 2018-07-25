@@ -58,7 +58,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
   getValidateAdminListSubscriptionsReq: function () {
     const adminListSubscriptionsRequestSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',
-      '$id': 'http://10.20.1.155:3000/adminlistsubscriptionsresponse.schema.json',
+      '$id': 'http://10.20.1.155:3000/adminlistsubscriptionsrequest.schema.json',
       'title': 'Admin list subscriptions response',
       'type': 'object',
       'properties': {
@@ -75,7 +75,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'type': 'string',
         },
       },
-      'required': ['v', 'user_id', 'api_key'],
+      'required': ['v', 'api_key'],
     };
     return ajv.compile(adminListSubscriptionsRequestSchema);
   },
@@ -158,7 +158,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           },
         },
       },
-      'required': ['subscriptions'],
+      'required': ['user_subscriptions', 'guest_subscriptions'],
     };
     return ajv.compile(adminListSubscriptionsResponseSchema);
   },
