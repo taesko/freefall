@@ -119,18 +119,34 @@ router.post('/login', async (ctx) => {
 });
 
 router.get('/subscriptions', async (ctx) => {
+  if (!await auth.isLoggedIn(ctx)) {
+    ctx.redirect('/');
+    return;
+  }
   return ctx.render('subscriptions.html', await getAdminContext(ctx, 'get', '/subscriptions'));
 });
 
 router.get('/users', async (ctx) => {
+  if (!await auth.isLoggedIn(ctx)) {
+    ctx.redirect('/');
+    return;
+  }
   return ctx.render('users.html', await getAdminContext(ctx, 'get', '/users'));
 });
 
 router.get('/users/:user_id:', async (ctx) => {
+  if (!await auth.isLoggedIn(ctx)) {
+    ctx.redirect('/');
+    return;
+  }
   return ctx.render('user.html', {});
 });
 
 router.get('/fetches', async (ctx) => {
+  if (!await auth.isLoggedIn(ctx)) {
+    ctx.redirect('/');
+    return;
+  }
   return ctx.render('fetches.html', await getAdminContext(ctx, 'get', '/fetches'));
 });
 
