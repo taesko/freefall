@@ -260,7 +260,7 @@ async function subscribe (params) {
   let statusCode;
   try {
     subscriptionId = await subscriptions.subscribeUser(
-      user,
+      user.id,
       {
         airportFromId: flyFrom,
         airportToId: flyTo,
@@ -455,13 +455,13 @@ async function adminSubscribe (params) {
   const flyTo = +params.fly_to;
   const dateFrom = params.date_from;
   const dateTo = params.date_to;
-  const user = { id: +params.user_id };
+  const userId = +params.user_id;
 
   let subscriptionId;
   let statusCode;
   try {
     subscriptionId = await subscriptions.subscribeUser(
-      user,
+      userId,
       {
         airportFromId: flyFrom,
         airportToId: flyTo,
@@ -495,11 +495,13 @@ async function adminUnsubscribe (params) {
   async function removeSubscription (params) {
     let statusCode;
 
+    const subId = +params.user_subscription_id;
+
     try {
-      await subscriptions.removeUserSubscription({ id: params.user_subscription_id });
+      await subscriptions.removeUserSubscription(subId);
       statusCode = '1000';
     } catch (e) {
-      log('An error occurred while removing subscription: ', params.user_subscription_id, e);
+      log('An error occurred while removing subscription: ', subId, e);
       statusCode = '2000';
     }
 
@@ -507,10 +509,11 @@ async function adminUnsubscribe (params) {
   }
 
   async function removeAllSubscriptions (params) {
-    assertPeer(Number.isInteger(+params.user_id), 'user_id must be an integer wrapped in string.');
+    const userId = +params.user_id;
+    assertPeer(Number.isInteger(userId), 'user_id must be an integer wrapped in string.');
     let statusCode;
     try {
-      await subscriptions.removeAllSubscriptionsOfUser({ id: params.user_id });
+      await subscriptions.removeAllSubscriptionsOfUser(userId);
       statusCode = '1000';
     } catch (e) {
       statusCode = '2000';

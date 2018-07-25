@@ -3,7 +3,7 @@ const errors = require('./error-handling');
 const db = require('./db');
 
 async function subscribeUser (
-  user,
+  userId,
   {
     airportFromId,
     airportToId,
@@ -26,7 +26,7 @@ async function subscribeUser (
   return db.insert(
     'user_subscriptions',
     {
-      user_id: user.id,
+      user_id: userId,
       subscription_id: globalSubId,
       fetch_id_of_last_send: null,
       date_from: dateFrom,
@@ -63,17 +63,17 @@ async function removeUserSubscription (userSubscriptionId) {
   );
 }
 
-async function removeAllSubscriptionsOfUser (user) {
+async function removeAllSubscriptionsOfUser (userId) {
   const rows = await db.executeAll(
     `
       SELECT 1
       FROM users
       WHERE id = ?
     `,
-    [user.id],
+    [userId],
   );
 
-  log('rows of database are: ', rows, 'user id was: ', user);
+  log('rows of database are: ', rows, 'user id was: ', userId);
   const exists = rows[0];
   errors.assertPeer(exists);
 
@@ -83,17 +83,18 @@ async function removeAllSubscriptionsOfUser (user) {
       FROM user_subscriptions
       WHERE user_id = ?
     `,
-    [user.id],
+    [userId],
   );
 }
-async function listUserSubscriptions (user) {
+
+async function listUserSubscriptions (userId) {
   return db.executeAll(
     `
       SELECT * 
       FROM user_subscriptions
       WHERE user_subscriptions.user_id=?
     `,
-    user.id,
+    userId,
   );
 }
 
