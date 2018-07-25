@@ -9,6 +9,7 @@ const cors = require('@koa/cors');
 const session = require('koa-session');
 const { log } = require('./modules/utils');
 const auth = require('./modules/auth');
+const db = require('./modules/db');
 const { getAdminContext } = require('./modules/render-contexts');
 const { rpcAPILayer } = require('./modules/api');
 
@@ -32,6 +33,9 @@ app.use(async (ctx, next) => {
   }
 });
 
+db.dbConnect();
+app.context.db = db;
+
 app.use(session(SESSION_CONFIG, app));
 
 app.use(logger());
@@ -42,9 +46,9 @@ app.use(cors({
 
 app.use(bodyParser({
   extendTypes: {
-    text: ['text/yaml', 'application/json'],
+    text: ['text/yaml'],
   },
-  enableTypes: ['text', 'form'],
+  enableTypes: ['text', 'form', 'json'],
 }));
 
 app.use(serve(path.join(__dirname, 'admin', 'static')));
