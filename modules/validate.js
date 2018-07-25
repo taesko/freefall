@@ -104,8 +104,9 @@ function validateResponse (responseBody, method, protocol = 'jsonrpc') {
   log('validating method', method, 'with response: ', responseBody);
   validateProtocol(responseBody, protocol, 'response');
 
-  const schemaName = (responseBody.error == null) ? 'error' : method;
+  const schemaName = (responseBody.error == null) ? method : 'error';
   const schemaId = getSchemaId('response', schemaName);
+  log('schema id used to validate is: ', schemaId);
   assertApp(
     ajv.validate(schemaId, responseBody.error || responseBody.result),
     `invalid error response for method ${method}. Error: ${ajv.errorsText()}`,

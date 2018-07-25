@@ -394,6 +394,13 @@ async function adminListSubscriptions (params, db) {
   if (!params.user_id) {
     userSubscriptions = await db.executeAll(mainQuery);
     guestSubscriptions = await subscriptions.listGlobalSubscriptions();
+    guestSubscriptions = guestSubscriptions.map(sub => {
+      return {
+        id: `${sub.id}`,
+        fly_from: `${sub.airport_from_id}`,
+        fly_to: `${sub.airport_to_id}`,
+      };
+    });
   } else {
     userSubscriptions = await db.executeAll(
       `
