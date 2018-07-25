@@ -349,8 +349,6 @@ function main () {
   const onCloseMessageClick = function (event) {
     const closeMessageButton = event.target;
 
-    console.log(closeMessageButton);
-
     const uniqueId = getElementUniqueId(closeMessageButton, 'close-msg-btn-');
     $('#msg-' + uniqueId).remove(); // eslint-disable-line prefer-template
   };
