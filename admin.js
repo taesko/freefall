@@ -7,16 +7,19 @@ const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
 const session = require('koa-session');
-const log = require('./modules/utils');
+const { log } = require('./modules/utils');
 const auth = require('./modules/auth');
 const { getAdminContext } = require('./modules/render-contexts');
+const { rpcAPILayer } = require('./modules/api');
 
 const app = new Koa();
 const router = new Router();
 const SESSION_CONFIG = {
-  key: 'koa:sess',
+  key: 'koa:sess:admin',
   maxAge: 1000 * 60 * 60 * 24, // 24 hours in miliseconds
 };
+
+app.keys = ['freefall is love freefall is life'];
 
 app.use(async (ctx, next) => {
   try {
@@ -29,9 +32,9 @@ app.use(async (ctx, next) => {
   }
 });
 
-app.use(logger());
-
 app.use(session(SESSION_CONFIG, app));
+
+app.use(logger());
 
 app.use(cors({
   origin: '*',
@@ -44,14 +47,45 @@ app.use(bodyParser({
   enableTypes: ['text', 'form'],
 }));
 
-app.use(serve(path.join(__dirname, 'admin')));
+app.use(serve(path.join(__dirname, 'admin', 'static')));
+app.use(views(path.join(__dirname, 'admin', 'templates'), {
+  map: {
+    html: 'handlebars',
+  },
+  options: {
+    helpers: {
+      is_active: (a, b) => {
+        if (a === b) {
+          return 'active';
+        } else {
+          return '';
+        }
+      },
+    },
+    partials: {
+      menu: 'menu',
+      heading: 'heading',
+      messages: 'messages',
+      auth_message_success: 'auth-message-success',
+      auth_message_error: 'auth-message-error',
+    },
+  },
+}));
+
+router.get('/', async (ctx) => {
+  if (await auth.isLoggedIn(ctx)) {
+    ctx.redirect('/subscriptions');
+  } else {
+    ctx.redirect('/login');
+  }
+});
 
 router.get('/login', async (ctx) => {
   if (await auth.isLoggedIn(ctx)) {
     ctx.redirect('/');
     return;
   }
-  return ctx.render('login.html', {});
+  return ctx.render('login.html', await getAdminContext(ctx, 'get', '/login'));
 });
 
 router.post('/login', async (ctx) => {
@@ -77,15 +111,15 @@ router.post('/login', async (ctx) => {
     }
   }
 
-  return ctx.redirect('/login', {error_message: ctx.state.login_error_message});
+  return ctx.redirect('/login', { error_message: ctx.state.login_error_message });
 });
 
 router.get('/subscriptions', async (ctx) => {
-  return ctx.render('subscriptions.html', getAdminContext('get', '/subscriptions'));
+  return ctx.render('subscriptions.html', await getAdminContext(ctx, 'get', '/subscriptions'));
 });
 
 router.get('/users', async (ctx) => {
-  return ctx.render('users.html', getAdminContext('get', '/users'));
+  return ctx.render('users.html', await getAdminContext(ctx, 'get', '/users'));
 });
 
 router.get('/users/:user_id:', async (ctx) => {
@@ -93,5 +127,11 @@ router.get('/users/:user_id:', async (ctx) => {
 });
 
 router.get('/fetches', async (ctx) => {
-  return ctx.render('fetches.html', getAdminContext('get', '/fetches'));
+  return ctx.render('fetches.html', await getAdminContext(ctx, 'get', '/fetches'));
 });
+
+router.post('/api', rpcAPILayer);
+
+app.use(router.routes());
+
+app.listen(process.env.FREEFALL_ADMIN_PORT || 3001);
