@@ -5,16 +5,16 @@ module.exports = (() => {
   const { isObject } = require('lodash');
   const { log } = require('./utils');
   let db;
+  let dbInitialized = false;
 
   async function dbConnect () {
     if (
-      isObject(db) &&
-      isObject(db.driver) &&
-      db.driver.open
+      dbInitialized
     ) {
       log('Already connected to freefall.db...');
     } else {
       log('Connecting to freefall.db...');
+      dbInitialized = true;
       db = await sqlite.open(path.join(__dirname, '../freefall.db'));
       await db.run('PRAGMA foreign_keys = ON;');
       await db.run('PRAGMA integrity_check;');
