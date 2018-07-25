@@ -4,7 +4,7 @@
       var $dataList; // eslint-disable-line no-var
 
       if ($(this).siblings('datalist').length > 0) {
-        $dataList = $(this).siblings('datalist')[0];
+        $dataList = $(this).siblings('datalist');
       } else {
         $dataList = $('<datalist></datalist>')
           .attr('id', $(this).attr('list'))
