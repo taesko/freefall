@@ -88,7 +88,7 @@ function main () {
   const getValidatorMsg = function (validator) {
     assertApp(_.isObject(validator), {
       msg: 'Expected validator to be an object, but was ' + typeof validator, // eslint-disable-line prefer-template
-    }); // eslint-disable-line prefer-template
+    });
     assertApp(
       validator.errors instanceof Array ||
       validator.errors === null, {
@@ -355,8 +355,8 @@ function main () {
     $('#msg-' + uniqueId).remove(); // eslint-disable-line prefer-template
   };
 
-  // const SERVER_URL = '/';
-  const SERVER_URL = 'http://127.0.0.1:3000';
+  const SERVER_URL = '/api';
+  // const SERVER_URL = 'http://127.0.0.1:3000';
   const MAX_TRACE = 300;
   var $messagesList; // eslint-disable-line no-var
   const validateSendErrorReq = validators.getValidateSendErrorReq();

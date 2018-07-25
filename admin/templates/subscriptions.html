@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Profile</title>
-  <!-- when served by admin <link href="css/bootstrap/css/bootstrap.min.css" rel="stylesheet"> -->
-  <link href="../static/css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
 <!--   <link href="css/style.css" rel="stylesheet"> -->
 </head>
 <body>
   <div class="container">
-    <!-- {{> heading }} -->
-    <!-- {{> menu }} -->
+    {{> heading }}
+    {{> menu }}
     <div>
       <h3>Add new guest subscription:</h3>
       <div class="row">
@@ -27,14 +26,14 @@
       </div>
     </div>
     <hr>
-    <!-- {{> messages }} -->
+    {{> messages }}
     <ul class="nav nav-tabs">
-      <li role="presentation" class="active"><a id="users-subscriptions-tab" href="#">Users' subscriptions</a></li>
+      <li role="presentation" class="active"><a id="user-subscriptions-tab" href="#">Users' subscriptions</a></li>
       <li role="presentation"><a id="guest-subscriptions-tab" href="#">Guest subscriptions</a></li>
     </ul>
-    <div id="users-subscriptions-section">
+    <div id="user-subscriptions-section">
       <h3>Users' subscriptions:</h3>
-      <table id="users-subscriptions-table" class="table table-bordered" hidden="true">
+      <table id="user-subscriptions-table" class="table table-bordered" hidden="true">
         <thead>
           <tr>
             <th>User</th>
@@ -57,10 +56,10 @@
               <input id="user-subscription-edit-mode-airport-to" name="to" class="form-control" type="text" placeholder="Airport to" required>
             </td>
             <td>
-              <input id="user-subscription-edit-mode-date-from" class="form-control date-select" name="date-from" type="text" placeholder="Date from" value="" required>
+              <input id="user-subscription-edit-mode-date-from" class="form-control" name="date-from" type="text" placeholder="Date from" value="" required>
             </td>
             <td>
-              <input id="user-subscription-edit-mode-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to" value="" required>
+              <input id="user-subscription-edit-mode-date-to" name="date-to" class="form-control" type="text" placeholder="Date to" value="" required>
             </td>
             <td>
               <button id="user-subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
@@ -131,7 +130,6 @@
     </div>
     <p id="no-subscriptions-msg" class="text-center" hidden="true">No subscriptions found</p>
   </div>
-<!-- when serverd by admin server
   <script src="https://cdn.jsdelivr.net/npm/lodash@3.10.1/index.min.js"></script>
   <script src="js/jquery/jquery-2.2.4.js"></script>
   <script src="css/bootstrap/js/bootstrap.min.js"></script>
@@ -141,16 +139,6 @@
   <script src="js/json-schemas.js"></script>
   <script src="js/admin-json-schemas.js"></script>
   <script src="js/main.js"></script>
-  <script type="text/javascript" src="js/subscriptions.js"></script> -->
-  <script src="https://cdn.jsdelivr.net/npm/lodash@3.10.1/index.min.js"></script>
-  <script src="../static/js/jquery/jquery-2.2.4.js"></script>
-  <script src="../static/css/bootstrap/js/bootstrap.min.js"></script>
-  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-  <script src="../static/js/autocomplete-plugin.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/6.5.2/ajv.min.js"></script>
-  <script src="../static/js/json-schemas.js"></script>
-  <script src="../static/js/admin-json-schemas.js"></script>
-  <script src="../static/js/main.js"></script>
-  <script type="text/javascript" src="../static/js/subscriptions.js"></script>
+  <script type="text/javascript" src="js/subscriptions.js"></script>
 </body>
 </html>
