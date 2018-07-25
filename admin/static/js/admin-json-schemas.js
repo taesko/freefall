@@ -388,4 +388,54 @@ const adminValidators = { // eslint-disable-line no-unused-vars
     };
     return ajv.compile(getAPIKeyResponseSchema);
   },
+
+  getValidateAdminRemoveUserReq: function () {
+    const adminRemoveUserRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/adminremoveuserrequest.schema.json',
+      'title': 'Admin remove user request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+        'user_id': {
+          'type': 'string',
+          'title': 'Database id of the user.',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'user_id',
+      ],
+    };
+    return ajv.compile(adminRemoveUserRequestSchema);
+  },
+
+  getValidateAdminRemoveUserRes: function () {
+    const adminRemoveUserResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/adminremoveuserresponse.schema.json',
+      'title': 'Admin remove user response',
+      'description': 'Contains the response of admin_unsubscribe method',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'description': 'Indicator whether removal was successful.',
+          'type': 'string',
+        },
+      },
+      'required': [
+        'status_code',
+      ],
+    };
+    return ajv.compile(adminRemoveUserResponseSchema);
+  },
 };

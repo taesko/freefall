@@ -444,7 +444,7 @@ function start () {
 
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-user-email')
       .attr('id', 'user-subscription-view-mode-user-email-' + rowId) // eslint-disable-line prefer-template
-      .attr('href', '/users?id=' + subscription.user.id) // eslint-disable-line prefer-template
+      .attr('href', '/users/' + subscription.user.id) // eslint-disable-line prefer-template
       .text(subscription.user.email);
 
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-airport-from')
@@ -485,7 +485,7 @@ function start () {
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-user-email')
       .attr('id', 'user-subscription-edit-mode-user-email-' + rowId) // eslint-disable-line prefer-template
-      .attr('href', '/users?id=' + subscription.user.id) // eslint-disable-line prefer-template
+      .attr('href', '/users/' + subscription.user.id) // eslint-disable-line prefer-template
       .text(subscription.user.email);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-airport-from')
@@ -768,7 +768,7 @@ function start () {
       v: '2.0',
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code < 1000 || result.status_code >= 2000) {
-        // window.location.replace('/login');
+        window.location.replace('/login');
       } else {
         APIKey = result.api_key;
 
