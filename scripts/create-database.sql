@@ -41,6 +41,7 @@ CREATE TABLE user_subscriptions (
     fetch_id_of_last_send integer,
     date_from text NOT NULL,
     date_to text NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
     UNIQUE(user_id, subscription_id, date_from, date_to),
     -- CHECK(date_from < date_to) ???
     FOREIGN KEY(subscription_id) REFERENCES subscriptions(id),

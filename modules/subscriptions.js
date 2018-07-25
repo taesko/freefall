@@ -19,10 +19,35 @@ async function subscribeUser (
     globalSubId = globalSub.id;
   }
 
-  // TODO wat ?
-  // can raise exception because database failed
-  // can also raise exception because UNIQUE constraints failed (user is already subscribed)
-  // both are an AppError ?
+  const [sub] = await db.selectWhere(
+    'user_subscriptions',
+    '*',
+    {
+      user_id: userId,
+      subscription_id: globalSubId,
+      date_from: dateFrom,
+      date_to: dateTo,
+    },
+  );
+
+  if (sub) {
+    const result = await db.executeRun(
+      `
+        UPDATE user_subscriptions
+        SET active=1
+        WHERE id=?
+      `,
+      [sub.id],
+    );
+
+    errors.assertApp(
+      result.stmt.changes,
+      `Failed to re-activate user subscription with id ${sub.id}`,
+    );
+
+    return sub.id;
+  }
+
   return db.insert(
     'user_subscriptions',
     {
@@ -31,56 +56,72 @@ async function subscribeUser (
       fetch_id_of_last_send: null,
       date_from: dateFrom,
       date_to: dateTo,
-    }
+    },
+  );
+}
+
+async function updateSubscription (
+  userSubscriptionId,
+  {
+    globalSubscriptionId,
+    dateFrom,
+    dateTo,
+  }) {
+  const result = await db.executeRun(
+    `
+      UPDATE user_subscriptions
+      SET 
+        subscription_id=$globalSubscriptionId
+        date_from=$dateFrom,
+        date_to=$dateTo
+        active=1
+      WHERE id=$id
+    `,
+    {
+      $id: userSubscriptionId,
+      $globalSubscriptionId: globalSubscriptionId,
+      $dateFrom: dateFrom,
+      $dateTo: dateTo,
+    },
+  );
+
+  errors.assertPeer(
+    result.stmt.changes,
+    `User subscription with id ${userSubscriptionId} does not exist.`,
   );
 }
 
 async function removeUserSubscription (userSubscriptionId) {
-  const [exists] = await db.executeAll(
-    `
-      SELECT 1
-      FROM user_subscriptions
-      WHERE id = ?
-    `,
-    [userSubscriptionId],
-  );
-
-  errors.assertPeer(exists, `User subscription with id ${userSubscriptionId} does not exist.`);
-
   const result = await db.executeRun(
     `
-      DELETE
-      FROM user_subscriptions
-      WHERE id = ?
+    UPDATE user_subscriptions
+    SET active=0
+    WHERE id = ?
     `,
     [userSubscriptionId],
   );
-  // TODO assert peer or assert app ?
-  log('result of removal is: ', result);
   errors.assertPeer(
-    result.stmt.changes,
-    `Failed to remove user subscription with id ${userSubscriptionId}. Subscription doesn't exist`,
+    result.stmt.changes > 0,
+    `User subscription with id ${userSubscriptionId} does not exist.`,
   );
 }
 
 async function removeAllSubscriptionsOfUser (userId) {
-  const rows = await db.executeAll(
+  const [exists] = db.executeAll(
     `
       SELECT 1
       FROM users
-      WHERE id = ?
+      WHERE id=?
     `,
-    [userId],
+    userId,
   );
 
-  log('rows of database are: ', rows, 'user id was: ', userId);
-  const exists = rows[0];
-  errors.assertPeer(exists);
+  errors.assertPeer(exists, `User with id ${userId} does not exist.`);
 
   return db.executeRun(
     `
-      DELETE
-      FROM user_subscriptions
+      UPDATE user_subscriptions
+      SET active=0
       WHERE user_id = ?
     `,
     [userId],
@@ -92,7 +133,7 @@ async function listUserSubscriptions (userId) {
     `
       SELECT * 
       FROM user_subscriptions
-      WHERE user_subscriptions.user_id=?
+      WHERE user_id=? AND active=1
     `,
     userId,
   );
@@ -112,11 +153,6 @@ async function getGlobalSubscription (airportFromId, airportToId) {
     },
   );
 
-  // errors.assertApp(
-  //   resultRows.length > 0,
-  //   `Doesn't exist a global subscription where ids are: from=${airportFromId}, to=${airportToId}`,
-  // );
-
   return resultRows[0];
 }
 
@@ -131,7 +167,7 @@ async function subscribeGlobally (airportFromId, airportToId) {
 
   errors.assertApp(
     !await globalSubscriptionExists(airportFromId, airportToId),
-    `Cannot subscribe globally to airports with ids ${airportFromId}, ${airportToId}. Subscription already exists.`
+    `Cannot subscribe globally to airports with ids ${airportFromId}, ${airportToId}. Subscription already exists.`,
   );
 
   return db.insert(
@@ -139,7 +175,7 @@ async function subscribeGlobally (airportFromId, airportToId) {
     {
       airport_from_id: airportFromId,
       airport_to_id: airportToId,
-    }
+    },
   );
 }
 
