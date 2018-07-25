@@ -11,6 +11,7 @@ function start () {
   const SERVER_URL = mainUtils.SERVER_URL;
   const assertPeer = mainUtils.assertPeer;
   const PeerError = mainUtils.PeerError;
+  const UserError = mainUtils.UserError;
   const displayUserMessage = mainUtils.displayUserMessage;
   const validateErrorRes = validators.getValidateErrorRes();
   const validateAdminListUsersReq = adminValidators.getValidateAdminListUsersReq();
@@ -94,6 +95,10 @@ function start () {
     trace('adminEditUser');
 
     // TODO implement
+    throw new UserError({
+      userMessage: 'Feature not implemented yet.',
+      msg: 'Save guest subscription not implemented yet.',
+    });
   }
 
   function renderUsers ($usersTable) {
@@ -302,6 +307,11 @@ function start () {
 
   const onSaveUserClick = function (event) {
     trace('clicked on save user button');
+
+    throw new UserError({
+      userMessage: 'Feature not implemented yet.',
+      msg: 'Save guest subscription not implemented yet.',
+    });
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback

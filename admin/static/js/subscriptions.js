@@ -14,6 +14,7 @@ function start () {
   const SERVER_URL = mainUtils.SERVER_URL;
   const assertPeer = mainUtils.assertPeer;
   const PeerError = mainUtils.PeerError;
+  const UserError = mainUtils.UserError;
   const displayUserMessage = mainUtils.displayUserMessage;
   const validateErrorRes = validators.getValidateErrorRes();
   const validateAdminListSubscriptionsReq = adminValidators.getValidateAdminListSubscriptionsReq();
@@ -31,7 +32,6 @@ function start () {
   var APIKey; // eslint-disable-line no-var
 
   function applyDatePicker () {
-    console.log($('.date-select'));
     const datepickerOptions = {
       dateFormat: 'yy-mm-dd',
     };
@@ -303,6 +303,8 @@ function start () {
   const onEditGuestSubscriptionClick = function (event) {
     trace('onEditGuestSubscriptionClick');
 
+    displayUserMessage('Warning: this is a preview of edit guest subscription functionality. Work is in progess to implement this feature.', 'info');
+
     const rowId = getElementUniqueId(event.target, 'guest-subscription-view-mode-edit-btn-');
     const subscription = rowIdGuestSubscriptionMap[rowId];
 
@@ -328,6 +330,11 @@ function start () {
 
   const onSaveGuestSubscriptionClick = function (event) {
     trace('onSaveGuestSubscriptionClick');
+
+    throw new UserError({
+      userMessage: 'Feature not implemented yet.',
+      msg: 'Save guest subscription not implemented yet.',
+    });
 
     const saveButton = event.target;
 
@@ -380,6 +387,11 @@ function start () {
   const onRemoveGuestSubscriptionClick = function (event) {
     trace('onRemoveGuestSubscriptionClick');
 
+    throw new UserError({
+      userMessage: 'Feature not implemented yet.',
+      msg: 'Save guest subscription not implemented yet.',
+    });
+
     const removeButton = event.target;
 
     const rowId = getElementUniqueId(removeButton, 'guest-subscription-edit-mode-remove-btn-');
@@ -404,6 +416,15 @@ function start () {
     } else {
       hideGuestSubscriptionsTable();
     }
+  };
+
+  const onSubscribeSubmit = function (event) {
+    trace('subscribe submit button clicked');
+
+    throw new UserError({
+      userMessage: 'Feature not implemented yet.',
+      msg: 'Save guest subscription not implemented yet.',
+    });
   };
 
   function renderUserSubscriptions ($userSubscriptionsTable) {
@@ -763,6 +784,7 @@ function start () {
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $userSubscriptionsTab = $('#user-subscriptions-tab');
     const $guestSubscriptionsTab = $('#guest-subscriptions-tab');
+    const $subscribeSubmitBtn = $('#subscribe-submit-btn');
 
     getAPIKey({
       v: '2.0',
@@ -841,6 +863,8 @@ function start () {
 
       applyAutocomplete(airportNames);
     });
+
+    $subscribeSubmitBtn.click(onSubscribeSubmit);
 
     applyDatePicker();
   });
