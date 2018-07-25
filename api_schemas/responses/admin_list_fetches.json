@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "request/admin_list_fetches",
+  "$id": "response/admin_list_fetches",
   "title": "admin_list_fetches response",
   "type": "object",
   "properties": {
