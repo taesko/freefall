@@ -445,20 +445,23 @@ async function adminSubscribe (params) {
     await auth.tokenHasRole(params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
-  assertPeer(
-    Number.isInteger(+params.fly_from) &&
-    Number.isInteger(+params.fly_to) &&
-    Number.isInteger(+params.user_id),
-    'subscribe params fly_from and fly_to must be an integer wrapped in a string',
-  );
+
   const flyFrom = +params.fly_from;
   const flyTo = +params.fly_to;
   const dateFrom = params.date_from;
   const dateTo = params.date_to;
   const userId = +params.user_id;
 
+  assertPeer(
+    Number.isInteger(flyFrom) &&
+    Number.isInteger(flyTo) &&
+    Number.isInteger(userId),
+    'subscribe params fly_from, fly_to and user_id must be an integer wrapped in a string',
+  );
+
   let subscriptionId;
   let statusCode;
+
   try {
     subscriptionId = await subscriptions.subscribeUser(
       userId,
@@ -471,13 +474,17 @@ async function adminSubscribe (params) {
     );
     statusCode = 1000;
   } catch (e) {
-    // TODO this try catch should be at an upper level
-    // and the method's response object should be built there - setting status_code properly
-    // handling the request by sending back the response
-    // and rethrowing the exception
-    log('An error occurred while subscribing user.', e);
-    subscriptionId = null;
-    statusCode = 2000;
+    if (e instanceof PeerError) {
+      log(
+        'An error occurred while executing method admin_subscribe with params',
+        params,
+        e,
+      );
+      subscriptionId = null;
+      statusCode = 2000;
+    } else {
+      throw e;
+    }
   }
 
   return {
@@ -501,8 +508,16 @@ async function adminUnsubscribe (params) {
       await subscriptions.removeUserSubscription(subId);
       statusCode = '1000';
     } catch (e) {
-      log('An error occurred while removing subscription: ', subId, e);
-      statusCode = '2000';
+      if (e instanceof PeerError) {
+        log(
+          'An error occurred while executing method admin_unsubscribe with params',
+          params,
+          e,
+        );
+        statusCode = '2000';
+      } else {
+        throw e;
+      }
     }
 
     return { status_code: `${statusCode}` };
@@ -516,13 +531,16 @@ async function adminUnsubscribe (params) {
       await subscriptions.removeAllSubscriptionsOfUser(userId);
       statusCode = '1000';
     } catch (e) {
-      statusCode = '2000';
-      log(
-        `An error occurred in method admin_unsubscribe while removing all subscriptions.',
-        'Params of method were: `,
-        params,
-        e,
-      );
+      if (e instanceof PeerError) {
+        log(
+          'An error occurred while executing method admin_unsubscribe with params',
+          params,
+          e,
+        );
+        statusCode = '2000';
+      } else {
+        throw e;
+      }
     }
     // this method never fails ?
     return { status_code: statusCode };
