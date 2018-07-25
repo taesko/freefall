@@ -96,7 +96,7 @@ router.post('/login', async (ctx) => {
   try {
     if (ctx.request.body.email !== 'admin@freefall.org') {
       // noinspection ExceptionCaughtLocallyJS
-      throw auth.InvalidCredentials('Tried to login with a non-admin account.');
+      throw new auth.InvalidCredentials('Tried to login with a non-admin account.');
     }
     await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
     ctx.redirect('/');
@@ -118,6 +118,14 @@ router.post('/login', async (ctx) => {
   return ctx.redirect('/login', { error_message: ctx.state.login_error_message });
 });
 
+router.get('/logout', async (ctx) => {
+  if (await auth.isLoggedIn(ctx)) {
+    await auth.logout(ctx);
+  }
+
+  ctx.redirect('/');
+});
+
 router.get('/subscriptions', async (ctx) => {
   if (!await auth.isLoggedIn(ctx)) {
     ctx.redirect('/');
@@ -134,7 +142,7 @@ router.get('/users', async (ctx) => {
   return ctx.render('users.html', await getAdminContext(ctx, 'get', '/users'));
 });
 
-router.get('/users/:user_id:', async (ctx) => {
+router.get('/users/:user_id', async (ctx) => {
   if (!await auth.isLoggedIn(ctx)) {
     ctx.redirect('/');
     return;
