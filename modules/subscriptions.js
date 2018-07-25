@@ -36,6 +36,17 @@ async function subscribeUser (
 }
 
 async function removeUserSubscription (userSubscriptionId) {
+  const [exists] = await db.executeAll(
+    `
+      SELECT 1
+      FROM user_subscriptions
+      WHERE id = ?
+    `,
+    [userSubscriptionId],
+  );
+
+  errors.assertPeer(exists, `User subscription with id ${userSubscriptionId} does not exist.`);
+
   const result = await db.executeRun(
     `
       DELETE
@@ -53,6 +64,19 @@ async function removeUserSubscription (userSubscriptionId) {
 }
 
 async function removeAllSubscriptionsOfUser (user) {
+  const rows = await db.executeAll(
+    `
+      SELECT 1
+      FROM users
+      WHERE id = ?
+    `,
+    [user.id],
+  );
+
+  log('rows of database are: ', rows, 'user id was: ', user);
+  const exists = rows[0];
+  errors.assertPeer(exists);
+
   return db.executeRun(
     `
       DELETE

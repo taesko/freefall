@@ -496,7 +496,7 @@ async function adminUnsubscribe (params) {
     let statusCode;
 
     try {
-      await subscriptions.removeUserSubscription(params.user_subscription_id);
+      await subscriptions.removeUserSubscription({ id: params.user_subscription_id });
       statusCode = '1000';
     } catch (e) {
       log('An error occurred while removing subscription: ', params.user_subscription_id, e);
@@ -507,10 +507,22 @@ async function adminUnsubscribe (params) {
   }
 
   async function removeAllSubscriptions (params) {
-    assertPeer(Number.isInteger(params.user_id), 'user_id must be an integer wrapped in string.');
-    await subscriptions.removeAllSubscriptionsOfUser(params.user_id);
+    assertPeer(Number.isInteger(+params.user_id), 'user_id must be an integer wrapped in string.');
+    let statusCode;
+    try {
+      await subscriptions.removeAllSubscriptionsOfUser({ id: params.user_id });
+      statusCode = '1000';
+    } catch (e) {
+      statusCode = '2000';
+      log(
+        `An error occurred in method admin_unsubscribe while removing all subscriptions.',
+        'Params of method were: `,
+        params,
+        e,
+      );
+    }
     // this method never fails ?
-    return { status_code: '1000' };
+    return { status_code: statusCode };
   }
 
   if (params.user_id) {

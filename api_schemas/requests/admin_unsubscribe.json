@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "http://10.20.1.155:3000/adminunsubscribereqest.schema.json",
+  "$id": "request/admin_unsubscribe",
   "title": "Admin unsubscribe request",
   "description": "Contains the request of admin_unsubscribe method",
   "oneOf": [
