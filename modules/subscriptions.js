@@ -60,13 +60,25 @@ async function subscribeUser (
   );
 }
 
-async function updateSubscription (
+async function updateUserSubscription (
   userSubscriptionId,
   {
-    globalSubscriptionId,
+    airportFromId,
+    airportToId,
     dateFrom,
     dateTo,
   }) {
+  // TODO ask ivan about differences between throwing exceptions and getting null instead of object
+  // advantages to throwing is that the exception is built from inside the function and has more
+  // information
+  let globalSub = await getGlobalSubscription(airportFromId, airportToId);
+
+  if (!globalSub) {
+    globalSub = await subscribeGlobally(airportFromId, airportToId);
+  }
+
+  const globalSubscriptionId = globalSub.id;
+
   const result = await db.executeRun(
     `
       UPDATE user_subscriptions
@@ -183,6 +195,7 @@ module.exports = {
   subscribeUser,
   removeUserSubscription,
   removeAllSubscriptionsOfUser,
+  updateUserSubscription,
   listUserSubscriptions,
   listGlobalSubscriptions,
 };

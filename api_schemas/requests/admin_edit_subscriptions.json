@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/admin_edit_subscription",
+  "title": "Admin edit subscription response",
+  "type": "object",
+  "properties": {
+    "v": {
+      "title": "API version",
+      "type": "string"
+    },
+    "user_subscription_id": {
+      "title": "User subscription id in the database",
+      "type": "string"
+    },
+    "api_key": {
+      "title": "API key",
+      "type": "string"
+    },
+    "fly_from": {
+      "title": "Departure airport",
+      "description": "The id of the departure airport",
+      "type": "string"
+    },
+    "fly_to": {
+      "title": "Arrival airport",
+      "description": "The id of the arrival airport",
+      "type": "string"
+    },
+    "date_from": {
+      "title": "Earliest flight departure",
+      "type": "string",
+      "format": "date"
+    },
+    "date_to": {
+      "title": "Latest flight arrival",
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "v",
+    "api_key"
+  ]
+}

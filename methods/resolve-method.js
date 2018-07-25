@@ -17,6 +17,7 @@ const API_METHODS = {
   admin_list_users: adminListUsers,
   admin_subscribe: adminSubscribe,
   admin_unsubscribe: adminUnsubscribe,
+  admin_edit_subscription: adminEditSubscription,
   admin_remove_user: adminRemoveUser,
   get_api_key: getAPIKey,
   senderror: sendError,
@@ -550,6 +551,33 @@ async function adminUnsubscribe (params) {
     return removeAllSubscriptions(params);
   } else {
     return removeSubscription(params);
+  }
+}
+
+async function adminEditSubscription (params) {
+  const userSubId = +params.user_subscription_id;
+  const airportFromId = +params.fly_from;
+  const airportToId = +params.fly_to;
+  const dateFrom = params.date_from;
+  const dateTo = params.date_to;
+
+  try {
+    await subscriptions.updateUserSubscription(
+      userSubId,
+      {
+        airportFromId,
+        airportToId,
+        dateFrom,
+        dateTo,
+      },
+    );
+    return { status_code: '1000' };
+  } catch (e) {
+    if (e instanceof PeerError) {
+      return { status_code: '1000' };
+    } else {
+      throw e;
+    }
   }
 }
 
