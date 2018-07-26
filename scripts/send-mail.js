@@ -1,5 +1,5 @@
 const db = require('../modules/db');
-const { log } = require('../modules/utils');
+const log = require('../modules/log');
 const { assertApp } = require('../modules/error-handling');
 const { execute: callAPI } = require('../methods/resolve-method');
 const mailer = require('nodemailer');
@@ -29,9 +29,9 @@ async function sendNotifications () {
   for (const email of Object.keys(notifications)) {
     try {
       await sendEmail(email, {});
-      log('sent notification to', email);
+      log.info('sent notification to', email);
     } catch (e) {
-      log('failed to send notification to', email);
+      log.warn('failed to send notification to', email);
       continue;
     }
     try {
@@ -60,7 +60,7 @@ async function sendEmail (destinationEmail, {
   return new Promise((resolve, reject) => {
     mailTransporter.sendMail(mail, (error, response) => {
       if (error) {
-        log('Got error response for email', mail, 'Error:', error);
+        log.warn('Got error response for email', mail, 'Error:', error);
         reject(error);
       } else {
         resolve(response);
@@ -106,7 +106,7 @@ async function newRoutesForEmailSub (emailSub) {
     date_to: emailSub.date_to,
   };
 
-  log('Searching flights for email', emailSub.email, 'with params: \n\t', params);
+  log.info('Searching flights for email', emailSub.email, 'with params: \n\t', params);
   return callAPI(
     'search',
     params,
@@ -119,19 +119,19 @@ async function findNotificationsToSend () {
   const emails = await selectEmailsToNotify(db);
   const notifications = {};
 
-  log('emails that are awaiting notification are: \n\t', emails.map(e => e.email));
+  log.info('Emails that are awaiting notification are: \n\t', emails.map(e => e.email));
 
   for (const email of emails) {
     try {
       const routes = await newRoutesForEmailSub(email);
       if (+routes.status_code === 1000) {
-        log(email.email, 'will be notified');
+        log.info(email.email, 'will be notified');
         notifications[email.email] = routes;
       } else {
-        log(email.email, 'will NOT be notified');
+        log.info(email.email, 'will NOT be notified');
       }
     } catch (e) {
-      log(
+      log.critical(
         'Tried to find if email', email.email,
         'needs to be notified but an error occurred:', e,
       );

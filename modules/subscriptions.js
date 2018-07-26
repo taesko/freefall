@@ -1,4 +1,4 @@
-const { log } = require('./utils');
+const log = require('./log');
 const errors = require('./error-handling');
 const db = require('./db');
 
@@ -10,6 +10,7 @@ async function subscribeUser (
     dateFrom,
     dateTo,
   }) {
+  // TODO validate dates.
   const globalSub = await getGlobalSubscription(airportFromId, airportToId);
   let globalSubId;
 
@@ -157,7 +158,7 @@ async function globalSubscriptionExists (airportFromId, airportToId) {
 }
 
 async function subscribeGlobally (airportFromId, airportToId) {
-  log('Subscribing globally to airports', airportFromId, airportToId);
+  log.info('Subscribing globally to airports', airportFromId, airportToId);
   airportFromId = +airportFromId;
   airportToId = +airportToId;
 
