@@ -146,11 +146,7 @@ async function search (params, db) {
   const subs = await db.selectSubscriptions(+params.fly_from, +params.fly_to);
 
   if (subs <= 0) {
-    await subscribe({
-      v: params.v,
-      fly_from: params.fly_from,
-      fly_to: params.fly_to,
-    }, db);
+    await subscriptions.subscribeGlobally(params.fly_from, params.fly_to);
 
     result.status_code = '2000';
     result.routes = [];
@@ -339,7 +335,7 @@ async function listSubscriptions (params, db) {
       JOIN subscriptions sub ON usub.subscription_id=sub.id
       JOIN airports ap_from ON sub.airport_from_id=ap_from.id
       JOIN airports ap_to ON sub.airport_to_id=ap_to.id
-      WHERE users.api_key=?
+      WHERE users.api_key=? AND usub.active=1
     `,
     params.api_key,
   );
