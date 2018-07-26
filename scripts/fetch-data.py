@@ -2,11 +2,13 @@ from urllib import error
 from urllib.parse import urlencode
 import urllib.request
 import json
+import psycopg2
 import sqlite3
 import sys
 import re
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
+from psycopg2.extras import RealDictCursor
 
 ROUTES_LIMIT = 30
 SERVER_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
@@ -84,6 +86,9 @@ def request(URL, params=None):
 
     return parsed
 
+def assert_db(conn, msg):
+    assert_app(isinstance(conn, psycopg2.extensions.connection), msg)
+    assert_app(conn.closed == 0, msg)
 
 def stringify_columns(columns):
     assert_app(isinstance(columns, list), 'Expected argument "columns" in stringify_columns function to be list, but was {0}'.format(type(columns)))
@@ -99,7 +104,7 @@ def to_smallest_currency_unit(quantity):
 def select(conn, table, columns):
     assert_app(isinstance(table, str), 'Expected argument "table" in select function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(columns, list), 'Expected argument "columns" in select function to be list, but was {0}'.format(type(columns)))
-    assert_app(isinstance(conn, sqlite3.Connection), 'select function called without connection to db.')
+    assert_db(conn, 'select function called without connection to db.')
 
     c = conn.cursor()
 
@@ -116,13 +121,15 @@ def select_where(conn, table, columns, where):
     assert_app(isinstance(columns, list), 'Expected argument "columns" in select_where function to be list, but was {0}'.format(type(columns)))
     assert_app(isinstance(where, dict), 'Expected argument "where" in select_where function to be a dict, but was {0}'.format(type(where)))
     assert_app(len(where) == 1, 'Expected argument "where" in select_where function to be a dict of length=1, but length={0}'.format(len(where)))
-    assert_app(isinstance(conn, sqlite3.Connection), 'select_where function called without connection to db.')
+    assert_db(conn, 'select_where function called without connection to db.')
 
     c = conn.cursor()
 
     whereCol = list(where.keys())[0]
 
-    c.execute('SELECT {0} FROM {1} WHERE {2} = ?;'.format(stringify_columns(columns), table, whereCol), [where[whereCol]])
+    print('SELECT {0} FROM {1} WHERE {2} = %s;'.format(stringify_columns(columns), table, whereCol))
+
+    c.execute('SELECT {0} FROM {1} WHERE {2} = %s;'.format(stringify_columns(columns), table, whereCol), [where[whereCol]])
 
     result = c.fetchall()
 
@@ -132,7 +139,7 @@ def select_where(conn, table, columns, where):
 
 
 def select_subscriptions(conn, airport_from_id, airport_to_id):
-    assert_app(isinstance(conn, sqlite3.Connection), 'select_subscriptions function called without connection to db.')
+    assert_app(conn, 'select_subscriptions function called without connection to db.')
     assert_app(isinstance(airport_from_id, int), 'Expected argument "airport_from_id" in select_subscriptions function to be int, but was {0}'.format(type(airport_from_id)))
     assert_app(isinstance(airport_to_id, int), 'Expected argument "airport_to_id" in select_subscriptions function to be int, but was {0}'.format(type(airport_to_id)))
 
@@ -168,14 +175,14 @@ def select_subscriptions(conn, airport_from_id, airport_to_id):
 def insert(conn, table, data):
     assert_app(isinstance(table, str), 'Expected argument "table" in insert function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(data, dict), 'Expected argument "data" in insert function to be dict, but was {0}'.format(type(data)))
-    assert_app(isinstance(conn, sqlite3.Connection), 'insert function called without connection to db.')
+    assert_app(conn, 'insert function called without connection to db.')
 
     c = conn.cursor()
 
     columns = list(data.keys())
     values = tuple(data.values())
 
-    rowStringified = ', '.join(['?'] * len(columns))
+    rowStringified = ', '.join(['%s'] * len(columns))
 
     c.execute('INSERT INTO {0} ({1}) VALUES ({2});'.format(table, stringify_columns(columns), rowStringified), values)
 
@@ -191,11 +198,11 @@ def insert(conn, table, data):
 
 def insert_data_fetch(conn, subscription_id):
     assert_app(isinstance(subscription_id, int), 'Expected argument "subscription_id" in insert_data_fetch function to be int, but was {0}'.format(type(subscription_id)))
-    assert_app(isinstance(conn, sqlite3.Connection), 'insert_data_fetch function called without connection to db.')
+    assert_app(conn, 'insert_data_fetch function called without connection to db.')
 
     c = conn.cursor()
 
-    c.execute('INSERT INTO fetches(timestamp, subscription_id) VALUES (strftime(\'%Y-%m-%dT%H:%M:%SZ\' ,\'now\'), ?);', [subscription_id])
+    c.execute('INSERT INTO fetches(timestamp, subscription_id) VALUES (strftime(\'%Y-%m-%dT%H:%M:%SZ\' ,\'now\'), %s);', (subscription_id))
 
     assert_app(isinstance(c.lastrowid, int), 'Expected lastrowid in insert_data_fetch function to be int, but was {0}'.format(type(c.lastrowid)))
 
@@ -209,7 +216,7 @@ def insert_data_fetch(conn, subscription_id):
 
 
 def insert_if_not_exists(conn, table, data, exists_check):
-    assert_app(isinstance(conn, sqlite3.Connection), 'insert_if_not_exists function called without connection to db.')
+    assert_db(conn, 'insert_if_not_exists function called without connection to db.')
     assert_app(isinstance(table, str), 'Expected argument "table" in insert_if_not_exists function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(data, dict), 'Expected argument "data" in insert_if_not_exists function to be dict, but was {0}'.format(type(data)))
     assert_app(isinstance(exists_check, dict), 'Expected argument "exists_check" in insert_if_not_exists function to be dict, but was {0}'.format(type(exists_check)))
@@ -231,13 +238,13 @@ def insert_if_not_exists(conn, table, data, exists_check):
 
 
 def insert_if_not_exists_sub(conn, airport_from_id , airport_to_id):
-    assert_app(isinstance(conn, sqlite3.Connection), 'insert_if_not_exists_sub function called without connection to db.')
+    assert_app(conn, 'insert_if_not_exists_sub function called without connection to db.')
     assert_app(isinstance(airport_from_id , int), 'Expected argument "airport_from_id " in insert_if_not_exists_sub function to be int, but was {0}'.format(type(airport_from_id)))
     assert_app(isinstance(fly_to, int), 'Expected argument "airport_to_id" in insert_if_not_exists_sub function to be int, but was {0}'.format(type(airport_to_id)))
 
     c = conn.cursor()
 
-    c.execute('SELECT id FROM subscriptions WHERE airport_from_id = ? AND airport_to_id = ?;', [airport_from_id , airport_to_id])
+    c.execute('SELECT id FROM subscriptions WHERE airport_from_id = %s AND airport_to_id = %s;', (airport_from_id , airport_to_id))
 
     found = c.fetchall()
 
@@ -491,9 +498,7 @@ def get_airport_if_not_exists(conn, iata_code):
 
 
 def start():
-    conn = sqlite3.connect('../freefall.db')
-
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(dbname='freefall', user='freefall', password='freefall', cursor_factory=RealDictCursor)
 
     airlines = request('https://api.skypicker.com/airlines')
 
