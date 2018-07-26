@@ -20,22 +20,22 @@
         </tr>
       </thead>
       <tbody>
-        {{#list fetches}}
+        {{#each fetches}}
         <tr>
           <td>
-            {{id}}
+            {{this.id}}
           </td>
           <td>
-            {{timestamp}}
+            {{this.timestamp}}
           </td>
           <td>
-            {{airport_from.name}} ({{airport_from.iata_code}})
+            {{this.airport_from.name}} ({{this.airport_from.iata_code}})
           </td>
           <td>
-            {{airport_to.name}} ({{airport_to.iata_code}})
+            {{this.airport_to.name}} ({{this.airport_to.iata_code}})
           </td>
         </tr>
-        {{/list}}
+        {{/each}}
       </tbody>
     </table>
 <!--     <p id="no-fetches-msg" class="text-center" hidden="true">No fetches found</p> -->
