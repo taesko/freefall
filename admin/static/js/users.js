@@ -2,7 +2,6 @@ function start () {
   const mainUtils = main();
   const trace = mainUtils.trace;
   const assertApp = mainUtils.assertApp;
-  const assertUser = mainUtils.assertUser;
   const getUniqueId = mainUtils.getUniqueId;
   const getAPIKey = mainUtils.getAPIKey;
   const getElementUniqueId = mainUtils.getElementUniqueId;
@@ -11,13 +10,14 @@ function start () {
   const SERVER_URL = mainUtils.SERVER_URL;
   const assertPeer = mainUtils.assertPeer;
   const PeerError = mainUtils.PeerError;
-  const UserError = mainUtils.UserError;
   const displayUserMessage = mainUtils.displayUserMessage;
   const validateErrorRes = validators.getValidateErrorRes();
   const validateAdminListUsersReq = adminValidators.getValidateAdminListUsersReq();
   const validateAdminListUsersRes = adminValidators.getValidateAdminListUsersRes();
   const validateAdminRemoveUserReq = adminValidators.getValidateAdminRemoveUserReq();
   const validateAdminRemoveUserRes = adminValidators.getValidateAdminRemoveUserRes();
+  const validateAdminEditUserReq = adminValidators.getValidateAdminEditUserReq();
+  const validateAdminEditUserRes = adminValidators.getValidateAdminEditUserRes();
 
   var users = []; // eslint-disable-line no-var
   var rowIdUserMap = {}; // eslint-disable-line no-var
@@ -94,10 +94,34 @@ function start () {
   function adminEditUser (params, protocolName, callback) {
     trace('adminEditUser');
 
-    // TODO implement
-    throw new UserError({
-      userMessage: 'Feature not implemented yet.',
-      msg: 'Save guest subscription not implemented yet.',
+    assertApp(validateAdminEditUserReq(params), {
+      msg: 'Params do not adhere to adminEditUserRequestSchema: ' + getValidatorMsg(validateAdminEditUserReq), // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_edit_user',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminEditUser:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminEditUserRes(result), {
+        msg: 'Params do not adhere to adminEditUserResponseSchema: ' + getValidatorMsg(validateAdminEditUserRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
     });
   }
 
@@ -308,9 +332,49 @@ function start () {
   const onSaveUserClick = function (event) {
     trace('clicked on save user button');
 
-    throw new UserError({
-      userMessage: 'Feature not implemented yet.',
-      msg: 'Save guest subscription not implemented yet.',
+    const saveButton = event.target;
+
+    const rowId = getElementUniqueId(event.target, 'user-edit-mode-save-btn-');
+    const user = rowIdUserMap[rowId];
+
+    console.log(rowId);
+
+    const newEmail = $('#user-edit-mode-email-' + rowId).val().trim(); // eslint-disable-line prefer-template
+    const newPassword = $('#user-edit-mode-password-' + rowId).val().trim(); // eslint-disable-line prefer-template
+
+    const params = {
+      v: '2.0',
+      api_key: APIKey,
+      user_id: user.id,
+    };
+
+    if (newEmail.length > 0) {
+      params.email = newEmail;
+    }
+
+    if (newPassword.length > 0) {
+      params.password = newPassword;
+    }
+
+    saveButton.disabled = true;
+
+    adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      if (result.status_code === 2000) {
+        displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+      } else if (result.status_code >= 1000 && result.status_code < 2000) {
+        saveButton.disabled = false;
+
+        const newUser = {
+          id: user.id,
+          email: (newEmail.length > 0) ? newEmail : user.email,
+        };
+
+        renderUserRow(
+          'view',
+          newUser,
+          $('#user-' + rowId) // eslint-disable-line prefer-template
+        );
+      }
     });
   };
 

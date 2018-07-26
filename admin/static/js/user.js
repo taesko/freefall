@@ -13,10 +13,15 @@ function start () {
   const listAirports = mainUtils.listAirports;
   const getUniqueId = mainUtils.getUniqueId;
   const getElementUniqueId = mainUtils.getElementUniqueId;
+  const displayUserMessage = mainUtils.displayUserMessage;
 
   const validateErrorRes = validators.getValidateErrorRes();
   const validateAdminListSubscriptionsReq = adminValidators.getValidateAdminListSubscriptionsReq();
   const validateAdminListSubscriptionsRes = adminValidators.getValidateAdminListSubscriptionsRes();
+  const validateAdminRemoveUserReq = adminValidators.getValidateAdminRemoveUserReq();
+  const validateAdminRemoveUserRes = adminValidators.getValidateAdminRemoveUserRes();
+  const validateAdminEditUserReq = adminValidators.getValidateAdminEditUserReq();
+  const validateAdminEditUserRes = adminValidators.getValidateAdminEditUserRes();
 
   var APIKey; // eslint-disable-line no-var
   var subscriptions = []; // eslint-disable-line no-var
@@ -49,8 +54,79 @@ function start () {
         });
       }
 
+      // temporary fix:
+      result.guest_subscriptions = [];
+
       assertPeer(validateAdminListSubscriptionsRes(result), {
         msg: 'Params do not adhere to adminListSubscriptionsResponseSchema: ' + getValidatorMsg(validateAdminListSubscriptionsRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  }
+
+  function adminRemoveUser (params, protocolName, callback) {
+    trace('adminRemoveUser');
+
+    assertApp(validateAdminRemoveUserReq(params), {
+      msg: 'Params do not adhere to adminRemoveUserRequestSchema: ' + getValidatorMsg(validateAdminRemoveUserReq), // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_remove_user',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminRemoveUser:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminRemoveUserRes(result), {
+        msg: 'Params do not adhere to adminRemoveUserResponseSchema: ' + getValidatorMsg(validateAdminRemoveUserRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  }
+
+  function adminEditUser (params, protocolName, callback) {
+    trace('adminEditUser');
+
+    assertApp(validateAdminEditUserReq(params), {
+      msg: 'Params do not adhere to adminEditUserRequestSchema: ' + getValidatorMsg(validateAdminEditUserReq), // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_edit_user',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminEditUser:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminEditUserRes(result), {
+        msg: 'Params do not adhere to adminEditUserResponseSchema: ' + getValidatorMsg(validateAdminEditUserRes), // eslint-disable-line prefer-template
       });
 
       callback(result);
@@ -87,6 +163,8 @@ function start () {
   function renderUserRowViewMode (user) {
     trace('renderUserRowViewMode');
 
+    $('#user-edit-mode').attr('hidden', 'true');
+
     const $userViewMode = $('#user-view-mode')
       .removeAttr('hidden');
 
@@ -96,13 +174,12 @@ function start () {
     $userViewMode.find('#user-view-mode-email')
       .attr('href', '/users/' + user.id) // eslint-disable-line prefer-template
       .text(user.email);
-
-    $userViewMode.find('#user-view-mode-edit-btn')
-      .click(onEditUserClick);
   }
 
   function renderUserRowEditMode (user) {
     trace('renderUserRowEditMode');
+
+    $('#user-view-mode').attr('hidden', 'true');
 
     const $userEditMode = $('#user-edit-mode')
       .removeAttr('hidden');
@@ -112,31 +189,74 @@ function start () {
 
     $userEditMode.find('#user-edit-mode-email')
       .attr('value', user.email);
-
-    $userEditMode.find('#user-edit-mode-save-btn')
-      .click(onSaveUserClick);
-
-    $userEditMode.find('#user-edit-mode-cancel-btn')
-      .click(onCancelEditUserClick);
-
-    $userEditMode.find('#user-edit-mode-remove-btn')
-      .click(onRemoveUserClick);
   }
 
   const onSaveUserClick = function (event) {
+    trace('onSaveUserClick');
+    displayUserMessage('Feature not implemented yet.', 'error');
 
+    const saveButton = event.target;
+
+    const newEmail = $('#user-edit-mode-email').val().trim();
+    const newPassword = $('#user-edit-mode-password').val().trim();
+
+    const params = {
+      v: '2.0',
+      api_key: APIKey,
+      user_id: user.id,
+    };
+
+    if (newEmail.length > 0) {
+      params.email = newEmail;
+    }
+
+    if (newPassword.length > 0) {
+      params.password = newPassword;
+    }
+
+    saveButton.disabled = true;
+
+    adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      if (result.status_code === 2000) {
+        displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+      } else if (result.status_code >= 1000 && result.status_code < 2000) {
+        saveButton.disabled = false;
+        renderUserRow('view', user);
+      }
+    });
   };
 
   const onCancelEditUserClick = function (event) {
+    trace('onCancelEditUserClick');
 
+    renderUserRow('view', user);
   };
 
   const onRemoveUserClick = function (event) {
+    trace('onRemoveUserClick');
 
+    const removeButton = event.target;
+    removeButton.disabled = true;
+
+    const removeUserParams = {
+      v: '2.0',
+      user_id: user.id,
+      api_key: APIKey,
+    };
+
+    adminRemoveUser(removeUserParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      if (result.status_code === 2000) {
+        displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+      } else if (result.status_code >= 1000 && result.status_code < 2000) {
+        window.location.replace('/users');
+      }
+    });
   };
 
   const onEditUserClick = function (event) {
+    trace('onEditUserClick');
 
+    renderUserRow('edit', user);
   };
 
   function applyDatePicker () {
@@ -328,24 +448,43 @@ function start () {
     }));
   }
 
-  const onEditUserSubscriptionClick = function () {
+  const onEditUserSubscriptionClick = function (event) {
+    trace('onEditUserSubscriptionClick');
 
+    const rowId = getElementUniqueId(event.target, 'user-subscription-view-mode-edit-btn-');
+    const userSubscription = rowIdUserSubscriptionMap[rowId];
+
+    renderUserSubscriptionRow(
+      'edit',
+      userSubscription,
+      $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
+    );
   };
 
-  const onCancelUserSubscriptionClick = function () {
+  const onCancelUserSubscriptionClick = function (event) {
+    trace('onCancelUserSubscriptionClick');
 
+    const rowId = getElementUniqueId(event.target, 'user-subscription-edit-mode-cancel-btn-');
+    const userSubscription = rowIdUserSubscriptionMap[rowId];
+
+    renderUserSubscriptionRow(
+      'view',
+      userSubscription,
+      $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
+    );
   };
 
   const onRemoveUserSubscriptionClick = function () {
-
+    trace('onRemoveUserSubscriptionClick');
+    displayUserMessage('Feature not implemented yet.', 'error');
   };
 
   const onSaveUserSubscriptionClick = function () {
-
+    trace('onSaveUserSubscriptionClick');
+    displayUserMessage('Feature not implemented yet.', 'error');
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    console.log(user);
     getAPIKey({
       v: '2.0',
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
@@ -361,7 +500,7 @@ function start () {
         };
 
         listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-          airports = result;
+          airports = result.airports;
 
           const adminListSubscriptionsCallback = function (result) {
             subscriptions = result.user_subscriptions;
@@ -371,16 +510,15 @@ function start () {
 
           adminListSubscriptions(params, 'jsonrpc', adminListSubscriptionsCallback);
         });
-
-        // adminListUsers(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-        //   users = result.users;
-
-        //   renderUsers($('#users-table'));
-        // });
       }
     });
 
     renderUserRow('view', user);
+
+    $('#user-view-mode-edit-btn').click(onEditUserClick);
+    $('#user-edit-mode-save-btn').click(onSaveUserClick);
+    $('#user-edit-mode-cancel-btn').click(onCancelEditUserClick);
+    $('#user-edit-mode-remove-btn').click(onRemoveUserClick);
   });
 }
 
