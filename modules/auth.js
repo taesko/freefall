@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const db = require('./db');
 const { AppError } = require('./error-handling');
-const { log } = require('./utils');
+const log = require('./log');
 
 class InvalidCredentials extends AppError {}
 
@@ -17,7 +17,7 @@ const USER_ROLES = {
 db.dbConnect();
 
 async function login (ctx, email, password) {
-  log('Trying to login with credentials: ', email, password);
+  log.info('Trying to login with email: ', email);
 
   if (await isLoggedIn(ctx)) {
     throw new AlreadyLoggedIn(`Already logged in as user with id ${ctx.session.userID}`);
@@ -35,11 +35,11 @@ async function login (ctx, email, password) {
   }
 
   ctx.session.userID = serializeUser(user);
-  log('Logged in as user', user);
+  log.info('Logged in as user', user);
 }
 
 function logout (ctx) {
-  log('Logging out from session:', ctx.session);
+  log.info('Logging out from session:', ctx.session);
   ctx.session.userID = null;
 }
 
@@ -61,7 +61,7 @@ async function register (email, password) {
       },
     );
   } catch (e) {
-    log(`Couldn't register user with credentials email=${email} password=${password}. ${e}`);
+    log.info(`Couldn't register user with email=${email}.`);
     throw e;
   }
 }
@@ -100,7 +100,6 @@ async function fetchUserByAPIKey (token) {
     { api_key: token },
   );
 
-  log('fetched user by api key: ', user);
   return user;
 }
 
@@ -110,7 +109,6 @@ async function fetchUserById (id) {
 }
 
 async function fetchUserByCredentials ({ email, password }) {
-  log('querying database for credentials: ', email, password);
   const [user] = await db.executeAll(
     `
     SELECT *

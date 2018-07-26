@@ -1,5 +1,6 @@
 const fetch = require('node-fetch');
 const { assertApp } = require('./error-handling');
+const log = require('./log');
 
 function toQueryString (params) {
   const paramsList = [];
@@ -28,7 +29,7 @@ async function requestJSON (url, parameters) {
     ((shouldPutQuestionMark) ? '?' : '') +
     ((parameters) ? toQueryString(parameters) : '');
 
-  log(uri);
+  log.debug(uri);
   const response = await fetch(uri);
 
   return response.json();
@@ -42,12 +43,7 @@ function fromSmallestCurrencyUnit (quantity) {
   return quantity / 100;
 }
 
-function log (...msg) {
-  console.log(...msg);
-}
-
 module.exports = {
-  log,
   requestJSON,
   toSmallestCurrencyUnit,
   fromSmallestCurrencyUnit,

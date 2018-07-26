@@ -3,7 +3,7 @@ const path = require('path');
 const Ajv = require('ajv');
 const ajv = new Ajv();
 const { assertApp, assertPeer } = require('./error-handling');
-const { log } = require('./utils');
+const log = require('./log');
 
 const SCHEMAS_DIR = path.join(__dirname, '..', 'api_schemas');
 const FORMATS = {
@@ -29,9 +29,9 @@ const RESPONSE_SCHEMAS_DIR = path.join(SCHEMAS_DIR, 'responses');
   for (const [path, schema] of Object.entries(schemas)) {
     try {
       ajv.addSchema(schema);
-      log(`Registered schema on path=${path}`);
+      log.info(`Registered schema on path=${path}`);
     } catch (e) {
-      log(`Couldn't add schema on path=${path}. Reason: ${e}`);
+      log.critical(`Couldn't add schema on path=${path}. Reason: ${e}`);
     }
   }
 })();
@@ -70,15 +70,17 @@ function validateProtocol (obj, protocol = 'jsonrpc', type = 'request') {
 function validateRequest (requestBody, protocol = 'jsonrpc') {
   validateProtocol(requestBody, protocol, 'request');
 
+  log.info('Validating request for method', requestBody.method);
+
   const method = requestBody.method;
   const apiParams = requestBody.params;
   const schemaName = getSchemaId('request', method);
 
-  log('using schema', schemaName, 'to validate method', method);
+  log.debug('Using schema', schemaName);
+
   assertPeer(ajv.validate(schemaName, apiParams),
     `Invalid params for method ${method}. Error: ${ajv.errorsText()}`,
   );
-  log('validated method', method, 'with params', apiParams);
 }
 
 function validateRequestFormat ({ headerParam, queryParam }) {
@@ -101,12 +103,12 @@ function validateRequestFormat ({ headerParam, queryParam }) {
 }
 
 function validateResponse (responseBody, method, protocol = 'jsonrpc') {
-  log('validating method', method, 'with response: ', responseBody);
+  log.info('Validating response for method', method, 'by protocol', protocol);
   validateProtocol(responseBody, protocol, 'response');
 
+  log.debug('Validating body response for method', method, 'body: ', responseBody);
   const schemaName = (responseBody.error == null) ? method : 'error';
   const schemaId = getSchemaId('response', schemaName);
-  log('schema id used to validate is: ', schemaId);
   assertApp(
     ajv.validate(schemaId, responseBody.error || responseBody.result),
     `invalid error response for method ${method}. Error: ${ajv.errorsText()}`,

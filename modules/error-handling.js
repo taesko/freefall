@@ -1,7 +1,10 @@
+const log = require('./log');
+
 class CustomError extends Error {
   constructor (errMsg, errCode = '0') {
     super(errMsg);
     this.code = errCode;
+    log.error(`ERROR occurred with code ${errCode} and message: ${errMsg}`);
   }
 }
 class PeerError extends CustomError {}

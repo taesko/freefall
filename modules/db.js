@@ -3,7 +3,7 @@ module.exports = (() => {
   const sqlite = require('sqlite');
   const { assertApp, assertPeer } = require('./error-handling');
   const { isObject } = require('lodash');
-  const { log } = require('./utils');
+  const log = require('./log');
   let db;
   let dbInitialized = false;
 
@@ -11,14 +11,14 @@ module.exports = (() => {
     if (
       dbInitialized
     ) {
-      log('Already connected to freefall.db...');
+      log.info('Already connected to freefall.db...');
     } else {
-      log('Connecting to freefall.db...');
+      log.info('Connecting to freefall.db...');
       dbInitialized = true;
       db = await sqlite.open(path.join(__dirname, '../freefall.db'));
       await db.run('PRAGMA foreign_keys = ON;');
       await db.run('PRAGMA integrity_check;');
-      log('freefall.db OK');
+      log.info('freefall.db OK');
     }
   }
 
@@ -93,7 +93,7 @@ module.exports = (() => {
     const { whereClause, valueHash } = buildWhereClause(where);
     const query = `SELECT ${stringifyColumns(columns)} FROM ${table} ${whereClause}`;
 
-    log('Executing query', query, 'replaced with hash:', valueHash);
+    log.debug('Executing query', query, 'replaced with hash:', valueHash);
 
     return db.all(
       query,
@@ -292,7 +292,7 @@ module.exports = (() => {
       );
     const valueHash = Object.assign(updateValueHash, whereValueHash);
     const query = `UPDATE ${table} SET ${updateColumns} ${whereClause}`;
-    log('Executing query: ', query, 'replace with hash', valueHash);
+    log.debug('Executing query: ', query, 'replace with hash', valueHash);
 
     return executeRun(query, valueHash);
   }
@@ -340,8 +340,8 @@ module.exports = (() => {
       [fetchId, email],
     );
 
-    log('Updating subscription on email', email, 'to most recent fetch_id', fetchId);
-    log('Executing query', query);
+    log.info('Updating subscription on email', email, 'to most recent fetch_id', fetchId);
+    log.debug('Executing query', query);
 
     return query.all();
   }

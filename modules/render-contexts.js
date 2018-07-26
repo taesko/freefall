@@ -1,4 +1,4 @@
-const { log } = require('./utils');
+const log = require('./log');
 const auth = require('./auth');
 
 const mainContextFunctions = {};
@@ -70,7 +70,7 @@ function defineContextAdder (contextFunctions) {
     request = request.toUpperCase();
     route = route.toLowerCase();
 
-    log(
+    log.info(
       'Adding context functions', functions,
       'for request', request,
       'on route', route,
@@ -100,14 +100,14 @@ function defineContext (contextFunctions) {
       contextFunctions[route] == null ||
       contextFunctions[route][request] == null
     ) {
-      log('Missing context function for', request, '-', route, 'using default:', context);
+      log.debug('Missing context function for', request, '-', route, 'using default:', context);
       return context;
     }
 
     for (const getContext of contextFunctions[route][request]) {
       context = Object.assign(context, await getContext(appCtx));
     }
-    log('Context for request/route', request, '-', route, 'is', context);
+    log.debug('Context for request/route', request, '-', route, 'is', context);
     return context;
   };
 }

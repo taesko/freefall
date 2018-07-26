@@ -11,12 +11,13 @@ const {
   insert,
 } = require('../modules/db');
 const { assertApp, assertPeer } = require('../modules/error-handling');
-const { log, requestJSON, toSmallestCurrencyUnit } = require('../modules/utils');
+const { requestJSON, toSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject, each } = require('lodash');
 const moment = require('moment');
+const log = require('../modules/log');
 
 function handleError (err) {
-  console.error('Error while fetching data:', err);
+  log.error('Error while fetching data:', err);
   process.exit();
 }
 
@@ -54,7 +55,7 @@ async function start () {
       return Promise.resolve();
     }
 
-    log(`Inserting if not exists airline ${airline.name} (${airline.id})...`);
+    log.info(`Inserting if not exists airline ${airline.name} (${airline.id})...`);
 
     return insertIfNotExists('airlines', {
       name: `${airline.name} (${airline.id})`,
@@ -108,7 +109,7 @@ async function start () {
     await getSubscriptionData(airportEndPoints, fetchId, 0);
   }
 
-  log(`Checked ${subscriptions.length} subscriptions.`);
+  log.info(`Checked ${subscriptions.length} subscriptions.`);
 }
 
 async function getSubscriptionData (airportEndPoints, fetchId, offset) {
@@ -177,15 +178,16 @@ async function getSubscriptionData (airportEndPoints, fetchId, offset) {
     });
   });
 
-  log(`FROM ${airportFrom} to ${airportTo} (offset: ${offset}): data for ${airportsSet.length} airports. Getting data...`);
+  log.info(`FROM ${airportFrom} to ${airportTo} (offset: ${offset}): data for ${airportsSet.length} airports. Getting data...`);
 
   await Promise.all(airportsSet.map((IATACode) => {
     return getAirportIfNotExists(IATACode);
   }));
 
-  log('Finished getting data for airports.');
+  log.info('Finished getting data for airports.');
 
-  log(`FROM ${airportFrom} to ${airportTo} (offset: ${offset}): data for ${Object.keys(flightsHash).length} flights. Getting data...`);
+  log.info(`FROM ${airportFrom} to ${airportTo} (offset: ${offset}): data for ${Object.keys(
+    flightsHash).length} flights. Getting data...`);
 
   await Promise.all(Object.values(flightsHash).map(async (flight) => {
     const airportCodes = [flight.flyFrom, flight.flyTo];
@@ -215,7 +217,8 @@ async function getSubscriptionData (airportEndPoints, fetchId, offset) {
       'Invalid db response.'
     );
 
-    log(`Inserting if not exists flight ${flight.airline} ${flight.flight_no} from ${flight.flyFrom} to ${flight.flyTo} departure time ${moment.unix(flight.dTimeUTC).format(SERVER_TIME_FORMAT)} ...`);
+    log.info(`Inserting if not exists flight ${flight.airline} ${flight.flight_no} from ${flight.flyFrom} to ${flight.flyTo} departure time ${moment.unix(
+      flight.dTimeUTC).format(SERVER_TIME_FORMAT)} ...`);
 
     return insertIfNotExists('flights', {
       airline_id: airlineIdResult[0].id,
@@ -230,9 +233,9 @@ async function getSubscriptionData (airportEndPoints, fetchId, offset) {
     });
   }));
 
-  log('Finished getting data for flights.');
+  log.info('Finished getting data for flights.');
 
-  log(`FROM ${airportFrom} to ${airportTo} (offset: ${offset}): data for ${response.data.length} routes. Getting data...`);
+  log.info(`FROM ${airportFrom} to ${airportTo} (offset: ${offset}): data for ${response.data.length} routes. Getting data...`);
 
   const routesPromises = response.data.map(async (data) => {
     const routeId = await insert('routes', {
@@ -242,7 +245,8 @@ async function getSubscriptionData (airportEndPoints, fetchId, offset) {
     });
 
     const flightsPromises = data.route.map(async (flight) => {
-      log(`Inserting route ${routeId} flight ${flight.airline} ${flight.flight_no} from ${flight.flyFrom} to ${flight.flyTo} departure time ${moment.unix(flight.dTimeUTC).format(SERVER_TIME_FORMAT)} ...`);
+      log.info(`Inserting route ${routeId} flight ${flight.airline} ${flight.flight_no} from ${flight.flyFrom} to ${flight.flyTo} departure time ${moment.unix(
+        flight.dTimeUTC).format(SERVER_TIME_FORMAT)} ...`);
 
       const flightIdResults = await selectWhere('flights', ['id'], {
         remote_id: flight.id,

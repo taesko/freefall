@@ -10,7 +10,7 @@ const session = require('koa-session');
 const db = require('./modules/db');
 const auth = require('./modules/auth');
 const { rpcAPILayer } = require('./modules/api');
-const { log } = require('./modules/utils');
+const log = require('./modules/log');
 const { getContextForRoute } = require('./modules/render-contexts');
 
 const app = new Koa();
@@ -29,8 +29,8 @@ app.use(async (ctx, next) => {
 });
 
 app.on('error', (err, ctx) => {
-  log('An unhandled error occurred: ', err);
-  log('Context of app is: ', ctx);
+  log.critical('An unhandled error occurred: ', err);
+  log.critical('Context of app is: ', ctx);
 });
 
 const SESSION_CONFIG = {
@@ -108,10 +108,8 @@ router.get('/unsubscribe', async (ctx) => {
 });
 
 router.get('/login', async (ctx) => {
-  log('getting login page.');
-
   if (await auth.isLoggedIn(ctx)) {
-    log('User already logged in. Redirecting to /');
+    log.info('User already logged in. Redirecting to /');
     ctx.redirect('/');
     return;
   }
@@ -120,8 +118,6 @@ router.get('/login', async (ctx) => {
 });
 
 router.post('/login', async (ctx) => {
-  log('trying to login user. Current session: ', ctx.session);
-
   try {
     await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
     ctx.redirect('/');
@@ -129,11 +125,11 @@ router.post('/login', async (ctx) => {
     return;
   } catch (e) {
     if (e instanceof auth.AlreadyLoggedIn) {
-      log('User already logged in. Redirect to /');
+      log.info('User already logged in. Redirect to /');
       ctx.redirect('/');
       return;
     } else if (e instanceof auth.InvalidCredentials) {
-      log('Invalid credentials on login. Setting ctx.state.login_error_message');
+      log.info('Invalid credentials on login. Setting ctx.state.login_error_message');
       ctx.state.login_error_message = 'Invalid username or password.';
     } else {
       throw e;
@@ -164,7 +160,6 @@ router.post('/register', async (ctx) => {
     return;
   }
 
-  log('Attempting to register user with credentials:', ctx.request.body);
 
   const errors = [];
   const {
@@ -172,6 +167,8 @@ router.post('/register', async (ctx) => {
     password,
     confirm_password: confirmPassword,
   } = ctx.request.body;
+
+  log.info('Attempting to register user with email:', email);
 
   if (password !== confirmPassword) {
     errors.push('Passwords are not the same.');
@@ -183,6 +180,7 @@ router.post('/register', async (ctx) => {
 
   if (errors.length === 0) {
     await auth.register(email, password);
+    log.info('Registered user with email: ', email);
     await auth.login(ctx, email, password);
     ctx.redirect('/');
     return;
@@ -205,5 +203,3 @@ router.post('/', rpcAPILayer);
 app.use(router.routes());
 
 app.listen(process.env.FREEFALL_PORT || 3000);
-
-// console.log('Listening on 3000...');

@@ -1,6 +1,6 @@
 const YAMLParser = require('js-yaml');
 const { assertApp, AppError } = require('./error-handling');
-const { log } = require('./utils');
+const log = require('./log');
 
 class UnsupportedFormat extends AppError {
   constructor (format) {
@@ -43,7 +43,7 @@ function defineParsers (...args) {
     try {
       return parser.parse(data);
     } catch (e) {
-      log('Attempted to parse data', data, 'in format', format);
+      log.warn('Attempted to parse data', data, 'in format', format);
       assertApp(false, `Failed to parse data in format ${format}. Error: ${e}`);
     }
   };
@@ -53,7 +53,7 @@ function defineParsers (...args) {
     try {
       return parser.stringify(data);
     } catch (e) {
-      log('Attempted to stringify object', data, 'in format', format);
+      log.warn('Attempted to stringify object', data, 'in format', format);
       assertApp(false, `Failed to stringify object in format ${format}. Error: ${e}`);
     }
   };
