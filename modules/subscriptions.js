@@ -30,13 +30,13 @@ async function subscribeUser (
     },
   );
 
-  errors.assertPeer(
-    sub.active !== 1,
-    `Cannot subscribe userId=${userId}, because subscription with id=${sub.id} already has the same filters.`,
-    errors.errorCodes.subscriptionExists,
-  );
-
   if (sub) {
+    errors.assertPeer(
+      sub.active === 0,
+      `Cannot subscribe userId=${userId}, because subscription with id=${sub.id} already has the same filters.`,
+      errors.errorCodes.subscriptionExists,
+    );
+
     const result = await db.updateWhere(
       'user_subscriptions',
       {
@@ -137,7 +137,7 @@ async function listUserSubscriptions (userId) {
 }
 
 async function listGlobalSubscriptions () {
-  return db.selectWhere('subscriptions');
+  return db.select('subscriptions');
 }
 
 async function getGlobalSubscription (airportFromId, airportToId) {
