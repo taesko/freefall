@@ -4,7 +4,7 @@ const { PeerError, UserError } = require('./error-handling');
 const compose = require('koa-compose');
 const methods = require('../methods/resolve-method');
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./protocol');
-const { log } = require('./utils');
+const log = require('./modules/log');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 
