@@ -163,7 +163,10 @@ router.get('/fetches', async (ctx) => {
     ctx.redirect('/');
     return;
   }
-  return ctx.render('fetches.html', await getAdminContext(ctx, 'get', '/fetches'));
+  const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
+  const fetches = await db.select('fetches');
+
+  return ctx.render('fetches.html', Object.assign(defaultContext, { fetches }));
 });
 
 router.post('/api', rpcAPILayer);
