@@ -23,6 +23,8 @@ function start () {
   const validateAdminSubscribeRes = adminValidators.getValidateAdminSubscribeRes();
   const validateAdminUnsubscribeReq = adminValidators.getValidateAdminUnsubscribeReq();
   const validateAdminUnsubscribeRes = adminValidators.getValidateAdminUnsubscribeRes();
+  const validateAdminEditSubscriptionReq = adminValidators.getValidateAdminEditSubscriptionReq();
+  const validateAdminEditSubscriptionRes = adminValidators.getValidateAdminEditSubscriptionRes();
 
   var airports = []; // eslint-disable-line no-var
   var userSubscriptions = []; // eslint-disable-line no-var
@@ -294,6 +296,40 @@ function start () {
 
       assertPeer(validateAdminUnsubscribeRes(result), {
         msg: 'Params do not adhere to adminUnsubscribeResponseSchema: ' + getValidatorMsg(validateAdminUnsubscribeRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  }
+
+  function adminEditSubscription (params, protocolName, callback) {
+    trace('adminEditSubscription');
+
+    assertApp(validateAdminEditSubscriptionReq(params), {
+      msg: 'Params do not adhere to adminEditSubscriptionRequestSchema: ' + getValidatorMsg(validateAdminEditSubscriptionReq) // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_edit_subscription',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminUnsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminEditSubscriptionRes(result), {
+        msg: 'Params do not adhere to adminEditSubscriptionResponseSchema: ' + getValidatorMsg(validateAdminEditSubscriptionRes), // eslint-disable-line prefer-template
       });
 
       callback(result);
@@ -658,54 +694,46 @@ function start () {
 
     saveButton.disabled = true;
 
-    const unsubscribeParams = {
+    const editSubscriptionParams = {
       v: '2.0',
-      user_subscription_id: oldSubscription.id,
       api_key: APIKey,
+      user_subscription_id: oldSubscription.id,
+      fly_from: airportFromId,
+      fly_to: airportToId,
+      date_from: dateFrom,
+      date_to: dateTo,
     };
 
-    adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code === 2000) {
+    adminEditSubscription(editSubscriptionParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      saveButton.disabled = false;
+
+      if (result.status_code < 1000 || result.status_code >= 2000) {
         displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
-        const subscribeParams = {
-          v: '2.0',
-          user_id: oldSubscription.user.id,
+      } else {
+        const newSubscription = {
+          id: oldSubscription.id,
+          user: oldSubscription.user,
           fly_from: airportFromId,
           fly_to: airportToId,
           date_from: dateFrom,
           date_to: dateTo,
-          api_key: APIKey,
         };
 
-        adminSubscribe(subscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-          saveButton.disabled = false;
-
-          const newSubscription = {
-            id: result.subscription_id,
-            user: oldSubscription.user,
-            fly_from: airportFromId,
-            fly_to: airportToId,
-            date_from: dateFrom,
-            date_to: dateTo,
-          };
-
-          rowIdUserSubscriptionMap[rowId] = newSubscription;
-          userSubscriptions = userSubscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
-            if (subscription.id !== oldSubscription.id) {
-              return subscription;
-            }
-            return newSubscription;
-          });
-
-          renderUserSubscriptionRow(
-            'view',
-            newSubscription,
-            $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
-          );
-
-          displayUserMessage('Successfully edited user subscription!', 'success');
+        rowIdUserSubscriptionMap[rowId] = newSubscription;
+        userSubscriptions = userSubscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
+          if (subscription.id !== oldSubscription.id) {
+            return subscription;
+          }
+          return newSubscription;
         });
+
+        renderUserSubscriptionRow(
+          'view',
+          newSubscription,
+          $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
+        );
+
+        displayUserMessage('Successfully edited user subscription!', 'success');
       }
     });
   };
@@ -745,6 +773,7 @@ function start () {
         } else {
           hideUserSubscriptionsTable();
         }
+        displayUserMessage('Successfully removed user subscription!', 'success');
       }
     });
   };

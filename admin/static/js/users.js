@@ -299,6 +299,7 @@ function start () {
         } else {
           hideUsersTable();
         }
+        displayUserMessage('Successfully removed user!', 'success');
       }
     });
   };
@@ -374,6 +375,7 @@ function start () {
           newUser,
           $('#user-' + rowId) // eslint-disable-line prefer-template
         );
+        displayUserMessage('Successfully updated user!', 'success');
       }
     });
   };

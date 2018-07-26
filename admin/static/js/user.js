@@ -5,11 +5,13 @@ function start () {
   const trace = mainUtils.trace;
   const assertApp = mainUtils.assertApp;
   const assertPeer = mainUtils.assertPeer;
+  const assertUser = mainUtils.assertUser;
   const PeerError = mainUtils.PeerError;
   const sendRequest = mainUtils.sendRequest;
   const getValidatorMsg = mainUtils.getValidatorMsg;
   const SERVER_URL = mainUtils.SERVER_URL;
   const getAirportName = mainUtils.getAirportName;
+  const getAirportId = mainUtils.getAirportId;
   const listAirports = mainUtils.listAirports;
   const getUniqueId = mainUtils.getUniqueId;
   const getElementUniqueId = mainUtils.getElementUniqueId;
@@ -22,6 +24,10 @@ function start () {
   const validateAdminRemoveUserRes = adminValidators.getValidateAdminRemoveUserRes();
   const validateAdminEditUserReq = adminValidators.getValidateAdminEditUserReq();
   const validateAdminEditUserRes = adminValidators.getValidateAdminEditUserRes();
+  const validateAdminUnsubscribeReq = adminValidators.getValidateAdminUnsubscribeReq();
+  const validateAdminUnsubscribeRes = adminValidators.getValidateAdminUnsubscribeRes();
+  const validateAdminEditSubscriptionReq = adminValidators.getValidateAdminEditSubscriptionReq();
+  const validateAdminEditSubscriptionRes = adminValidators.getValidateAdminEditSubscriptionRes();
 
   var APIKey; // eslint-disable-line no-var
   var subscriptions = []; // eslint-disable-line no-var
@@ -133,6 +139,74 @@ function start () {
     });
   }
 
+  function adminUnsubscribe (params, protocolName, callback) {
+    trace('adminUnsubscribe');
+
+    assertApp(validateAdminUnsubscribeReq(params), {
+      msg: 'Params do not adhere to adminUnsubscribeRequestSchema: ' + getValidatorMsg(validateAdminUnsubscribeReq) // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_unsubscribe',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminUnsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminUnsubscribeRes(result), {
+        msg: 'Params do not adhere to adminUnsubscribeResponseSchema: ' + getValidatorMsg(validateAdminUnsubscribeRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  }
+
+  function adminEditSubscription (params, protocolName, callback) {
+    trace('adminEditSubscription');
+
+    assertApp(validateAdminEditSubscriptionReq(params), {
+      msg: 'Params do not adhere to adminEditSubscriptionRequestSchema: ' + getValidatorMsg(validateAdminEditSubscriptionReq) // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_edit_subscription',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminUnsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminEditSubscriptionRes(result), {
+        msg: 'Params do not adhere to adminEditSubscriptionResponseSchema: ' + getValidatorMsg(validateAdminEditSubscriptionRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  }
+
   function renderUserRow (mode, user) {
     trace('renderUserRow');
 
@@ -222,6 +296,7 @@ function start () {
       } else if (result.status_code >= 1000 && result.status_code < 2000) {
         saveButton.disabled = false;
         renderUserRow('view', user);
+        displayUserMessage('Successfully updated user!', 'success');
       }
     });
   };
@@ -474,14 +549,120 @@ function start () {
     );
   };
 
-  const onRemoveUserSubscriptionClick = function () {
+  const onRemoveUserSubscriptionClick = function (event) {
     trace('onRemoveUserSubscriptionClick');
     displayUserMessage('Feature not implemented yet.', 'error');
+
+    const removeButton = event.target;
+
+    const rowId = getElementUniqueId(removeButton, 'user-subscription-edit-mode-remove-btn-');
+    const oldSubscription = rowIdUserSubscriptionMap[rowId];
+
+    removeButton.disabled = true;
+
+    const unsubscribeParams = {
+      v: '2.0',
+      user_subscription_id: oldSubscription.id,
+      api_key: APIKey,
+    };
+
+    adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      if (result.status_code === 2000) {
+        displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        removeButton.disabled = false;
+      } else if (result.status_code >= 1000 && result.status_code < 2000) {
+        removeButton.disabled = false;
+
+        subscriptions = subscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
+          return subscription.id !== oldSubscription.id;
+        });
+
+        delete rowIdUserSubscriptionMap[rowId];
+
+        $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
+
+        if (subscriptions.length > 0) {
+          showUserSubscriptionsTable();
+        } else {
+          hideUserSubscriptionsTable();
+        }
+
+        displayUserMessage('Successfully deleted user subscription!', 'success');
+      }
+    });
   };
 
-  const onSaveUserSubscriptionClick = function () {
+  const onSaveUserSubscriptionClick = function (event) {
     trace('onSaveUserSubscriptionClick');
     displayUserMessage('Feature not implemented yet.', 'error');
+
+    const saveButton = event.target;
+
+    const rowId = getElementUniqueId(saveButton, 'user-subscription-edit-mode-save-btn-');
+    const oldSubscription = rowIdUserSubscriptionMap[rowId];
+
+    const airportFrom = $('#user-subscription-edit-mode-airport-from-' + rowId).val(); // eslint-disable-line prefer-template
+    const airportTo = $('#user-subscription-edit-mode-airport-to-' + rowId).val(); // eslint-disable-line prefer-template
+    const dateFrom = $('#user-subscription-edit-mode-date-from-' + rowId).val(); // eslint-disable-line prefer-template
+    const dateTo = $('#user-subscription-edit-mode-date-to-' + rowId).val(); // eslint-disable-line prefer-template
+
+    const airportFromId = getAirportId(airports, airportFrom);
+    const airportToId = getAirportId(airports, airportTo);
+
+    assertUser(typeof airportFromId === 'string', {
+      userMessage: 'Could not find selected departure airport.',
+      msg: 'Expected airportFromId to be a string, but was ' + typeof airportFromId, // eslint-disable-line prefer-template
+    });
+
+    assertUser(typeof airportToId === 'string', {
+      userMessage: 'Could not find selected departure airport.',
+      msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
+    });
+
+    saveButton.disabled = true;
+
+    const editSubscriptionParams = {
+      v: '2.0',
+      api_key: APIKey,
+      user_subscription_id: oldSubscription.id,
+      fly_from: airportFromId,
+      fly_to: airportToId,
+      date_from: dateFrom,
+      date_to: dateTo,
+    };
+
+    adminEditSubscription(editSubscriptionParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      saveButton.disabled = false;
+
+      if (result.status_code < 1000 || result.status_code >= 2000) {
+        displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+      } else {
+        const newSubscription = {
+          id: oldSubscription.id,
+          user: oldSubscription.user,
+          fly_from: airportFromId,
+          fly_to: airportToId,
+          date_from: dateFrom,
+          date_to: dateTo,
+        };
+
+        rowIdUserSubscriptionMap[rowId] = newSubscription;
+        subscriptions = subscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
+          if (subscription.id !== oldSubscription.id) {
+            return subscription;
+          }
+          return newSubscription;
+        });
+
+        renderUserSubscriptionRow(
+          'view',
+          newSubscription,
+          $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
+        );
+
+        displayUserMessage('Successfully edited user subscription!', 'success');
+      }
+    });
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
