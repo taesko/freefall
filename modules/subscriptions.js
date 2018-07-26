@@ -30,14 +30,21 @@ async function subscribeUser (
     },
   );
 
+  errors.assertPeer(
+    sub.active !== 1,
+    `Cannot subscribe userId=${userId}, because subscription with id=${sub.id} already has the same filters.`,
+    errors.errorCodes.subscriptionExists,
+  );
+
   if (sub) {
-    const result = await db.executeRun(
-      `
-        UPDATE user_subscriptions
-        SET active=1
-        WHERE id=?
-      `,
-      [sub.id],
+    const result = await db.updateWhere(
+      'user_subscriptions',
+      {
+        active: 1,
+      },
+      {
+        id: sub.id,
+      },
     );
 
     errors.assertApp(
@@ -79,21 +86,16 @@ async function updateUserSubscription (
 
   const globalSubscriptionId = globalSub.id;
 
-  const result = await db.executeRun(
-    `
-      UPDATE user_subscriptions
-      SET 
-        subscription_id=$globalSubscriptionId
-        date_from=$dateFrom,
-        date_to=$dateTo
-        active=1
-      WHERE id=$id
-    `,
+  const result = await db.updateWhere(
+    'user_subscriptions',
     {
-      $id: userSubscriptionId,
-      $globalSubscriptionId: globalSubscriptionId,
-      $dateFrom: dateFrom,
-      $dateTo: dateTo,
+      subscription_id: globalSubscriptionId,
+      date_from: dateFrom,
+      date_to: dateTo,
+      active: 1,
+    },
+    {
+      id: userSubscriptionId,
     },
   );
 
@@ -104,14 +106,11 @@ async function updateUserSubscription (
 }
 
 async function removeUserSubscription (userSubscriptionId) {
-  const result = await db.executeRun(
-    `
-    UPDATE user_subscriptions
-    SET active=0
-    WHERE id = ?
-    `,
-    [userSubscriptionId],
+  const result = await db.updateWhere('user_subscriptions',
+    { active: 0 },
+    { id: userSubscriptionId },
   );
+
   errors.assertPeer(
     result.stmt.changes > 0,
     `User subscription with id ${userSubscriptionId} does not exist.`,
@@ -119,40 +118,19 @@ async function removeUserSubscription (userSubscriptionId) {
 }
 
 async function removeAllSubscriptionsOfUser (userId) {
-  const [exists] = db.executeAll(
-    `
-      SELECT 1
-      FROM users
-      WHERE id=?
-    `,
-    userId,
-  );
+  const [exists] = await db.selectWhere('users', '*', { id: userId });
 
   errors.assertPeer(exists, `User with id ${userId} does not exist.`);
 
-  return db.executeRun(
-    `
-      UPDATE user_subscriptions
-      SET active=0
-      WHERE user_id = ?
-    `,
-    [userId],
-  );
+  return db.updateWhere('user_subscriptions', { active: 0 }, { user_id: userId });
 }
 
 async function listUserSubscriptions (userId) {
-  return db.executeAll(
-    `
-      SELECT * 
-      FROM user_subscriptions
-      WHERE user_id=? AND active=1
-    `,
-    userId,
-  );
+  return db.selectWhere('user_subscriptions', '*', { user_id: userId, active: 1 });
 }
 
 async function listGlobalSubscriptions () {
-  return db.select('subscriptions');
+  return db.selectWhere('subscriptions');
 }
 
 async function getGlobalSubscription (airportFromId, airportToId) {
@@ -197,5 +175,6 @@ module.exports = {
   removeAllSubscriptionsOfUser,
   updateUserSubscription,
   listUserSubscriptions,
+  subscribeGlobally,
   listGlobalSubscriptions,
 };
