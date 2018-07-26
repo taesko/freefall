@@ -39,6 +39,29 @@ module.exports = (() => {
     }
   }
 
+  function buildWhereClause (where) {
+    if (where == null) {
+      return { whereClause: `WHERE 1`, valueHash: {} };
+    }
+
+    assertApp(isObject(where), 'buildWhereClause\'s parameter must be a hash.');
+
+    const whereEntries = Object.entries(where);
+    const whereColumns = whereEntries.map(([column]) => `${column}=$where_value_${column}`)
+      .join(' AND ');
+    const valueHash = whereEntries
+      .map(([column, value]) => [`$where_value_${column}`, value])
+      .reduce(
+        (hash, entries) => {
+          hash[entries[0]] = entries[1];
+          return hash;
+        },
+        {},
+      );
+
+    return { whereClause: `WHERE ${whereColumns}`, valueHash };
+  }
+
   async function executeAll (...args) {
     assertDB();
     return db.all(...args);
@@ -48,6 +71,7 @@ module.exports = (() => {
     assertDB();
     return db.run(...args);
   }
+
   async function select (table, columns = '*') {
     assertDB();
     assertApp(
@@ -66,14 +90,14 @@ module.exports = (() => {
       'Invalid select data',
     );
 
-    const whereEntries = Object.entries(where);
-    const whereClause = whereEntries.map(([column]) => `${column}=?`)
-      .join(' AND ');
-    const whereValues = whereEntries.map(([column, value]) => value);
+    const { whereClause, valueHash } = buildWhereClause(where);
+    const query = `SELECT ${stringifyColumns(columns)} FROM ${table} ${whereClause}`;
+
+    log('Executing query', query, 'replaced with hash:', valueHash);
 
     return db.all(
-      `SELECT ${stringifyColumns(columns)} FROM ${table} WHERE ${whereClause}`,
-      whereValues,
+      query,
+      valueHash,
     );
   }
 
@@ -244,8 +268,45 @@ module.exports = (() => {
     return true;
   }
 
-  // TODO move out with selectSubs...
+  async function update (table, setHash, whereHash) {
+    assertApp(
+      isObject(setHash),
+      `update function requires setHash to be an object. setHash=${setHash}`,
+    );
 
+    const {
+      whereClause,
+      valueHash: whereValueHash,
+    } = buildWhereClause(whereHash);
+    const updateColumns = Object.entries(setHash)
+      .map(([column]) => `${column}=$update_value_${column}`)
+      .join(', ');
+    const updateValueHash = Object.entries(setHash)
+      .map(([column, value]) => [`$update_value_${column}`, value])
+      .reduce(
+        (hash, [column, value]) => {
+          hash[column] = value;
+          return hash;
+        },
+        {},
+      );
+    const valueHash = Object.assign(updateValueHash, whereValueHash);
+    const query = `UPDATE ${table} SET ${updateColumns} ${whereClause}`;
+    log('Executing query: ', query, 'replace with hash', valueHash);
+
+    return executeRun(query, valueHash);
+  }
+
+  async function updateWhere (table, setHash, whereHash) {
+    assertApp(
+      isObject(setHash) && isObject(whereHash),
+      `updateWhere function requires setHash and whereHash parameters to be objects. setHash=${setHash} whereHash=${whereHash}`,
+    );
+
+    return update(table, setHash, whereHash);
+  }
+
+  // TODO move out with selectSubs...
   async function updateEmailSub (email) {
     // TODO bad name rename if you can
     let rows;
@@ -295,6 +356,8 @@ module.exports = (() => {
     selectSubscriptions,
     selectRoutesFlights,
     selectWhere,
+    update,
+    updateWhere,
     updateEmailSub,
     dbConnect,
   };
