@@ -7,7 +7,7 @@ const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
 const session = require('koa-session');
-const { log } = require('./modules/utils');
+const log = require('./modules/log');
 const auth = require('./modules/auth');
 const db = require('./modules/db');
 const { getAdminContext } = require('./modules/render-contexts');
@@ -26,7 +26,7 @@ app.use(async (ctx, next) => {
   try {
     await next();
   } catch (e) {
-    log('Unhandled error reached the top layer.', e);
+    log.critical('Unhandled error reached the top layer.', e);
     ctx.status = 500;
     ctx.body = `An unknown error occurred. Please restart the server and refresh the page.\n${e}`;
     ctx.app.emit('error', e, ctx);
@@ -104,11 +104,11 @@ router.post('/login', async (ctx) => {
     return;
   } catch (e) {
     if (e instanceof auth.AlreadyLoggedIn) {
-      log('User already logged in. Redirect to /');
+      log.info('User already logged in. Redirect to /');
       ctx.redirect('/');
       return;
     } else if (e instanceof auth.InvalidCredentials) {
-      log('Invalid credentials on login. Setting ctx.state.login_error_message');
+      log.info('Invalid credentials on login. Setting ctx.state.login_error_message');
       ctx.state.login_error_message = 'Invalid username or password.';
     } else {
       throw e;

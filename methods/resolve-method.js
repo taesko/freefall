@@ -2,7 +2,7 @@ const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
 const { assertPeer, assertApp, PeerError } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit, fromSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject, each, forOwn } = require('lodash');
-const { log } = require('../modules/utils.js');
+const log = require('../modules/utils.js');
 const auth = require('../modules/auth');
 const moment = require('moment');
 const subscriptions = require('../modules/subscriptions');
@@ -270,7 +270,7 @@ async function subscribe (params) {
     statusCode = 1000;
   } catch (e) {
     if (e instanceof PeerError) {
-      log('Peer error occurred while subscribing user.', e);
+      log.warn('Peer error occurred while subscribing user.');
       statusCode = 2000;
       subscriptionId = null;
     } else {
@@ -307,7 +307,7 @@ async function unsubscribe (params, db) {
     statusCode = 1000;
   } catch (e) {
     if (e instanceof PeerError) {
-      log('Peer error occurred while removing subscription: ', params.user_subscription_id, e);
+      log.warn('Peer error occurred while removing subscription: ', params.user_subscription_id);
       statusCode = 2000;
     } else {
       throw e;
@@ -473,10 +473,9 @@ async function adminSubscribe (params) {
     statusCode = 1000;
   } catch (e) {
     if (e instanceof PeerError) {
-      log(
+      log.warn(
         'An error occurred while executing method admin_subscribe with params',
         params,
-        e,
       );
       subscriptionId = null;
       statusCode = 2000;
@@ -507,10 +506,9 @@ async function adminUnsubscribe (params) {
       statusCode = '1000';
     } catch (e) {
       if (e instanceof PeerError) {
-        log(
+        log.warn(
           'An error occurred while executing method admin_unsubscribe with params',
           params,
-          e,
         );
         statusCode = '2000';
       } else {
@@ -530,10 +528,9 @@ async function adminUnsubscribe (params) {
       statusCode = '1000';
     } catch (e) {
       if (e instanceof PeerError) {
-        log(
+        log.warn(
           'An error occurred while executing method admin_unsubscribe with params',
           params,
-          e,
         );
         statusCode = '2000';
       } else {
@@ -672,7 +669,7 @@ async function sendError (params) {
     'Invalid senderror request',
   );
 
-  log('Got trace from client: ', params);
+  log.debug('Got trace from client: ', params);
 
   return {
     status_code: '1000',
