@@ -35,6 +35,28 @@ async function requestJSON (url, parameters) {
   return response.json();
 }
 
+async function hashFromEntries (entries) {
+  return entries.reduce(
+    (hash, [key, value]) => {
+      hash[key] = value;
+      return hash;
+    },
+    {}
+  );
+}
+
+async function cleanHash (hash) {
+  const result = {};
+
+  for (const [key, value] of Object.entries(result)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
 function toSmallestCurrencyUnit (quantity) {
   return quantity * 100;
 }
@@ -47,4 +69,6 @@ module.exports = {
   requestJSON,
   toSmallestCurrencyUnit,
   fromSmallestCurrencyUnit,
+  hashFromEntries,
+  cleanHash,
 };

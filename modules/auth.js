@@ -85,10 +85,6 @@ async function tokenHasRole (token, role) {
   return !!user;
 }
 
-function hashToken (token) {
-  return crypto.createHash('md5').update(token).digest('hex');
-}
-
 function serializeUser (user) {
   return user.id;
 }
@@ -119,10 +115,6 @@ async function fetchUserByCredentials ({ email, password }) {
     [email, hashPassword(password)],
   );
   return user;
-}
-
-function hashPassword (password) {
-  return crypto.createHash('md5').update(password).digest('hex');
 }
 
 async function emailIsRegistered (email) {
