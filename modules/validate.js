@@ -70,7 +70,7 @@ function validateProtocol (obj, protocol = 'jsonrpc', type = 'request') {
 function validateRequest (requestBody, protocol = 'jsonrpc') {
   validateProtocol(requestBody, protocol, 'request');
 
-  log.debug('Validating request for method', requestBody.method);
+  log.info('Validating request for method', requestBody.method);
 
   const method = requestBody.method;
   const apiParams = requestBody.params;
@@ -103,10 +103,10 @@ function validateRequestFormat ({ headerParam, queryParam }) {
 }
 
 function validateResponse (responseBody, method, protocol = 'jsonrpc') {
-  log.debug('Validating response for method', method, 'by protocol', protocol);
+  log.info('Validating response for method', method, 'by protocol', protocol);
   validateProtocol(responseBody, protocol, 'response');
 
-  log.debug('Validating body response for method', method);
+  log.debug('Validating body response for method', method, 'body: ', responseBody);
   const schemaName = (responseBody.error == null) ? method : 'error';
   const schemaId = getSchemaId('response', schemaName);
   assertApp(

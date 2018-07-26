@@ -10,6 +10,7 @@ async function subscribeUser (
     dateFrom,
     dateTo,
   }) {
+  // TODO validate dates.
   const globalSub = await getGlobalSubscription(airportFromId, airportToId);
   let globalSubId;
 
