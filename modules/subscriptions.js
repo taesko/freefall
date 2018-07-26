@@ -1,4 +1,4 @@
-const { log } = require('./utils');
+const log = require('./log');
 const errors = require('./error-handling');
 const db = require('./db');
 
@@ -79,6 +79,7 @@ async function updateUserSubscription (
   // TODO ask ivan about differences between throwing exceptions and getting null instead of object
   // advantages to throwing is that the exception is built from inside the function and has more
   // information
+  // TODO check if user is already subscribed to the edit he is trying to make
   let globalSub = await getGlobalSubscription(airportFromId, airportToId);
 
   if (!globalSub) {
@@ -158,7 +159,7 @@ async function globalSubscriptionExists (airportFromId, airportToId) {
 }
 
 async function subscribeGlobally (airportFromId, airportToId) {
-  log('Subscribing globally to airports', airportFromId, airportToId);
+  log.info('Subscribing globally to airports', airportFromId, airportToId);
   airportFromId = +airportFromId;
   airportToId = +airportToId;
 

@@ -4,7 +4,7 @@ const { PeerError, UserError } = require('./error-handling');
 const compose = require('koa-compose');
 const methods = require('../methods/resolve-method');
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./protocol');
-const log = require('./modules/log');
+const log = require('./log');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 
@@ -13,7 +13,7 @@ async function errorHandling (ctx, next) {
   try {
     await next();
   } catch (err) {
-    log(err);
+    log.critical(err);
     // assertPeer(0, `The password: ${ pass } is not valid`)
 
     ctx.status = 200;
@@ -49,7 +49,7 @@ async function errorHandling (ctx, next) {
     });
 
     ctx.body = multiParser.stringify(response, format);
-    log('error occurred and ctx.body was set to:', ctx.body);
+    log.critical('error occurred and ctx.body was set to:', ctx.body);
   }
 }
 
@@ -58,7 +58,7 @@ async function api (ctx, next) {
     headerParam: ctx.headers['content-type'],
     queryParam: ctx.query.format,
   });
-  log('Format specified by peer is: ', format);
+  log.info('Getting post request to api. Format specified by peer is: ', format);
   const protocol = `${format}rpc`;
   const parsed = format === 'json' ? ctx.request.body : multiParser.parse(ctx.request.body, format);
   ctx.state.api.requestId = parsed.id;
@@ -68,7 +68,8 @@ async function api (ctx, next) {
   // TODO modularize and pass a format/protocol parameter
   const requestBody = normalizeRequest(parsed);
 
-  log('Executing method', requestBody.method, 'with params', requestBody.params);
+  log.info('Executing method', requestBody.method);
+  log.debug('With params: ', requestBody.params);
 
   const result = await methods.execute({
     methodName: requestBody.method,
@@ -76,8 +77,6 @@ async function api (ctx, next) {
     db: ctx.db,
     appCtx: ctx,
   });
-
-  log('Executed method', requestBody.method, 'with params', requestBody.params);
 
   const responseBody = buildRPCResponse({
     protocol,
@@ -90,13 +89,14 @@ async function api (ctx, next) {
   try {
     validateResponse(responseBody, parsed.method, `${format}rpc`);
   } catch (e) {
-    log('Build an invalid response: ', responseBody);
+    log.critical('Build an invalid response: ', responseBody);
     throw e;
   }
   ctx.status = 200;
   ctx.body = multiParser.stringify(responseBody, format);
 
-  log('Response validated. Setting ctx body.');
+  log.info('Response validated. Setting ctx body.');
+  log.debug('Set ctx.body to', ctx.body);
   await next();
 }
 

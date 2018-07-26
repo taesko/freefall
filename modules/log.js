@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
-const DEBUG = Symbol('DEBUG');
-const INFO = Symbol('INFO');
-const WARNING = Symbol('WARNING');
-const CRITICAL = Symbol('CRITICAL');
-const ERROR = Symbol('ERROR');
+const DEBUG = 'DEBUG';
+const INFO = 'INFO';
+const WARNING = 'WARNING';
+const CRITICAL = 'CRITICAL';
+const ERROR = 'ERROR';
 const ORDER = [DEBUG, INFO, WARNING, CRITICAL];
 
 function logLevel () {
@@ -16,7 +16,7 @@ function logLevel () {
 }
 
 function shouldPrintLevel (level) {
-  return ORDER.indexOf(level) > ORDER.indexOf(logLevel());
+  return ORDER.indexOf(level) >= ORDER.indexOf(logLevel());
 }
 
 function log (level, ...messages) {
