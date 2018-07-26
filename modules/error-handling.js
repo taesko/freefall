@@ -25,6 +25,7 @@ const errorCodes = {
   userAlreadyExists: '2201',
   notEnoughPermissions: '2210',
   unknownAirport: '2900',
+  databaseError: '4000',
 };
 
 function assertApp (assert, errMsg, errCode) {

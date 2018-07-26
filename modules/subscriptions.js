@@ -50,6 +50,7 @@ async function subscribeUser (
     errors.assertApp(
       result.stmt.changes,
       `Failed to re-activate user subscription with id ${sub.id}`,
+      errors.errorCodes.databaseError,
     );
 
     return sub.id;
@@ -102,6 +103,7 @@ async function updateUserSubscription (
   errors.assertPeer(
     result.stmt.changes,
     `User subscription with id ${userSubscriptionId} does not exist.`,
+    errors.errorCodes.subscriptionDoesNotExist,
   );
 }
 
@@ -114,13 +116,18 @@ async function removeUserSubscription (userSubscriptionId) {
   errors.assertPeer(
     result.stmt.changes > 0,
     `User subscription with id ${userSubscriptionId} does not exist.`,
+    errors.errorCodes.subscriptionDoesNotExist,
   );
 }
 
 async function removeAllSubscriptionsOfUser (userId) {
   const [exists] = await db.selectWhere('users', '*', { id: userId });
 
-  errors.assertPeer(exists, `User with id ${userId} does not exist.`);
+  errors.assertPeer(
+    exists,
+    `User with id ${userId} does not exist.`,
+    errors.errorCodes.userDoesNotExist,
+  );
 
   return db.updateWhere('user_subscriptions', { active: 0 }, { user_id: userId });
 }

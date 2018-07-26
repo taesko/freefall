@@ -269,13 +269,13 @@ async function subscribe (params) {
     );
     statusCode = 1000;
   } catch (e) {
-    // TODO this try catch should be at an upper level
-    // and the method's response object should be built there - setting status_code properly
-    // handling the request by sending back the response
-    // and rethrowing the exception
-    log('An error occurred while subscribing user.', e);
-    subscriptionId = null;
-    statusCode = 2000;
+    if (e instanceof PeerError) {
+      log('Peer error occurred while subscribing user.', e);
+      statusCode = 2000;
+      subscriptionId = null;
+    } else {
+      throw e;
+    }
   }
 
   return {
@@ -306,8 +306,12 @@ async function unsubscribe (params, db) {
     await subscriptions.removeUserSubscription(params.user_subscription_id);
     statusCode = 1000;
   } catch (e) {
-    log('An error occurred while removing subscription: ', params.user_subscription_id, e);
-    statusCode = 2000;
+    if (e instanceof PeerError) {
+      log('Peer error occurred while removing subscription: ', params.user_subscription_id, e);
+      statusCode = 2000;
+    } else {
+      throw e;
+    }
   }
 
   return { status_code: `${statusCode}` };
