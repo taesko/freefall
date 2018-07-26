@@ -75,5 +75,8 @@
       }
     }
   },
-  "required": ["user_subscriptions"]
+  "required": [
+    "user_subscriptions",
+    "guest_subscriptions"
+  ]
 }

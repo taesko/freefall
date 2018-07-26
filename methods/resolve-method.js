@@ -390,6 +390,7 @@ async function adminListSubscriptions (params, db) {
       JOIN subscriptions sub ON user_sub.subscription_id=sub.id
       JOIN airports ap_from ON sub.airport_from_id=ap_from.id
       JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+      WHERE user_sub.active=1
     `;
   let userSubscriptions;
   let guestSubscriptions;
@@ -405,14 +406,15 @@ async function adminListSubscriptions (params, db) {
       };
     });
   } else {
+    // TODO fix SQL statement building
     userSubscriptions = await db.executeAll(
       `
-        ${mainQuery}
-        WHERE users.id = ?
+        ${mainQuery} AND users.id = ?
       `,
       params.user_id,
     );
-    guestSubscriptions = null;
+    // TODO ask ivan if guestSubscriptions should be null or empty array
+    guestSubscriptions = [];
   }
 
   userSubscriptions = userSubscriptions.map(sub => {
@@ -429,18 +431,11 @@ async function adminListSubscriptions (params, db) {
     };
   });
 
-  if (guestSubscriptions == null) {
-    return {
-      status_code: '1000',
-      user_subscriptions: userSubscriptions,
-    };
-  } else {
-    return {
-      status_code: '1000',
-      user_subscriptions: userSubscriptions,
-      guest_subscriptions: guestSubscriptions,
-    };
-  }
+  return {
+    status_code: '1000',
+    user_subscriptions: userSubscriptions,
+    guest_subscriptions: guestSubscriptions,
+  };
 }
 
 async function adminSubscribe (params) {
