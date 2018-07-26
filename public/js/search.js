@@ -261,9 +261,11 @@ function start () {
 
     assertUser(_.isObject(airportFrom), {
       msg: 'Could not find airport "' + formData.from + '"', // eslint-disable-line prefer-template
+      userMessage: 'Could not find airport "' + formData.from + '"', // eslint-disable-line prefer-template
     });
     assertUser(_.isObject(airportTo), {
       msg: 'Could not find airport "' + formData.to + '"', // eslint-disable-line prefer-template
+      userMessage: 'Could not find airport "' + formData.from + '"', // eslint-disable-line prefer-template
     });
 
     searchFormParams.fly_from = airportFrom.id;
@@ -363,8 +365,6 @@ function start () {
 
       event.preventDefault();
 
-      $submitBtn.prop('disabled', true);
-
       var formParams; // eslint-disable-line no-var
 
       try {
@@ -373,6 +373,8 @@ function start () {
         handleError(e);
         return false;
       }
+
+      $submitBtn.prop('disabled', true);
 
       search(formParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
         if (result.status_code >= 1000 && result.status_code < 2000) {

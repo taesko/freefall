@@ -343,6 +343,10 @@ function main () {
       msg: 'Expected result id to be a string with length > 0, but length is ' + idResult.length, // eslint-disable-line prefer-template
     });
 
+    assertApp(!isNaN(idResult), {
+      msg: 'Expected element unique id to be a number, but its value was: ' + idResult, // eslint-disable-line prefer-template
+    })
+
     return idResult;
   };
 
