@@ -79,13 +79,12 @@ async function updateUserSubscription (
   // TODO ask ivan about differences between throwing exceptions and getting null instead of object
   // advantages to throwing is that the exception is built from inside the function and has more
   // information
-  let globalSub = await getGlobalSubscription(airportFromId, airportToId);
-
-  if (!globalSub) {
-    globalSub = await subscribeGlobally(airportFromId, airportToId);
-  }
-
-  const globalSubscriptionId = globalSub.id;
+  const globalSubscriptionId = await getGlobalSubscription(
+    airportFromId,
+    airportToId,
+  ).then(s => {
+    return (s != null) ? s.id : subscribeGlobally(airportFromId, airportToId);
+  });
 
   const result = await db.updateWhere(
     'user_subscriptions',
