@@ -389,7 +389,7 @@ function start () {
     });
 
     assertUser(typeof airportToId === 'string', {
-      userMessage: 'Could not find selected departure airport.',
+      userMessage: 'Could not find selected arrival airport.',
       msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
     });
 
@@ -688,7 +688,7 @@ function start () {
     });
 
     assertUser(typeof airportToId === 'string', {
-      userMessage: 'Could not find selected departure airport.',
+      userMessage: 'Could not find selected arrival airport.',
       msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
     });
 

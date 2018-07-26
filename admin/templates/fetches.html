@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fetches</title>
+  <link href="../css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<!--   <link href="../css/style.css" rel="stylesheet"> -->
+</head>
+<body>
+  <div class="container">
+    {{> heading }}
+    {{> menu }}
+    <table id="fetches-table" class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Timestamp</th>
+          <th>Airport from</th>
+          <th>Airport to</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#list fetches}}
+        <tr>
+          <td>
+            {{id}}
+          </td>
+          <td>
+            {{timestamp}}
+          </td>
+          <td>
+            {{airport_from.name}} ({{airport_from.iata_code}})
+          </td>
+          <td>
+            {{airport_to.name}} ({{airport_to.iata_code}})
+          </td>
+        </tr>
+        {{/list}}
+      </tbody>
+    </table>
+<!--     <p id="no-fetches-msg" class="text-center" hidden="true">No fetches found</p> -->
+  </div>
+</body>
+</html>

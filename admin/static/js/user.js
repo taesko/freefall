@@ -551,7 +551,6 @@ function start () {
 
   const onRemoveUserSubscriptionClick = function (event) {
     trace('onRemoveUserSubscriptionClick');
-    displayUserMessage('Feature not implemented yet.', 'error');
 
     const removeButton = event.target;
 
@@ -594,17 +593,16 @@ function start () {
 
   const onSaveUserSubscriptionClick = function (event) {
     trace('onSaveUserSubscriptionClick');
-    displayUserMessage('Feature not implemented yet.', 'error');
 
     const saveButton = event.target;
 
     const rowId = getElementUniqueId(saveButton, 'user-subscription-edit-mode-save-btn-');
     const oldSubscription = rowIdUserSubscriptionMap[rowId];
 
-    const airportFrom = $('#user-subscription-edit-mode-airport-from-' + rowId).val(); // eslint-disable-line prefer-template
-    const airportTo = $('#user-subscription-edit-mode-airport-to-' + rowId).val(); // eslint-disable-line prefer-template
-    const dateFrom = $('#user-subscription-edit-mode-date-from-' + rowId).val(); // eslint-disable-line prefer-template
-    const dateTo = $('#user-subscription-edit-mode-date-to-' + rowId).val(); // eslint-disable-line prefer-template
+    const airportFrom = $('#user-subscription-edit-mode-airport-from-' + rowId).val().trim(); // eslint-disable-line prefer-template
+    const airportTo = $('#user-subscription-edit-mode-airport-to-' + rowId).val().trim(); // eslint-disable-line prefer-template
+    const dateFrom = $('#user-subscription-edit-mode-date-from-' + rowId).val().trim(); // eslint-disable-line prefer-template
+    const dateTo = $('#user-subscription-edit-mode-date-to-' + rowId).val().trim(); // eslint-disable-line prefer-template
 
     const airportFromId = getAirportId(airports, airportFrom);
     const airportToId = getAirportId(airports, airportTo);
@@ -615,7 +613,7 @@ function start () {
     });
 
     assertUser(typeof airportToId === 'string', {
-      userMessage: 'Could not find selected departure airport.',
+      userMessage: 'Could not find selected arrival airport.',
       msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
     });
 
