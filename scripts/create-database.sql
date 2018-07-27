@@ -53,8 +53,9 @@ CREATE TABLE users (
     id integer PRIMARY KEY,
     email text NOT NULL,
     password text NOT NULL,
-    api_key text NOT NULL,
+    api_key text UNIQUE NOT NULL,
     role text NOT NULL,
+    active integer NOT NULL DEFAULT 1, -- 0 or 1 bool
     UNIQUE(email)
 );
 

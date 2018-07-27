@@ -9,6 +9,7 @@ const cors = require('@koa/cors');
 const session = require('koa-session');
 const db = require('./modules/db');
 const auth = require('./modules/auth');
+const users = require('./modules/users');
 const { rpcAPILayer } = require('./modules/api');
 const log = require('./modules/log');
 const { getContextForRoute } = require('./modules/render-contexts');
@@ -118,8 +119,9 @@ router.get('/login', async (ctx) => {
 });
 
 router.post('/login', async (ctx) => {
+  const { email, password } = ctx.request.body;
   try {
-    await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
+    await auth.login(ctx, email, password);
     ctx.redirect('/');
 
     return;
@@ -160,27 +162,26 @@ router.post('/register', async (ctx) => {
     return;
   }
 
-
   const errors = [];
   const {
     email,
     password,
     confirm_password: confirmPassword,
   } = ctx.request.body;
-
   log.info('Attempting to register user with email:', email);
 
   if (password !== confirmPassword) {
     errors.push('Passwords are not the same.');
   }
 
-  if (await auth.emailIsRegistered(email)) {
+  if (await users.fetchUser({ email })) {
     errors.push('Email is already taken');
   }
 
   if (errors.length === 0) {
+    // TODO fix errors in auth and try catch instead of using users.fetchUser
     await auth.register(email, password);
-    log.info('Registered user with email: ', email);
+    log.info('Registered user with email and password: ', email, password);
     await auth.login(ctx, email, password);
     ctx.redirect('/');
     return;

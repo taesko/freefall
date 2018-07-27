@@ -25,10 +25,12 @@ const errorCodes = {
   subscriptionExists: '2100',
   subscriptionDoesNotExist: '2101',
   userDoesNotExist: '2200',
-  userAlreadyExists: '2201',
+  emailTaken: '2201',
+  apiKeyTaken: '2202',
   notEnoughPermissions: '2210',
   unknownAirport: '2900',
   databaseError: '4000',
+  badFunctionArgs: '4100',
 };
 
 function assertApp (assert, errMsg, errCode) {

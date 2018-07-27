@@ -2,10 +2,11 @@ const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
 const { assertPeer, assertApp, PeerError } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit, fromSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject, each, forOwn } = require('lodash');
-const log = require('../modules/utils.js');
+const log = require('../modules/log');
 const auth = require('../modules/auth');
 const moment = require('moment');
 const subscriptions = require('../modules/subscriptions');
+const users = require('../modules/users');
 
 const API_METHODS = {
   search,
@@ -251,7 +252,7 @@ async function subscribe (params) {
   const dateFrom = params.date_from;
   const dateTo = params.date_to;
 
-  const user = await auth.fetchUserByAPIKey(params.api_key);
+  const user = await users.fetchUser({ apiKey: params.api_key });
 
   assertPeer(user != null, 'invalid api key');
 
@@ -285,10 +286,11 @@ async function subscribe (params) {
 }
 
 async function unsubscribe (params, db) {
-  const user = await auth.fetchUserByAPIKey(params.api_key);
+  const user = await users.fetchUser({ apiKey: params.api_key });
 
   assertPeer(user, 'invalid api key');
 
+  // TODO use lisetUserSubscriptions
   const userSubscriptions = await db.selectWhere(
     'user_subscriptions',
     '*',
@@ -359,19 +361,20 @@ async function listSubscriptions (params, db) {
   };
 }
 
-async function adminListUsers (params, db) {
+async function adminListUsers (params) {
   assertPeer(
     await auth.tokenHasRole(params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_users method.',
   );
-  const users = await db.select('users', ['id', 'email']);
+  const userList = await users.listUsers(false);
 
-  for (const user of users) {
+  // TODO use a helper function ?
+  for (const user of userList) {
     user.id = `${user.id}`;
   }
 
   return {
-    users,
+    users: userList,
   };
 }
 
@@ -568,6 +571,11 @@ async function adminEditSubscription (params) {
     return { status_code: '1000' };
   } catch (e) {
     if (e instanceof PeerError) {
+      // TODO somehow make this a decorator ?
+      log.warn(
+        'An error occurred while executing method admin_unsubscribe with params',
+        params,
+      );
       return { status_code: '1000' };
     } else {
       throw e;
@@ -575,66 +583,57 @@ async function adminEditSubscription (params) {
   }
 }
 
-async function adminRemoveUser (params, db) {
-  assertPeer(
-    await auth.tokenHasRole(params.api_key, 'admin'),
-    'You do not have sufficient permission to call admin_list_subscriptions method.',
-  );
-  await db.executeRun(
-    `
-      DELETE
-      FROM user_subscriptions
-      WHERE user_id=?
-    `,
-    [+params.user_id],
-  );
-  await db.executeRun(
-    `
-      DELETE 
-      FROM users
-      WHERE id=? AND role='user'
-    `,
-    [+params.user_id],
-  );
-  // TODO refactor out into a user module
-  return { status_code: '1000' };
-}
-
-async function adminEditUser (params, db) {
+async function adminRemoveUser (params) {
   assertPeer(
     await auth.tokenHasRole(params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
 
-  let result;
+  let statusCode;
 
-  if (params.email) {
-    result = await db.executeAll(
-      `
-      UPDATE users
-      SET email=$email
-      WHERE id=$id
-      `,
-      {
-        $email: params.email,
-        $id: params.id,
-      },
-    );
-  } else {
-    result = await db.executeAll(
-      `
-      UPDATE users
-      SET password=$password
-      WHERE id=$id
-      `,
-      {
-        $password: auth.hashPassword(params.password),
-        $id: params.id,
-      },
-    );
+  try {
+    await users.removeUser(params.user_id);
+    statusCode = '1000';
+  } catch (e) {
+    if (e instanceof PeerError) {
+      statusCode = '2000';
+    } else {
+      throw e;
+    }
   }
 
-  const statusCode = (result.stmt.changes > 0) ? '1000' : '2000';
+  return { status_code: statusCode };
+}
+
+async function adminEditUser (params) {
+  assertPeer(
+    await auth.tokenHasRole(params.api_key, 'admin'),
+    'You do not have sufficient permission to call admin_list_subscriptions method.',
+  );
+
+  let statusCode;
+  params.password = users.hashPassword(params.password);
+
+  try {
+    await users.editUser(
+      params.user_id,
+      {
+        email: params.email,
+        password: params.password,
+      },
+    );
+    statusCode = '1000';
+  } catch (e) {
+    if (e instanceof PeerError) {
+      log.warn(
+        'An error occurred while executing method admin_unsubscribe with params',
+        params,
+      );
+      statusCode = '2000';
+    } else {
+      throw e;
+    }
+  }
 
   return { status_code: statusCode };
 }

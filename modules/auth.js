@@ -1,7 +1,7 @@
-const crypto = require('crypto');
 const db = require('./db');
-const { AppError } = require('./error-handling');
+const users = require('./users');
 const log = require('./log');
+const { AppError } = require('./error-handling');
 
 class InvalidCredentials extends AppError {}
 
@@ -9,33 +9,24 @@ class UserExists extends AppError {}
 
 class AlreadyLoggedIn extends AppError {}
 
-const USER_ROLES = {
-  admin: 'admin',
-  user: 'user',
-};
-
 db.dbConnect();
 
 async function login (ctx, email, password) {
+  password = users.hashPassword(password);
+
   log.info('Trying to login with email: ', email);
 
   if (await isLoggedIn(ctx)) {
     throw new AlreadyLoggedIn(`Already logged in as user with id ${ctx.session.userID}`);
   }
-  let user;
-
-  try {
-    user = await fetchUserByCredentials({ email, password });
-  } catch (e) {
-    throw new AppError(`Tried to login with email=${email} and password=${password}. But failed checking credentials through database. ${e}`);
-  }
+  const user = await users.fetchUser({ email, password });
 
   if (!user) {
     throw new InvalidCredentials(`Failed to login with email=${email} and password=${password}.`);
   }
 
   ctx.session.userID = serializeUser(user);
-  log.info('Logged in as user', user);
+  log.info('Logged in as user', user.id);
 }
 
 function logout (ctx) {
@@ -44,103 +35,40 @@ function logout (ctx) {
 }
 
 async function register (email, password) {
-  if (await fetchUserByCredentials({ email, password })) {
+  password = users.hashPassword(password);
+  if (await users.fetchUser({ email, password })) {
     throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`);
   }
 
-  const apiKey = hashToken(`${email}:${password}`);
-
-  try {
-    await db.insert(
-      'users',
-      {
-        email,
-        password: hashPassword(password),
-        api_key: apiKey,
-        role: USER_ROLES.user,
-      },
-    );
-  } catch (e) {
-    log.info(`Couldn't register user with email=${email}.`);
-    throw e;
-  }
+  await users.addUser({ email, password, role: 'user' }); // TODO magic value
 }
 
 async function isLoggedIn (ctx) {
   const id = ctx.session.userID;
-  return id != null && await fetchUserById(id) != null;
+  return id != null && await users.fetchUser({ userId: id }) != null;
 }
 
 async function getLoggedInUser (ctx) {
-  return fetchUserById(ctx.session.userID);
+  return users.fetchUser({ userId: ctx.session.userID });
 }
 
 async function tokenHasRole (token, role) {
-  const [user] = await db.selectWhere(
-    'users',
-    '*',
-    { api_key: token, role },
-  );
+  const user = await users.fetchUser({ apiKey: token });
 
-  return !!user;
-}
-
-function hashToken (token) {
-  return crypto.createHash('md5').update(token).digest('hex');
+  return role === user.role;
 }
 
 function serializeUser (user) {
   return user.id;
 }
 
-async function fetchUserByAPIKey (token) {
-  const [user] = await db.selectWhere(
-    'users',
-    '*',
-    { api_key: token },
-  );
-
-  return user;
-}
-
-async function fetchUserById (id) {
-  const [user] = await db.selectWhere('users', '*', { id });
-  return user;
-}
-
-async function fetchUserByCredentials ({ email, password }) {
-  const [user] = await db.executeAll(
-    `
-    SELECT *
-    FROM users
-    WHERE email=? AND password=?
-    ;
-    `,
-    [email, hashPassword(password)],
-  );
-  return user;
-}
-
-function hashPassword (password) {
-  return crypto.createHash('md5').update(password).digest('hex');
-}
-
-async function emailIsRegistered (email) {
-  const result = await db.selectWhere('users', '*', { email });
-  return result.length !== 0;
-}
-
 module.exports = {
   login,
   logout,
   register,
-  emailIsRegistered,
   getLoggedInUser,
   isLoggedIn,
-  fetchUserByAPIKey,
-  fetchUserById,
   tokenHasRole,
-  hashPassword,
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,
