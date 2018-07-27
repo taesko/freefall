@@ -10,6 +10,7 @@ class CustomError extends Error {
 class PeerError extends CustomError {}
 class AppError extends CustomError {}
 class UserError extends CustomError {}
+class SystemError extends CustomError {}
 
 /*
   0 - null error code
@@ -17,9 +18,11 @@ class UserError extends CustomError {}
     2000-2100 - Protocol errors
     2100-2200 - Subscription errors
     2200-2300 - Permission, authentication and registration of users errors
+    2800-2900 - HTTP connection errors to external API's
     2900-3000 - Uncatalogued errors
   3000-4000 - User errors
   4000-5000 - App errors
+  5000-6000 - System errors
 */
 const errorCodes = {
   subscriptionExists: '2100',
@@ -28,9 +31,11 @@ const errorCodes = {
   emailTaken: '2201',
   apiKeyTaken: '2202',
   notEnoughPermissions: '2210',
+  serviceDown: '2800',
   unknownAirport: '2900',
   databaseError: '4000',
   badFunctionArgs: '4100',
+  missingEnvVar: '5000',
 };
 
 function assertApp (assert, errMsg, errCode) {
@@ -51,12 +56,20 @@ function assertPeer (assert, errMsg, errCode) {
   }
 }
 
+function assertSystem (assert, errMsg, errCode) {
+  if (!assert) {
+    throw new SystemError(errMsg, errCode);
+  }
+}
+
 module.exports = {
   assertApp,
   assertPeer,
   assertUser,
+  assertSystem,
   PeerError,
   AppError,
   UserError,
+  SystemError,
   errorCodes,
 };

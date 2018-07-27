@@ -100,6 +100,26 @@ async function api (ctx, next) {
   await next();
 }
 
+async function daliPecheErrorHandling (ctx, next) {
+  try {
+    await next();
+  } catch (e) {
+    const response = {};
+    if (e instanceof PeerError) {
+      response.msg = "Couldn't connect to DaliPeche service. Because the service did not reply.";
+      response.code = e.code;
+    } else {
+      response.msg = "Couldn't connect to DaliPeche service. Try again later.";
+      response.code = e.code;
+    }
+
+    ctx.body = response;
+  }
+}
+
+async function daliPecheAPI (ctx, next) {
+}
+
 module.exports = {
   rpcAPILayer: compose([errorHandling, api]),
 };
