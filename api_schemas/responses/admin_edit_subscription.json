@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "response/admin_edit_subscription",
+  "title": "admin_edit_subscription response",
+  "type": "object",
+  "properties": {
+    "status_code": {
+      "title": "Status code",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status_code"
+  ]
+}

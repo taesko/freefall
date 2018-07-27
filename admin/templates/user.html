@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User</title>
+  <link href="../css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet">
+<!--   <link href="../css/style.css" rel="stylesheet"> -->
+</head>
+<body>
+  <div class="container">
+    {{> heading }}
+    {{> menu }}
+    {{> messages }}
+    <table id="users-table" class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Email</th>
+          <th>Password</th>
+          <th>Options</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr id="user-edit-mode" hidden="true">
+          <td>
+            <span id="user-edit-mode-id"></span>
+          </td>
+          <td>
+            <input id="user-edit-mode-email" class="form-control" name="email" type="text" placeholder="Email" value="" required>
+          </td>
+          <td>
+            <input id="user-edit-mode-password" name="date-to" class="form-control" type="text" placeholder="Password" value="" required>
+          </td>
+          <td>
+            <button id="user-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
+            <button id="user-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
+            <button id="user-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
+          </td>
+        </tr>
+        <tr id="user-view-mode">
+          <td>
+            <span id="user-view-mode-id"></span>
+          </td>
+          <td>
+            <a id="user-view-mode-email" href=""></a>
+          </td>
+          <td>
+            <span>****</span>
+          </td>
+          <td>
+            <button id="user-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div id="user-subscriptions-section">
+      <h3>User's subscriptions:</h3>
+      <table id="user-subscriptions-table" class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Airport from</th>
+            <th>Airport to</th>
+            <th>Date from</th>
+            <th>Date to</th>
+            <th>Options</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="user-subscription-edit-mode" hidden="true">
+            <td>
+              <input id="user-subscription-edit-mode-airport-from" class="form-control" name="from" type="text" placeholder="Airport from" required>
+            </td>
+            <td>
+              <input id="user-subscription-edit-mode-airport-to" name="to" class="form-control" type="text" placeholder="Airport to" required>
+            </td>
+            <td>
+              <input id="user-subscription-edit-mode-date-from" class="form-control" name="date-from" type="text" placeholder="Date from" value="" required>
+            </td>
+            <td>
+              <input id="user-subscription-edit-mode-date-to" name="date-to" class="form-control" type="text" placeholder="Date to" value="" required>
+            </td>
+            <td>
+              <button id="user-subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
+              <button id="user-subscription-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
+              <button id="user-subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
+            </td>
+          </tr>
+          <tr id="user-subscription-view-mode" hidden="true">
+            <td>
+              <span id="user-subscription-view-mode-airport-from"></span>
+            </td>
+            <td>
+              <span id="user-subscription-view-mode-airport-to"></span>
+            </td>
+            <td>
+              <span id="user-subscription-view-mode-date-from"></span>
+            </td>
+            <td>
+              <span id="user-subscription-view-mode-date-to"></span>
+            </td>
+            <td>
+              <button id="user-subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p id="no-subscriptions-msg" class="text-center" hidden="true">No subscriptions found</p>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@3.10.1/index.min.js"></script>
+  <script src="../js/jquery/jquery-2.2.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/6.5.2/ajv.min.js"></script>
+  <script src="../js/json-schemas.js"></script>
+  <script src="../js/admin-json-schemas.js"></script>
+  <script src="../js/main.js"></script>
+  <script type="text/javascript">
+    function getUserCredentials () {
+      return {
+        id: '{{user_credentials.id}}',
+        email: '{{user_credentials.email}}',
+      };
+    };
+  </script>
+  <script type="text/javascript" src="../js/user.js"></script>
+</body>
+</html>

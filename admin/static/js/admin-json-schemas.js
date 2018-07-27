@@ -58,7 +58,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
   getValidateAdminListSubscriptionsReq: function () {
     const adminListSubscriptionsRequestSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',
-      '$id': 'http://10.20.1.155:3000/adminlistsubscriptionsresponse.schema.json',
+      '$id': 'http://10.20.1.155:3000/adminlistsubscriptionsrequest.schema.json',
       'title': 'Admin list subscriptions response',
       'type': 'object',
       'properties': {
@@ -75,7 +75,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'type': 'string',
         },
       },
-      'required': ['v', 'user_id', 'api_key'],
+      'required': ['v', 'api_key'],
     };
     return ajv.compile(adminListSubscriptionsRequestSchema);
   },
@@ -158,7 +158,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           },
         },
       },
-      'required': ['subscriptions'],
+      'required': ['user_subscriptions', 'guest_subscriptions'],
     };
     return ajv.compile(adminListSubscriptionsResponseSchema);
   },
@@ -387,5 +387,197 @@ const adminValidators = { // eslint-disable-line no-unused-vars
       'required': ['api_key'],
     };
     return ajv.compile(getAPIKeyResponseSchema);
+  },
+
+  getValidateAdminRemoveUserReq: function () {
+    const adminRemoveUserRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/adminremoveuserrequest.schema.json',
+      'title': 'Admin remove user request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+        'user_id': {
+          'type': 'string',
+          'title': 'Database id of the user.',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'user_id',
+      ],
+    };
+    return ajv.compile(adminRemoveUserRequestSchema);
+  },
+
+  getValidateAdminRemoveUserRes: function () {
+    const adminRemoveUserResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'http://10.20.1.155:3000/adminremoveuserresponse.schema.json',
+      'title': 'Admin remove user response',
+      'description': 'Contains the response of admin_unsubscribe method',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'description': 'Indicator whether removal was successful.',
+          'type': 'string',
+        },
+      },
+      'required': [
+        'status_code',
+      ],
+    };
+    return ajv.compile(adminRemoveUserResponseSchema);
+  },
+
+  getValidateAdminEditUserReq: function () {
+    const adminEditUserRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_edit_user',
+      'title': 'admin_edit_user request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+        'api_key': {
+          'title': 'API key',
+          'type': 'string',
+        },
+        'user_id': {
+          'title': 'Database id of the user to delete.',
+          'type': 'string',
+        },
+        'email': {
+          'title': 'Optional new email of the user',
+          'type': 'string',
+        },
+        'password': {
+          'title': 'Optional new password of the user',
+          'type': 'string',
+        },
+      },
+      'any_of': [
+        {
+          'required': [
+            'v',
+            'api_key',
+            'email',
+          ],
+        },
+        {
+          'required': [
+            'v',
+            'api_key',
+            'password',
+          ],
+        },
+        {
+          'required': [
+            'v',
+            'api_key',
+            'email',
+            'password',
+          ],
+        },
+      ],
+    };
+    return ajv.compile(adminEditUserRequestSchema);
+  },
+
+  getValidateAdminEditUserRes: function () {
+    const adminEditUserResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_edit_user',
+      'title': 'admin_edit_user response',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'type': 'string',
+        },
+      },
+      'required': [
+        'status_code',
+      ],
+    };
+    return ajv.compile(adminEditUserResponseSchema);
+  },
+
+  getValidateAdminEditSubscriptionReq: function () {
+    const adminEditSubscriptionRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_edit_subscription',
+      'title': 'Admin edit subscription response',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+        'user_subscription_id': {
+          'title': 'User subscription id in the database',
+          'type': 'string',
+        },
+        'api_key': {
+          'title': 'API key',
+          'type': 'string',
+        },
+        'fly_from': {
+          'title': 'Departure airport',
+          'description': 'The id of the departure airport',
+          'type': 'string',
+        },
+        'fly_to': {
+          'title': 'Arrival airport',
+          'description': 'The id of the arrival airport',
+          'type': 'string',
+        },
+        'date_from': {
+          'title': 'Earliest flight departure',
+          'type': 'string',
+          'format': 'date',
+        },
+        'date_to': {
+          'title': 'Latest flight arrival',
+          'type': 'string',
+          'format': 'date',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+      ],
+    };
+    return ajv.compile(adminEditSubscriptionRequestSchema);
+  },
+
+  getValidateAdminEditSubscriptionRes: function () {
+    const adminEditSubscriptionResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_edit_subscription',
+      'title': 'admin_edit_subscription response',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'type': 'string',
+        },
+      },
+      'required': [
+        'status_code',
+      ],
+    };
+    return ajv.compile(adminEditSubscriptionResponseSchema);
   },
 };

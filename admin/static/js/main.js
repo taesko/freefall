@@ -88,7 +88,7 @@ function main () {
   const getValidatorMsg = function (validator) {
     assertApp(_.isObject(validator), {
       msg: 'Expected validator to be an object, but was ' + typeof validator, // eslint-disable-line prefer-template
-    }); // eslint-disable-line prefer-template
+    });
     assertApp(
       validator.errors instanceof Array ||
       validator.errors === null, {
@@ -343,20 +343,22 @@ function main () {
       msg: 'Expected result id to be a string with length > 0, but length is ' + idResult.length, // eslint-disable-line prefer-template
     });
 
+    assertApp(!isNaN(idResult), {
+      msg: 'Expected element unique id to be a number, but its value was: ' + idResult, // eslint-disable-line prefer-template
+    })
+
     return idResult;
   };
 
   const onCloseMessageClick = function (event) {
     const closeMessageButton = event.target;
 
-    console.log(closeMessageButton);
-
     const uniqueId = getElementUniqueId(closeMessageButton, 'close-msg-btn-');
     $('#msg-' + uniqueId).remove(); // eslint-disable-line prefer-template
   };
 
-  // const SERVER_URL = '/';
-  const SERVER_URL = 'http://127.0.0.1:3000';
+  const SERVER_URL = '/api';
+  // const SERVER_URL = 'http://127.0.0.1:3000';
   const MAX_TRACE = 300;
   var $messagesList; // eslint-disable-line no-var
   const validateSendErrorReq = validators.getValidateSendErrorReq();

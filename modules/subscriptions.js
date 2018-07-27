@@ -1,15 +1,16 @@
-const { log } = require('./utils');
+const log = require('./log');
 const errors = require('./error-handling');
 const db = require('./db');
 
 async function subscribeUser (
-  user,
+  userId,
   {
     airportFromId,
     airportToId,
     dateFrom,
     dateTo,
   }) {
+  // TODO validate dates.
   const globalSub = await getGlobalSubscription(airportFromId, airportToId);
   let globalSubId;
 
@@ -19,58 +20,122 @@ async function subscribeUser (
     globalSubId = globalSub.id;
   }
 
-  // TODO wat ?
-  // can raise exception because database failed
-  // can also raise exception because UNIQUE constraints failed (user is already subscribed)
-  // both are an AppError ?
+  const [sub] = await db.selectWhere(
+    'user_subscriptions',
+    '*',
+    {
+      user_id: userId,
+      subscription_id: globalSubId,
+      date_from: dateFrom,
+      date_to: dateTo,
+    },
+  );
+
+  if (sub) {
+    errors.assertPeer(
+      sub.active === 0,
+      `Cannot subscribe userId=${userId}, because subscription with id=${sub.id} already has the same filters.`,
+      errors.errorCodes.subscriptionExists,
+    );
+
+    const result = await db.updateWhere(
+      'user_subscriptions',
+      {
+        active: 1,
+      },
+      {
+        id: sub.id,
+      },
+    );
+
+    errors.assertApp(
+      result.stmt.changes,
+      `Failed to re-activate user subscription with id ${sub.id}`,
+      errors.errorCodes.databaseError,
+    );
+
+    return sub.id;
+  }
+
   return db.insert(
     'user_subscriptions',
     {
-      user_id: user.id,
+      user_id: userId,
       subscription_id: globalSubId,
       fetch_id_of_last_send: null,
       date_from: dateFrom,
       date_to: dateTo,
-    }
+    },
+  );
+}
+
+async function updateUserSubscription (
+  userSubscriptionId,
+  {
+    airportFromId,
+    airportToId,
+    dateFrom,
+    dateTo,
+  }) {
+  // TODO ask ivan about differences between throwing exceptions and getting null instead of object
+  // advantages to throwing is that the exception is built from inside the function and has more
+  // information
+  const globalSubscriptionId = await getGlobalSubscription(
+    airportFromId,
+    airportToId,
+  ).then(s => {
+    return (s != null) ? s.id : subscribeGlobally(airportFromId, airportToId);
+  });
+
+  const result = await db.updateWhere(
+    'user_subscriptions',
+    {
+      subscription_id: globalSubscriptionId,
+      date_from: dateFrom,
+      date_to: dateTo,
+      active: 1,
+    },
+    {
+      id: userSubscriptionId,
+    },
+  );
+
+  errors.assertPeer(
+    result.stmt.changes,
+    `User subscription with id ${userSubscriptionId} does not exist.`,
+    errors.errorCodes.subscriptionDoesNotExist,
   );
 }
 
 async function removeUserSubscription (userSubscriptionId) {
-  const result = await db.executeRun(
-    `
-      DELETE
-      FROM user_subscriptions
-      WHERE id = ?
-    `,
-    [userSubscriptionId],
+  const result = await db.updateWhere('user_subscriptions',
+    { active: 0 },
+    { id: userSubscriptionId },
   );
-  // TODO assert peer or assert app ?
-  log('result of removal is: ', result);
+
   errors.assertPeer(
-    result.stmt.changes,
-    `Failed to remove user subscription with id ${userSubscriptionId}. Subscription doesn't exist`,
+    result.stmt.changes > 0,
+    `User subscription with id ${userSubscriptionId} does not exist.`,
+    errors.errorCodes.subscriptionDoesNotExist,
   );
 }
 
-async function removeAllSubscriptionsOfUser (user) {
-  return db.executeRun(
-    `
-      DELETE
-      FROM user_subscriptions
-      WHERE user_id = ?
-    `,
-    [user.id],
+async function removeAllSubscriptionsOfUser (userId) {
+  // TODO circular dependency
+  const [exists] = await db.selectWhere('users', '*', { id: userId });
+
+  errors.assertPeer(
+    exists,
+    `User with id ${userId} does not exist.`,
+    errors.errorCodes.userDoesNotExist,
   );
+
+  return db.updateWhere('user_subscriptions', { active: 0 }, { user_id: userId });
 }
-async function listUserSubscriptions (user) {
-  return db.executeAll(
-    `
-      SELECT * 
-      FROM user_subscriptions
-      WHERE user_subscriptions.user_id=?
-    `,
-    user.id,
-  );
+
+async function listUserSubscriptions (userId) {
+  // TODO no longer valid because users can be inactive
+  return db.selectWhere('user_subscriptions', '*', { user_id: userId, active: 1 });
 }
 
 async function listGlobalSubscriptions () {
@@ -87,11 +152,6 @@ async function getGlobalSubscription (airportFromId, airportToId) {
     },
   );
 
-  // errors.assertApp(
-  //   resultRows.length > 0,
-  //   `Doesn't exist a global subscription where ids are: from=${airportFromId}, to=${airportToId}`,
-  // );
-
   return resultRows[0];
 }
 
@@ -100,13 +160,13 @@ async function globalSubscriptionExists (airportFromId, airportToId) {
 }
 
 async function subscribeGlobally (airportFromId, airportToId) {
-  log('Subscribing globally to airports', airportFromId, airportToId);
+  log.info('Subscribing globally to airports', airportFromId, airportToId);
   airportFromId = +airportFromId;
   airportToId = +airportToId;
 
   errors.assertApp(
     !await globalSubscriptionExists(airportFromId, airportToId),
-    `Cannot subscribe globally to airports with ids ${airportFromId}, ${airportToId}. Subscription already exists.`
+    `Cannot subscribe globally to airports with ids ${airportFromId}, ${airportToId}. Subscription already exists.`,
   );
 
   return db.insert(
@@ -114,7 +174,7 @@ async function subscribeGlobally (airportFromId, airportToId) {
     {
       airport_from_id: airportFromId,
       airport_to_id: airportToId,
-    }
+    },
   );
 }
 
@@ -122,6 +182,8 @@ module.exports = {
   subscribeUser,
   removeUserSubscription,
   removeAllSubscriptionsOfUser,
+  updateUserSubscription,
   listUserSubscriptions,
+  subscribeGlobally,
   listGlobalSubscriptions,
 };

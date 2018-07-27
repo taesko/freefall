@@ -7,9 +7,10 @@ const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
 const session = require('koa-session');
-const { log } = require('./modules/utils');
+const log = require('./modules/log');
 const auth = require('./modules/auth');
 const db = require('./modules/db');
+const users = require('./modules/users');
 const { getAdminContext } = require('./modules/render-contexts');
 const { rpcAPILayer } = require('./modules/api');
 
@@ -26,7 +27,7 @@ app.use(async (ctx, next) => {
   try {
     await next();
   } catch (e) {
-    log('Unhandled error reached the top layer.', e);
+    log.critical('Unhandled error reached the top layer.', e);
     ctx.status = 500;
     ctx.body = `An unknown error occurred. Please restart the server and refresh the page.\n${e}`;
     ctx.app.emit('error', e, ctx);
@@ -96,19 +97,20 @@ router.post('/login', async (ctx) => {
   try {
     if (ctx.request.body.email !== 'admin@freefall.org') {
       // noinspection ExceptionCaughtLocallyJS
-      throw auth.InvalidCredentials('Tried to login with a non-admin account.');
+      throw new auth.InvalidCredentials('Tried to login with a non-admin account.');
     }
-    await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
+    const { email, password } = ctx.request.body;
+    await auth.login(ctx, email, password);
     ctx.redirect('/');
 
     return;
   } catch (e) {
     if (e instanceof auth.AlreadyLoggedIn) {
-      log('User already logged in. Redirect to /');
+      log.info('User already logged in. Redirect to /');
       ctx.redirect('/');
       return;
     } else if (e instanceof auth.InvalidCredentials) {
-      log('Invalid credentials on login. Setting ctx.state.login_error_message');
+      log.info('Invalid credentials on login. Setting ctx.state.login_error_message');
       ctx.state.login_error_message = 'Invalid username or password.';
     } else {
       throw e;
@@ -116,6 +118,14 @@ router.post('/login', async (ctx) => {
   }
 
   return ctx.redirect('/login', { error_message: ctx.state.login_error_message });
+});
+
+router.get('/logout', async (ctx) => {
+  if (await auth.isLoggedIn(ctx)) {
+    await auth.logout(ctx);
+  }
+
+  ctx.redirect('/');
 });
 
 router.get('/subscriptions', async (ctx) => {
@@ -134,12 +144,20 @@ router.get('/users', async (ctx) => {
   return ctx.render('users.html', await getAdminContext(ctx, 'get', '/users'));
 });
 
-router.get('/users/:user_id:', async (ctx) => {
+router.get('/users/:user_id', async (ctx) => {
   if (!await auth.isLoggedIn(ctx)) {
     ctx.redirect('/');
     return;
   }
-  return ctx.render('user.html', {});
+
+  const defaultContext = await getAdminContext(ctx, 'get', '/users/:user_id');
+  const user = await users.fetchUser({ userId: ctx.params.user_id });
+
+  if (!user) {
+    ctx.status = 404;
+  } else {
+    return ctx.render('user.html', Object.assign(defaultContext, { user_credentials: user }));
+  }
 });
 
 router.get('/fetches', async (ctx) => {
@@ -147,7 +165,10 @@ router.get('/fetches', async (ctx) => {
     ctx.redirect('/');
     return;
   }
-  return ctx.render('fetches.html', await getAdminContext(ctx, 'get', '/fetches'));
+  const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
+  const fetches = await db.select('fetches');
+
+  return ctx.render('fetches.html', Object.assign(defaultContext, { fetches }));
 });
 
 router.post('/api', rpcAPILayer);

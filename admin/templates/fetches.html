@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fetches</title>
+  <link href="../css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<!--   <link href="../css/style.css" rel="stylesheet"> -->
+</head>
+<body>
+  <div class="container">
+    {{> heading }}
+    {{> menu }}
+    <table id="fetches-table" class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each fetches}}
+        <tr>
+          <td>
+            {{this.id}}
+          </td>
+          <td>
+            {{this.timestamp}}
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+<!--     <p id="no-fetches-msg" class="text-center" hidden="true">No fetches found</p> -->
+  </div>
+</body>
+</html>

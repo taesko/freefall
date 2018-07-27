@@ -118,13 +118,13 @@ function start () {
       .toString();
 
     if (hours.length < 2) {
-      hours += '0';
+      hours = '0' + hours;
     }
 
     var minutes = date.getUTCMinutes().toString(); // eslint-disable-line no-var
 
     if (minutes.length < 2) {
-      minutes += '0';
+      minutes = '0' + minutes;
     }
 
     return '' + hours + ':' + minutes + ''; // eslint-disable-line prefer-template
@@ -205,10 +205,12 @@ function start () {
       .removeAttr('id')
       .removeClass('hidden');
 
-    var duration = flight.atime.getTime() - flight.dtime.getTime(); // eslint-disable-line no-var
+    var duration = Math.abs(flight.atime - flight.dtime); // eslint-disable-line no-var
 
-    duration = (duration / 1000 / 60 / 60).toFixed(2);
-    duration = ('' + duration + ' hours').replace(':'); // eslint-disable-line prefer-template
+    const hours = Math.floor(duration / 1000 / 60 / 60);
+    const minutes = (duration / 1000 / 60) % 60;
+
+    duration = hours + ' h, ' + minutes + ' m'; // eslint-disable-line prefer-template
 
     $clone.find('.airline-logo')
       .attr('src', flight.airline_logo);
@@ -261,9 +263,11 @@ function start () {
 
     assertUser(_.isObject(airportFrom), {
       msg: 'Could not find airport "' + formData.from + '"', // eslint-disable-line prefer-template
+      userMessage: 'Could not find airport "' + formData.from + '"', // eslint-disable-line prefer-template
     });
     assertUser(_.isObject(airportTo), {
       msg: 'Could not find airport "' + formData.to + '"', // eslint-disable-line prefer-template
+      userMessage: 'Could not find airport "' + formData.from + '"', // eslint-disable-line prefer-template
     });
 
     searchFormParams.fly_from = airportFrom.id;
@@ -363,8 +367,6 @@ function start () {
 
       event.preventDefault();
 
-      $submitBtn.prop('disabled', true);
-
       var formParams; // eslint-disable-line no-var
 
       try {
@@ -373,6 +375,8 @@ function start () {
         handleError(e);
         return false;
       }
+
+      $submitBtn.prop('disabled', true);
 
       search(formParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
         if (result.status_code >= 1000 && result.status_code < 2000) {

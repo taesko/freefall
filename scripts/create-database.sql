@@ -41,6 +41,7 @@ CREATE TABLE user_subscriptions (
     fetch_id_of_last_send integer,
     date_from text NOT NULL,
     date_to text NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
     UNIQUE(user_id, subscription_id, date_from, date_to),
     -- CHECK(date_from < date_to) ???
     FOREIGN KEY(subscription_id) REFERENCES subscriptions(id),
@@ -52,8 +53,9 @@ CREATE TABLE users (
     id integer PRIMARY KEY,
     email text NOT NULL,
     password text NOT NULL,
-    api_key text NOT NULL,
+    api_key text UNIQUE NOT NULL,
     role text NOT NULL,
+    active integer NOT NULL DEFAULT 1, -- 0 or 1 bool
     UNIQUE(email)
 );
 
