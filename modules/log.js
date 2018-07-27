@@ -4,54 +4,44 @@ const INFO = 'INFO';
 const WARNING = 'WARNING';
 const CRITICAL = 'CRITICAL';
 const ERROR = 'ERROR';
-const ORDER = [DEBUG, INFO, WARNING, CRITICAL];
+const ORDER = [DEBUG, INFO, WARNING, ERROR, CRITICAL];
 
 function logLevel () {
-  return {
-    DEBUG,
-    INFO,
-    WARNING,
-    CRITICAL,
-  }[process.env.FREEFALL_LOG_LEVEL] || INFO;
+  return ORDER.find(lvl => lvl === process.env.FREEFALL_LOG_LEVEL) || INFO;
 }
 
 function shouldPrintLevel (level) {
   return ORDER.indexOf(level) >= ORDER.indexOf(logLevel());
 }
 
-function log (level, ...messages) {
-  if (level !== ERROR && !shouldPrintLevel(level)) {
-    return;
-  }
-  const logFunc = {
-    DEBUG: console.debug,
-    INFO: console.log,
-    WARNING: console.warn,
-    CRITICAL: console.error,
-    ERROR: console.exception,
-  }[level];
-
-  logFunc(...messages);
-}
-
 function debug (...messages) {
-  log(DEBUG, ...messages);
+  if (shouldPrintLevel(DEBUG)) {
+    console.debug(...messages);
+  }
 }
 
 function info (...messages) {
-  log(INFO, ...messages);
+  if (shouldPrintLevel(INFO)) {
+    console.info(...messages);
+  }
 }
 
 function warn (...messages) {
-  log(WARNING, ...messages);
+  if (shouldPrintLevel(WARNING)) {
+    console.warn(...messages);
+  }
 }
 
 function critical (...messages) {
-  log(CRITICAL, ...messages);
+  if (shouldPrintLevel(CRITICAL)) {
+    console.error(...messages);
+  }
 }
 
 function error (...messages) {
-  log(ERROR);
+  if (shouldPrintLevel(ERROR)) {
+    console.error('Exception occurred:', ...messages);
+  }
 }
 
 module.exports = {
@@ -60,4 +50,4 @@ module.exports = {
   warn,
   critical,
   error,
-}
+};
