@@ -847,48 +847,8 @@ function start () {
 
       const airportNames = airports.map(toAirportName);
 
-      // userSubscriptions = [
-      //   {
-      //     id: '2',
-      //     user: {
-      //       id: '5',
-      //       email: 'sample@text.com',
-      //     },
-      //     fly_from: '2',
-      //     fly_to: '3',
-      //     date_from: '2018-07-23',
-      //     date_to: '2018-10-23',
-      //   },
-      //   {
-      //     id: '3',
-      //     user: {
-      //       id: '6',
-      //       email: 'sample@yahoo.com',
-      //     },
-      //     fly_from: '3',
-      //     fly_to: '2',
-      //     date_from: '2018-08-23',
-      //     date_to: '2018-11-23',
-      //   },
-      // ];
-      // guestSubscriptions = [
-      //   {
-      //     id: '4',
-      //     fly_from: '1',
-      //     fly_to: '5',
-      //   },
-      //   {
-      //     id: '6',
-      //     fly_from: '1',
-      //     fly_to: '18',
-      //   },
-      // ];
-
       $userSubscriptionsTab.click(onUserSubscriptionsTabClick);
       $guestSubscriptionsTab.click(onGuestSubscriptionsTabClick);
-
-      // renderUserSubscriptions($('#user-subscriptions-table'));
-      // renderGuestSubscriptions($('#guest-subscriptions-table'));
 
       applyAutocomplete(airportNames);
     });

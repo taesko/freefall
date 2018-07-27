@@ -345,7 +345,7 @@ function main () {
 
     assertApp(!isNaN(idResult), {
       msg: 'Expected element unique id to be a number, but its value was: ' + idResult, // eslint-disable-line prefer-template
-    })
+    });
 
     return idResult;
   };
