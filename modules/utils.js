@@ -35,7 +35,7 @@ async function requestJSON (url, parameters) {
   return response.json();
 }
 
-async function hashFromEntries (entries) {
+function hashFromEntries (entries) {
   return entries.reduce(
     (hash, [key, value]) => {
       hash[key] = value;
@@ -45,10 +45,10 @@ async function hashFromEntries (entries) {
   );
 }
 
-async function cleanHash (hash) {
+function cleanHash (hash) {
   const result = {};
 
-  for (const [key, value] of Object.entries(result)) {
+  for (const [key, value] of Object.entries(hash)) {
     if (value !== undefined) {
       result[key] = value;
     }
