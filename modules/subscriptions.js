@@ -121,6 +121,7 @@ async function removeUserSubscription (userSubscriptionId) {
 }
 
 async function removeAllSubscriptionsOfUser (userId) {
+  // TODO circular dependency
   const [exists] = await db.selectWhere('users', '*', { id: userId });
 
   errors.assertPeer(
@@ -133,6 +134,7 @@ async function removeAllSubscriptionsOfUser (userId) {
 }
 
 async function listUserSubscriptions (userId) {
+  // TODO no longer valid because users can be inactive
   return db.selectWhere('user_subscriptions', '*', { user_id: userId, active: 1 });
 }
 

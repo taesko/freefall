@@ -10,6 +10,7 @@ const session = require('koa-session');
 const log = require('./modules/log');
 const auth = require('./modules/auth');
 const db = require('./modules/db');
+const users = require('./modules/users');
 const { getAdminContext } = require('./modules/render-contexts');
 const { rpcAPILayer } = require('./modules/api');
 
@@ -98,7 +99,8 @@ router.post('/login', async (ctx) => {
       // noinspection ExceptionCaughtLocallyJS
       throw new auth.InvalidCredentials('Tried to login with a non-admin account.');
     }
-    await auth.login(ctx, ctx.request.body.email, ctx.request.body.password);
+    const { email, password } = ctx.request.body;
+    await auth.login(ctx, email, password);
     ctx.redirect('/');
 
     return;
@@ -149,7 +151,7 @@ router.get('/users/:user_id', async (ctx) => {
   }
 
   const defaultContext = await getAdminContext(ctx, 'get', '/users/:user_id');
-  const user = await auth.fetchUserById(ctx.params.user_id);
+  const user = await users.fetchUser({ userId: ctx.params.user_id });
 
   if (!user) {
     ctx.status = 404;

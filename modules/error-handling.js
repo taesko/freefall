@@ -30,6 +30,7 @@ const errorCodes = {
   notEnoughPermissions: '2210',
   unknownAirport: '2900',
   databaseError: '4000',
+  badFunctionArgs: '4100',
 };
 
 function assertApp (assert, errMsg, errCode) {
