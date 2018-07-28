@@ -50,7 +50,7 @@ CREATE TABLE subscriptions_fetches (
 );
 
 CREATE TABLE users (
-  id integer PRIMARY KEY NOT NULL,
+  id serial PRIMARY KEY NOT NULL,
   email text NOT NULL,
   password text NOT NULL,
   api_key text UNIQUE NOT NULL,
@@ -79,10 +79,10 @@ CREATE TABLE user_subscriptions (
 CREATE TABLE routes (
   id serial PRIMARY KEY NOT NULL,
   booking_token text NOT NULL UNIQUE,
-  fetch_id integer NOT NULL,
+  subscription_fetch_id integer NOT NULL,
   price integer NOT NULL, -- stored as cents
   CHECK(price >= 0),
-  FOREIGN KEY(fetch_id) REFERENCES fetches(id) ON DELETE CASCADE
+  FOREIGN KEY(subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE CASCADE
 );
 
 CREATE TABLE flights (
