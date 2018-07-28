@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS route_account_transfers;
+DROP TABLE IF EXISTS subscription_account_transfers;
 DROP TABLE IF EXISTS account_transfers;
 DROP TABLE IF EXISTS routes_flights;
 DROP TABLE IF EXISTS flights;
@@ -81,6 +81,7 @@ CREATE TABLE routes (
   booking_token text NOT NULL UNIQUE,
   fetch_id integer NOT NULL,
   price integer NOT NULL, -- stored as cents
+  CHECK(price >= 0),
   FOREIGN KEY(fetch_id) REFERENCES fetches(id) ON DELETE CASCADE
 );
 
@@ -116,10 +117,10 @@ CREATE TABLE account_transfers (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE route_account_transfers (
+CREATE TABLE subscription_account_transfers (
   id serial PRIMARY KEY NOT NULL,
-  account_transfer_id integer NOT NULL,
-  route_id integer NOT NULL,
+  account_transfer_id integer NOT NULL UNIQUE,
+  subscription_id integer NOT NULL,
   FOREIGN KEY (account_transfer_id) REFERENCES account_transfers(id) ON DELETE CASCADE,
-  FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE
+  FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
 );
