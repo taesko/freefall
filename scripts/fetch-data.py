@@ -127,8 +127,6 @@ def select_where(conn, table, columns, where):
 
     whereCol = list(where.keys())[0]
 
-    print('SELECT {0} FROM {1} WHERE {2} = %s;'.format(stringify_columns(columns), table, whereCol))
-
     c.execute('SELECT {0} FROM {1} WHERE {2} = %s;'.format(stringify_columns(columns), table, whereCol), [where[whereCol]])
 
     result = c.fetchall()
@@ -177,42 +175,42 @@ def insert(conn, table, data):
     assert_app(isinstance(data, dict), 'Expected argument "data" in insert function to be dict, but was {0}'.format(type(data)))
     assert_app(conn, 'insert function called without connection to db.')
 
-    c = conn.cursor()
-
     columns = list(data.keys())
     values = tuple(data.values())
 
     rowStringified = ', '.join(['%s'] * len(columns))
 
-    c.execute('INSERT INTO {0} ({1}) VALUES ({2});'.format(table, stringify_columns(columns), rowStringified), values)
-
-    assert_app(isinstance(c.lastrowid, int), 'Expected lastrowid in insert function to be int, but was {0}'.format(type(c.lastrowid)))
-
-    id_inserted = c.lastrowid
-
+    c = conn.cursor()
+    c.execute('INSERT INTO {0} ({1}) VALUES ({2}) RETURNING id;'.format(table, stringify_columns(columns), rowStringified), values)
     conn.commit()
+
+    insert_return = c.fetchone()
+
+    assert_app(isinstance(insert_return, dict), 'Expected insert_return to be a dict, but was {0}'.format(type(insert_return)))
+    assert_app('id' in insert_return, 'insert_return does not have a key "id"')
+    assert_app(isinstance(insert_return['id'], int), 'Expected insert_return["id"] to be an int, but was {0}'.format(type(insert_return['id'])))
+
     c.close()
 
-    return id_inserted
+    return insert_return['id']
 
 
-def insert_data_fetch(conn, subscription_id):
-    assert_app(isinstance(subscription_id, int), 'Expected argument "subscription_id" in insert_data_fetch function to be int, but was {0}'.format(type(subscription_id)))
+def insert_data_fetch(conn):
     assert_app(conn, 'insert_data_fetch function called without connection to db.')
 
     c = conn.cursor()
-
-    c.execute('INSERT INTO fetches(timestamp, subscription_id) VALUES (strftime(\'%Y-%m-%dT%H:%M:%SZ\' ,\'now\'), %s);', (subscription_id))
-
-    assert_app(isinstance(c.lastrowid, int), 'Expected lastrowid in insert_data_fetch function to be int, but was {0}'.format(type(c.lastrowid)))
-
-    id_inserted = c.lastrowid
-
+    c.execute('INSERT INTO fetches(fetch_time) VALUES (now()) RETURNING id;');
     conn.commit()
+
+    insert_return = c.fetchone()
+
+    assert_app(isinstance(insert_return, dict), 'Expected insert_return to be a dict, but was {0}'.format(type(insert_return)))
+    assert_app('id' in insert_return, 'insert_return does not have a key "id"')
+    assert_app(isinstance(insert_return['id'], int), 'Expected insert_return["id"] to be an int, but was {0}'.format(type(insert_return['id'])))
 
     c.close()
 
-    return id_inserted
+    return insert_return['id']
 
 
 def insert_if_not_exists(conn, table, data, exists_check):
@@ -263,7 +261,7 @@ def insert_if_not_exists_sub(conn, airport_from_id , airport_to_id):
     return True
 
 
-def get_subscription_data(conn, airport_end_points, fetch_id):
+def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
     for label, end_point in airport_end_points.items():
         assert_app(
             isinstance(end_point, str),
@@ -369,7 +367,7 @@ def get_subscription_data(conn, airport_end_points, fetch_id):
 
                 assert_app(isinstance(select_result, list), 'Expected airports select result to be a list, but was {0}'.format(type(select_result)))
                 assert_app(len(select_result) == 1, 'Expected only one airports select result, but got {0}'.format(len(select_result)))
-                assert_app(isinstance(select_result[0], sqlite3.Row), 'Expected element in airport select result to be sqlite3.Row, but was {0}'.format(select_result[0]))
+                assert_app(isinstance(select_result[0], psycopg2.extras.RealDictRow), 'Expected element in airport select result to be psycopg2.extras.RealDictRow, but was {0}'.format(select_result[0]))
                 assert_app('id' in select_result[0].keys(), 'Key "id" not found in airport select result.')
                 assert_app(isinstance(select_result[0]['id'], int), 'Expected id in airport select result element to be int, but was {0}'.format(select_result[0]['id']))
 
@@ -381,7 +379,7 @@ def get_subscription_data(conn, airport_end_points, fetch_id):
 
             assert_app(isinstance(airline_id_result, list), 'Expected airline select result to be a list, but was {0}'.format(type(airline_id_result)))
             assert_app(len(airline_id_result) == 1, 'Expected only one airline select result, but got {0}'.format(len(airline_id_result)))
-            assert_app(isinstance(airline_id_result[0], sqlite3.Row), 'Expected element in airline select result to be sqlite3.Row, but was {0}'.format(airline_id_result[0]))
+            assert_app(isinstance(airline_id_result[0], psycopg2.extras.RealDictRow), 'Expected element in airline select result to be psycopg2.extras.RealDictRow, but was {0}'.format(airline_id_result[0]))
             assert_app('id' in airline_id_result[0].keys(), 'Key "id" not found in airline id result.')
             assert_app(isinstance(airline_id_result[0]['id'], int), 'Expected id in airline select result element to be int, but was {0}'.format(airline_id_result[0]['id']))
 
@@ -415,7 +413,7 @@ def get_subscription_data(conn, airport_end_points, fetch_id):
             route_id = insert(conn, 'routes', {
                 'booking_token': route['booking_token'],
                 'price': to_smallest_currency_unit(route['price']),
-                'fetch_id': fetch_id
+                'subscription_fetch_id': subscription_fetch_id
             })
 
             for flight in route['route']:
@@ -433,14 +431,14 @@ def get_subscription_data(conn, airport_end_points, fetch_id):
 
                 assert_app(isinstance(flight_id_results, list), 'Expected flight_id_results to be a list, but was {0}'.format(type(flight_id_results)))
                 assert_app(len(flight_id_results) == 1, 'Expected only one flight_id_result, but got {0}'.format(len(flight_id_results)))
-                assert_app(isinstance(flight_id_results[0], sqlite3.Row), 'Expected element in flight_id_results to be sqlite3.Row, but was {0}'.format(type(flight_id_results[0])))
+                assert_app(isinstance(flight_id_results[0], psycopg2.extras.RealDictRow), 'Expected element in flight_id_results to be psycopg2.extras.RealDictRow, but was {0}'.format(type(flight_id_results[0])))
                 assert_app('id' in flight_id_results[0].keys(), 'Key "id" not found in flight_id_results element')
                 assert_app(isinstance(flight_id_results[0]['id'], int), 'Flight id is not an int, but a {0}'.format(flight_id_results[0]['id']))
 
                 insert(conn, 'routes_flights', {
                     'flight_id': flight_id_results[0]['id'],
                     'route_id': route_id,
-                    'is_return': flight['return']
+                    'is_return': bool(flight['return'])
                 })
 
         if isinstance(response['_next'], str):
@@ -460,7 +458,7 @@ def get_airport_if_not_exists(conn, iata_code):
 
     if len(airports) > 0:
         assert_app(len(airports) == 1, 'Expected one airport, but got {0}'.format(len(airports)))
-        assert_app(isinstance(airports[0], sqlite3.Row), 'Expected airport data to be sqlite3.Row, but got {0}'.format(type(airports[0])))
+        assert_app(isinstance(airports[0], psycopg2.extras.RealDictRow), 'Expected airport data to be psycopg2.extras.RealDictRow, but got {0}'.format(type(airports[0])))
         assert_app('id' in airports[0].keys(), 'Key "id" not found in dict airports[0]')
         assert_app(
             isinstance(airports[0]['id'], int),
@@ -543,11 +541,12 @@ def start():
         isinstance(subscriptions, list),
         'Expected subscriptions to be a list, but was "{0}"'.format(type(subscriptions)))
 
+    fetch_id = insert_data_fetch(conn)
 
     for sub in subscriptions:
         assert_app(
-            isinstance(sub, sqlite3.Row),
-            'Expected subscription to be sqlite3.Row, but was "{0}"'.format(type(sub)))
+            isinstance(sub, psycopg2.extras.RealDictRow),
+            'Expected subscription to be psycopg2.extras.RealDictRow, but was "{0}"'.format(type(sub)))
 
         expect_subscription_keys = ['id', 'airport_from_id', 'airport_to_id']
 
@@ -557,7 +556,10 @@ def start():
                 isinstance(sub[key], int),
                 'Expected sub[{0}] "{1}" to be int, but was "{2}"'.format(key, sub[key], type(sub[key])))
 
-        fetch_id = insert_data_fetch(conn, sub['id'])
+        subscription_fetch_id = insert(conn, 'subscriptions_fetches', {
+            'subscription_id': sub['id'],
+            'fetch_id': fetch_id
+        });
 
         airport_from = select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
             'id': sub['airport_from_id']
@@ -568,7 +570,7 @@ def start():
 
         # TODO assert airport_from and airport_to
 
-        get_subscription_data(conn, {'airport_from': airport_from[0]['iata_code'], 'airport_to': airport_to[0]['iata_code']}, fetch_id)
+        get_subscription_data(conn, {'airport_from': airport_from[0]['iata_code'], 'airport_to': airport_to[0]['iata_code']}, subscription_fetch_id)
 
         log('Done.')
 

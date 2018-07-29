@@ -175,9 +175,13 @@ function start () {
       'Unexpected type of $row ' + typeof $row, // eslint-disable-line prefer-template
     );
 
-    var rowId = // eslint-disable-line no-var
-      ($row == null) ? String(getUniqueId())
-        : getElementUniqueId($row[0], 'user-');
+    var rowId; // eslint-disable-line no-var
+
+    if ($row == null) {
+      rowId = String(getUniqueId());
+    } else {
+      rowId = getElementUniqueId($row[0], 'user-');
+    }
 
     rowIdUserMap[rowId] = user;
 
@@ -359,12 +363,33 @@ function start () {
 
     saveButton.disabled = true;
 
+    // function lock(func) {
+    //   var flag = false;
+    //   function wrapped(...args) {
+    //     if (flag) {
+    //       throw;
+    //     }
+    //     flag = true;
+    //     try {
+    //       result = func(...args)
+    //     } finally {
+    //       flag = false;
+    //     }
+    //     return result;
+    //   }
+    //   return wrapped;
+    // }
+
+    // adminEditUser(params, asdfasdf, lock(function(result) {
+    //   console.log(result);
+    // }))
+
     adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      saveButton.disabled = false;
+
       if (result.status_code === 2000) {
         displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       } else if (result.status_code >= 1000 && result.status_code < 2000) {
-        saveButton.disabled = false;
-
         const newUser = {
           id: user.id,
           email: (newEmail.length > 0) ? newEmail : user.email,
