@@ -10,7 +10,7 @@ const session = require('koa-session');
 const db = require('./modules/db');
 const auth = require('./modules/auth');
 const users = require('./modules/users');
-const { rpcAPILayer } = require('./modules/api');
+const { rpcAPILayer, daliPecheAPI } = require('./modules/api');
 const log = require('./modules/log');
 const { getContextForRoute } = require('./modules/render-contexts');
 
@@ -200,6 +200,8 @@ router.get('/profile', async (ctx) => {
 });
 
 router.post('/', rpcAPILayer);
+
+router.post('/api/dalipeche', daliPecheAPI);
 
 app.use(router.routes());
 
