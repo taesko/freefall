@@ -1,10 +1,11 @@
 const { defineParsers, jsonParser, yamlParser } = require('./normalize');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./validate');
-const { PeerError, UserError } = require('./error-handling');
+const { PeerError, UserError, assertPeer } = require('./error-handling');
 const compose = require('koa-compose');
 const methods = require('../methods/resolve-method');
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./protocol');
 const log = require('./log');
+const forecast = require('./forecast');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 
@@ -60,6 +61,7 @@ async function api (ctx, next) {
   });
   log.info('Getting post request to api. Format specified by peer is: ', format);
   const protocol = `${format}rpc`;
+  // koa body has already parsed the json
   const parsed = format === 'json' ? ctx.request.body : multiParser.parse(ctx.request.body, format);
   ctx.state.api.requestId = parsed.id;
 
@@ -109,17 +111,31 @@ async function daliPecheErrorHandling (ctx, next) {
       response.msg = "Couldn't connect to DaliPeche service. Because the service did not reply.";
       response.code = e.code;
     } else {
-      response.msg = "Couldn't connect to DaliPeche service. Try again later.";
-      response.code = e.code;
+      throw e;
     }
 
     ctx.body = response;
   }
 }
 
-async function daliPecheAPI (ctx, next) {
+async function daliPecheAPI (ctx) {
+  const { key, city, iataCode } = ctx.request.body;
+  assertPeer(city ^ iataCode, 'Need to specify only one of city or iataCode params.');
+
+  const bodyParams = { key };
+
+  if (city) {
+    assertPeer(typeof city === 'string', 'city param must be a string.');
+    bodyParams.city = city;
+  } else {
+    assertPeer(typeof iataCode === 'string', 'iataCode param must be a string.');
+    bodyParams.iataCode = iataCode;
+  }
+
+  ctx.body = await forecast.fetchForecast(bodyParams);
 }
 
 module.exports = {
   rpcAPILayer: compose([errorHandling, api]),
+  daliPecheAPI: compose([daliPecheErrorHandling, daliPecheAPI]),
 };
