@@ -1,15 +1,18 @@
-DROP TABLE IF EXISTS subscription_account_transfers;
+DROP TABLE IF EXISTS subscriptions_fetches_account_transfers;
 DROP TABLE IF EXISTS account_transfers;
 DROP TABLE IF EXISTS routes_flights;
 DROP TABLE IF EXISTS flights;
 DROP TABLE IF EXISTS routes;
-DROP TABLE IF EXISTS user_subscriptions;
+DROP TABLE IF EXISTS users_subscriptions;
 DROP TABLE IF EXISTS subscriptions_fetches;
 DROP TABLE IF EXISTS fetches;
 DROP TABLE IF EXISTS subscriptions;
 DROP TABLE IF EXISTS airports;
 DROP TABLE IF EXISTS airlines;
 DROP TABLE IF EXISTS users;
+DROP TYPE IF EXISTS user_role;
+
+CREATE TYPE user_role AS ENUM ('admin', 'customer');
 
 CREATE TABLE airports (
   id serial PRIMARY KEY NOT NULL,
@@ -54,14 +57,14 @@ CREATE TABLE users (
   email text NOT NULL,
   password text NOT NULL,
   api_key text UNIQUE NOT NULL,
-  role text NOT NULL,
+  role user_role NOT NULL,
   active boolean NOT NULL DEFAULT TRUE,
   credits integer NOT NULL DEFAULT 0,
   CHECK(credits >= 0),
   UNIQUE(email)
 );
 
-CREATE TABLE user_subscriptions (
+CREATE TABLE users_subscriptions (
   id serial PRIMARY KEY NOT NULL,
   user_id integer NOT NULL,
   subscription_id integer NOT NULL,
@@ -117,10 +120,10 @@ CREATE TABLE account_transfers (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE subscription_account_transfers (
+CREATE TABLE subscriptions_fetches_account_transfers (
   id serial PRIMARY KEY NOT NULL,
   account_transfer_id integer NOT NULL UNIQUE,
-  subscription_id integer NOT NULL,
+  subscription_fetch_id integer NOT NULL,
   FOREIGN KEY (account_transfer_id) REFERENCES account_transfers(id) ON DELETE CASCADE,
-  FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
+  FOREIGN KEY (subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE CASCADE
 );
