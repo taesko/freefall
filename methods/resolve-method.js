@@ -404,7 +404,7 @@ async function adminListSubscriptions (params) {
     });
   } else {
     userSubscriptions = await subscriptions.listUserSubscriptions(
-      params.user_id
+      +params.user_id
     );
     // TODO ask ivan if guestSubscriptions should be null or empty array
     guestSubscriptions = [];

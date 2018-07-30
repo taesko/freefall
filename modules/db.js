@@ -213,7 +213,7 @@ async function selectSubscriptions (airportFromId, airportToId) {
       FROM fetches
       LEFT JOIN subscriptions_fetches ON fetches.id = subscriptions_fetches.fetch_id
       LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.fetch_id
-      WHERE 
+      WHERE
         subscriptions.airport_from_id = $1 AND
         subscriptions.airport_to_id = $2 AND
         fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
@@ -233,6 +233,22 @@ async function selectSubscriptions (airportFromId, airportToId) {
 
     return row;
   });
+}
+
+async function selectAccountTransfersUsers () {
+  const selectResult = await executeQuery(`
+
+    SELECT *
+    FROM account_transfers
+    LEFT JOIN users
+    ON account_transfers.user_id = users.id;
+
+  `);
+
+  assertApp(isObject(selectResult), `Expected selectResult to be an object, but was ${typeof selectResult}`);
+  assertApp(Array.isArray(selectResult.rows), `Expected selectResult.rows to be array, but was ${typeof selectResult.rows}`);
+
+  return selectResult.rows;
 }
 
 async function insert (table, data) {
@@ -353,7 +369,7 @@ async function updateEmailSub (email) {
     UPDATE user_subscriptions
     SET fetch_id_of_last_send=$1
     WHERE user_id IN (
-      SELECT id 
+      SELECT id
       FROM users
       WHERE email=$2
     )
@@ -383,6 +399,7 @@ module.exports = {
   insertIfNotExists,
   selectSubscriptions,
   selectRoutesFlights,
+  selectAccountTransfersUsers,
   selectWhere,
   update,
   updateWhere,

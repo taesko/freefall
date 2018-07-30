@@ -7,12 +7,14 @@ const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
 const session = require('koa-session');
+const { each } = require('lodash');
 const log = require('./modules/log');
 const auth = require('./modules/auth');
 const db = require('./modules/db');
 const users = require('./modules/users');
 const { getAdminContext } = require('./modules/render-contexts');
 const { rpcAPILayer } = require('./modules/api');
+const { assertApp } = require('./modules/error-handling.js');
 
 const app = new Koa();
 const router = new Router();
@@ -22,6 +24,15 @@ const SESSION_CONFIG = {
 };
 
 app.keys = ['freefall is love freefall is life'];
+
+async function authCheck (ctx, next) {
+  if (!await auth.isLoggedIn(ctx)) {
+    ctx.redirect('/');
+    // return;
+  } else {
+    await next();
+  }
+}
 
 app.use(async (ctx, next) => {
   try {
@@ -76,14 +87,6 @@ app.use(views(path.join(__dirname, 'admin', 'templates'), {
   },
 }));
 
-router.get('/', async (ctx) => {
-  if (await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/subscriptions');
-  } else {
-    ctx.redirect('/login');
-  }
-});
-
 router.get('/login', async (ctx) => {
   if (await auth.isLoggedIn(ctx)) {
     ctx.redirect('/');
@@ -119,6 +122,14 @@ router.post('/login', async (ctx) => {
   return ctx.redirect('/login', { error_message: ctx.state.login_error_message });
 });
 
+router.get('/', async (ctx) => {
+  if (await auth.isLoggedIn(ctx)) {
+    ctx.redirect('/subscriptions');
+  } else {
+    ctx.redirect('/login');
+  }
+});
+
 router.get('/logout', async (ctx) => {
   if (await auth.isLoggedIn(ctx)) {
     await auth.logout(ctx);
@@ -127,28 +138,15 @@ router.get('/logout', async (ctx) => {
   ctx.redirect('/');
 });
 
-router.get('/subscriptions', async (ctx) => {
-  if (!await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/');
-    return;
-  }
+router.get('/subscriptions', authCheck, async (ctx) => {
   return ctx.render('subscriptions.html', await getAdminContext(ctx, 'get', '/subscriptions'));
 });
 
-router.get('/users', async (ctx) => {
-  if (!await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/');
-    return;
-  }
+router.get('/users', authCheck, async (ctx) => {
   return ctx.render('users.html', await getAdminContext(ctx, 'get', '/users'));
 });
 
-router.get('/users/:user_id', async (ctx) => {
-  if (!await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/');
-    return;
-  }
-
+router.get('/users/:user_id', authCheck, async (ctx) => {
   const defaultContext = await getAdminContext(ctx, 'get', '/users/:user_id');
   const user = await users.fetchUser({ userId: ctx.params.user_id });
 
@@ -159,11 +157,7 @@ router.get('/users/:user_id', async (ctx) => {
   }
 });
 
-router.get('/fetches', async (ctx) => {
-  if (!await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/');
-    return;
-  }
+router.get('/fetches', authCheck, async (ctx) => {
   const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
   const rows = await db.select('fetches');
   const fetches = rows.map(row => {
@@ -172,6 +166,47 @@ router.get('/fetches', async (ctx) => {
   });
 
   return ctx.render('fetches.html', Object.assign(defaultContext, { fetches }));
+});
+
+router.get('/transfers', authCheck, async (ctx) => {
+  const defaultContext = await getAdminContext(ctx, 'get', '/transfers');
+  const rows = await db.selectAccountTransfersUsers();
+  const accountTransfers = rows.map(row => {
+    const expectRowProps = [
+      {
+        name: 'user_id',
+        test: Number.isInteger,
+      },
+      {
+        name: 'email',
+        test: (value) => typeof value === 'string',
+      },
+      {
+        name: 'transfer_amount',
+        test: Number.isInteger,
+      },
+      {
+        name: 'transferred_at',
+        test: (value) => value instanceof Date,
+      },
+    ];
+
+    each(expectRowProps, (prop) => {
+      assertApp(prop.test(row[prop.name]), `Property "${prop.name}" does not pass test for expected type.`);
+    });
+
+    row.user = {
+      email: row.email,
+      id: row.user_id,
+    };
+
+    return row;
+  });
+
+  return ctx.render('account-transfers.html', {
+    ...defaultContext,
+    account_transfers: accountTransfers,
+  });
 });
 
 router.post('/api', rpcAPILayer);

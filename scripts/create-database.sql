@@ -117,6 +117,7 @@ CREATE TABLE account_transfers (
   id serial PRIMARY KEY NOT NULL,
   user_id integer NOT NULL,
   transfer_amount integer NOT NULL,
+  transferred_at timestamp NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
