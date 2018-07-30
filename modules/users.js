@@ -8,7 +8,7 @@ const log = require('./log');
 async function addUser ({ email, password, role }) {
   log.info(`Adding user with email=${email} and role=${role}`);
   errors.assertPeer(
-    !await userExists({ email }),
+    !await anyUserExists({ email }),
     `Failed adding user, because email ${email} is taken`,
     errors.errorCodes.emailTaken,
   );
@@ -23,7 +23,7 @@ async function addUser ({ email, password, role }) {
     log.info(`User with email=${email} was previously registered. Updating his credentials and activating account.`);
     await db.updateWhere(
       'users',
-      { password, role, active: 1 },
+      { password, role, active: true },
       { id: user.id },
     );
 
@@ -46,14 +46,18 @@ async function removeUser (userId) {
   await subscriptions.removeAllSubscriptionsOfUser(userId);
   const result = await db.updateWhere(
     'users',
-    { active: 0 },
+    { active: false },
     { id: userId },
   );
 
   errors.assertPeer(
-    result.stmt.changes > 0,
+    result.length !== 0,
     `Cannot remove user with id ${userId}`,
     errors.errorCodes.userDoesNotExist,
+  );
+  errors.assertApp(
+    result.length === 1,
+    'Removed too much users',
   );
 }
 
@@ -63,15 +67,15 @@ async function editUser (userId, { email, password, apiKey }) {
   log.info(`Updating user with id=${userId}. New columns are going to be: `, setHash);
   if (email) {
     errors.assertPeer(
-      await fetchUser({ email }) != null,
-      `Cannot update email of ${userId} to ${email} is already taken`,
+      !anyUserExists({ email }),
+      `Cannot update email of ${userId} to ${email} - email is already taken`,
       errors.errorCodes.emailTaken,
     );
   }
   if (apiKey) {
     errors.assertPeer(
-      await fetchUser({ apiKey }) != null,
-      `Cannot update api key of user ${userId} to ${apiKey}`,
+      !anyUserExists({ apiKey }),
+      `Cannot update api key of user ${userId} to ${apiKey} - API key is taken`,
       errors.errorCodes.apiKeyTaken,
     );
   }
@@ -90,8 +94,9 @@ async function editUser (userId, { email, password, apiKey }) {
     { id: userId },
   );
 
+  errors.assertApp(result.length <= 1, 'Edited too many users.');
   errors.assertApp(
-    result.stmt.changes > 0,
+    result.length === 1,
     `Cannot edit user with id ${userId}`,
     errors.errorCodes.databaseError,
   );
@@ -102,7 +107,7 @@ async function editUser (userId, { email, password, apiKey }) {
 
   If password parameter is given then it must be supplied with an email parameter.
  */
-async function fetchUser ({ userId, email, password, apiKey, active = 1 }) {
+async function fetchUser ({ userId, email, password, apiKey, active = true }) {
   if (password) {
     errors.assertApp(
       email,
@@ -120,17 +125,19 @@ async function fetchUser ({ userId, email, password, apiKey, active = 1 }) {
   });
 
   errors.assertApp(
-    Object.keys(whereHash).length > 0,
+    Object.keys(whereHash).length > 1,
     'fetchUser function requires at least one parameter',
   );
 
   const [user] = await db.selectWhere('users', '*', whereHash);
 
+  log.debug('Fetched user', user);
+
   return user;
 }
 
 async function listUsers (hidePassword = false) {
-  let rows = await db.selectWhere('users', '*', { active: 1 });
+  let rows = await db.selectWhere('users', '*', { active: true });
 
   if (hidePassword) {
     rows = rows.map(row => {
@@ -144,6 +151,21 @@ async function listUsers (hidePassword = false) {
 
 async function userExists ({ userId, email, password, apiKey }) {
   return await fetchUser({ userId, email, password, apiKey }) != null;
+}
+
+async function inactiveUserExists ({ userId, email, password, apiKey }) {
+  return await fetchUser({
+    userId,
+    email,
+    password,
+    apiKey,
+    active: false,
+  }) != null;
+}
+
+async function anyUserExists ({ userId, email, password, apiKey }) {
+  return !userExists({ userId, email, password, apiKey }) &&
+         !inactiveUserExists({ userId, email, password, apiKey });
 }
 
 function generateAPIKey (email, password) {

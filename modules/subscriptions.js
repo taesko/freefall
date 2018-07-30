@@ -23,7 +23,7 @@ async function subscribeUser (
   log.info('Searching for inactive user subscription');
 
   const [sub] = await db.selectWhere(
-    'user_subscriptions',
+    'users_subscriptions',
     '*',
     {
       user_id: userId,
@@ -36,13 +36,13 @@ async function subscribeUser (
   if (sub) {
     log.info('Found inactive user subscription with id: ', sub.id);
     errors.assertPeer(
-      sub.active === 0,
+      sub.active === false,
       `Cannot subscribe userId=${userId}, because subscription with id=${sub.id} already has the same filters.`,
       errors.errorCodes.subscriptionExists,
     );
 
     const result = await db.updateWhere(
-      'user_subscriptions',
+      'users_subscriptions',
       {
         active: 1,
       },
@@ -52,7 +52,7 @@ async function subscribeUser (
     );
 
     errors.assertApp(
-      result.stmt.changes,
+      result.length === 1,
       `Failed to re-activate user subscription with id ${sub.id}`,
       errors.errorCodes.databaseError,
     );
@@ -63,7 +63,7 @@ async function subscribeUser (
   log.info('Inserting new user subscription');
 
   return db.insert(
-    'user_subscriptions',
+    'users_subscriptions',
     {
       user_id: userId,
       subscription_id: globalSubId,
@@ -93,7 +93,7 @@ async function updateUserSubscription (
   });
 
   const result = await db.updateWhere(
-    'user_subscriptions',
+    'users_subscriptions',
     {
       subscription_id: globalSubscriptionId,
       date_from: dateFrom,
@@ -106,20 +106,20 @@ async function updateUserSubscription (
   );
 
   errors.assertPeer(
-    result.stmt.changes,
+    result.length === 1,
     `User subscription with id ${userSubscriptionId} does not exist.`,
     errors.errorCodes.subscriptionDoesNotExist,
   );
 }
 
 async function removeUserSubscription (userSubscriptionId) {
-  const result = await db.updateWhere('user_subscriptions',
+  const result = await db.updateWhere('users_subscriptions',
     { active: 0 },
     { id: userSubscriptionId },
   );
 
   errors.assertPeer(
-    result.stmt.changes > 0,
+    result.length === 1,
     `User subscription with id ${userSubscriptionId} does not exist.`,
     errors.errorCodes.subscriptionDoesNotExist,
   );
@@ -135,7 +135,7 @@ async function removeAllSubscriptionsOfUser (userId) {
     errors.errorCodes.userDoesNotExist,
   );
 
-  return db.updateWhere('user_subscriptions', { active: 0 }, { user_id: userId });
+  return db.updateWhere('users_subscriptions', { active: 0 }, { user_id: userId });
 }
 
 async function listUserSubscriptionsHelper (userId) {
@@ -155,7 +155,7 @@ async function listUserSubscriptionsHelper (userId) {
     SELECT user_sub.id, user_sub.date_from, user_sub.date_to, 
       ap_from.id fly_from, ap_to.id fly_to,
       users.id user_id, users.email user_email
-    FROM user_subscriptions user_sub
+    FROM users_subscriptions user_sub
     JOIN users ON user_sub.user_id=users.id
     JOIN subscriptions sub ON user_sub.subscription_id=sub.id
     JOIN airports ap_from ON sub.airport_from_id=ap_from.id
@@ -194,7 +194,9 @@ async function getGlobalSubscription (airportFromId, airportToId) {
     },
   );
 
-  return (sub != null) ? sub.id : null;
+  log.debug('selected global subscription', sub);
+
+  return sub;
 }
 
 async function globalSubscriptionExists (airportFromId, airportToId) {

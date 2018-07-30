@@ -50,7 +50,7 @@ function buildWhereClause (where, startIndex = 1) {
   };
 }
 
-function buildSetClause (setHash, startIndex = 0) {
+function buildSetClause (setHash, startIndex = 1) {
   assertApp(isObject(setHash));
   assertApp(Number.isInteger(startIndex));
 
@@ -73,10 +73,6 @@ function buildSetClause (setHash, startIndex = 0) {
 async function executeQuery (...args) {
   log.debug('Executing query with args', args);
   return pool.query(...args);
-}
-
-async function executeAll (...args) {
-  return db.all(...args);
 }
 
 async function select (table, columns = '*') {
@@ -274,18 +270,22 @@ async function update (table, setHash, whereHash) {
     `update function requires setHash to be an object. setHash=${setHash}`,
   );
 
-  const { setClause, setValues } = buildSetClause(setHash, 0);
-  const {
-    whereClause,
-    whereValues,
-  } = buildWhereClause(whereHash, setValues.length);
+  const { setClause, setValues } = buildSetClause(setHash);
+  let whereClause = 'WHERE 1';
+  let whereValues = [];
+  if (whereHash) {
+    const where = buildWhereClause(whereHash, setValues.length + 1);
+    whereClause = where.whereClause;
+    whereValues = where.values;
+  }
+  log.debug('whereValues are: ', whereValues);
   const values = [...setValues, ...whereValues];
-  const query = `UPDATE ${table} SET ${setClause} ${whereClause} RETURNING *`;
-  const { changedRows } = await executeQuery(query, values);
+  const query = `UPDATE ${table} ${setClause} ${whereClause} RETURNING *`;
+  const { rows } = await executeQuery(query, values);
 
-  assertApp(Array.isArray(changedRows));
+  assertApp(Array.isArray(rows));
 
-  return changedRows;
+  return rows;
 }
 
 async function updateWhere (table, setHash, whereHash) {
@@ -356,5 +356,6 @@ module.exports = {
   update,
   updateWhere,
   updateEmailSub,
-  dbConnect,
+  useClient,
+  dbConnect, // TODO still used in .js scripts
 };

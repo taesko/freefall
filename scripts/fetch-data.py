@@ -576,7 +576,8 @@ def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
 def start():
     fetch_tax = 500 # cents
 
-    conn = psycopg2.connect(dbname='freefall', user='freefall', password='freefall', cursor_factory=RealDictCursor)
+    conn = psycopg2.connect(dbname='antonio', user='antonio',
+            password='pusnimebe', cursor_factory=RealDictCursor)
 
     airlines = request('https://api.skypicker.com/airlines')
 

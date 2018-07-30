@@ -37,7 +37,7 @@ async function register (email, password) {
     throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`);
   }
 
-  await users.addUser({ email, password, role: 'user' }); // TODO magic value
+  await users.addUser({ email, password, role: 'customer' }); // TODO magic value
 }
 
 async function isLoggedIn (ctx) {

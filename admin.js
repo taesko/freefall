@@ -165,7 +165,11 @@ router.get('/fetches', async (ctx) => {
     return;
   }
   const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
-  const fetches = await db.select('fetches');
+  const rows = await db.select('fetches');
+  const fetches = rows.map(row => {
+    row.timestamp = row.fetch_time;
+    return row;
+  });
 
   return ctx.render('fetches.html', Object.assign(defaultContext, { fetches }));
 });

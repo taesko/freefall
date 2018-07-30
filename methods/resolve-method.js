@@ -286,30 +286,32 @@ async function subscribe (params) {
 }
 
 async function unsubscribe (params, db) {
-  const user = await users.fetchUser({ apiKey: params.api_key });
+  assertPeer(
+    Number.isInteger(+params.user_subscription_id),
+    'user_subscription_id must be an integer wrapped in a string',
+  );
+  const userSubId = +params.user_subscription_id;
+  const apiKey = params.api_key;
+
+  const user = await users.fetchUser({ apiKey });
 
   assertPeer(user, 'invalid api key');
 
-  // TODO use lisetUserSubscriptions
-  const userSubscriptions = await db.selectWhere(
-    'user_subscriptions',
-    '*',
-    { user_id: user.id },
-  );
+  const userSubscriptions = await subscriptions.listUserSubscriptions(user.id);
 
   assertPeer(
-    userSubscriptions.some(sub => +sub.id === +params.user_subscription_id),
+    userSubscriptions.some(sub => +sub.id === +userSubId),
     'This api key is not allowed to modify this subscription.',
   );
 
   let statusCode;
 
   try {
-    await subscriptions.removeUserSubscription(params.user_subscription_id);
+    await subscriptions.removeUserSubscription(userSubId);
     statusCode = 1000;
   } catch (e) {
     if (e instanceof PeerError) {
-      log.warn('Peer error occurred while removing subscription: ', params.user_subscription_id);
+      log.warn('Peer error occurred while removing subscription: ', userSubId);
       statusCode = 2000;
     } else {
       throw e;
@@ -585,16 +587,26 @@ async function adminEditUser (params) {
     await auth.tokenHasRole(params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
+  assertPeer(
+    Number.isInteger(+params.user_id),
+    'user_id parameter must be an integer wrapped in a string.',
+  );
 
   let statusCode;
-  params.password = users.hashPassword(params.password);
+  const userId = +params.user_id;
+  const { email } = params;
+  let password;
+
+  if (params.password) {
+    password = users.hashPassword(params.password);
+  }
 
   try {
     await users.editUser(
-      params.user_id,
+      userId,
       {
-        email: params.email,
-        password: params.password,
+        email,
+        password,
       },
     );
     statusCode = '1000';
