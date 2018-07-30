@@ -580,9 +580,12 @@ async function adminRemoveUser (params) {
   );
 
   let statusCode;
+  const userId = +params.user_id;
+
+  assertPeer(Number.isInteger(userId));
 
   try {
-    await users.removeUser(params.user_id);
+    await users.removeUser(userId);
     statusCode = '1000';
   } catch (e) {
     if (e instanceof PeerError) {

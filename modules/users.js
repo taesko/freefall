@@ -43,9 +43,10 @@ async function addUser ({ email, password, role }) {
 
 async function removeUser (userId) {
   // hard coded admin user
+  errors.assertApp(typeof userId === 'number');
   errors.assertPeer(userId !== 1, 'Cannot remove main admin account.');
 
-  log.info(`Removing user with id=${userId}`);
+  log.info(`Removing user with id=${userId}`, typeof userId);
   await subscriptions.removeAllSubscriptionsOfUser(userId);
   const result = await db.updateWhere(
     'users',
