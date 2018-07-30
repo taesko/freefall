@@ -185,6 +185,8 @@ async function listGlobalSubscriptions () {
 }
 
 async function getGlobalSubscription (airportFromId, airportToId) {
+  log.debug('Finding global subscription between airports', airportFromId, airportToId);
+
   const [sub] = await db.selectWhere(
     'subscriptions',
     ['id'],
@@ -194,13 +196,13 @@ async function getGlobalSubscription (airportFromId, airportToId) {
     },
   );
 
-  log.debug('selected global subscription', sub);
+  log.debug('Found global subscription', sub);
 
   return sub;
 }
 
 async function globalSubscriptionExists (airportFromId, airportToId) {
-  return !!await getGlobalSubscription(airportFromId, airportToId);
+  return await getGlobalSubscription(airportFromId, airportToId) != null;
 }
 
 async function subscribeGlobally (airportFromId, airportToId) {
@@ -233,4 +235,5 @@ module.exports = {
   listAllUserSubscriptions,
   subscribeGlobally,
   listGlobalSubscriptions,
+  globalSubscriptionExists,
 };

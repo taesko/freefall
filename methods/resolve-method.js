@@ -144,11 +144,24 @@ async function search (params, db) {
     result.currency = params.currency;
   }
 
-  const subs = await db.selectSubscriptions(+params.fly_from, +params.fly_to);
+  const subscribed = await subscriptions.globalSubscriptionExists(
+    +params.fly_from,
+    +params.fly_to,
+  );
 
-  if (subs.length <= 0) {
+  if (!subscribed) {
     await subscriptions.subscribeGlobally(params.fly_from, params.fly_to);
 
+    result.status_code = '3000';
+    result.routes = [];
+
+    return result;
+  }
+
+  const subs = await db.selectSubscriptions(+params.fly_from, +params.fly_to);
+
+  // subs.length can be equal to 0 if we haven't yet fetched flights for it.
+  if (subs.length === 0) {
     result.status_code = '2000';
     result.routes = [];
 
