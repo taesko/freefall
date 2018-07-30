@@ -93,20 +93,6 @@ router.get('/', async (ctx, next) => {
   await next();
 });
 
-router.get('/subscribe', async (ctx, next) => {
-  const airports = db.select('airports');
-
-  await ctx.render('subscribe.html', {
-    airports,
-    ...await getContextForRoute(ctx, 'get', '/subscribe'),
-  });
-  await next();
-});
-
-router.get('/unsubscribe', async (ctx) => {
-  await ctx.render('unsubscribe.html', await getContextForRoute(ctx, 'get', '/unsubscribe'));
-});
-
 router.get('/login', async (ctx) => {
   if (await auth.isLoggedIn(ctx)) {
     log.info('User already logged in. Redirecting to /');
