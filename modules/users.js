@@ -42,6 +42,9 @@ async function addUser ({ email, password, role }) {
 }
 
 async function removeUser (userId) {
+  // hard coded admin user
+  errors.assertPeer(userId !== 1, 'Cannot remove main admin account.');
+
   log.info(`Removing user with id=${userId}`);
   await subscriptions.removeAllSubscriptionsOfUser(userId);
   const result = await db.updateWhere(
@@ -67,14 +70,14 @@ async function editUser (userId, { email, password, apiKey }) {
   log.info(`Updating user with id=${userId}. New columns are going to be: `, setHash);
   if (email) {
     errors.assertPeer(
-      !anyUserExists({ email }),
+      !await anyUserExists({ email }),
       `Cannot update email of ${userId} to ${email} - email is already taken`,
       errors.errorCodes.emailTaken,
     );
   }
   if (apiKey) {
     errors.assertPeer(
-      !anyUserExists({ apiKey }),
+      !await anyUserExists({ apiKey }),
       `Cannot update api key of user ${userId} to ${apiKey} - API key is taken`,
       errors.errorCodes.apiKeyTaken,
     );
@@ -164,8 +167,12 @@ async function inactiveUserExists ({ userId, email, password, apiKey }) {
 }
 
 async function anyUserExists ({ userId, email, password, apiKey }) {
-  return !userExists({ userId, email, password, apiKey }) &&
-         !inactiveUserExists({ userId, email, password, apiKey });
+  const active = await userExists({ userId, email, password, apiKey });
+  const inactive = await inactiveUserExists(
+    { userId, email, password, apiKey },
+  );
+
+  return active || inactive;
 }
 
 function generateAPIKey (email, password) {
