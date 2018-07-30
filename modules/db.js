@@ -1,116 +1,127 @@
-module.exports = (() => {
-  const path = require('path');
-  const sqlite = require('sqlite');
-  const { assertApp, assertPeer } = require('./error-handling');
-  const { isObject } = require('lodash');
-  const log = require('./log');
-  let db;
-  let dbInitialized = false;
+const { Pool } = require('pg');
+const log = require('./log');
+const { assertApp, assertPeer } = require('./error-handling');
+const { isObject } = require('lodash');
 
-  async function dbConnect () {
-    if (
-      dbInitialized
-    ) {
-      log.info('Already connected to freefall.db...');
-    } else {
-      log.info('Connecting to freefall.db...');
-      dbInitialized = true;
-      db = await sqlite.open(path.join(__dirname, '../freefall.db'));
-      await db.run('PRAGMA foreign_keys = ON;');
-      await db.run('PRAGMA integrity_check;');
-      log.info('freefall.db OK');
-    }
+const pool = new Pool();
+
+pool.on('error', (err, client) => {
+  log.critical('Unexpected error on idle client:', client);
+  log.error(err);
+});
+
+async function useClient (ctx, next) {
+  const client = await pool.connect();
+  log.info('Created a new client connection to database.', client);
+  ctx.state.pgClient = client;
+
+  try {
+    await next();
+  } finally {
+    client.release();
+    log.info('Released client connection', client);
   }
+}
 
-  function assertDB () {
-    assertApp(
-      isObject(db) &&
-      isObject(db.driver) &&
-      db.driver.open,
-      'No database connection.',
-    );
+function stringifyColumns (columns) {
+  if (columns == null || columns === '*') {
+    return '*';
+  } else {
+    assertApp(columns.length > 0);
+    return columns.join(', ');
   }
+}
 
-  function stringifyColumns (columns) {
-    if (columns == null || columns === '*') {
-      return '*';
-    } else {
-      return columns.join(', ');
-    }
-  }
+function buildWhereClause (where, startIndex = 1) {
+  assertApp(isObject(where), 'buildWhereClause\'s parameter must be a hash.');
+  assertApp(Number.isInteger(startIndex));
 
-  function buildWhereClause (where) {
-    if (where == null) {
-      return { whereClause: `WHERE 1`, valueHash: {} };
-    }
+  const whereColumns = Object.entries(where)
+    .map(([column, value], currentIndex) => {
+      const placeholder = startIndex + currentIndex;
+      return `${column}=$${placeholder}`;
+    })
+    .join(' AND ');
+  const values = Object.values(where);
 
-    assertApp(isObject(where), 'buildWhereClause\'s parameter must be a hash.');
+  return {
+    whereClause: `WHERE ${whereColumns}`,
+    values,
+  };
+}
 
-    const whereEntries = Object.entries(where);
-    const whereColumns = whereEntries.map(([column]) => `${column}=$where_value_${column}`)
-      .join(' AND ');
-    const valueHash = whereEntries
-      .map(([column, value]) => [`$where_value_${column}`, value])
-      .reduce(
-        (hash, entries) => {
-          hash[entries[0]] = entries[1];
-          return hash;
-        },
-        {},
-      );
+function buildSetClause (setHash, startIndex = 0) {
+  assertApp(isObject(setHash));
+  assertApp(Number.isInteger(startIndex));
 
-    return { whereClause: `WHERE ${whereColumns}`, valueHash };
-  }
+  const entries = Object.entries(setHash);
+  let setClause = entries.map(entry => entry[0])
+    .map((column, currentIndex) => {
+      const placeholder = startIndex + currentIndex;
+      return `${column}=$${placeholder}`;
+    })
+    .join(', ');
+  setClause = `SET ${setClause}`;
+  const setValues = entries.map(entry => entry[1]);
 
-  async function executeAll (...args) {
-    assertDB();
-    return db.all(...args);
-  }
+  return {
+    setClause,
+    setValues,
+  };
+}
 
-  async function executeRun (...args) {
-    assertDB();
-    return db.run(...args);
-  }
+async function executeQuery (...args) {
+  log.debug('Executing query with args', args);
+  return pool.query(...args);
+}
 
-  async function select (table, columns = '*') {
-    assertDB();
-    assertApp(
-      typeof table === 'string',
-      'Expected string for a name of table',
-    );
+async function executeAll (...args) {
+  return db.all(...args);
+}
 
-    return db.all(`SELECT ${stringifyColumns(columns)} FROM ${table};`);
-  }
+async function select (table, columns = '*') {
+  assertApp(
+    typeof table === 'string',
+    'Expected string for a name of table',
+  );
+  assertApp(columns === '*' || Array.isArray(columns));
 
-  async function selectWhere (table, columns, where) {
-    assertDB();
-    assertApp(
-      typeof table === 'string' &&
-      isObject(where) &&
-      'Invalid select data',
-    );
+  const { rows } = await executeQuery(`SELECT ${stringifyColumns(columns)} FROM ${table};`);
 
-    const { whereClause, valueHash } = buildWhereClause(where);
-    const query = `SELECT ${stringifyColumns(columns)} FROM ${table} ${whereClause}`;
+  assertApp(Array.isArray(rows));
 
-    log.debug('Executing query', query, 'replaced with hash:', valueHash);
+  return rows;
+}
 
-    return db.all(
-      query,
-      valueHash,
-    );
-  }
+async function selectWhere (table, columns, where) {
+  assertApp(
+    typeof table === 'string' &&
+    isObject(where) &&
+    'Invalid select data',
+  );
 
-  async function selectRoutesFlights (fetchId, params) {
-    assertDB();
-    assertApp(
-      Number.isInteger(fetchId),
-      'Invalid fetch id.',
-    );
+  const { whereClause, values } = buildWhereClause(where);
+  const query = `SELECT ${stringifyColumns(columns)} FROM ${table} ${whereClause}`;
 
-    const queryParams = [fetchId];
+  const { rows } = await executeQuery(
+    query,
+    values,
+  );
 
-    let query = `
+  assertApp(Array.isArray(rows));
+
+  return rows;
+}
+
+async function selectRoutesFlights (fetchId, params) {
+  assertApp(
+    Number.isInteger(fetchId),
+    'Invalid fetch id.',
+  );
+
+  const queryParams = [fetchId];
+
+  let query = `
 
       SELECT
       routes.id AS routeId,
@@ -132,233 +143,218 @@ module.exports = (() => {
       LEFT JOIN airports as afrom ON afrom.id = flights.airport_from_id
       LEFT JOIN airports as ato ON ato.id = flights.airport_to_id
       LEFT JOIN airlines ON airlines.id = flights.airline_id
-      WHERE routes.fetch_id = ?
+      LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
+      LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
+      WHERE fetches.id = $1
 
     `;
 
-    if (params.price_to) {
-      assertPeer(Number.isInteger(params.price_to), 'Invalid price in search request.');
-      query += ' AND routes.price <= ? ';
-      queryParams.push(params.price_to);
-    }
-
-    // TODO finish filtration
-
-    if (params.date_from) {
-      assertPeer(typeof params.date_from === 'string', 'Invalid date_from in search request.');
-      query += ' AND flights.dtime >= ?';
-      queryParams.push(params.date_from);
-    }
-
-    if (params.date_to) {
-      assertPeer(typeof params.date_to === 'string', 'Invalid date_to in search request.');
-      query += ' AND flights.atime <= ?';
-      queryParams.push(params.date_to);
-    }
-
-    query += ';';
-
-    const routesFlights = await db.all(query, queryParams);
-
-    assertApp(
-      Array.isArray(routesFlights),
-      'Invalid db routes and flights response.',
-    );
-
-    return routesFlights;
+  if (params.price_to) {
+    assertPeer(Number.isInteger(params.price_to), 'Invalid price in search request.');
+    queryParams.push(params.price_to);
+    query += ` AND routes.price <= $${queryParams.length} `;
   }
 
-  async function selectSubscriptions (airportFromId, airportToId) {
-    assertDB();
-    assertApp(
-      Number.isInteger(airportFromId) &&
-      Number.isInteger(airportToId),
-      'Invalid airport ids.',
-    );
+  // TODO finish filtration
 
-    const subscriptions = await db.all(`
+  if (params.date_from) {
+    assertPeer(typeof params.date_from === 'string', 'Invalid date_from in search request.');
+    queryParams.push(params.date_from);
+    query += ` AND flights.dtime >= $${queryParams.length}`;
+  }
 
-      SELECT fetches.id AS fetchId, fetches.timestamp FROM fetches
-      LEFT JOIN subscriptions ON fetches.subscription_id = subscriptions.id
-      WHERE subscriptions.airport_from_id = ? AND subscriptions.airport_to_id = ?
-      GROUP BY subscriptions.airport_from_id, subscriptions.airport_to_id
-      HAVING MAX(fetches.timestamp);
+  if (params.date_to) {
+    assertPeer(typeof params.date_to === 'string', 'Invalid date_to in search request.');
+    queryParams.push(params.date_to);
+    query += ` AND flights.atime <= $${queryParams.length}`;
+  }
 
+  query += ';';
+
+  const { rows } = await executeQuery(query, queryParams);
+
+  assertApp(
+    Array.isArray(rows),
+    'Invalid db routes and flights response.',
+  );
+
+  return rows;
+}
+
+async function selectSubscriptions (airportFromId, airportToId) {
+  assertApp(
+    Number.isInteger(airportFromId) &&
+    Number.isInteger(airportToId),
+    'Invalid airport ids.',
+  );
+
+  const { rows } = await executeQuery(`
+      SELECT fetches.id AS fetchId, fetches.fetch_time as timestamp
+      FROM fetches
+      LEFT JOIN subscriptions_fetches ON fetches.id = subscriptions_fetches.fetch_id
+      LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.fetch_id
+      WHERE 
+        subscriptions.airport_from_id = $1 AND
+        subscriptions.airport_to_id = $2 AND
+        fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
     `, [airportFromId, airportToId]);
 
-    assertApp(
-      Array.isArray(subscriptions),
-      'Invalid db select subscription response.',
-    );
+  assertApp(
+    Array.isArray(rows),
+    'Invalid db select subscription response.',
+    'Got: ', rows,
+  );
 
-    return subscriptions;
+  return rows;
+}
+
+async function insert (table, data) {
+  assertApp(
+    typeof table === 'string' &&
+    isObject(data),
+    'Invalid insert data.',
+  );
+
+  const columns = [];
+  const values = [];
+
+  for (const [col, value] of Object.entries(data)) {
+    columns.push(col);
+    values.push(value);
   }
 
-  async function insert (table, data) {
-    assertDB();
-    assertApp(
-      typeof table === 'string' &&
-      isObject(data),
-      'Invalid insert data.',
-    );
+  const columnsStringified = columns.join(', ');
+  const rowStringified = Array(values.length)
+    .fill('')
+    .map((val, index) => `$${index + 1}`)
+    .join(', ');
+  const { rows } = await executeQuery(
+    `INSERT INTO ${table} (${columnsStringified}) VALUES (${rowStringified}) RETURNING *;`,
+    values,
+  );
 
-    const columns = [];
-    const values = [];
+  assertApp(Array.isArray(rows), 'Incorrect db response.');
 
-    for (const [col, value] of Object.entries(data)) {
-      columns.push(col);
-      values.push(value);
-    }
+  return rows[0];
+}
 
-    const columnsStringified = columns.join(', ');
-    const rowStringified = Array(values.length).fill('?').join(', ');
-    const insertResult = await db.run(`INSERT INTO ${table} (${columnsStringified}) VALUES (${rowStringified});`,
-      values,
-    );
+async function insertDataFetch (subscriptionId) {
+  const { rows } = await executeQuery(
+    'INSERT INTO fetches(timestamp, subscription_id) VALUES (strftime(\'%Y-%m-%dT%H:%M:%SZ\' ,\'now\'), $1);',
+    [subscriptionId],
+  );
 
-    assertApp(
-      isObject(insertResult) &&
-      isObject(insertResult.stmt) &&
-      Number.isInteger(insertResult.stmt.lastID),
-      'Incorrect db response.',
-    );
+  assertApp(Array.isArray(rows), 'Incorrect db response.');
 
-    return insertResult.stmt.lastID;
+  return rows[0];
+}
+
+async function insertIfNotExists (table, data, existsCheck) {
+  assertApp(typeof table === 'string');
+  assertApp(isObject(data));
+  assertApp(isObject(existsCheck));
+
+  const found = await selectWhere(table, Object.keys(data), existsCheck);
+
+  assertApp(Array.isArray(found), 'Invalid db response.');
+
+  if (found.length > 0) {
+    assertApp(found.length === 1, 'Invalid db response.'); // multiple rows exist ?
+    return false;
   }
 
-  async function insertDataFetch (subscriptionId) {
-    assertDB();
+  await insert(table, data);
 
-    const newFetchResult = await db.run(
-      'INSERT INTO fetches(timestamp, subscription_id) VALUES (strftime(\'%Y-%m-%dT%H:%M:%SZ\' ,\'now\'), ?);',
-      [subscriptionId],
-    );
+  return true;
+}
 
-    assertApp(
-      isObject(newFetchResult) &&
-      isObject(newFetchResult.stmt) &&
-      Number.isInteger(newFetchResult.stmt.lastID),
-      'Incorrect db response.',
-    );
+async function update (table, setHash, whereHash) {
+  assertApp(
+    isObject(setHash),
+    `update function requires setHash to be an object. setHash=${setHash}`,
+  );
 
-    return newFetchResult.stmt.lastID;
-  }
+  const { setClause, setValues } = buildSetClause(setHash, 0);
+  const {
+    whereClause,
+    whereValues,
+  } = buildWhereClause(whereHash, setValues.length);
+  const values = [...setValues, ...whereValues];
+  const query = `UPDATE ${table} SET ${setClause} ${whereClause} RETURNING *`;
+  const { changedRows } = await executeQuery(query, values);
 
-  async function insertIfNotExists (table, data, existsCheck) {
-    assertDB();
+  assertApp(Array.isArray(changedRows));
 
-    const found = await selectWhere(table, Object.keys(data), existsCheck);
+  return changedRows;
+}
 
-    assertApp(Array.isArray(found), 'Invalid db response.');
+async function updateWhere (table, setHash, whereHash) {
+  assertApp(
+    isObject(setHash) && isObject(whereHash),
+    `updateWhere function requires setHash and whereHash parameters to be objects. setHash=${setHash} whereHash=${whereHash}`,
+  );
 
-    if (found.length > 0) {
-      assertApp(found.length === 1, 'Invalid db response.');
+  return update(table, setHash, whereHash);
+}
 
-      // return flightIdResult[0].id;
-      return false;
-    }
+// TODO move out with selectSubs...
+async function updateEmailSub (email) {
+  // TODO bad name rename if you can
+  let rows;
 
-    const insertResult = await insert(table, data);
-
-    assertApp(
-      Number.isInteger(insertResult),
-      'Incorrect db response.',
-    );
-
-    return true;
-  }
-
-  async function update (table, setHash, whereHash) {
-    assertApp(
-      isObject(setHash),
-      `update function requires setHash to be an object. setHash=${setHash}`,
-    );
-
-    const {
-      whereClause,
-      valueHash: whereValueHash,
-    } = buildWhereClause(whereHash);
-    const updateColumns = Object.entries(setHash)
-      .map(([column]) => `${column}=$update_value_${column}`)
-      .join(', ');
-    const updateValueHash = Object.entries(setHash)
-      .map(([column, value]) => [`$update_value_${column}`, value])
-      .reduce(
-        (hash, [column, value]) => {
-          hash[column] = value;
-          return hash;
-        },
-        {},
-      );
-    const valueHash = Object.assign(updateValueHash, whereValueHash);
-    const query = `UPDATE ${table} SET ${updateColumns} ${whereClause}`;
-    log.debug('Executing query: ', query, 'replace with hash', valueHash);
-
-    return executeRun(query, valueHash);
-  }
-
-  async function updateWhere (table, setHash, whereHash) {
-    assertApp(
-      isObject(setHash) && isObject(whereHash),
-      `updateWhere function requires setHash and whereHash parameters to be objects. setHash=${setHash} whereHash=${whereHash}`,
-    );
-
-    return update(table, setHash, whereHash);
-  }
-
-  // TODO move out with selectSubs...
-  async function updateEmailSub (email) {
-    // TODO bad name rename if you can
-    let rows;
-
-    try {
-      rows = await db.all(`
+  try {
+    rows = await executeQuery(`
       SELECT id, MAX(DateTime(timestamp))
       FROM fetches
-    `);
-    } catch (e) {
-      assertApp(false, `Couldn't fetch most recent fetch id. Reason: ${e}`);
-    }
-
-    assertApp(
-      rows.length === 1,
-      'There are different recent fetches with the same timestamp',
-    );
-
-    const fetchId = rows[0].id;
-
-    const query = await db.prepare(
-      `
-      UPDATE user_subscriptions
-      SET fetch_id_of_last_send=?
-      WHERE user_id IN (
-        SELECT id 
-        FROM users
-        WHERE email=?
-      )
-      `,
-      [fetchId, email],
-    );
-
-    log.info('Updating subscription on email', email, 'to most recent fetch_id', fetchId);
-    log.debug('Executing query', query);
-
-    return query.all();
+    `).rows;
+  } catch (e) {
+    assertApp(false, `Couldn't fetch most recent fetch id. Reason: ${e}`);
   }
 
-  return {
-    executeAll,
-    executeRun,
-    select,
-    insert,
-    insertDataFetch,
-    insertIfNotExists,
-    selectSubscriptions,
-    selectRoutesFlights,
-    selectWhere,
-    update,
-    updateWhere,
-    updateEmailSub,
-    dbConnect,
-  };
-})();
+  assertApp(
+    Array.isArray(rows) && rows.length === 1,
+    'There are different recent fetches with the same timestamp',
+  );
+
+  const fetchId = rows[0].id;
+
+  const query = `
+    UPDATE user_subscriptions
+    SET fetch_id_of_last_send=$1
+    WHERE user_id IN (
+      SELECT id 
+      FROM users
+      WHERE email=$2
+    )
+    RETURNING *
+    `;
+  const values = [fetchId, email];
+
+  log.info('Updating subscription on email', email, 'to most recent fetch_id', fetchId);
+
+  const { rows: updatedRows } = await executeQuery(query, values);
+
+  assertApp(Array.isArray(updatedRows) && updatedRows.length === 1);
+
+  return updatedRows[0];
+}
+
+function dbConnect () {
+  return false;
+}
+
+module.exports = {
+  executeQuery,
+  buildWhereClause,
+  select,
+  insert,
+  insertDataFetch,
+  insertIfNotExists,
+  selectSubscriptions,
+  selectRoutesFlights,
+  selectWhere,
+  update,
+  updateWhere,
+  updateEmailSub,
+  dbConnect,
+};

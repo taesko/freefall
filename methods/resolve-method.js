@@ -332,20 +332,10 @@ async function listAirports (params, db) {
 }
 
 async function listSubscriptions (params, db) {
-  const subRows = await db.executeAll(
-    `
-      SELECT usub.id, usub.date_from, usub.date_to, 
-        ap_from.id fly_from, ap_to.id fly_to
-      FROM user_subscriptions usub
-      JOIN users ON usub.user_id=users.id
-      JOIN subscriptions sub ON usub.subscription_id=sub.id
-      JOIN airports ap_from ON sub.airport_from_id=ap_from.id
-      JOIN airports ap_to ON sub.airport_to_id=ap_to.id
-      WHERE users.api_key=? AND usub.active=1
-    `,
-    params.api_key,
-  );
+  const user = await users.fetchUser({ apiKey: params.api_key });
+  const subRows = await subscriptions.listUserSubscriptions(user.id);
 
+  log.debug('sub rows is', subRows);
   for (const sr of subRows) {
     sr.id = `${sr.id}`;
     sr.fly_from = `${sr.fly_from}`;
@@ -378,28 +368,17 @@ async function adminListUsers (params) {
   };
 }
 
-async function adminListSubscriptions (params, db) {
+async function adminListSubscriptions (params) {
   // TODO handle errors how ?
   assertPeer(
     await auth.tokenHasRole(params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
-  const mainQuery = `
-      SELECT user_sub.id, user_sub.date_from, user_sub.date_to, 
-        ap_from.id fly_from, ap_to.id fly_to,
-        users.id user_id, users.email user_email
-      FROM user_subscriptions user_sub
-      JOIN users ON user_sub.user_id=users.id
-      JOIN subscriptions sub ON user_sub.subscription_id=sub.id
-      JOIN airports ap_from ON sub.airport_from_id=ap_from.id
-      JOIN airports ap_to ON sub.airport_to_id=ap_to.id
-      WHERE user_sub.active=1
-    `;
   let userSubscriptions;
   let guestSubscriptions;
 
   if (!params.user_id) {
-    userSubscriptions = await db.executeAll(mainQuery);
+    userSubscriptions = await subscriptions.listAllUserSubscriptions();
     guestSubscriptions = await subscriptions.listGlobalSubscriptions();
     guestSubscriptions = guestSubscriptions.map(sub => {
       return {
@@ -409,12 +388,8 @@ async function adminListSubscriptions (params, db) {
       };
     });
   } else {
-    // TODO fix SQL statement building
-    userSubscriptions = await db.executeAll(
-      `
-        ${mainQuery} AND users.id = ?
-      `,
-      params.user_id,
+    userSubscriptions = await subscriptions.listUserSubscriptions(
+      params.user_id
     );
     // TODO ask ivan if guestSubscriptions should be null or empty array
     guestSubscriptions = [];

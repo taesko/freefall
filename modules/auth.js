@@ -1,4 +1,3 @@
-const db = require('./db');
 const users = require('./users');
 const log = require('./log');
 const { AppError } = require('./error-handling');
@@ -8,8 +7,6 @@ class InvalidCredentials extends AppError {}
 class UserExists extends AppError {}
 
 class AlreadyLoggedIn extends AppError {}
-
-db.dbConnect();
 
 async function login (ctx, email, password) {
   password = users.hashPassword(password);

@@ -46,7 +46,6 @@ const SESSION_CONFIG = {
 
 app.use(session(SESSION_CONFIG, app));
 
-db.dbConnect();
 app.context.db = db;
 
 app.use(logger());
