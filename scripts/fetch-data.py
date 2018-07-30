@@ -130,42 +130,9 @@ def select_where(conn, table, columns, where):
     c.execute('SELECT {0} FROM {1} WHERE {2} = %s;'.format(stringify_columns(columns), table, whereCol), [where[whereCol]])
 
     result = c.fetchall()
+    c.close()
 
     assert_app(isinstance(result, list), 'Expected result in select_where function to be a list, but was {0}'.format(type(result)))
-
-    return result
-
-
-def select_subscriptions(conn, airport_from_id, airport_to_id):
-    assert_app(conn, 'select_subscriptions function called without connection to db.')
-    assert_app(isinstance(airport_from_id, int), 'Expected argument "airport_from_id" in select_subscriptions function to be int, but was {0}'.format(type(airport_from_id)))
-    assert_app(isinstance(airport_to_id, int), 'Expected argument "airport_to_id" in select_subscriptions function to be int, but was {0}'.format(type(airport_to_id)))
-
-    c = conn.cursor()
-
-    c.execute('''
-
-        SELECT
-            fetches.id AS fetch_id,
-            fetches.timestamp
-        FROM fetches
-        LEFT JOIN subscriptions
-        ON
-            fetches.subscription_id = subscriptions.id
-        WHERE
-            subscriptions.airport_from_id = ? AND
-            subscriptions.airport_to_id = ?
-        GROUP BY
-            subscriptions.airport_from_id,
-            subscriptions.airport_to_id
-        HAVING
-            MAX(fetches.timestamp);
-
-        ''', [airport_from_id, airport_to_id])
-
-    result = c.fetchall()
-
-    assert_app(isinstance(result, list), 'Expected result in select_subscriptions function to be a list, but was {0}'.format(type(result)))
 
     return result
 
@@ -173,7 +140,7 @@ def select_subscriptions(conn, airport_from_id, airport_to_id):
 def insert(conn, table, data):
     assert_app(isinstance(table, str), 'Expected argument "table" in insert function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(data, dict), 'Expected argument "data" in insert function to be dict, but was {0}'.format(type(data)))
-    assert_app(conn, 'insert function called without connection to db.')
+    assert_db(conn, 'insert function called without connection to db.')
 
     columns = list(data.keys())
     values = tuple(data.values())
@@ -181,36 +148,46 @@ def insert(conn, table, data):
     rowStringified = ', '.join(['%s'] * len(columns))
 
     c = conn.cursor()
-    c.execute('INSERT INTO {0} ({1}) VALUES ({2}) RETURNING id;'.format(table, stringify_columns(columns), rowStringified), values)
+    c.execute('INSERT INTO {0} ({1}) VALUES ({2}) RETURNING *;'.format(table, stringify_columns(columns), rowStringified), values)
     conn.commit()
 
-    insert_return = c.fetchone()
+    insert_result = c.fetchall()
 
-    assert_app(isinstance(insert_return, dict), 'Expected insert_return to be a dict, but was {0}'.format(type(insert_return)))
-    assert_app('id' in insert_return, 'insert_return does not have a key "id"')
-    assert_app(isinstance(insert_return['id'], int), 'Expected insert_return["id"] to be an int, but was {0}'.format(type(insert_return['id'])))
+    assert_app(isinstance(insert_result, list), 'Expected insert_result to be list, but was {0}'.format(type(insert_result)))
+    assert_app(len(insert_result) == 1, 'Expected insert_result to have length=1, but got length={0}'.format(len(insert_result)))
+
+    inserted_item = insert_result[0]
+
+    assert_app(isinstance(inserted_item, dict), 'Expected inserted_item to be a dict, but was {0}'.format(type(inserted_item)))
+    assert_app('id' in inserted_item, 'inserted_item does not have a key "id"')
+    assert_app(isinstance(inserted_item['id'], int), 'Expected inserted_item["id"] to be an int, but was {0}'.format(type(inserted_item['id'])))
 
     c.close()
 
-    return insert_return['id']
+    return inserted_item
 
 
 def insert_data_fetch(conn):
-    assert_app(conn, 'insert_data_fetch function called without connection to db.')
+    assert_db(conn, 'insert_data_fetch function called without connection to db.')
 
     c = conn.cursor()
     c.execute('INSERT INTO fetches(fetch_time) VALUES (now()) RETURNING id;');
     conn.commit()
 
-    insert_return = c.fetchone()
+    insert_result = c.fetchall()
 
-    assert_app(isinstance(insert_return, dict), 'Expected insert_return to be a dict, but was {0}'.format(type(insert_return)))
-    assert_app('id' in insert_return, 'insert_return does not have a key "id"')
-    assert_app(isinstance(insert_return['id'], int), 'Expected insert_return["id"] to be an int, but was {0}'.format(type(insert_return['id'])))
+    assert_app(isinstance(insert_result, list), 'Expected insert_result to be list, but was {0}'.format(type(insert_result)))
+    assert_app(len(insert_result) == 1, 'Expected insert_result to have length=1, but got length={0}'.format(len(insert_result)))
+
+    inserted_item = insert_result[0]
+
+    assert_app(isinstance(inserted_item, dict), 'Expected inserted_item to be a dict, but was {0}'.format(type(inserted_item)))
+    assert_app('id' in inserted_item, 'inserted_item does not have a key "id"')
+    assert_app(isinstance(inserted_item['id'], int), 'Expected inserted_item["id"] to be an int, but was {0}'.format(type(inserted_item['id'])))
 
     c.close()
 
-    return insert_return['id']
+    return inserted_item['id']
 
 
 def insert_if_not_exists(conn, table, data, exists_check):
@@ -228,15 +205,15 @@ def insert_if_not_exists(conn, table, data, exists_check):
 
         return False
 
-    insert_id = insert(conn, table, data)
+    inserted = insert(conn, table, data)
 
-    assert_app(isinstance(insert_id, int), 'Expected insert result to be an int, but was {0}'.format(type(insert_id)))
+    assert_app(isinstance(inserted, dict), 'Expected inserted to be an dict, but was {0}'.format(type(inserted)))
 
     return True
 
 
 def insert_if_not_exists_sub(conn, airport_from_id , airport_to_id):
-    assert_app(conn, 'insert_if_not_exists_sub function called without connection to db.')
+    assert_db(conn, 'insert_if_not_exists_sub function called without connection to db.')
     assert_app(isinstance(airport_from_id , int), 'Expected argument "airport_from_id " in insert_if_not_exists_sub function to be int, but was {0}'.format(type(airport_from_id)))
     assert_app(isinstance(fly_to, int), 'Expected argument "airport_to_id" in insert_if_not_exists_sub function to be int, but was {0}'.format(type(airport_to_id)))
 
@@ -245,6 +222,7 @@ def insert_if_not_exists_sub(conn, airport_from_id , airport_to_id):
     c.execute('SELECT id FROM subscriptions WHERE airport_from_id = %s AND airport_to_id = %s;', (airport_from_id , airport_to_id))
 
     found = c.fetchall()
+    c.close()
 
     assert_app(isinstance(found, list), 'Expected result of exist check in insert_if_not_exists function to be a list, but was {0}'.format(type(result)))
 
@@ -410,7 +388,7 @@ def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
             len(response['data'])))
 
         for route in response['data']:
-            route_id = insert(conn, 'routes', {
+            inserted_route = insert(conn, 'routes', {
                 'booking_token': route['booking_token'],
                 'price': to_smallest_currency_unit(route['price']),
                 'subscription_fetch_id': subscription_fetch_id
@@ -418,7 +396,7 @@ def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
 
             for flight in route['route']:
                 log('Inserting route {0} flight {1} {2} from {3} to {4} departure time {5} ...'.format(
-                    route_id,
+                    inserted_route['id'],
                     flight['airline'],
                     flight['flight_no'],
                     flight['flyFrom'],
@@ -437,16 +415,13 @@ def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
 
                 insert(conn, 'routes_flights', {
                     'flight_id': flight_id_results[0]['id'],
-                    'route_id': route_id,
+                    'route_id': inserted_route['id'],
                     'is_return': bool(flight['return'])
                 })
 
         if isinstance(response['_next'], str):
             next_page_available = True
             offset += ROUTES_LIMIT
-
-
-
 
 
 def get_airport_if_not_exists(conn, iata_code):
@@ -487,15 +462,120 @@ def get_airport_if_not_exists(conn, iata_code):
         assert_peer(key in location, 'Key {0} not found in location')
         assert_peer(isinstance(location[key], str), 'Expected location["{0}"] to be str, but was {1}'.format(key, type(location[key])))
 
-    airport_id = insert(conn, 'airports', {
+    inserted_airport = insert(conn, 'airports', {
         'iata_code': location['code'],
         'name': '{0}, {1}'.format(location['name'], location['code'])
     })
 
-    return airport_id
+    return inserted_airport
+
+
+def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
+    assert_db(conn, 'charge_fetch_tax called without connection to db')
+    assert_app(
+        isinstance(subscription_fetch, psycopg2.extras.RealDictRow),
+        'Expected subscription_fetch to be psycopg2.extras.RealDictRow, but was "{0}"'.format(type(subscription_fetch)))
+
+    expect_subscription_fetch_keys = ['id', 'subscription_id']
+
+    for key in expect_subscription_fetch_keys:
+        assert_app(key in subscription_fetch.keys(), 'Key "{0}" not found in subscription_fetch'.format(key))
+        assert_app(
+            isinstance(subscription_fetch[key], int),
+            'Expected subscription_fetch[{0}] "{1}" to be int, but was "{2}"'.format(key, subscription_fetch[key], type(subscription_fetch[key])))
+
+    c = conn.cursor()
+
+    log('Beginning transaction. Charging fetch_tax {0} for subscription_id {1}'.format(fetch_tax, subscription_fetch['subscription_id']))
+
+    c.execute('''
+
+        UPDATE users_subscriptions
+        SET active = FALSE
+        WHERE user_id IN (
+            SELECT id
+            FROM users
+            WHERE credits < %s
+        );
+
+    ''', [fetch_tax])
+
+    c.execute('''
+
+        UPDATE users
+        SET credits = credits - %s
+        WHERE id IN (
+            SELECT user_id
+            FROM users_subscriptions
+            WHERE
+                active = TRUE AND
+                subscription_id = %s
+        )
+        RETURNING *;
+
+    ''', [fetch_tax, subscription_fetch['subscription_id']])
+
+    users = c.fetchall()
+
+    assert_app(isinstance(users, list), 'Expected users to be list, but was {0}'.format(type(users)))
+
+    log('Charged {0} users with fetch_tax {1} for subscription_id {2}'.format(len(users), fetch_tax, subscription_fetch['subscription_id']))
+
+    for user in users:
+        assert_app(isinstance(user, psycopg2.extras.RealDictRow), 'Expected user to be psycopg2.extras.RealDictRow, but was {0}'.format(type(user)))
+
+        expect_user_keys = ['id']
+
+        for key in expect_user_keys:
+            assert_app(key in user, 'Key "{0}" not found in user'.format(key))
+
+        log('Saving account transfer transfer_amount={0} for user_id={1}'.format(fetch_tax * -1, user['id']))
+
+        c.execute('''
+
+            INSERT INTO account_transfers
+                (user_id, transfer_amount)
+            VALUES
+                (%s, %s)
+            RETURNING *;
+
+        ''', [user['id'], fetch_tax * -1])
+
+        insert_result = c.fetchall()
+
+        assert_app(isinstance(insert_result, list), 'Expected insert_result to be a list, but was {0}'.format(type(insert_result)))
+        assert_app(len(insert_result) == 1, 'Expected insert_result to have length=1, but got length={0}'.format(len(insert_result)))
+
+        inserted_account_transfer = insert_result[0]
+
+        assert_app(isinstance(inserted_account_transfer, psycopg2.extras.RealDictRow), 'Expected inserted_account_transfer to be psycopg2.extras.RealDictRow, but was {0}'.format(type(inserted_account_transfer)))
+
+        expect_inserted_account_transfer_keys = ['id']
+
+        for key in expect_inserted_account_transfer_keys:
+            assert_app(key in inserted_account_transfer, 'Key "{0}" not found in inserted_account_transfer')
+
+        log('Saving account transfer with id={0} as subscription-related fetch')
+
+        c.execute('''
+
+            INSERT INTO subscriptions_fetches_account_transfers
+                (account_transfer_id, subscription_fetch_id)
+            VALUES
+                (%s, %s);
+
+        ''', [inserted_account_transfer['id'], subscription_fetch['id']])
+
+    conn.commit()
+
+    log('End of transaction. Charged fetch taxes for subscription_id {0}'.format(subscription_fetch['subscription_id']))
+
+    c.close()
 
 
 def start():
+    fetch_tax = 500 # cents
+
     conn = psycopg2.connect(dbname='freefall', user='freefall', password='freefall', cursor_factory=RealDictCursor)
 
     airlines = request('https://api.skypicker.com/airlines')
@@ -556,10 +636,14 @@ def start():
                 isinstance(sub[key], int),
                 'Expected sub[{0}] "{1}" to be int, but was "{2}"'.format(key, sub[key], type(sub[key])))
 
-        subscription_fetch_id = insert(conn, 'subscriptions_fetches', {
+        subscription_fetch = insert(conn, 'subscriptions_fetches', {
             'subscription_id': sub['id'],
             'fetch_id': fetch_id
         });
+
+        assert_app(isinstance(subscription_fetch, psycopg2.extras.RealDictRow), 'Expected subscription_fetch to be a psycopg2.extras.RealDictRow, but was {0}'.format(type(subscription_fetch)))
+
+        charge_fetch_tax(conn, subscription_fetch, fetch_tax)
 
         airport_from = select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
             'id': sub['airport_from_id']
@@ -568,10 +652,23 @@ def start():
             'id': sub['airport_to_id']
         })
 
-        # TODO assert airport_from and airport_to
+        assert_app(isinstance(airport_from, list), 'Expected airport_from to be a list, but was {0}'.format(type(airport_from)))
+        assert_app(len(airport_from) == 1, 'Expected the length of airport_from list to be 1, but was {0}'.format(len(airport_from)))
+        assert_app('iata_code' in airport_from[0], 'Key "iata_code" not found in airport_from[0]')
+        assert_app(isinstance(airport_from[0]['iata_code'], str), 'Expected airport_from[0]["iata_code"] to be str, but was {0}'.format(type(airport_from[0]['iata_code'])))
+        assert_app(isinstance(airport_to, list), 'Expected airport_to to be a list, but was {0}'.format(type(airport_to)))
+        assert_app(len(airport_to) == 1, 'Expected the length of airport_to list to be 1, but was {0}'.format(len(airport_to)))
+        assert_app('iata_code' in airport_to[0], 'Key "iata_code" not found in airport_to[0]')
+        assert_app(isinstance(airport_to[0]['iata_code'], str), 'Expected airport_to[0]["iata_code"] to be str, but was {0}'.format(type(airport_to[0]['iata_code'])))
 
-        get_subscription_data(conn, {'airport_from': airport_from[0]['iata_code'], 'airport_to': airport_to[0]['iata_code']}, subscription_fetch_id)
-
-        log('Done.')
+        get_subscription_data(
+            conn,
+            {
+                'airport_from': airport_from[0]['iata_code'],
+                'airport_to': airport_to[0]['iata_code']
+            },
+            subscription_fetch['id']
+        )
+    log('Done.')
 
 start()
