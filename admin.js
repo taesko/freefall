@@ -161,7 +161,7 @@ router.get('/fetches', authCheck, async (ctx) => {
   const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
   const rows = await db.select('fetches');
   const fetches = rows.map(row => {
-    row.timestamp = row.fetch_time;
+    row.timestamp = row.fetch_time.toISOString();
     return row;
   });
 
@@ -199,6 +199,7 @@ router.get('/transfers', authCheck, async (ctx) => {
       email: row.email,
       id: row.user_id,
     };
+    row.transferred_at = row.transferred_at.toISOString();
 
     return row;
   });
