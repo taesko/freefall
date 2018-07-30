@@ -209,14 +209,16 @@ async function selectSubscriptions (airportFromId, airportToId) {
   );
 
   const { rows } = await executeQuery(`
+
       SELECT fetches.id AS fetch_id, fetches.fetch_time as timestamp
-      FROM fetches
-      LEFT JOIN subscriptions_fetches ON fetches.id = subscriptions_fetches.fetch_id
-      LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.fetch_id
+      FROM subscriptions_fetches
+      LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
+      LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.subscription_id
       WHERE
         subscriptions.airport_from_id = $1 AND
         subscriptions.airport_to_id = $2 AND
-        fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
+        fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches);
+
     `, [airportFromId, airportToId]);
 
   assertApp(

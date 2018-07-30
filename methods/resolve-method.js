@@ -136,7 +136,9 @@ async function search (params, db) {
     'Invalid search request.',
   );
 
-  params.price_to = toSmallestCurrencyUnit(params.price_to);
+  if (Number.isInteger(params.price_to)) {
+    params.price_to = toSmallestCurrencyUnit(params.price_to);
+  }
 
   const result = {};
 
