@@ -19,6 +19,7 @@
             <th>Id</th>
             <th>Email</th>
             <th>Password</th>
+            <th>Credits</th>
             <th>Options</th>
           </tr>
         </thead>
@@ -32,6 +33,9 @@
             </td>
             <td>
               <input id="user-edit-mode-password" name="date-to" class="form-control" type="text" placeholder="Password" value="" required>
+            </td>
+            <td>
+              <span id="user-edit-mode-credits"></span>
             </td>
             <td>
               <button id="user-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
@@ -48,6 +52,9 @@
             </td>
             <td>
               <span>****</span>
+            </td>
+            <td>
+              <span id="user-view-mode-credits"></span>
             </td>
             <td>
               <button id="user-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>

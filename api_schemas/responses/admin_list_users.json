@@ -18,6 +18,11 @@
             "type": "string",
             "title": "User email",
             "format": "email"
+          },
+          "credits": {
+            "type": "number",
+            "title": "User credits",
+            "minimum": 0
           }
         },
         "required": ["id", "email"]

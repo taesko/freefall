@@ -214,6 +214,10 @@ function start () {
       .attr('href', '/users/' + user.id) // eslint-disable-line prefer-template
       .text(user.email);
 
+    $userViewModeClone.find('#user-view-mode-credits')
+      .attr('id', 'user-view-mode-credits-' + rowId) // eslint-disable-line prefer-template
+      .text(user.credits);
+
     $userViewModeClone.find('#user-view-mode-edit-btn')
       .attr('id', 'user-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditUserClick);
@@ -244,6 +248,10 @@ function start () {
 
     $userEditModeClone.find('#user-edit-mode-password')
       .attr('id', 'user-edit-mode-password-' + rowId); // eslint-disable-line prefer-template
+
+    $userEditModeClone.find('#user-edit-mode-credits')
+      .attr('id', 'user-edit-mode-credits-' + rowId) // eslint-disable-line prefer-template
+      .text(user.credits);
 
     $userEditModeClone.find('#user-edit-mode-save-btn')
       .attr('id', 'user-edit-mode-save-btn-' + rowId) // eslint-disable-line prefer-template
@@ -342,8 +350,6 @@ function start () {
 
     const rowId = getElementUniqueId(event.target, 'user-edit-mode-save-btn-');
     const user = rowIdUserMap[rowId];
-
-    console.log(rowId);
 
     const newEmail = $('#user-edit-mode-email-' + rowId).val().trim(); // eslint-disable-line prefer-template
     const newPassword = $('#user-edit-mode-password-' + rowId).val().trim(); // eslint-disable-line prefer-template
