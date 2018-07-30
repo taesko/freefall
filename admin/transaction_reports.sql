@@ -1,7 +1,7 @@
 -- (1) Credits spent by given user:
 SELECT COALESCE(sum(transfer_amount) * -1, 0) AS user_spent_credits
 FROM account_transfers
-WHERE 
+WHERE
 	user_id = 1 AND
 	transfer_amount < 0;
 
@@ -19,8 +19,8 @@ LEFT JOIN subscriptions_fetches
 ON subscriptions_fetches_account_transfers.subscription_fetch_id = subscriptions_fetches.id
 WHERE subscription_id = 1;
 
--- (4) Credits spent by users for a subscription in a given fetch: 
+-- (4) Credits spent by users for a subscription in a given fetch:
 -- same as (3), except:
-WHERE 
+WHERE
 	subscription_id = 1 AND
 	fetch_id = 1;

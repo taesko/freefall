@@ -269,10 +269,10 @@ function start () {
 
     const subscribeBtn = event.target;
 
-    const airportFrom = $('#subscribe-airport-from').val();
-    const airportTo = $('#subscribe-airport-to').val();
-    const dateFrom = $('#subscribe-date-from').val();
-    const dateTo = $('#subscribe-date-to').val();
+    const airportFrom = $('#subscribe-airport-from').val().trim();
+    const airportTo = $('#subscribe-airport-to').val().trim();
+    const dateFrom = $('#subscribe-date-from').val().trim();
+    const dateTo = $('#subscribe-date-to').val().trim();
 
     const airportFromId = getAirportId(airports, airportFrom);
     const airportToId = getAirportId(airports, airportTo);
@@ -285,6 +285,16 @@ function start () {
     assertUser(typeof airportToId === 'string', {
       userMessage: 'Could not find selected arrival airport.',
       msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isInteger(Date.parse(dateFrom)), {
+      userMessage: 'Please select a valid date from!',
+      msg: 'User entered an invalid date in dateFrom field',
+    });
+
+    assertUser(Number.isInteger(Date.parse(dateTo)), {
+      userMessage: 'Please select a valid date to!',
+      msg: 'User entered an invalid date in dateTo field',
     });
 
     subscribeBtn.disabled = true;

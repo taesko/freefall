@@ -14,6 +14,8 @@ function main () {
       trace: traceLog,
       stack_trace: error.stack,
     }, 'jsonrpc');
+
+    handleError(messages, 'error');
   };
 
   // BaseError.prototype = Object.create(Error.prototype);

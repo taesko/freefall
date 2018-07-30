@@ -248,6 +248,9 @@ function start () {
     $userViewMode.find('#user-view-mode-email')
       .attr('href', '/users/' + user.id) // eslint-disable-line prefer-template
       .text(user.email);
+
+    $userViewMode.find('#user-view-mode-credits')
+      .text(user.credits);
   }
 
   function renderUserRowEditMode (user) {
@@ -263,6 +266,9 @@ function start () {
 
     $userEditMode.find('#user-edit-mode-email')
       .attr('value', user.email);
+
+    $userEditMode.find('#user-edit-mode-credits')
+      .text(user.credits);
   }
 
   const onSaveUserClick = function (event) {
