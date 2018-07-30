@@ -120,7 +120,11 @@ async function daliPecheErrorHandling (ctx, next) {
 
 async function daliPecheAPI (ctx) {
   const { key, city, iataCode } = ctx.request.body;
-  assertPeer(city ^ iataCode, 'Need to specify only one of city or iataCode params.');
+  assertPeer(
+    (city == null && typeof iataCode === 'string') ||
+    (typeof city === 'string' && iataCode == null),
+    'Need to specify only one of city or iataCode params.'
+  );
 
   const bodyParams = { key };
 
