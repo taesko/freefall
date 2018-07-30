@@ -496,7 +496,7 @@ def get_airport_if_not_exists(conn, iata_code):
 
 
 def start():
-    conn = psycopg2.connect(dbname='freefall', user='freefall', password='freefall', cursor_factory=RealDictCursor)
+    conn = psycopg2.connect(dbname='taesko', user='taesko', password='pusnimebe', cursor_factory=RealDictCursor)
 
     airlines = request('https://api.skypicker.com/airlines')
 

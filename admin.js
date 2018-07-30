@@ -34,7 +34,6 @@ app.use(async (ctx, next) => {
   }
 });
 
-db.dbConnect();
 app.context.db = db;
 
 app.use(session(SESSION_CONFIG, app));

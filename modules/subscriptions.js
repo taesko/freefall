@@ -20,6 +20,8 @@ async function subscribeUser (
     globalSubId = globalSub.id;
   }
 
+  log.info('Searching for inactive user subscription');
+
   const [sub] = await db.selectWhere(
     'user_subscriptions',
     '*',
@@ -32,6 +34,7 @@ async function subscribeUser (
   );
 
   if (sub) {
+    log.info('Found inactive user subscription with id: ', sub.id);
     errors.assertPeer(
       sub.active === 0,
       `Cannot subscribe userId=${userId}, because subscription with id=${sub.id} already has the same filters.`,
@@ -56,6 +59,8 @@ async function subscribeUser (
 
     return sub.id;
   }
+
+  log.info('Inserting new user subscription');
 
   return db.insert(
     'user_subscriptions',
@@ -133,9 +138,46 @@ async function removeAllSubscriptionsOfUser (userId) {
   return db.updateWhere('user_subscriptions', { active: 0 }, { user_id: userId });
 }
 
-async function listUserSubscriptions (userId) {
+async function listUserSubscriptionsHelper (userId) {
   // TODO no longer valid because users can be inactive
-  return db.selectWhere('user_subscriptions', '*', { user_id: userId, active: 1 });
+  const whereHash = {
+    'user_sub.active': 1,
+  };
+
+  if (userId) {
+    whereHash['users.id'] = userId;
+  }
+
+  const { whereClause, values } = db.buildWhereClause(whereHash);
+
+  const { rows } = await db.executeQuery(
+    `
+    SELECT user_sub.id, user_sub.date_from, user_sub.date_to, 
+      ap_from.id fly_from, ap_to.id fly_to,
+      users.id user_id, users.email user_email
+    FROM user_subscriptions user_sub
+    JOIN users ON user_sub.user_id=users.id
+    JOIN subscriptions sub ON user_sub.subscription_id=sub.id
+    JOIN airports ap_from ON sub.airport_from_id=ap_from.id
+    JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+    ${whereClause}
+  `,
+    values,
+  );
+
+  errors.assertApp(Array.isArray(rows));
+
+  return rows;
+}
+
+async function listUserSubscriptions (userId) {
+  errors.assertApp(Number.isInteger(userId));
+
+  return listUserSubscriptionsHelper(userId);
+}
+
+async function listAllUserSubscriptions () {
+  return listUserSubscriptionsHelper();
 }
 
 async function listGlobalSubscriptions () {
@@ -143,7 +185,7 @@ async function listGlobalSubscriptions () {
 }
 
 async function getGlobalSubscription (airportFromId, airportToId) {
-  const resultRows = await db.selectWhere(
+  const [sub] = await db.selectWhere(
     'subscriptions',
     ['id'],
     {
@@ -152,7 +194,7 @@ async function getGlobalSubscription (airportFromId, airportToId) {
     },
   );
 
-  return resultRows[0];
+  return (sub != null) ? sub.id : null;
 }
 
 async function globalSubscriptionExists (airportFromId, airportToId) {
@@ -169,13 +211,15 @@ async function subscribeGlobally (airportFromId, airportToId) {
     `Cannot subscribe globally to airports with ids ${airportFromId}, ${airportToId}. Subscription already exists.`,
   );
 
-  return db.insert(
+  const sub = await db.insert(
     'subscriptions',
     {
       airport_from_id: airportFromId,
       airport_to_id: airportToId,
     },
   );
+
+  return sub.id;
 }
 
 module.exports = {
@@ -184,6 +228,7 @@ module.exports = {
   removeAllSubscriptionsOfUser,
   updateUserSubscription,
   listUserSubscriptions,
+  listAllUserSubscriptions,
   subscribeGlobally,
   listGlobalSubscriptions,
 };
