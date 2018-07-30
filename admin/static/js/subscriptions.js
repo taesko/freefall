@@ -111,8 +111,9 @@ function start () {
 
     assertApp(
       $row == null ||
-      $row instanceof jQuery,
-      'Unexpected type of $row ' + typeof $row, // eslint-disable-line prefer-template
+      $row instanceof jQuery, {
+        msg: 'Unexpected type of $row ' + typeof $row, // eslint-disable-line prefer-template
+      }
     );
 
     var rowId = // eslint-disable-line no-var
@@ -613,8 +614,9 @@ function start () {
 
     assertApp(
       $row == null ||
-      $row instanceof jQuery,
-      'Unexpected type of $row ' + typeof $row, // eslint-disable-line prefer-template
+      $row instanceof jQuery, {
+        msg: 'Unexpected type of $row ' + typeof $row, // eslint-disable-line prefer-template
+      }
     );
 
     var rowId = // eslint-disable-line no-var
