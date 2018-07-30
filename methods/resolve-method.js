@@ -1,5 +1,5 @@
 const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
-const { assertPeer, assertApp, PeerError } = require('../modules/error-handling');
+const { assertPeer, assertApp, PeerError, errorCodes } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit, fromSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject, each, forOwn } = require('lodash');
 const log = require('../modules/log');
@@ -7,6 +7,7 @@ const auth = require('../modules/auth');
 const moment = require('moment');
 const subscriptions = require('../modules/subscriptions');
 const users = require('../modules/users');
+const accounting = require('../modules/accounting');
 
 const API_METHODS = {
   search,
@@ -255,7 +256,7 @@ async function search (params, db) {
   return result;
 }
 
-async function subscribe (params) {
+async function subscribe (params, db) {
   assertPeer(
     Number.isInteger(+params.fly_from) && Number.isInteger(+params.fly_to),
     'subscribe params fly_from and fly_to must be an integer wrapped in a string',
@@ -269,21 +270,38 @@ async function subscribe (params) {
 
   assertPeer(user != null, 'invalid api key');
 
-  let subscriptionId;
+  const subscribeAndTax = db.executeInTransaction(
+    async (userId, {flyFrom, flyTo, dateFrom, dateTo}) => {
+      const subId = await subscriptions.subscribeUser(
+        user.id,
+        {
+          airportFromId: flyFrom,
+          airportToId: flyTo,
+          dateFrom,
+          dateTo,
+        },
+      );
+      await accounting.taxSubscribe(userId, subId);
+
+      return subId;
+    }
+  );
+
   let statusCode;
+  let subscriptionId;
   try {
-    subscriptionId = await subscriptions.subscribeUser(
-      user.id,
-      {
-        airportFromId: flyFrom,
-        airportToId: flyTo,
-        dateFrom,
-        dateTo,
-      },
-    );
+    subscriptionId = await subscribeAndTax;
     statusCode = 1000;
   } catch (e) {
-    if (e instanceof PeerError) {
+    if (!(e instanceOf PeerError)){
+      throw e;
+    }
+
+    if (e instanceof PeerError && e.code === errorCodes.notEnoughCredits) {
+
+      if (e.code === errorCodes.notEnoughCredits) {
+
+      }
       log.warn('Peer error occurred while subscribing user.');
       statusCode = 2000;
       subscriptionId = null;

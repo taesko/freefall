@@ -121,10 +121,18 @@ CREATE TABLE account_transfers (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE user_subscription_account_transfers (
+  id serial PRIMARY KEY NOT NULL,
+  account_transfer_id integer NOT NULL UNIQUE,
+  user_subscription_id integer NOT NULL UNIQUE,
+  FOREIGN KEY (account_transfer_id) REFERENCES account_transfers(id) ON DELETE RESTRICT,
+  FOREIGN KEY (user_subscription_id) REFERENCES users_subscriptions(id) ON DELETE RESTRICT
+);
+
 CREATE TABLE subscriptions_fetches_account_transfers (
   id serial PRIMARY KEY NOT NULL,
   account_transfer_id integer NOT NULL UNIQUE,
-  subscription_fetch_id integer NOT NULL,
+  subscription_fetch_id integer NOT NULL, -- subscription_fetch_id is not linked to a user so multiple account_transfers are possible.
   FOREIGN KEY (account_transfer_id) REFERENCES account_transfers(id) ON DELETE CASCADE,
   FOREIGN KEY (subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE CASCADE
 );

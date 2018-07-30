@@ -197,5 +197,6 @@ module.exports = {
   editUser,
   removeUser,
   listUsers,
+  userExists,
   hashPassword,
 };
