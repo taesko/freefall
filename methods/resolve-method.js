@@ -36,7 +36,7 @@ async function search (params, db) {
       typeof routeFlight.dtime === 'string' &&
       typeof routeFlight.atime === 'string' &&
       typeof routeFlight.flightNumber === 'string' &&
-      (routeFlight.isReturn === 1 || routeFlight.isReturn === 0),
+      (routeFlight.isReturn === true || routeFlight.isReturn === false),
       'Invalid database flight response.',
     );
 
@@ -146,7 +146,7 @@ async function search (params, db) {
 
   const subs = await db.selectSubscriptions(+params.fly_from, +params.fly_to);
 
-  if (subs <= 0) {
+  if (subs.length <= 0) {
     await subscriptions.subscribeGlobally(params.fly_from, params.fly_to);
 
     result.status_code = '2000';
@@ -212,10 +212,10 @@ async function search (params, db) {
                typeof flight.logoURL === 'string' &&
                typeof flight.afromName === 'string' &&
                typeof flight.atoName === 'string' &&
-               typeof flight.dtime === 'string' &&
-               typeof flight.atime === 'string' &&
+               // typeof flight.dtime === 'string' &&
+               // typeof flight.atime === 'string' &&
                typeof flight.flightNumber === 'string' &&
-               (flight.isReturn === 1 || flight.isReturn === 0);
+               (flight.isReturn === true || flight.isReturn === false);
       }),
       'Invalid database flight response.',
     );

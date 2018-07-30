@@ -120,19 +120,19 @@ async function selectRoutesFlights (fetchId, params) {
   let query = `
 
       SELECT
-      routes.id AS routeId,
-      routes.booking_token AS bookingToken,
+      routes.id AS route_id,
+      routes.booking_token AS booking_token,
       routes.price,
-      airlines.name AS airlineName,
-      airlines.logo_url AS logoURL,
-      afrom.name AS afromName,
-      afrom.id AS afromId,
-      ato.name AS atoName,
-      ato.id AS atoId,
+      airlines.name AS airline_name,
+      airlines.logo_url AS logo_url,
+      afrom.name AS afrom_name,
+      afrom.id AS afrom_id,
+      ato.name AS ato_name,
+      ato.id AS ato_id,
       flights.dtime,
       flights.atime,
-      flights.flight_number AS flightNumber,
-      routes_flights.is_return AS isReturn
+      flights.flight_number AS flight_number,
+      routes_flights.is_return AS is_return
       FROM routes
       LEFT JOIN routes_flights ON routes_flights.route_id = routes.id
       LEFT JOIN flights ON routes_flights.flight_id = flights.id
@@ -174,7 +174,31 @@ async function selectRoutesFlights (fetchId, params) {
     'Invalid db routes and flights response.',
   );
 
-  return rows;
+  // rename columns to camel case because pg doesn't support case sensitivity
+  const renames = {
+    'route_id': 'routeId',
+    'booking_token': 'bookingToken',
+    'airline_name': 'airlineName',
+    'logo_url': 'logoURL',
+    'afrom_name': 'afromName',
+    'afrom_id': 'afromId',
+    'ato_name': 'atoName',
+    'ato_id': 'atoId',
+    'flight_number': 'flightNumber',
+    'is_return': 'isReturn',
+  };
+
+  return rows.map(row => {
+    for (const [oldName, newName] of Object.entries(renames)) {
+      row[newName] = row[oldName];
+      delete row[oldName];
+    }
+
+    row.atime = row.atime.toISOString();
+    row.dtime = row.dtime.toISOString();
+
+    return row;
+  });
 }
 
 async function selectSubscriptions (airportFromId, airportToId) {
@@ -185,7 +209,7 @@ async function selectSubscriptions (airportFromId, airportToId) {
   );
 
   const { rows } = await executeQuery(`
-      SELECT fetches.id AS fetchId, fetches.fetch_time as timestamp
+      SELECT fetches.id AS fetch_id, fetches.fetch_time as timestamp
       FROM fetches
       LEFT JOIN subscriptions_fetches ON fetches.id = subscriptions_fetches.fetch_id
       LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.fetch_id
@@ -201,7 +225,14 @@ async function selectSubscriptions (airportFromId, airportToId) {
     'Got: ', rows,
   );
 
-  return rows;
+  return rows.map(row => {
+    row.fetchId = row.fetch_id;
+    delete row.fetch_id;
+
+    row.timestamp = row.timestamp.toISOString();
+
+    return row;
+  });
 }
 
 async function insert (table, data) {
