@@ -1,11 +1,12 @@
 const { defineParsers, jsonParser, yamlParser } = require('./normalize');
 const { validateRequest, validateRequestFormat, validateResponse } = require('./validate');
-const { PeerError, UserError, assertPeer } = require('./error-handling');
+const { PeerError, UserError, assertPeer, assertApp } = require('./error-handling');
 const compose = require('koa-compose');
 const methods = require('../methods/resolve-method');
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./protocol');
 const log = require('./log');
 const forecast = require('./forecast');
+const multiparser = require('./normalize');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 
@@ -108,6 +109,7 @@ async function daliPecheErrorHandling (ctx, next) {
   } catch (e) {
     const response = {};
     if (e instanceof PeerError) {
+      // TODO fix error handling to sent an HTTP status code.
       response.msg = "Couldn't connect to DaliPeche service. Because the service did not reply.";
       response.code = e.code;
     } else {
@@ -136,7 +138,15 @@ async function daliPecheAPI (ctx) {
     bodyParams.iataCode = iataCode;
   }
 
-  ctx.body = await forecast.fetchForecast(bodyParams);
+  const forecastResponse = await forecast.fetchForecast(bodyParams);
+  const forecastParsed = multiParser.parse(forecastResponse, 'json');
+
+  assertApp(
+    forecastParsed.statusCode !== 33,
+    `API key - ${forecast.API_KEY} for DaliPeche service is invalid.`
+  );
+
+  ctx.body = multiParser.stringify(forecastParsed, 'json');
 }
 
 module.exports = {

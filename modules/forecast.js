@@ -1,8 +1,9 @@
 const { Buffer } = require('buffer');
 const http = require('http');
 const errors = require('./error-handling');
+const log = require('./log');
 
-const API_KEY = process.env.DALIPECHE_API_KEY || 'jXb5iIHJYElWAyQK';
+const API_KEY = process.env.DALIPECHE_API_KEY || 'I292zV60xqRltH3c';
 
 errors.assertApp(
   API_KEY,
@@ -24,7 +25,10 @@ function buildPostRequestOptions (body) {
 }
 
 async function fetchForecast (bodyParams) {
+  log.info('Fetching forecast with bodyParams =', bodyParams);
+
   async function fetch (bodyParams) {
+    bodyParams.key = API_KEY;
     const body = JSON.stringify(bodyParams);
     const options = buildPostRequestOptions(body);
 
@@ -61,6 +65,7 @@ async function retry (fetch, times = 2) {
     try {
       return await fetch();
     } catch (e) {
+      log.info('DaliPeche fetch failed. Retrying.');
       if (e.code !== errors.errorCodes.serviceDown) {
         throw e;
       }
@@ -70,4 +75,5 @@ async function retry (fetch, times = 2) {
 
 module.exports = {
   fetchForecast,
+  API_KEY,
 };
