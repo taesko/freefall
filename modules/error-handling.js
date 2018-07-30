@@ -4,7 +4,10 @@ class CustomError extends Error {
   constructor (errMsg, errCode = '0') {
     super(errMsg);
     this.code = errCode;
-    log.error(`ERROR occurred with code ${errCode} and message: ${errMsg}`);
+    log.error(
+      `ERROR occurred with code ${errCode} and message: ${errMsg}. Stack trace:\n\t`,
+      this,
+    );
   }
 }
 class PeerError extends CustomError {}
