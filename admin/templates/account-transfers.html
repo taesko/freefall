@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Account transfers reports</title>
+  <link href="../css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<!--   <link href="../css/style.css" rel="stylesheet"> -->
+</head>
+<body>
+  <div class="container">
+    {{> heading }}
+    {{> menu }}
+    <table id="account-transfers-table" class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>User</th>
+          <th>Transfer amount</th>
+          <th>Transferred at</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each account_transfers}}
+        <tr>
+          <td>
+            {{this.id}}
+          </td>
+          <td>
+            <a href="/users/{{this.user.id}}">{{this.user.email}}</a>
+          </td>
+          <td>
+            {{this.transfer_amount}}
+          </td>
+          <td>
+            {{this.transferred_at}}
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+<!--     <p id="no-fetches-msg" class="text-center" hidden="true">No fetches found</p> -->
+  </div>
+</body>
+</html>

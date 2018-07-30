@@ -534,9 +534,9 @@ def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
         c.execute('''
 
             INSERT INTO account_transfers
-                (user_id, transfer_amount)
+                (user_id, transfer_amount, transferred_at)
             VALUES
-                (%s, %s)
+                (%s, %s, now())
             RETURNING *;
 
         ''', [user['id'], fetch_tax * -1])
@@ -576,8 +576,8 @@ def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
 def start():
     fetch_tax = 500 # cents
 
-    conn = psycopg2.connect(dbname='antonio', user='antonio',
-            password='pusnimebe', cursor_factory=RealDictCursor)
+    conn = psycopg2.connect(dbname='freefall', user='freefall',
+            password='freefall', cursor_factory=RealDictCursor)
 
     airlines = request('https://api.skypicker.com/airlines')
 

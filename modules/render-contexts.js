@@ -12,6 +12,7 @@ addContextForRoute('post', '/login', loginPageContext);
 addContextForRoute('get', '/register', registerPageContext);
 addContextForRoute('post', '/register', registerPageContext);
 addContextForRoute('get', '/profile', profilePageContext);
+addContextForRoute('get', '/transfers', accountTransfersContext);
 
 const adminContextFunctions = {};
 
@@ -62,6 +63,12 @@ function registerPageContext (appCtx) {
 async function profilePageContext () {
   return {
     item: 'profile',
+  };
+}
+
+async function accountTransfersContext () {
+  return {
+    item: 'transfers',
   };
 }
 
