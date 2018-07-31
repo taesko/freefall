@@ -174,6 +174,10 @@ router.get('/transfers', authCheck, async (ctx) => {
   const accountTransfers = rows.map(row => {
     const expectRowProps = [
       {
+        name: 'account_transfer_id',
+        test: Number.isInteger,
+      },
+      {
         name: 'user_id',
         test: Number.isInteger,
       },

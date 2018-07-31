@@ -240,10 +240,16 @@ async function selectSubscriptions (airportFromId, airportToId) {
 async function selectAccountTransfersUsers () {
   const selectResult = await executeQuery(`
 
-    SELECT *
+    SELECT
+      account_transfers.id AS account_transfer_id,
+      email,
+      transfer_amount,
+      transferred_at,
+      user_id
     FROM account_transfers
     LEFT JOIN users
-    ON account_transfers.user_id = users.id;
+    ON account_transfers.user_id = users.id
+    ORDER BY account_transfer_id;
 
   `);
 
