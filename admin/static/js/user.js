@@ -7,6 +7,7 @@ function start () {
   const assertPeer = mainUtils.assertPeer;
   const assertUser = mainUtils.assertUser;
   const PeerError = mainUtils.PeerError;
+  const UserError = mainUtils.UserError;
   const sendRequest = mainUtils.sendRequest;
   const getValidatorMsg = mainUtils.getValidatorMsg;
   const SERVER_URL = mainUtils.SERVER_URL;
@@ -28,6 +29,8 @@ function start () {
   const validateAdminUnsubscribeRes = adminValidators.getValidateAdminUnsubscribeRes();
   const validateAdminEditSubscriptionReq = adminValidators.getValidateAdminEditSubscriptionReq();
   const validateAdminEditSubscriptionRes = adminValidators.getValidateAdminEditSubscriptionRes();
+  const validateAdminAlterUserCreditsReq = adminValidators.getValidateAdminAlterUserCreditsReq();
+  const validateAdminAlterUserCreditsRes = adminValidators.getValidateAdminAlterUserCreditsRes();
 
   var APIKey; // eslint-disable-line no-var
   var subscriptions = []; // eslint-disable-line no-var
@@ -177,7 +180,7 @@ function start () {
     trace('adminEditSubscription');
 
     assertApp(validateAdminEditSubscriptionReq(params), {
-      msg: 'Params do not adhere to adminEditSubscriptionRequestSchema: ' + getValidatorMsg(validateAdminEditSubscriptionReq) // eslint-disable-line prefer-template
+      msg: 'Params do not adhere to adminEditSubscriptionRequestSchema: ' + getValidatorMsg(validateAdminEditSubscriptionReq), // eslint-disable-line prefer-template
     });
 
     sendRequest({
@@ -201,6 +204,38 @@ function start () {
 
       assertPeer(validateAdminEditSubscriptionRes(result), {
         msg: 'Params do not adhere to adminEditSubscriptionResponseSchema: ' + getValidatorMsg(validateAdminEditSubscriptionRes), // eslint-disable-line prefer-template
+      });
+
+      callback(result);
+    });
+  }
+
+  function adminAlterUserCredits (params, protocolName, callback) {
+    assertApp(validateAdminAlterUserCreditsReq(params), {
+      msg: 'Params do not adhere to adminAlterUserCreditsRequestSchema: ' + getValidatorMsg(validateAdminAlterUserCreditsReq), // eslint-disable-line prefer-template
+    });
+
+    sendRequest({
+      url: SERVER_URL,
+      data: {
+        method: 'admin_alter_user_credits',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        assertPeer(validateErrorRes(error), {
+          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
+        });
+
+        trace('Error in adminAlterUserCredits:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminAlterUserCreditsRes(result), {
+        msg: 'Params do not adhere to adminAlterUserCreditsResponseSchema: ' + getValidatorMsg(validateAdminAlterUserCreditsRes), // eslint-disable-line prefer-template
       });
 
       callback(result);
@@ -670,6 +705,56 @@ function start () {
     });
   };
 
+  const onUserCreditsSubmitClick = function (event) {
+    trace('onUserCreditsSubmitClick');
+
+    const submitButton = event.target;
+    const userCreditsChange = $('#user-credits-change').val().trim();
+
+    assertUser(userCreditsChange.length > 0, {
+      userMessage: 'Please choose a value for credit change!',
+      msg: 'User submitted "' + userCreditsChange + '", which was recognised as an empty input.', // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isInteger(Number(userCreditsChange)), {
+      userMessage: 'Change credit value is not an integer (2, 200, -16, etc..)!',
+      msg: 'User submitted "' + userCreditsChange + '", which was not recognised as an integer.', // eslint-disable-line prefer-template
+    });
+
+    submitButton.disabled = true;
+
+    const alterUserCreditsParams = {
+      v: '2.0',
+      api_key: APIKey,
+      user_id: user.id,
+      credits_difference: Number(userCreditsChange),
+    };
+
+    adminAlterUserCredits(alterUserCreditsParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      submitButton.disabled = false;
+
+      if (result.status_code < 1000 || result.status_code >= 2000) {
+        const errCodeMsgMap = {
+          2100: 'Invalid api key!',
+          2101: 'User does not have enough credits for this transaction!',
+          2102: 'User not found',
+        };
+
+        const genericMessage = 'Alter user credits failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+        const userMessage = errCodeMsgMap[result.status_code] || genericMessage;
+
+        throw new UserError({
+          userMessage: userMessage,
+          msg: genericMessage,
+        });
+      } else {
+        user.credits += Number(userCreditsChange);
+        renderUserRow('view', user);
+        displayUserMessage('Successfully altered user credits!', 'success');
+      }
+    });
+  };
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     getAPIKey({
       v: '2.0',
@@ -705,6 +790,7 @@ function start () {
     $('#user-edit-mode-save-btn').click(onSaveUserClick);
     $('#user-edit-mode-cancel-btn').click(onCancelEditUserClick);
     $('#user-edit-mode-remove-btn').click(onRemoveUserClick);
+    $('#user-credits-submit-btn').click(onUserCreditsSubmitClick);
   });
 }
 
