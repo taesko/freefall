@@ -25,15 +25,6 @@ const SESSION_CONFIG = {
 
 app.keys = ['freefall is love freefall is life'];
 
-async function authCheck (ctx, next) {
-  if (!await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/');
-    // return;
-  } else {
-    await next();
-  }
-}
-
 app.use(async (ctx, next) => {
   try {
     await next();
@@ -87,15 +78,11 @@ app.use(views(path.join(__dirname, 'admin', 'templates'), {
   },
 }));
 
-router.get('/login', async (ctx) => {
-  if (await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/');
-    return;
-  }
+router.get('/login', auth.redirectWhenLoggedIn('/'), async (ctx) => {
   return ctx.render('login.html', await getAdminContext(ctx, 'get', '/login'));
 });
 
-router.post('/login', async (ctx) => {
+router.post('/login', auth.redirectWhenLoggedIn('/'), async (ctx) => {
   try {
     if (ctx.request.body.email !== 'admin@freefall.org') {
       // noinspection ExceptionCaughtLocallyJS
@@ -107,11 +94,7 @@ router.post('/login', async (ctx) => {
 
     return;
   } catch (e) {
-    if (e instanceof auth.AlreadyLoggedIn) {
-      log.info('User already logged in. Redirect to /');
-      ctx.redirect('/');
-      return;
-    } else if (e instanceof auth.InvalidCredentials) {
+    if (e instanceof auth.InvalidCredentials) {
       log.info('Invalid credentials on login. Setting ctx.state.login_error_message');
       ctx.state.login_error_message = 'Invalid username or password.';
     } else {
@@ -122,31 +105,32 @@ router.post('/login', async (ctx) => {
   return ctx.redirect('/login', { error_message: ctx.state.login_error_message });
 });
 
-router.get('/', async (ctx) => {
-  if (await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/subscriptions');
-  } else {
-    ctx.redirect('/login');
+router.get(
+  '/',
+  auth.redirectWhenLoggedIn('/subscriptions'),
+  auth.redirectWhenLoggedOut('/login'),
+  async (ctx) => {
+    assertApp(
+      false,
+      `auth module asserted that ctx is neither logged in nor logged out.`,
+    );
   }
-});
+);
 
-router.get('/logout', async (ctx) => {
-  if (await auth.isLoggedIn(ctx)) {
-    await auth.logout(ctx);
-  }
-
+router.get('/logout', auth.redirectWhenLoggedOut('/'), async (ctx) => {
+  await auth.logout(ctx);
   ctx.redirect('/');
 });
 
-router.get('/subscriptions', authCheck, async (ctx) => {
+router.get('/subscriptions', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   return ctx.render('subscriptions.html', await getAdminContext(ctx, 'get', '/subscriptions'));
 });
 
-router.get('/users', authCheck, async (ctx) => {
+router.get('/users', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   return ctx.render('users.html', await getAdminContext(ctx, 'get', '/users'));
 });
 
-router.get('/users/:user_id', authCheck, async (ctx) => {
+router.get('/users/:user_id', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   const defaultContext = await getAdminContext(ctx, 'get', '/users/:user_id');
   const user = await users.fetchUser({ userId: ctx.params.user_id });
 
@@ -157,7 +141,7 @@ router.get('/users/:user_id', authCheck, async (ctx) => {
   }
 });
 
-router.get('/fetches', authCheck, async (ctx) => {
+router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
   const rows = await db.select('fetches');
   const fetches = rows.map(row => {
@@ -168,7 +152,7 @@ router.get('/fetches', authCheck, async (ctx) => {
   return ctx.render('fetches.html', Object.assign(defaultContext, { fetches }));
 });
 
-router.get('/transfers', authCheck, async (ctx) => {
+router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   const defaultContext = await getAdminContext(ctx, 'get', '/transfers');
   const rows = await db.selectAccountTransfersUsers();
   const accountTransfers = rows.map(row => {
