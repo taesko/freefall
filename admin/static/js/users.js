@@ -53,7 +53,9 @@ function start () {
         msg: 'Params do not adhere to adminListUsersResponseSchema: ' + getValidatorMsg(validateAdminListUsersRes), // eslint-disable-line prefer-template
       });
 
-      callback(result);
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
     });
   }
 
@@ -87,7 +89,9 @@ function start () {
         msg: 'Params do not adhere to adminRemoveUserResponseSchema: ' + getValidatorMsg(validateAdminRemoveUserRes), // eslint-disable-line prefer-template
       });
 
-      callback(result);
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
     });
   }
 
@@ -121,7 +125,9 @@ function start () {
         msg: 'Params do not adhere to adminEditUserResponseSchema: ' + getValidatorMsg(validateAdminEditUserRes), // eslint-disable-line prefer-template
       });
 
-      callback(result);
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
     });
   }
 

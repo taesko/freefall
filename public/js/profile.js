@@ -470,7 +470,9 @@ function start () {
         msg: 'Params do not adhere to validateSubscriptionsResponseSchema: ' + getValidatorMsg(validateListSubscriptionsRes), // eslint-disable-line prefer-template
       });
 
-      callback(result);
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
     });
   }
 
@@ -504,7 +506,9 @@ function start () {
         msg: 'Params do not adhere to unsubscribeResponseSchema: ' + getValidatorMsg(validateUnsubscribeRes), // eslint-disable-line prefer-template
       });
 
-      callback(result);
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
     });
   }
 
@@ -552,7 +556,9 @@ function start () {
         msg: 'Tried to subscribe but subscription already existed. Sent params: ' + params + '. Got result: ' + result + '', // eslint-disable-line prefer-template
       });
 
-      callback(result);
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
     });
   }
 

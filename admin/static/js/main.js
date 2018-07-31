@@ -481,7 +481,9 @@ function main () {
         msg: 'Params do not adhere to listAirportsResponseSchema: ' + getValidatorMsg(validateListAirportsRes), // eslint-disable-line prefer-template
       });
 
-      callback(result);
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
     });
   };
 
@@ -574,7 +576,9 @@ function main () {
         msg: 'Params do not adhere to getAPIKeyResponseSchema: ' + getValidatorMsg(validateGetAPIKeyRes), // eslint-disable-line prefer-template
       });
 
-      callback(result);
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
     });
   };
 
