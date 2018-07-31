@@ -5,10 +5,17 @@ const utils = require('./utils');
 const subscriptions = require('./subscriptions');
 const log = require('./log');
 
+/*
+  Users are never deleted from the database but this should be transparent to the code
+  that uses this module. Therefore addUser will either insert a new user account or reactive dead
+  ones. But it will never overwrite an active one.
+
+  TODO perhaps reactivating old users should be limited to admins only.
+ */
 async function addUser ({ email, password, role = 'customer' }) {
   log.info(`Adding user with email=${email} and role=${role}`);
   errors.assertPeer(
-    !await anyUserExists({ email }),
+    !await userExists({ email }),
     `Failed adding user, because email ${email} is taken`,
     errors.errorCodes.emailTaken,
   );
