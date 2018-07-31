@@ -3,4 +3,5 @@ FREEFALL_LOG_LEVEL=DEBUG \
 PGUSER=freefall \
 PGPASSWORD=freefall \
 PGDATABASE=freefall \
-node ./admin.js
+pm2 start ./admin.js -i max
+

@@ -1,5 +1,6 @@
 FREEFALL_PORT=3000 \
 FREEFALL_LOG_LEVEL=DEBUG \
-PGUSER=antonio \
-PGPASSWORD=pusnimebe \
-node server.js
+PGUSER=freefall \
+PGPASSWORD=freefall \
+PGDATABASE=freefall \
+node ./server.js
