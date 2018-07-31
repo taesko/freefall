@@ -355,7 +355,9 @@ function start () {
         return routeObj.dtime;
       }]);
 
-      callback(result);
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
     });
   }
 

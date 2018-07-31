@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/admin_alter_user_credits",
+  "title": "admin_alter_user_credits request",
+  "type": "object",
+  "properties": {
+    "v": {
+      "title": "API version",
+      "type": "string"
+    },
+    "user_id": {
+      "title": "User id",
+      "type": "string"
+    },
+    "credits_difference": {
+      "title": "Credits difference",
+      "type": "number"
+    },
+    "api_key": {
+      "title": "API key",
+      "type": "string"
+    }
+  },
+  "required": ["v", "user_id", "credits_difference", "api_key"]
+}

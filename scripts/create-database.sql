@@ -47,8 +47,8 @@ CREATE TABLE subscriptions_fetches (
   id serial PRIMARY KEY NOT NULL,
   subscription_id integer NOT NULL,
   fetch_id integer NOT NULL,
-  FOREIGN KEY(subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE,
-  FOREIGN KEY(fetch_id) REFERENCES fetches(id) ON DELETE CASCADE,
+  FOREIGN KEY(subscription_id) REFERENCES subscriptions(id) ON DELETE RESTRICT,
+  FOREIGN KEY(fetch_id) REFERENCES fetches(id) ON DELETE RESTRICT,
   UNIQUE(subscription_id, fetch_id)
 );
 
@@ -85,7 +85,7 @@ CREATE TABLE routes (
   subscription_fetch_id integer NOT NULL,
   price integer NOT NULL, -- stored as cents
   CHECK(price >= 0),
-  FOREIGN KEY(subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE CASCADE
+  FOREIGN KEY(subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE flights (
@@ -108,7 +108,7 @@ CREATE TABLE routes_flights (
   route_id integer NOT NULL,
   flight_id integer NOT NULL,
   is_return boolean NOT NULL DEFAULT FALSE,
-  FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE,
+  FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE RESTRICT,
   FOREIGN KEY (flight_id) REFERENCES flights(id),
   UNIQUE(flight_id, route_id, is_return)
 );
@@ -118,13 +118,13 @@ CREATE TABLE account_transfers (
   user_id integer NOT NULL,
   transfer_amount integer NOT NULL,
   transferred_at timestamp NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE subscriptions_fetches_account_transfers (
   id serial PRIMARY KEY NOT NULL,
   account_transfer_id integer NOT NULL UNIQUE,
   subscription_fetch_id integer NOT NULL,
-  FOREIGN KEY (account_transfer_id) REFERENCES account_transfers(id) ON DELETE CASCADE,
-  FOREIGN KEY (subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE CASCADE
+  FOREIGN KEY (account_transfer_id) REFERENCES account_transfers(id) ON DELETE RESTRICT,
+  FOREIGN KEY (subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE RESTRICT
 );

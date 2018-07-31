@@ -3,4 +3,4 @@ FREEFALL_LOG_LEVEL=DEBUG \
 PGUSER=freefall \
 PGPASSWORD=freefall \
 PGDATABASE=freefall \
-node server.js
+node ./server.js

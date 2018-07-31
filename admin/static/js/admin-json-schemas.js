@@ -585,4 +585,50 @@ const adminValidators = { // eslint-disable-line no-unused-vars
     };
     return ajv.compile(adminEditSubscriptionResponseSchema);
   },
+
+  getValidateAdminAlterUserCreditsReq: function () {
+    const adminAlterUserCreditsRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_alter_user_credits',
+      'title': 'admin_alter_user_credits request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+        'user_id': {
+          'title': 'User id',
+          'type': 'string',
+        },
+        'credits_difference': {
+          'title': 'Credits difference',
+          'type': 'number',
+        },
+        'api_key': {
+          'title': 'API key',
+          'type': 'string',
+        },
+      },
+      'required': ['v', 'user_id', 'credits_difference', 'api_key'],
+    };
+    return ajv.compile(adminAlterUserCreditsRequestSchema);
+  },
+
+  getValidateAdminAlterUserCreditsRes: function () {
+    const adminAlterUserCreditsResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_alter_user_credits',
+      'title': 'admin_alter_user_credits response',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'type': 'string',
+        },
+      },
+      'required': ['status_code'],
+    };
+    return ajv.compile(adminAlterUserCreditsResponseSchema);
+  },
 };
