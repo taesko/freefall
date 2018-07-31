@@ -30,6 +30,7 @@ class SystemError extends CustomError {}
 const errorCodes = {
   subscriptionExists: '2100',
   subscriptionDoesNotExist: '2101',
+  notEnoughCredits: '2102',
   userDoesNotExist: '2200',
   emailTaken: '2201',
   apiKeyTaken: '2202',

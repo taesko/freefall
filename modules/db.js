@@ -388,6 +388,24 @@ async function updateEmailSub (email) {
   return updatedRows[0];
 }
 
+function executeInTransaction (func) {
+  async function wrappedTransaction (...args) {
+    await executeQuery('BEGIN');
+    try {
+      const result = await func(...args);
+
+      await executeQuery('COMMIT');
+
+      return result;
+    } catch (e) {
+      await executeQuery('ROLLBACK');
+      throw e;
+    }
+  }
+
+  return wrappedTransaction;
+}
+
 function dbConnect () {
   return false;
 }
@@ -407,5 +425,6 @@ module.exports = {
   updateWhere,
   updateEmailSub,
   useClient,
+  executeInTransaction,
   dbConnect, // TODO still used in .js scripts
 };

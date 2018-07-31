@@ -5,7 +5,7 @@ const utils = require('./utils');
 const subscriptions = require('./subscriptions');
 const log = require('./log');
 
-async function addUser ({ email, password, role }) {
+async function addUser ({ email, password, role = 'customer' }) {
   log.info(`Adding user with email=${email} and role=${role}`);
   errors.assertPeer(
     !await anyUserExists({ email }),
@@ -197,5 +197,6 @@ module.exports = {
   editUser,
   removeUser,
   listUsers,
+  userExists,
   hashPassword,
 };
