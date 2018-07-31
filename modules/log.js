@@ -16,7 +16,7 @@ function shouldPrintLevel (level) {
 
 function debug (...messages) {
   if (shouldPrintLevel(DEBUG)) {
-    console.debug(...messages);
+    console.info('DEBUG: ', ...messages);
   }
 }
 
@@ -28,19 +28,19 @@ function info (...messages) {
 
 function warn (...messages) {
   if (shouldPrintLevel(WARNING)) {
-    console.warn(...messages);
+    console.info('WARNING: ', ...messages);
   }
 }
 
 function critical (...messages) {
   if (shouldPrintLevel(CRITICAL)) {
-    console.error(...messages);
+    console.info('CRITICAL: ', ...messages);
   }
 }
 
 function error (...messages) {
   if (shouldPrintLevel(ERROR)) {
-    console.error('Exception occurred:', ...messages);
+    console.info('Exception occurred:', ...messages);
   }
 }
 
