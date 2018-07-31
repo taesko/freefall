@@ -159,7 +159,7 @@ router.post('/register', async (ctx) => {
     errors.push('Passwords are not the same.');
   }
 
-  if (await users.fetchUser({ email })) {
+  if (await users.userExists({ email })) {
     errors.push('Email is already taken');
   }
 

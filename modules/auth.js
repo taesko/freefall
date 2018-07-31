@@ -33,7 +33,7 @@ function logout (ctx) {
 
 async function register (email, password) {
   password = users.hashPassword(password);
-  if (await users.fetchUser({ email, password })) {
+  if (await users.userExists({ email })) {
     throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`);
   }
 
