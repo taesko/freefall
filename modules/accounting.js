@@ -1,9 +1,53 @@
 const { assertApp, assertPeer, AppError, PeerError, errorCodes } = require('./error-handling');
 const log = require('./log');
 const users = require('./users');
-const subscriptions = require('./subscriptions');
 const db = require('db');
 const SUBSCRIPTION_COST = 100;
+
+async function depositCredits (userId, amount) {
+  assertApp(typeof userId === 'number');
+  assertApp(typeof amount === 'number');
+  assertApp(amount > 0, 'tried to deposit a non-positive amount of credits.');
+  assertPeer(await users.userExists({ userId }));
+
+  log.info(`Depositing ${amount} credits into user ${userId}.`);
+
+  const { rows: creditRows } = await db.executeQuery(
+    `
+      UPDATE users
+      SET credits = credits + $1
+      WHERE
+        id=$2 AND
+        active=true
+      RETURNING *
+    `,
+  );
+
+  assertApp(
+    Array.isArray(creditRows),
+    `database returned invalid data type while depositing credits - ${typeof creditRows}`,
+  );
+  assertApp(
+    creditRows.length === 1,
+    `deposited on too many/too few users. row count - ${creditRows.length}`,
+  );
+
+  log.info(`New credits of user ${userId} are = ${amount}`);
+
+  const transferRows = await db.insert(
+    'account_transfers',
+    {
+      user_id: userId,
+      transfer_amount: amount,
+      transferred_at: new Date().toISOString(),
+    },
+  );
+
+  assertApp(
+    transferRows.length === 1,
+    `inserted too many/too few account_transfers. row count - ${transferRows.length}`,
+  );
+}
 
 async function taxUser (userId, amount) {
   assertApp(typeof userId === 'number');
@@ -13,7 +57,7 @@ async function taxUser (userId, amount) {
 
   log.info(`Taxing user ${userId} with amount=${amount}`);
 
-  const creditUpdate = await db.executeQuery(
+  const { rows: creditRows } = await db.executeQuery(
     `
       UPDATE users
       SET credits = credits - $1
@@ -25,7 +69,6 @@ async function taxUser (userId, amount) {
     `,
     [amount, userId],
   );
-  const { rows: creditRows } = creditUpdate;
 
   assertApp(
     Array.isArray(creditRows),
@@ -87,5 +130,7 @@ async function taxSubscribe (userId, userSubscriptionId) {
 }
 
 module.exports = {
+  depositCredits,
+  taxUser,
   taxSubscribe,
 };

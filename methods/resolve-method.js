@@ -266,14 +266,15 @@ async function subscribe (params, db) {
   const dateFrom = params.date_from;
   const dateTo = params.date_to;
 
-  const user = await users.fetchUser({ apiKey: params.api_key });
+  const userId = await users.fetchUser({ apiKey: params.api_key })
+    .then(user => { return user == null ? null : user.id; });
 
-  assertPeer(user != null, 'invalid api key');
+  assertPeer(userId != null, 'invalid api key');
 
   const subscribeAndTax = db.executeInTransaction(
     async (userId, {flyFrom, flyTo, dateFrom, dateTo}) => {
       const subId = await subscriptions.subscribeUser(
-        user.id,
+        userId,
         {
           airportFromId: flyFrom,
           airportToId: flyTo,
@@ -289,21 +290,27 @@ async function subscribe (params, db) {
 
   let statusCode;
   let subscriptionId;
+  const statusCodeHash = {};
+
+  statusCodeHash[errorCodes.notEnoughCredits] = '2001';
+  statusCodeHash[errorCodes.subscriptionExists] = '2000';
+
   try {
-    subscriptionId = await subscribeAndTax;
-    statusCode = 1000;
+    subscriptionId = await subscribeAndTax(userId, {
+      flyFrom,
+      flyTo,
+      dateFrom,
+      dateTo,
+    });
+    statusCode = '1000';
   } catch (e) {
-    if (!(e instanceOf PeerError)){
-      throw e;
-    }
-
-    if (e instanceof PeerError && e.code === errorCodes.notEnoughCredits) {
-
-      if (e.code === errorCodes.notEnoughCredits) {
-
+    if (e instanceof PeerError) {
+      log.info('Peer error occurred while subscribing user.');
+      statusCode = statusCodeHash[e.code];
+      if (!statusCode) {
+        log.warn(`Error has an unknown code. Setting statusCode to '2999'`);
+        statusCode = '2999';
       }
-      log.warn('Peer error occurred while subscribing user.');
-      statusCode = 2000;
       subscriptionId = null;
     } else {
       throw e;
