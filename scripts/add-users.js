@@ -21,4 +21,4 @@ main()
   .then(result => log.info('Inserted users: ', demoUsers))
   .catch(reason => {
     log.critical('Script failed due to error - ', reason);
-});
+  });

@@ -61,7 +61,7 @@ async function taxUser (userId, amount) {
     `
       UPDATE users
       SET credits = credits - $1
-      WHERE 
+      WHERE
         id=$2 AND
         active=true AND
         credits - $1 >= 0
@@ -122,7 +122,7 @@ async function taxSubscribe (userId, userSubscriptionId) {
 }
 
 module.exports = {
-  depositCredits,
-  taxUser,
-  taxSubscribe,
+  depositCredits: db.executeInTransaction(depositCredits),
+  taxUser: db.executeInTransaction(taxUser),
+  taxSubscribe: db.executeInTransaction(taxSubscribe),
 };

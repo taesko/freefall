@@ -23,6 +23,7 @@ const API_METHODS = {
   admin_remove_user: adminRemoveUser,
   admin_edit_user: adminEditUser,
   admin_list_fetches: adminListFetches,
+  admin_alter_user_credits: adminAlterUserCredits,
   get_api_key: getAPIKey,
   senderror: sendError,
 };
@@ -679,6 +680,31 @@ async function adminListFetches (params, db) {
   return {
     status_code: '1000',
     fetches,
+  };
+}
+
+async function adminAlterUserCredits (params) {
+  assertPeer(
+    await auth.tokenHasRole(params.api_key, 'admin'),
+    'You do not have sufficient permission to call admin_alter_user_credits method.',
+  );
+
+  assertPeer(
+    Number.isInteger(Number(params.user_id)),
+    `Expected user_id to be an integer, represented as string, but was ${typeof Number(params.user_id)}`
+  );
+
+  const userId = Number(params.user_id);
+  const amount = Math.abs(params.credits_difference);
+
+  if (params.credits_difference > 0) {
+    await accounting.depositCredits(userId, amount);
+  } else {
+    await accounting.taxUser(userId, amount);
+  }
+
+  return {
+    status_code: '1000',
   };
 }
 

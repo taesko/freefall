@@ -33,6 +33,7 @@
         "admin_remove_user",
         "admin_edit_user",
         "admin_edit_subscription",
+        "admin_alter_user_credits",
         "senderror"
       ]
     },
