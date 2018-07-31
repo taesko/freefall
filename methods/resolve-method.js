@@ -273,7 +273,7 @@ async function subscribe (params, db) {
 
   const subscribeAndTax = db.executeInTransaction(
     async (userId, {flyFrom, flyTo, dateFrom, dateTo}) => {
-      const subId = await subscriptions.subscribeUser(
+      const { id: subId } = await subscriptions.subscribeUser(
         userId,
         {
           airportFromId: flyFrom,
