@@ -2,6 +2,8 @@ const log = require('./log');
 const errors = require('./error-handling');
 const db = require('./db');
 
+// TODO fix logging in this module and return value of subscribeGlobally
+
 async function subscribeUser (
   userId,
   {
@@ -11,6 +13,11 @@ async function subscribeUser (
     dateTo,
   }) {
   // TODO validate dates.
+  log.info(
+    `Subscribing user ${userId} with parameters - `,
+    { airportFromId, airportToId, dateFrom, dateTo },
+  );
+
   const globalSub = await getGlobalSubscription(airportFromId, airportToId);
   let globalSubId;
 
@@ -222,6 +229,8 @@ async function subscribeGlobally (airportFromId, airportToId) {
       airport_to_id: airportToId,
     },
   );
+
+  log.info('Subscribed globally to airports with an id of', sub.id);
 
   return sub.id;
 }
