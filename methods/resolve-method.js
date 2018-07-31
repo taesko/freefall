@@ -266,6 +266,7 @@ async function subscribe (params, db) {
   const dateFrom = params.date_from;
   const dateTo = params.date_to;
 
+  // TODO maybe this should be part of the transaction ?
   const userId = await users.fetchUser({ apiKey: params.api_key })
     .then(user => { return user == null ? null : user.id; });
 

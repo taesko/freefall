@@ -1,7 +1,7 @@
 const { assertApp, assertPeer, AppError, PeerError, errorCodes } = require('./error-handling');
 const log = require('./log');
 const users = require('./users');
-const db = require('db');
+const db = require('./db');
 const SUBSCRIPTION_COST = 100;
 
 async function depositCredits (userId, amount) {
@@ -21,6 +21,7 @@ async function depositCredits (userId, amount) {
         active=true
       RETURNING *
     `,
+    [amount, userId],
   );
 
   assertApp(
@@ -34,7 +35,7 @@ async function depositCredits (userId, amount) {
 
   log.info(`New credits of user ${userId} are = ${amount}`);
 
-  const transferRows = await db.insert(
+  const accountTransfer = await db.insert(
     'account_transfers',
     {
       user_id: userId,
@@ -43,16 +44,15 @@ async function depositCredits (userId, amount) {
     },
   );
 
-  assertApp(
-    transferRows.length === 1,
-    `inserted too many/too few account_transfers. row count - ${transferRows.length}`,
-  );
+  log.info('Account transfer id is - ', accountTransfer.id);
+
+  return accountTransfer;
 }
 
 async function taxUser (userId, amount) {
   assertApp(typeof userId === 'number');
   assertApp(typeof amount === 'number' && amount > 0);
-  assertPeer(await users.userExists(userId));
+  assertPeer(await users.userExists({ userId }));
   // Does taxing 0 count as a transaction ?
 
   log.info(`Taxing user ${userId} with amount=${amount}`);
@@ -84,7 +84,7 @@ async function taxUser (userId, amount) {
   log.info(`Set credits of user ${userId} to ${creditRows[0].credits}`);
   log.info(`Recording account transfer for ${userId}.`);
 
-  const transferRows = await db.insert(
+  const accountTransfer = await db.insert(
     'account_transfers',
     {
       user_id: userId,
@@ -93,14 +93,9 @@ async function taxUser (userId, amount) {
     },
   );
 
-  assertApp(
-    transferRows.length === 1,
-    `inserted multiple account_transfers rows: ${transferRows.length} total`,
-  );
+  log.info(`Account transfer id is ${accountTransfer.id}`);
 
-  log.info(`Account transfer id is ${transferRows[0].id}`);
-
-  return transferRows[0];
+  return accountTransfer;
 }
 
 async function taxSubscribe (userId, userSubscriptionId) {
@@ -113,7 +108,7 @@ async function taxSubscribe (userId, userSubscriptionId) {
 
   log.info(`Linking account transfer ${transfer.id} with user subscription ${userSubscriptionId}`);
 
-  const rows = await db.insert(
+  const subTransfer = await db.insert(
     'user_subscription_account_transfers',
     {
       'account_transfer_id': transfer.id,
@@ -121,12 +116,9 @@ async function taxSubscribe (userId, userSubscriptionId) {
     },
   );
 
-  assertApp(
-    rows.length === 1,
-    `Failed to insert account_transfer id ${transfer.id} and user_subscription id ${userSubscriptionId} into table user_subscription_account_transfers.`
-  );
+  log.info('user_subscription_account_transfer id is', subTransfer.id);
 
-  return rows[0];
+  return subTransfer;
 }
 
 module.exports = {
