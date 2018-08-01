@@ -54,6 +54,10 @@ app.use(bodyParser({
 }));
 
 app.use(serve(path.join(__dirname, 'admin', 'static')));
+
+app.use(db.client);
+app.use(db.session);
+
 app.use(views(path.join(__dirname, 'admin', 'templates'), {
   map: {
     html: 'handlebars',
@@ -131,8 +135,9 @@ router.get('/users', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
 });
 
 router.get('/users/:user_id', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const dbClient = ctx.state.dbClient;
   const defaultContext = await getAdminContext(ctx, 'get', '/users/:user_id');
-  const user = await users.fetchUser({ userId: ctx.params.user_id });
+  const user = await users.fetchUser(dbClient, { userId: ctx.params.user_id });
 
   if (!user) {
     ctx.status = 404;
@@ -142,8 +147,9 @@ router.get('/users/:user_id', auth.redirectWhenLoggedOut('/login'), async (ctx) 
 });
 
 router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const dbClient = ctx.state.dbClient;
   const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
-  const rows = await db.select('fetches');
+  const rows = await dbClient.select('fetches');
   const fetches = rows.map(row => {
     row.timestamp = row.fetch_time.toISOString();
     return row;
@@ -153,8 +159,9 @@ router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
 });
 
 router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const dbClient = ctx.state.dbClient;
   const defaultContext = await getAdminContext(ctx, 'get', '/transfers');
-  const rows = await db.selectAccountTransfersUsers();
+  const rows = await dbClient.selectAccountTransfersUsers();
   const accountTransfers = rows.map(row => {
     const expectRowProps = [
       {

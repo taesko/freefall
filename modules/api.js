@@ -6,7 +6,6 @@ const methods = require('../methods/resolve-method');
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./protocol');
 const log = require('./log');
 const forecast = require('./forecast');
-const multiparser = require('./normalize');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 
@@ -15,11 +14,6 @@ async function errorHandling (ctx, next) {
   try {
     await next();
   } catch (err) {
-    log.critical(err);
-    // assertPeer(0, `The password: ${ pass } is not valid`)
-
-    ctx.status = 200;
-
     const format = validateRequestFormat({
       headerParam: ctx.headers['content-type'],
       queryParam: ctx.query.format,
@@ -51,7 +45,15 @@ async function errorHandling (ctx, next) {
     });
 
     ctx.body = multiParser.stringify(response, format);
-    log.critical('error occurred and ctx.body was set to:', ctx.body);
+    log.critical('Unhandled error occurred in the API layer and ctx.body was set to:', ctx.body);
+    ctx.state.errorResponseIsSet = true;
+    throw err;
+  }
+  if (ctx.state.api.caughtPeerError) {
+    ctx.state.errorResponseIsSet = true;
+    assertPeer(
+      false,
+      `Caught a peer error and handled the response. This exception is used to rollback the database`);
   }
 }
 
@@ -77,9 +79,14 @@ async function api (ctx, next) {
   const result = await methods.execute({
     methodName: requestBody.method,
     params: requestBody.params,
-    db: ctx.db,
+    db: ctx.state.dbClient,
     appCtx: ctx,
   });
+
+  // TODO this is a horrible back
+  if (result.status_code >= '2000' && result.status_code <= '3000') {
+    ctx.state.api.caughtPeerError = true;
+  }
 
   const responseBody = buildRPCResponse({
     protocol,
