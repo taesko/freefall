@@ -20,11 +20,14 @@ const router = new Router();
 app.keys = ['freefall is love freefall is life'];
 
 app.use(async (ctx, next) => {
+  ctx.state.errorResponseIsSet = false;
   try {
     await next();
   } catch (err) {
-    ctx.status = 500;
-    ctx.body = 'Our servers our currently experiencing problems. Please try again later.';
+    if (!ctx.state.errorResponseIsSet) {
+      ctx.status = 500;
+      ctx.body = 'Our servers our currently experiencing problems. Please try again later.';
+    }
     ctx.app.emit('error', err, ctx);
   }
 });
@@ -46,18 +49,22 @@ const SESSION_CONFIG = {
 
 app.use(session(SESSION_CONFIG, app));
 
-app.context.db = db;
-
 app.use(logger());
+
 app.use(cors({
   origin: '*',
 }));
+
 app.use(bodyParser({ // TODO crashes on bad json, best avoid the inner parser
   extendTypes: {
     text: ['text/yaml'],
   },
   enableTypes: ['json', 'form', 'text'],
 }));
+
+app.use(db.client);
+app.use(db.session);
+
 app.use(serve(path.join(__dirname, 'public')));
 app.use(views(path.join(__dirname, 'templates/'), {
   map: {
@@ -84,7 +91,7 @@ app.use(views(path.join(__dirname, 'templates/'), {
 }));
 
 router.get('/', async (ctx, next) => {
-  const airports = await db.select('airports');
+  const airports = await ctx.state.dbClient.select('airports');
 
   await ctx.render('index.html', {
     airports,
@@ -139,13 +146,13 @@ router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
     errors.push('Passwords are not the same.');
   }
 
-  if (await users.userExists({ email })) {
+  if (await users.userExists(ctx.state.dbClient, { email })) {
     errors.push('Email is already taken');
   }
 
   if (errors.length === 0) {
     // TODO fix errors in auth and try catch instead of using users.fetchUser
-    await auth.register(email, password);
+    await auth.register(ctx, email, password);
     log.info('Registered user with email and password: ', email, password);
     await auth.login(ctx, email, password);
     ctx.redirect('/');

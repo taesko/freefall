@@ -1,6 +1,7 @@
+const _ = require('lodash');
 const crypto = require('crypto');
+
 const errors = require('./error-handling');
-const db = require('./db');
 const utils = require('./utils');
 const subscriptions = require('./subscriptions');
 const log = require('./log');
@@ -12,15 +13,20 @@ const log = require('./log');
 
   TODO perhaps reactivating old users should be limited to admins only.
  */
-async function addUser ({ email, password, role = 'customer' }) {
+async function addUser (dbClient, { email, password, role = 'customer' }) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(typeof email === 'string', `got ${typeof email} but expected string`);
+  errors.assertApp(typeof password === 'string', `got ${typeof password} but expected string`);
+
   log.info(`Adding user with email=${email} and role=${role}`);
+
   errors.assertPeer(
-    !await userExists({ email }),
+    !await userExists(dbClient, { email }),
     `Failed adding user, because email ${email} is taken`,
     errors.errorCodes.emailTaken,
   );
 
-  const [user] = await db.selectWhere(
+  const [user] = await dbClient.selectWhere(
     'users',
     '*',
     { email },
@@ -28,7 +34,7 @@ async function addUser ({ email, password, role = 'customer' }) {
 
   if (user) {
     log.info(`User with email=${email} was previously registered. Updating his credentials and activating account.`);
-    await db.updateWhere(
+    await dbClient.updateWhere(
       'users',
       { password, role, active: true },
       { id: user.id },
@@ -37,7 +43,7 @@ async function addUser ({ email, password, role = 'customer' }) {
     return user.id;
   }
 
-  return db.insert(
+  return dbClient.insert(
     'users',
     {
       email,
@@ -48,14 +54,15 @@ async function addUser ({ email, password, role = 'customer' }) {
   );
 }
 
-async function removeUser (userId) {
-  // hard coded admin user
+async function removeUser (dbClient, userId) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   errors.assertApp(typeof userId === 'number');
+  // hard coded admin user
   errors.assertPeer(userId !== 1, 'Cannot remove main admin account.');
 
   log.info(`Removing user with id=${userId}`, typeof userId);
-  await subscriptions.removeAllSubscriptionsOfUser(userId);
-  const result = await db.updateWhere(
+  await subscriptions.removeAllSubscriptionsOfUser(dbClient, userId);
+  const result = await dbClient.updateWhere(
     'users',
     { active: false },
     { id: userId },
@@ -72,26 +79,32 @@ async function removeUser (userId) {
   );
 }
 
-async function editUser (userId, { email, password, apiKey }) {
+async function editUser (dbClient, userId, { email, password, apiKey }) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(
+    email != null || password != null || apiKey != null,
+    `third argument to editUser does not have any of the required fields.`,
+  );
+
   const setHash = utils.cleanHash({ email, password, api_key: apiKey });
 
   log.info(`Updating user with id=${userId}. New columns are going to be: `, setHash);
   if (email) {
     errors.assertPeer(
-      !await anyUserExists({ email }),
+      !await anyUserExists(dbClient, { email }),
       `Cannot update email of ${userId} to ${email} - email is already taken`,
       errors.errorCodes.emailTaken,
     );
   }
   if (apiKey) {
     errors.assertPeer(
-      !await anyUserExists({ apiKey }),
+      !await anyUserExists(dbClient, { apiKey }),
       `Cannot update api key of user ${userId} to ${apiKey} - API key is taken`,
       errors.errorCodes.apiKeyTaken,
     );
   }
 
-  const user = await fetchUser({ userId });
+  const user = await fetchUser(dbClient, { userId });
 
   errors.assertPeer(
     user,
@@ -99,7 +112,7 @@ async function editUser (userId, { email, password, apiKey }) {
     errors.errorCodes.userDoesNotExist,
   );
 
-  const result = await db.updateWhere(
+  const result = await dbClient.updateWhere(
     'users',
     setHash,
     { id: userId },
@@ -118,7 +131,16 @@ async function editUser (userId, { email, password, apiKey }) {
 
   If password parameter is given then it must be supplied with an email parameter.
  */
-async function fetchUser ({ userId, email, password, apiKey, active = true }) {
+async function fetchUser (
+  dbClient,
+  {
+    userId,
+    email,
+    password,
+    apiKey,
+    active = true,
+  }) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   if (password) {
     errors.assertApp(
       email,
@@ -140,15 +162,16 @@ async function fetchUser ({ userId, email, password, apiKey, active = true }) {
     'fetchUser function requires at least one parameter',
   );
 
-  const [user] = await db.selectWhere('users', '*', whereHash);
+  const [user] = await dbClient.selectWhere('users', '*', whereHash);
 
   log.debug('Fetched user', user);
 
   return user;
 }
 
-async function listUsers (hidePassword = false) {
-  let rows = await db.selectWhere('users', '*', { active: true });
+async function listUsers (dbClient, hidePassword = false) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  let rows = await dbClient.selectWhere('users', '*', { active: true });
 
   if (hidePassword) {
     rows = rows.map(row => {
@@ -160,23 +183,43 @@ async function listUsers (hidePassword = false) {
   return rows;
 }
 
-async function userExists ({ userId, email, password, apiKey }) {
-  return await fetchUser({ userId, email, password, apiKey }) != null;
-}
-
-async function inactiveUserExists ({ userId, email, password, apiKey }) {
-  return await fetchUser({
+async function userExists (
+  dbClient,
+  {
     userId,
     email,
     password,
     apiKey,
-    active: false,
-  }) != null;
+  }) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  return await fetchUser(dbClient, { userId, email, password, apiKey }) != null;
 }
 
-async function anyUserExists ({ userId, email, password, apiKey }) {
-  const active = await userExists({ userId, email, password, apiKey });
+async function inactiveUserExists (
+  dbClient,
+  {
+    userId,
+    email,
+    password,
+    apiKey,
+  }) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  return await fetchUser(
+    dbClient,
+    {
+      userId,
+      email,
+      password,
+      apiKey,
+      active: false,
+    },
+  ) != null;
+}
+
+async function anyUserExists (dbClient, { userId, email, password, apiKey }) {
+  const active = await userExists(dbClient, { userId, email, password, apiKey });
   const inactive = await inactiveUserExists(
+    dbClient,
     { userId, email, password, apiKey },
   );
 

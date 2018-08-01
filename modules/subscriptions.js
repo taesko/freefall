@@ -1,10 +1,12 @@
+const _ = require('lodash');
+
 const log = require('./log');
 const errors = require('./error-handling');
-const db = require('./db');
 
 // TODO fix logging in this module and return value of subscribeGlobally
 
 async function subscribeUser (
+  dbClient,
   userId,
   {
     airportFromId,
@@ -13,23 +15,26 @@ async function subscribeUser (
     dateTo,
   }) {
   // TODO validate dates.
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(Number.isInteger(userId), `got ${typeof userId} but expected integer`);
+
   log.info(
     `Subscribing user ${userId} with parameters - `,
     { airportFromId, airportToId, dateFrom, dateTo },
   );
 
-  const globalSub = await getGlobalSubscription(airportFromId, airportToId);
+  const globalSub = await getGlobalSubscription(dbClient, airportFromId, airportToId);
   let globalSubId;
 
   if (globalSub == null) {
-    globalSubId = await subscribeGlobally(airportFromId, airportToId);
+    globalSubId = await subscribeGlobally(dbClient, airportFromId, airportToId);
   } else {
     globalSubId = globalSub.id;
   }
 
   log.info('Searching for inactive user subscription');
 
-  const [sub] = await db.selectWhere(
+  const [sub] = await dbClient.selectWhere(
     'users_subscriptions',
     '*',
     {
@@ -48,7 +53,7 @@ async function subscribeUser (
       errors.errorCodes.subscriptionExists,
     );
 
-    const result = await db.updateWhere(
+    const result = await dbClient.updateWhere(
       'users_subscriptions',
       {
         active: 1,
@@ -64,12 +69,12 @@ async function subscribeUser (
       errors.errorCodes.databaseError,
     );
 
-    return sub.id;
+    return sub;
   }
 
   log.info('Inserting new user subscription');
 
-  return db.insert(
+  return dbClient.insert(
     'users_subscriptions',
     {
       user_id: userId,
@@ -82,6 +87,7 @@ async function subscribeUser (
 }
 
 async function updateUserSubscription (
+  dbClient,
   userSubscriptionId,
   {
     airportFromId,
@@ -92,14 +98,25 @@ async function updateUserSubscription (
   // TODO ask ivan about differences between throwing exceptions and getting null instead of object
   // advantages to throwing is that the exception is built from inside the function and has more
   // information
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(
+    Number.isInteger(userSubscriptionId),
+    `got ${typeof userSubscriptionId} but expected integer`,
+  );
+
   const globalSubscriptionId = await getGlobalSubscription(
+    dbClient,
     airportFromId,
     airportToId,
   ).then(s => {
-    return (s != null) ? s.id : subscribeGlobally(airportFromId, airportToId);
+    if (s == null) {
+      s = subscribeGlobally(dbClient, airportFromId, airportToId);
+    }
+
+    return s.id;
   });
 
-  const result = await db.updateWhere(
+  const result = await dbClient.updateWhere(
     'users_subscriptions',
     {
       subscription_id: globalSubscriptionId,
@@ -119,8 +136,14 @@ async function updateUserSubscription (
   );
 }
 
-async function removeUserSubscription (userSubscriptionId) {
-  const result = await db.updateWhere('users_subscriptions',
+async function removeUserSubscription (dbClient, userSubscriptionId) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(
+    Number.isInteger(userSubscriptionId),
+    `got ${typeof userSubscriptionId} but expected integer`,
+  );
+
+  const result = await dbClient.updateWhere('users_subscriptions',
     { active: 0 },
     { id: userSubscriptionId },
   );
@@ -132,9 +155,13 @@ async function removeUserSubscription (userSubscriptionId) {
   );
 }
 
-async function removeAllSubscriptionsOfUser (userId) {
+async function removeAllSubscriptionsOfUser (dbClient, userId) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(Number.isInteger(userId), `got ${typeof userId} but expected integer`);
+
   // TODO circular dependency
-  const [exists] = await db.selectWhere('users', '*', { id: userId });
+  // is it needed to check this ?
+  const [exists] = await dbClient.selectWhere('users', '*', { id: userId });
 
   errors.assertPeer(
     exists,
@@ -142,22 +169,30 @@ async function removeAllSubscriptionsOfUser (userId) {
     errors.errorCodes.userDoesNotExist,
   );
 
-  return db.updateWhere('users_subscriptions', { active: 0 }, { user_id: userId });
+  return dbClient.updateWhere('users_subscriptions', { active: 0 }, { user_id: userId });
 }
 
-async function listUserSubscriptionsHelper (userId) {
+async function listUserSubscriptionsHelper (dbClient, userId) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(
+    userId == null || Number.isInteger(userId),
+    `got ${typeof userId} but expected integer`,
+  );
+
   // TODO no longer valid because users can be inactive
-  const whereHash = {
-    'user_sub.active': 1,
-  };
+
+  let whereClause;
+  let values;
 
   if (userId) {
-    whereHash['users.id'] = userId;
+    whereClause = 'WHERE user_sub.active=true AND users.id = $1';
+    values = [userId];
+  } else {
+    whereClause = 'WHERE user_sub.active=true';
+    values = null;
   }
 
-  const { whereClause, values } = db.buildWhereClause(whereHash);
-
-  const { rows } = await db.executeQuery(
+  const { rows } = await dbClient.executeQuery(
     `
     SELECT user_sub.id, user_sub.date_from, user_sub.date_to, 
       ap_from.id fly_from, ap_to.id fly_to,
@@ -177,24 +212,34 @@ async function listUserSubscriptionsHelper (userId) {
   return rows;
 }
 
-async function listUserSubscriptions (userId) {
-  errors.assertApp(Number.isInteger(userId));
+async function listUserSubscriptions (dbClient, userId) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(Number.isInteger(userId), `got ${typeof userId} but expected number.`);
 
-  return listUserSubscriptionsHelper(userId);
+  return listUserSubscriptionsHelper(dbClient, userId);
 }
 
-async function listAllUserSubscriptions () {
-  return listUserSubscriptionsHelper();
+async function listAllUserSubscriptions (dbClient) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  return listUserSubscriptionsHelper(dbClient);
 }
 
-async function listGlobalSubscriptions () {
-  return db.select('subscriptions');
+async function listGlobalSubscriptions (dbClient) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+
+  return dbClient.select('subscriptions');
 }
 
-async function getGlobalSubscription (airportFromId, airportToId) {
+async function getGlobalSubscription (dbClient, airportFromId, airportToId) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(Number.isInteger(airportFromId),
+    `got ${typeof airportFromId} but expected number`,
+  );
+  errors.assertApp(Number.isInteger(airportToId), `got ${typeof airportToId} but expected number`);
+
   log.debug('Finding global subscription between airports', airportFromId, airportToId);
 
-  const [sub] = await db.selectWhere(
+  const [sub] = await dbClient.selectWhere(
     'subscriptions',
     ['id'],
     {
@@ -208,21 +253,38 @@ async function getGlobalSubscription (airportFromId, airportToId) {
   return sub;
 }
 
-async function globalSubscriptionExists (airportFromId, airportToId) {
-  return await getGlobalSubscription(airportFromId, airportToId) != null;
+async function globalSubscriptionExists (dbClient, airportFromId, airportToId) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(
+    Number.isInteger(airportFromId),
+    `got ${typeof airportFromId} but expected number`,
+  );
+  errors.assertApp(Number.isInteger(airportToId), `got ${typeof airportToId} but expected number`);
+
+  return await getGlobalSubscription(
+    dbClient,
+    airportFromId,
+    airportToId,
+  ) != null;
 }
 
-async function subscribeGlobally (airportFromId, airportToId) {
+async function subscribeGlobally (dbClient, airportFromId, airportToId) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(Number.isInteger(airportFromId),
+    `got ${typeof airportFromId} but expected number`,
+  );
+  errors.assertApp(Number.isInteger(airportToId), `got ${typeof airportToId} but expected number`);
+
   log.info('Subscribing globally to airports', airportFromId, airportToId);
   airportFromId = +airportFromId;
   airportToId = +airportToId;
 
   errors.assertApp(
-    !await globalSubscriptionExists(airportFromId, airportToId),
+    !await globalSubscriptionExists(dbClient, airportFromId, airportToId),
     `Cannot subscribe globally to airports with ids ${airportFromId}, ${airportToId}. Subscription already exists.`,
   );
 
-  const sub = await db.insert(
+  const sub = await dbClient.insert(
     'subscriptions',
     {
       airport_from_id: airportFromId,

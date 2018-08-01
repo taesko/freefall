@@ -10,20 +10,52 @@ pool.on('error', (err, client) => {
   log.error(err);
 });
 
-async function useClient (ctx, next) {
+async function client (ctx, next) {
   const client = await pool.connect();
-  log.info('Created a new client connection to database.', client);
-  ctx.state.pgClient = client;
+  // TODO find out a client id and log it
+  log.info('Created a new client connection to database.');
 
+  // TODO make this a class so it can be checked with isinstance ?
+  ctx.state.dbClient = {
+    executeQuery: executeQuery(client),
+    select: select(client),
+    insert: insert(client),
+    insertDataFetch: insertDataFetch(client),
+    insertIfNotExists: insertIfNotExists(client),
+    selectSubscriptions: selectSubscriptions(client),
+    selectRoutesFlights: selectRoutesFlights(client),
+    selectAccountTransfersUsers: selectAccountTransfersUsers(client),
+    selectWhere: selectWhere(client),
+    update: update(client),
+    updateWhere: updateWhere(client),
+    updateEmailSub: updateEmailSub(client),
+  };
+
+  // TODO is client.on error needed ?
   try {
     await next();
   } finally {
     client.release();
-    log.info('Released client connection', client);
+    log.info('Released client connection');
+  }
+}
+
+async function session (ctx, next) {
+  const client = ctx.state.dbClient;
+  assertApp(client != null, 'Cannot begin transaction - ctx.state.dbClient is null');
+
+  await client.executeQuery('BEGIN');
+  try {
+    await next();
+    await client.executeQuery('COMMIT');
+  } catch (e) {
+    await client.executeQuery('ROLLBACK');
+    throw e;
   }
 }
 
 function stringifyColumns (columns) {
+  // TODO fix escaping of columns
   if (columns == null || columns === '*') {
     return '*';
   } else {
@@ -70,26 +102,31 @@ function buildSetClause (setHash, startIndex = 1) {
   };
 }
 
-async function executeQuery (...args) {
-  log.debug('Executing query with args', args);
-  return pool.query(...args);
+const executeQuery = (client) => async (query, values) => {
+  // TODO is it possible for a client to be released by pg due to error and not be handled ?
+  assertApp(typeof query === 'string');
+  assertApp(values == null || Array.isArray(values));
+
+  // TODO find out how to log client
+  log.debug('Executing query', query, 'replaced with values: ', values);
+  return client.query(query, values);
 }
 
-async function select (table, columns = '*') {
+const select = (client) => async (table, columns = '*') => {
   assertApp(
     typeof table === 'string',
     'Expected string for a name of table',
   );
   assertApp(columns === '*' || Array.isArray(columns));
 
-  const { rows } = await executeQuery(`SELECT ${stringifyColumns(columns)} FROM ${table};`);
+  const { rows } = await executeQuery(client)(`SELECT ${stringifyColumns(columns)} FROM ${table};`);
 
   assertApp(Array.isArray(rows));
 
   return rows;
-}
+};
 
-async function selectWhere (table, columns, where) {
+const selectWhere = (client) => async (table, columns, where) => {
   assertApp(
     typeof table === 'string' &&
     isObject(where) &&
@@ -99,7 +136,7 @@ async function selectWhere (table, columns, where) {
   const { whereClause, values } = buildWhereClause(where);
   const query = `SELECT ${stringifyColumns(columns)} FROM ${table} ${whereClause}`;
 
-  const { rows } = await executeQuery(
+  const { rows } = await executeQuery(client)(
     query,
     values,
   );
@@ -107,9 +144,9 @@ async function selectWhere (table, columns, where) {
   assertApp(Array.isArray(rows));
 
   return rows;
-}
+};
 
-async function selectRoutesFlights (fetchId, params) {
+const selectRoutesFlights = (client) => async (fetchId, params) => {
   assertApp(
     Number.isInteger(fetchId),
     'Invalid fetch id.',
@@ -167,7 +204,7 @@ async function selectRoutesFlights (fetchId, params) {
 
   query += ';';
 
-  const { rows } = await executeQuery(query, queryParams);
+  const { rows } = await executeQuery(client)(query, queryParams);
 
   assertApp(
     Array.isArray(rows),
@@ -199,17 +236,17 @@ async function selectRoutesFlights (fetchId, params) {
 
     return row;
   });
-}
+};
 
-async function selectSubscriptions (airportFromId, airportToId) {
+const selectSubscriptions = (client) => async (airportFromId, airportToId) => {
   assertApp(
     Number.isInteger(airportFromId) &&
     Number.isInteger(airportToId),
     'Invalid airport ids.',
   );
 
-  const { rows } = await executeQuery(`
-
+  const { rows } = await executeQuery(client)(
+    `
       SELECT fetches.id AS fetch_id, fetches.fetch_time as timestamp
       FROM subscriptions_fetches
       LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
@@ -218,13 +255,13 @@ async function selectSubscriptions (airportFromId, airportToId) {
         subscriptions.airport_from_id = $1 AND
         subscriptions.airport_to_id = $2 AND
         fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches);
-
-    `, [airportFromId, airportToId]);
+    `,
+    [airportFromId, airportToId]
+  );
 
   assertApp(
     Array.isArray(rows),
-    'Invalid db select subscription response.',
-    'Got: ', rows,
+    `Invalid db select subscription response. Got ${typeof rows} ${rows}`,
   );
 
   return rows.map(row => {
@@ -235,11 +272,11 @@ async function selectSubscriptions (airportFromId, airportToId) {
 
     return row;
   });
-}
+};
 
-async function selectAccountTransfersUsers () {
-  const selectResult = await executeQuery(`
-
+const selectAccountTransfersUsers = (client) => async () => {
+  const selectResult = await executeQuery(client)(
+    `
     SELECT
       account_transfers.id AS account_transfer_id,
       email,
@@ -250,16 +287,15 @@ async function selectAccountTransfersUsers () {
     LEFT JOIN users
     ON account_transfers.user_id = users.id
     ORDER BY account_transfer_id;
-
   `);
 
   assertApp(isObject(selectResult), `Expected selectResult to be an object, but was ${typeof selectResult}`);
   assertApp(Array.isArray(selectResult.rows), `Expected selectResult.rows to be array, but was ${typeof selectResult.rows}`);
 
   return selectResult.rows;
-}
+};
 
-async function insert (table, data) {
+const insert = (client) => async (table, data) => {
   assertApp(
     typeof table === 'string' &&
     isObject(data),
@@ -279,7 +315,7 @@ async function insert (table, data) {
     .fill('')
     .map((val, index) => `$${index + 1}`)
     .join(', ');
-  const { rows } = await executeQuery(
+  const { rows } = await executeQuery(client)(
     `INSERT INTO ${table} (${columnsStringified}) VALUES (${rowStringified}) RETURNING *;`,
     values,
   );
@@ -287,10 +323,10 @@ async function insert (table, data) {
   assertApp(Array.isArray(rows), 'Incorrect db response.');
 
   return rows[0];
-}
+};
 
-async function insertDataFetch (subscriptionId) {
-  const { rows } = await executeQuery(
+const insertDataFetch = (client) => async (subscriptionId) => {
+  const { rows } = await executeQuery(client)(
     'INSERT INTO fetches(timestamp, subscription_id) VALUES (strftime(\'%Y-%m-%dT%H:%M:%SZ\' ,\'now\'), $1);',
     [subscriptionId],
   );
@@ -298,14 +334,18 @@ async function insertDataFetch (subscriptionId) {
   assertApp(Array.isArray(rows), 'Incorrect db response.');
 
   return rows[0];
-}
+};
 
-async function insertIfNotExists (table, data, existsCheck) {
+const insertIfNotExists = (client) => async (table, data, existsCheck) => {
   assertApp(typeof table === 'string');
   assertApp(isObject(data));
   assertApp(isObject(existsCheck));
 
-  const found = await selectWhere(table, Object.keys(data), existsCheck);
+  const found = await selectWhere(client)(
+    table,
+    Object.keys(data),
+    existsCheck
+  );
 
   assertApp(Array.isArray(found), 'Invalid db response.');
 
@@ -317,9 +357,9 @@ async function insertIfNotExists (table, data, existsCheck) {
   await insert(table, data);
 
   return true;
-}
+};
 
-async function update (table, setHash, whereHash) {
+const update = (client) => async (table, setHash, whereHash) => {
   assertApp(
     isObject(setHash),
     `update function requires setHash to be an object. setHash=${setHash}`,
@@ -336,29 +376,30 @@ async function update (table, setHash, whereHash) {
   log.debug('whereValues are: ', whereValues);
   const values = [...setValues, ...whereValues];
   const query = `UPDATE ${table} ${setClause} ${whereClause} RETURNING *`;
-  const { rows } = await executeQuery(query, values);
+  const { rows } = await executeQuery(client)(query, values);
 
   assertApp(Array.isArray(rows));
 
   return rows;
-}
+};
 
-async function updateWhere (table, setHash, whereHash) {
+const updateWhere = (client) => async (table, setHash, whereHash) => {
   assertApp(
     isObject(setHash) && isObject(whereHash),
     `updateWhere function requires setHash and whereHash parameters to be objects. setHash=${setHash} whereHash=${whereHash}`,
   );
 
-  return update(table, setHash, whereHash);
-}
+  return update(client)(table, setHash, whereHash);
+};
 
 // TODO move out with selectSubs...
-async function updateEmailSub (email) {
+const updateEmailSub = (client) => async (email) => {
   // TODO bad name rename if you can
   let rows;
 
   try {
-    rows = await executeQuery(`
+    rows = await executeQuery(client)(
+      `
       SELECT id, MAX(DateTime(timestamp))
       FROM fetches
     `).rows;
@@ -387,50 +428,32 @@ async function updateEmailSub (email) {
 
   log.info('Updating subscription on email', email, 'to most recent fetch_id', fetchId);
 
-  const { rows: updatedRows } = await executeQuery(query, values);
+  const { rows: updatedRows } = await executeQuery(client, query, values);
 
   assertApp(Array.isArray(updatedRows) && updatedRows.length === 1);
 
   return updatedRows[0];
-}
-
-function executeInTransaction (func) {
-  async function wrappedTransaction (...args) {
-    await executeQuery('BEGIN');
-    try {
-      const result = await func(...args);
-
-      await executeQuery('COMMIT');
-
-      return result;
-    } catch (e) {
-      await executeQuery('ROLLBACK');
-      throw e;
-    }
-  }
-
-  return wrappedTransaction;
-}
+};
 
 function dbConnect () {
   return false;
 }
 
 module.exports = {
-  executeQuery,
-  buildWhereClause,
-  select,
-  insert,
-  insertDataFetch,
-  insertIfNotExists,
-  selectSubscriptions,
-  selectRoutesFlights,
-  selectAccountTransfersUsers,
-  selectWhere,
-  update,
-  updateWhere,
-  updateEmailSub,
-  useClient,
-  executeInTransaction,
-  dbConnect, // TODO still used in .js scripts
+  // executeQuery,
+  // buildWhereClause,
+  // select,
+  // insert,
+  // insertDataFetch,
+  // insertIfNotExists,
+  // selectSubscriptions,
+  // selectRoutesFlights,
+  // selectAccountTransfersUsers,
+  // selectWhere,
+  // update,
+  // updateWhere,
+  // updateEmailSub,
+  client,
+  session,
+  dbConnect, // TODO still used in send-mail.js script
 };

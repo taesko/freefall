@@ -1,3 +1,5 @@
+const _ = require('lodash');
+
 const users = require('./users');
 const log = require('./log');
 const { AppError, assertApp } = require('./error-handling');
@@ -34,6 +36,7 @@ const redirectWhenLoggedIn = (redirectRoute) => async (ctx, next) => {
 };
 
 async function login (ctx, email, password) {
+  const dbClient = ctx.state.dbClient;
   password = users.hashPassword(password);
 
   log.info('Trying to login with email: ', email);
@@ -41,7 +44,7 @@ async function login (ctx, email, password) {
   if (await isLoggedIn(ctx)) {
     throw new AlreadyLoggedIn(`Already logged in as user with id ${ctx.session.userID}`);
   }
-  const user = await users.fetchUser({ email, password });
+  const user = await users.fetchUser(dbClient, { email, password });
 
   if (!user) {
     throw new InvalidCredentials(`Failed to login with email=${email} and password=${password}.`);
@@ -56,26 +59,30 @@ function logout (ctx) {
   ctx.session.userID = null;
 }
 
-async function register (email, password) {
+async function register (ctx, email, password) {
+  const dbClient = ctx.state.dbClient;
+
+  // TODO handle empty string email;
   password = users.hashPassword(password);
-  if (await users.userExists({ email })) {
+
+  if (await users.userExists(dbClient, { email })) {
     throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`);
   }
 
-  await users.addUser({ email, password, role: 'customer' }); // TODO magic value
+  await users.addUser(dbClient, { email, password, role: 'customer' }); // TODO magic value
 }
 
 async function isLoggedIn (ctx) {
   const id = ctx.session.userID;
-  return id != null && await users.fetchUser({ userId: id }) != null;
+  return id != null && await users.fetchUser(ctx.state.dbClient, { userId: id }) != null;
 }
 
 async function getLoggedInUser (ctx) {
-  return users.fetchUser({ userId: ctx.session.userID });
+  return users.fetchUser(ctx.state.dbClient, { userId: ctx.session.userID });
 }
 
-async function tokenHasRole (token, role) {
-  const user = await users.fetchUser({ apiKey: token });
+async function tokenHasRole (dbClient, token, role) {
+  const user = await users.fetchUser(dbClient, { apiKey: token });
 
   return role === user.role;
 }

@@ -1,18 +1,23 @@
+const _ = require('lodash');
+
 const { assertApp, assertPeer, AppError, PeerError, errorCodes } = require('./error-handling');
 const log = require('./log');
 const users = require('./users');
-const db = require('./db');
 const SUBSCRIPTION_COST = 100;
 
-async function depositCredits (userId, amount) {
+async function depositCredits (dbClient, userId, amount) {
+  assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   assertApp(typeof userId === 'number');
   assertApp(typeof amount === 'number');
   assertApp(amount > 0, 'tried to deposit a non-positive amount of credits.');
-  assertPeer(await users.userExists({ userId }));
+  assertPeer(
+    await users.userExists(dbClient, { userId }),
+    `user with id ${userId}`
+  );
 
   log.info(`Depositing ${amount} credits into user ${userId}.`);
 
-  const { rows: creditRows } = await db.executeQuery(
+  const { rows: creditRows } = await dbClient.executeQuery(
     `
       UPDATE users
       SET credits = credits + $1
@@ -35,7 +40,7 @@ async function depositCredits (userId, amount) {
 
   log.info(`New credits of user ${userId} are = ${amount}`);
 
-  const accountTransfer = await db.insert(
+  const accountTransfer = await dbClient.insert(
     'account_transfers',
     {
       user_id: userId,
@@ -49,15 +54,16 @@ async function depositCredits (userId, amount) {
   return accountTransfer;
 }
 
-async function taxUser (userId, amount) {
+async function taxUser (dbClient, userId, amount) {
+  assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   assertApp(typeof userId === 'number');
   assertApp(typeof amount === 'number' && amount > 0);
-  assertPeer(await users.userExists({ userId }));
+  assertPeer(await users.userExists(dbClient, { userId }), `user with id ${userId} does not exist.`);
   // Does taxing 0 count as a transaction ?
 
   log.info(`Taxing user ${userId} with amount=${amount}`);
 
-  const { rows: creditRows } = await db.executeQuery(
+  const { rows: creditRows } = await dbClient.executeQuery(
     `
       UPDATE users
       SET credits = credits - $1
@@ -84,7 +90,7 @@ async function taxUser (userId, amount) {
   log.info(`Set credits of user ${userId} to ${creditRows[0].credits}`);
   log.info(`Recording account transfer for ${userId}.`);
 
-  const accountTransfer = await db.insert(
+  const accountTransfer = await dbClient.insert(
     'account_transfers',
     {
       user_id: userId,
@@ -98,17 +104,24 @@ async function taxUser (userId, amount) {
   return accountTransfer;
 }
 
-async function taxSubscribe (userId, userSubscriptionId) {
-  assertApp(typeof userId === 'number');
-  assertApp(typeof userSubscriptionId === 'number');
+async function taxSubscribe (dbClient, userId, userSubscriptionId) {
+  assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  assertApp(
+    typeof userId === 'number',
+    `expected user id to be number but got ${typeof userId} instead - ${userId}`
+  );
+  assertApp(
+    typeof userSubscriptionId === 'number',
+    `expected subscr id to be a number but got ${typeof userSubscriptionId} instead - ${userSubscriptionId}`
+  );
 
   log.info(`Taxing user ${userId} for subscription ${userSubscriptionId}`);
 
-  const transfer = await taxUser(userId, SUBSCRIPTION_COST);
+  const transfer = await taxUser(dbClient, userId, SUBSCRIPTION_COST);
 
   log.info(`Linking account transfer ${transfer.id} with user subscription ${userSubscriptionId}`);
 
-  const subTransfer = await db.insert(
+  const subTransfer = await dbClient.insert(
     'user_subscription_account_transfers',
     {
       'account_transfer_id': transfer.id,
@@ -122,7 +135,7 @@ async function taxSubscribe (userId, userSubscriptionId) {
 }
 
 module.exports = {
-  depositCredits: db.executeInTransaction(depositCredits),
-  taxUser: db.executeInTransaction(taxUser),
-  taxSubscribe: db.executeInTransaction(taxSubscribe),
+  depositCredits,
+  taxUser,
+  taxSubscribe,
 };
