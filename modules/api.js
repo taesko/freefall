@@ -14,6 +14,7 @@ async function errorHandling (ctx, next) {
   try {
     await next();
   } catch (err) {
+    ctx.status = 200;
     const format = validateRequestFormat({
       headerParam: ctx.headers['content-type'],
       queryParam: ctx.query.format,
