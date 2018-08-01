@@ -155,7 +155,11 @@ async function search (params, dbClient) {
   );
 
   if (!subscribed) {
-    await subscriptions.subscribeGlobally(dbClient, params.fly_from, params.fly_to);
+    await subscriptions.subscribeGlobally(
+      dbClient,
+      params.fly_from,
+      params.fly_to,
+    );
 
     result.status_code = '3000';
     result.routes = [];
@@ -163,7 +167,10 @@ async function search (params, dbClient) {
     return result;
   }
 
-  const subs = await dbClient.selectSubscriptions(+params.fly_from, +params.fly_to);
+  const subs = await dbClient.selectSubscriptions(
+    +params.fly_from,
+    +params.fly_to,
+  );
 
   // subs.length can be equal to 0 if we haven't yet fetched flights for it.
   if (subs.length === 0) {
@@ -346,7 +353,10 @@ async function unsubscribe (params, dbClient) {
 
   assertPeer(user, 'invalid api key');
 
-  const userSubscriptions = await subscriptions.listUserSubscriptions(dbClient, user.id);
+  const userSubscriptions = await subscriptions.listUserSubscriptions(
+    dbClient,
+    user.id,
+  );
 
   assertPeer(
     userSubscriptions.some(sub => +sub.id === +userSubId),
@@ -602,10 +612,10 @@ async function adminEditSubscription (params, dbClient) {
     if (e instanceof PeerError) {
       // TODO somehow make this a decorator ?
       log.warn(
-        'An error occurred while executing method admin_unsubscribe with params',
+        'An error occurred while executing method admin_edit_subscription with params',
         params,
       );
-      return { status_code: '1000' };
+      return { status_code: '2000' };
     } else {
       throw e;
     }
