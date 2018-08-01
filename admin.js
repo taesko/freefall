@@ -36,8 +36,10 @@ app.use(async (ctx, next) => {
     await next();
   } catch (e) {
     log.critical('Unhandled error reached the top layer.', e);
-    ctx.status = 500;
-    ctx.body = `An unknown error occurred. Please restart the server and refresh the page.\n${e}`;
+    if (!ctx.state.errorResponseIsSet) {
+      ctx.status = 500;
+      ctx.body = `An unknown error occurred. Please restart the server and refresh the page.\n${e}`;
+    }
     ctx.app.emit('error', e, ctx);
   }
 });
@@ -119,7 +121,7 @@ router.get(
   '/',
   auth.redirectWhenLoggedIn('/subscriptions'),
   auth.redirectWhenLoggedOut('/login'),
-  async (ctx) => {
+  async () => {
     assertApp(
       false,
       `auth module asserted that ctx is neither logged in nor logged out.`,
