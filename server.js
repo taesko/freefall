@@ -20,6 +20,12 @@ const router = new Router();
 app.keys = ['freefall is love freefall is life'];
 
 app.use(async (ctx, next) => {
+  log.debug('GOT REQUEST', ctx.request);
+  await next();
+  log.debug('SENDING BACK RESPONSE', ctx.response);
+});
+
+app.use(async (ctx, next) => {
   ctx.state.errorResponseIsSet = false;
   try {
     await next();
