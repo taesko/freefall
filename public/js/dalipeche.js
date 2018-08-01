@@ -62,6 +62,7 @@
     image.setAttribute('src', getWeatherImage());
     image.setAttribute('height', ICON_HEIGHT);
     image.setAttribute('width', ICON_WIDTH);
+    image.setAttribute('alt', 'Weather icon');
     parent.appendChild(image);
 
     sendRequest(options, function (error, result) { // eslint-disable-line prefer-arrow-callback

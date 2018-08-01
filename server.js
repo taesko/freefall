@@ -13,6 +13,7 @@ const users = require('./modules/users');
 const { rpcAPILayer, daliPecheAPI } = require('./modules/api');
 const log = require('./modules/log');
 const { getContextForRoute } = require('./modules/render-contexts');
+const { escape } = require('lodash');
 
 const app = new Koa();
 const router = new Router();
@@ -85,6 +86,7 @@ app.use(views(path.join(__dirname, 'templates/'), {
           return '';
         }
       },
+      escape,
     },
     partials: {
       menu: 'menu',

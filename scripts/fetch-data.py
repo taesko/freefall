@@ -492,10 +492,14 @@ def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
 
         UPDATE users_subscriptions
         SET active = FALSE
-        WHERE user_id IN (
-            SELECT id
-            FROM users
-            WHERE credits < %s
+        WHERE
+        (
+            user_id IN (
+                SELECT id
+                FROM users
+                WHERE credits < %s
+            ) OR
+            date_to < now()
         );
 
     ''', [fetch_tax])
