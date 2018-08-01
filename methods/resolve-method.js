@@ -28,7 +28,7 @@ const API_METHODS = {
   senderror: sendError,
 };
 
-async function search (params, db) {
+async function search (params, dbClient) {
   const dbToAPIRouteFlight = function dbToAPIRouteFlight (routeFlight) {
     assertApp(
       typeof routeFlight.airlineName === 'string' &&
@@ -149,12 +149,17 @@ async function search (params, db) {
   }
 
   const subscribed = await subscriptions.globalSubscriptionExists(
+    dbClient,
     +params.fly_from,
     +params.fly_to,
   );
 
   if (!subscribed) {
-    await subscriptions.subscribeGlobally(params.fly_from, params.fly_to);
+    await subscriptions.subscribeGlobally(
+      dbClient,
+      params.fly_from,
+      params.fly_to,
+    );
 
     result.status_code = '3000';
     result.routes = [];
@@ -162,7 +167,10 @@ async function search (params, db) {
     return result;
   }
 
-  const subs = await db.selectSubscriptions(+params.fly_from, +params.fly_to);
+  const subs = await dbClient.selectSubscriptions(
+    +params.fly_from,
+    +params.fly_to,
+  );
 
   // subs.length can be equal to 0 if we haven't yet fetched flights for it.
   if (subs.length === 0) {
@@ -181,7 +189,7 @@ async function search (params, db) {
   );
 
   const fetchId = subs[0].fetchId;
-  const routesAndFlights = await db.selectRoutesFlights(fetchId, params);
+  const routesAndFlights = await dbClient.selectRoutesFlights(fetchId, params);
 
   assertApp(
     Array.isArray(routesAndFlights),
@@ -259,7 +267,7 @@ async function search (params, db) {
   return result;
 }
 
-async function subscribe (params, db) {
+async function subscribe (params, dbClient) {
   assertPeer(
     Number.isInteger(+params.fly_from) && Number.isInteger(+params.fly_to),
     'subscribe params fly_from and fly_to must be an integer wrapped in a string',
@@ -270,27 +278,33 @@ async function subscribe (params, db) {
   const dateTo = params.date_to;
 
   // TODO maybe this should be part of the transaction ?
-  const userId = await users.fetchUser({ apiKey: params.api_key })
+  const userId = await users.fetchUser(dbClient, { apiKey: params.api_key })
     .then(user => { return user == null ? null : user.id; });
 
   assertPeer(userId != null, 'invalid api key');
 
-  const subscribeAndTax = db.executeInTransaction(
-    async (userId, {flyFrom, flyTo, dateFrom, dateTo}) => {
-      const { id: subId } = await subscriptions.subscribeUser(
-        userId,
-        {
-          airportFromId: flyFrom,
-          airportToId: flyTo,
-          dateFrom,
-          dateTo,
-        },
-      );
-      await accounting.taxSubscribe(userId, subId);
+  const subscribeAndTax = async (
+    userId,
+    {
+      flyFrom,
+      flyTo,
+      dateFrom,
+      dateTo,
+    }) => {
+    const { id: subId } = await subscriptions.subscribeUser(
+      dbClient,
+      userId,
+      {
+        airportFromId: flyFrom,
+        airportToId: flyTo,
+        dateFrom,
+        dateTo,
+      },
+    );
+    await accounting.taxSubscribe(dbClient, userId, subId);
 
-      return subId;
-    }
-  );
+    return subId;
+  };
 
   let statusCode;
   let subscriptionId;
@@ -327,7 +341,7 @@ async function subscribe (params, db) {
   };
 }
 
-async function unsubscribe (params, db) {
+async function unsubscribe (params, dbClient) {
   assertPeer(
     Number.isInteger(+params.user_subscription_id),
     'user_subscription_id must be an integer wrapped in a string',
@@ -335,11 +349,14 @@ async function unsubscribe (params, db) {
   const userSubId = +params.user_subscription_id;
   const apiKey = params.api_key;
 
-  const user = await users.fetchUser({ apiKey });
+  const user = await users.fetchUser(dbClient, { apiKey });
 
   assertPeer(user, 'invalid api key');
 
-  const userSubscriptions = await subscriptions.listUserSubscriptions(user.id);
+  const userSubscriptions = await subscriptions.listUserSubscriptions(
+    dbClient,
+    user.id,
+  );
 
   assertPeer(
     userSubscriptions.some(sub => +sub.id === +userSubId),
@@ -349,7 +366,7 @@ async function unsubscribe (params, db) {
   let statusCode;
 
   try {
-    await subscriptions.removeUserSubscription(userSubId);
+    await subscriptions.removeUserSubscription(dbClient, userSubId);
     statusCode = 1000;
   } catch (e) {
     if (e instanceof PeerError) {
@@ -363,8 +380,8 @@ async function unsubscribe (params, db) {
   return { status_code: `${statusCode}` };
 }
 
-async function listAirports (params, db) {
-  const airports = await db.select('airports');
+async function listAirports (params, dbClient) {
+  const airports = await dbClient.select('airports');
 
   for (const air of airports) {
     air.id = `${air.id}`;
@@ -375,9 +392,9 @@ async function listAirports (params, db) {
   };
 }
 
-async function listSubscriptions (params, db) {
-  const user = await users.fetchUser({ apiKey: params.api_key });
-  const subRows = await subscriptions.listUserSubscriptions(user.id);
+async function listSubscriptions (params, dbClient) {
+  const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
+  const subRows = await subscriptions.listUserSubscriptions(dbClient, user.id);
 
   log.debug('sub rows is', subRows);
   for (const sr of subRows) {
@@ -395,12 +412,12 @@ async function listSubscriptions (params, db) {
   };
 }
 
-async function adminListUsers (params) {
+async function adminListUsers (params, dbClient) {
   assertPeer(
-    await auth.tokenHasRole(params.api_key, 'admin'),
+    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_users method.',
   );
-  const userList = await users.listUsers(false);
+  const userList = await users.listUsers(dbClient, false);
 
   // TODO use a helper function ?
   for (const user of userList) {
@@ -412,18 +429,18 @@ async function adminListUsers (params) {
   };
 }
 
-async function adminListSubscriptions (params) {
+async function adminListSubscriptions (params, dbClient) {
   // TODO handle errors how ?
   assertPeer(
-    await auth.tokenHasRole(params.api_key, 'admin'),
+    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
   let userSubscriptions;
   let guestSubscriptions;
 
   if (!params.user_id) {
-    userSubscriptions = await subscriptions.listAllUserSubscriptions();
-    guestSubscriptions = await subscriptions.listGlobalSubscriptions();
+    userSubscriptions = await subscriptions.listAllUserSubscriptions(dbClient);
+    guestSubscriptions = await subscriptions.listGlobalSubscriptions(dbClient);
     guestSubscriptions = guestSubscriptions.map(sub => {
       return {
         id: `${sub.id}`,
@@ -433,7 +450,8 @@ async function adminListSubscriptions (params) {
     });
   } else {
     userSubscriptions = await subscriptions.listUserSubscriptions(
-      +params.user_id
+      dbClient,
+      +params.user_id,
     );
     // TODO ask ivan if guestSubscriptions should be null or empty array
     guestSubscriptions = [];
@@ -460,9 +478,9 @@ async function adminListSubscriptions (params) {
   };
 }
 
-async function adminSubscribe (params) {
+async function adminSubscribe (params, dbClient) {
   assertPeer(
-    await auth.tokenHasRole(params.api_key, 'admin'),
+    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
 
@@ -484,6 +502,7 @@ async function adminSubscribe (params) {
 
   try {
     subscriptionId = await subscriptions.subscribeUser(
+      dbClient,
       userId,
       {
         airportFromId: flyFrom,
@@ -512,19 +531,19 @@ async function adminSubscribe (params) {
   };
 }
 
-async function adminUnsubscribe (params) {
+async function adminUnsubscribe (params, dbClient) {
   assertPeer(
-    await auth.tokenHasRole(params.api_key, 'admin'),
+    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
 
-  async function removeSubscription (params) {
+  async function removeSubscription (params, dbClient) {
     let statusCode;
 
     const subId = +params.user_subscription_id;
 
     try {
-      await subscriptions.removeUserSubscription(subId);
+      await subscriptions.removeUserSubscription(dbClient, subId);
       statusCode = '1000';
     } catch (e) {
       if (e instanceof PeerError) {
@@ -541,12 +560,12 @@ async function adminUnsubscribe (params) {
     return { status_code: `${statusCode}` };
   }
 
-  async function removeAllSubscriptions (params) {
+  async function removeAllSubscriptions (params, dbClient) {
     const userId = +params.user_id;
     assertPeer(Number.isInteger(userId), 'user_id must be an integer wrapped in string.');
     let statusCode;
     try {
-      await subscriptions.removeAllSubscriptionsOfUser(userId);
+      await subscriptions.removeAllSubscriptionsOfUser(dbClient, userId);
       statusCode = '1000';
     } catch (e) {
       if (e instanceof PeerError) {
@@ -564,13 +583,13 @@ async function adminUnsubscribe (params) {
   }
 
   if (params.user_id) {
-    return removeAllSubscriptions(params);
+    return removeAllSubscriptions(params, dbClient);
   } else {
-    return removeSubscription(params);
+    return removeSubscription(params, dbClient);
   }
 }
 
-async function adminEditSubscription (params) {
+async function adminEditSubscription (params, dbClient) {
   const userSubId = +params.user_subscription_id;
   const airportFromId = +params.fly_from;
   const airportToId = +params.fly_to;
@@ -579,6 +598,7 @@ async function adminEditSubscription (params) {
 
   try {
     await subscriptions.updateUserSubscription(
+      dbClient,
       userSubId,
       {
         airportFromId,
@@ -592,19 +612,19 @@ async function adminEditSubscription (params) {
     if (e instanceof PeerError) {
       // TODO somehow make this a decorator ?
       log.warn(
-        'An error occurred while executing method admin_unsubscribe with params',
+        'An error occurred while executing method admin_edit_subscription with params',
         params,
       );
-      return { status_code: '1000' };
+      return { status_code: '2000' };
     } else {
       throw e;
     }
   }
 }
 
-async function adminRemoveUser (params) {
+async function adminRemoveUser (params, dbClient) {
   assertPeer(
-    await auth.tokenHasRole(params.api_key, 'admin'),
+    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
 
@@ -614,7 +634,7 @@ async function adminRemoveUser (params) {
   assertPeer(Number.isInteger(userId));
 
   try {
-    await users.removeUser(userId);
+    await users.removeUser(dbClient, userId);
     statusCode = '1000';
   } catch (e) {
     if (e instanceof PeerError) {
@@ -627,9 +647,9 @@ async function adminRemoveUser (params) {
   return { status_code: statusCode };
 }
 
-async function adminEditUser (params) {
+async function adminEditUser (params, dbClient) {
   assertPeer(
-    await auth.tokenHasRole(params.api_key, 'admin'),
+    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
   assertPeer(
@@ -643,11 +663,12 @@ async function adminEditUser (params) {
   let password;
 
   if (params.password) {
-    password = users.hashPassword(params.password);
+    password = users.hashPassword(dbClient, params.password);
   }
 
   try {
     await users.editUser(
+      dbClient,
       userId,
       {
         email,
@@ -670,37 +691,37 @@ async function adminEditUser (params) {
   return { status_code: statusCode };
 }
 
-async function adminListFetches (params, db) {
+async function adminListFetches (params, dbClient) {
   assertPeer(
-    await auth.tokenHasRole(params.api_key, 'admin'),
+    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
 
-  const fetches = await db.select('fetches');
+  const fetches = await dbClient.select('fetches');
   return {
     status_code: '1000',
     fetches,
   };
 }
 
-async function adminAlterUserCredits (params) {
+async function adminAlterUserCredits (params, dbClient) {
   assertPeer(
-    await auth.tokenHasRole(params.api_key, 'admin'),
+    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
     'You do not have sufficient permission to call admin_alter_user_credits method.',
   );
 
   assertPeer(
     Number.isInteger(Number(params.user_id)),
-    `Expected user_id to be an integer, represented as string, but was ${typeof Number(params.user_id)}`
+    `Expected user_id to be an integer, represented as string, but was ${typeof Number(params.user_id)}`,
   );
 
   const userId = Number(params.user_id);
   const amount = Math.abs(params.credits_difference);
 
   if (params.credits_difference > 0) {
-    await accounting.depositCredits(userId, amount);
+    await accounting.depositCredits(dbClient, userId, amount);
   } else {
-    await accounting.taxUser(userId, amount);
+    await accounting.taxUser(dbClient, userId, amount);
   }
 
   return {
