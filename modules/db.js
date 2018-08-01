@@ -289,6 +289,29 @@ const selectAccountTransfersUsers = (client) => async () => {
     ORDER BY account_transfer_id;
   `);
 
+  // TODO:
+  // const selectResult = await executeQuery(client)(
+  //   `
+  //   SELECT
+  //     account_transfers.id AS account_transfer_id,
+  //     email,
+  //     transfer_amount,
+  //     transferred_at,
+  //     user_id
+  //   FROM account_transfers
+  //   LEFT JOIN users
+  //   ON account_transfers.user_id = users.id
+  //   LEFT JOIN user_subscription_account_transfers
+  //   ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
+  //   LEFT JOIN subscriptions_fetches_account_transfers
+  //   ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
+  //   LEFT JOIN account_transfers_by_admin
+  //   ON account_transfers_by_admin.account_transfer_id = account_transfers.id
+  //   LEFT JOIN users
+  //   ON users.id = account_transfers_by_admin.admin_user_id
+  //   ORDER BY account_transfer_id;
+  // `);
+
   assertApp(isObject(selectResult), `Expected selectResult to be an object, but was ${typeof selectResult}`);
   assertApp(Array.isArray(selectResult.rows), `Expected selectResult.rows to be array, but was ${typeof selectResult.rows}`);
 

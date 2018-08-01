@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS account_transfers_by_admin;
 DROP TABLE IF EXISTS subscriptions_fetches_account_transfers;
 DROP TABLE IF EXISTS account_transfers;
 DROP TABLE IF EXISTS routes_flights;
@@ -136,3 +137,31 @@ CREATE TABLE subscriptions_fetches_account_transfers (
   FOREIGN KEY (account_transfer_id) REFERENCES account_transfers(id) ON DELETE RESTRICT,
   FOREIGN KEY (subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE RESTRICT
 );
+
+CREATE TABLE account_transfers_by_admin (
+  id serial PRIMARY KEY,
+  account_transfer_id integer NOT NULL UNIQUE REFERENCES account_transfers,
+  admin_user_id integer NOT NULL REFERENCES users CHECK (is_admin(admin_user_id))
+);
+
+CREATE OR REPLACE FUNCTION is_admin (user_id integer)
+  RETURNS boolean AS
+$$
+  DECLARE
+    selected_user_role user_role;
+  BEGIN
+    SELECT INTO selected_user_role role
+    FROM users
+    WHERE id = user_id;
+    IF FOUND THEN
+      IF selected_user_role = 'admin' THEN
+        RETURN true;
+      ELSE
+        RETURN false;
+      END IF;
+    ELSE
+      RETURN false;
+    END IF;
+  END;
+$$
+LANGUAGE plpgsql;
