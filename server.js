@@ -93,17 +93,11 @@ router.get('/', async (ctx, next) => {
   await next();
 });
 
-router.get('/login', async (ctx) => {
-  if (await auth.isLoggedIn(ctx)) {
-    log.info('User already logged in. Redirecting to /');
-    ctx.redirect('/');
-    return;
-  }
-
+router.get('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   await ctx.render('login.html', await getContextForRoute(ctx, 'get', '/login'));
 });
 
-router.post('/login', async (ctx) => {
+router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   const { email, password } = ctx.request.body;
   try {
     await auth.login(ctx, email, password);
@@ -111,11 +105,7 @@ router.post('/login', async (ctx) => {
 
     return;
   } catch (e) {
-    if (e instanceof auth.AlreadyLoggedIn) {
-      log.info('User already logged in. Redirect to /');
-      ctx.redirect('/');
-      return;
-    } else if (e instanceof auth.InvalidCredentials) {
+    if (e instanceof auth.InvalidCredentials) {
       log.info('Invalid credentials on login. Setting ctx.state.login_error_message');
       ctx.state.login_error_message = 'Invalid username or password.';
     } else {
@@ -126,27 +116,17 @@ router.post('/login', async (ctx) => {
   await ctx.render('login.html', await getContextForRoute(ctx, 'post', '/login'));
 });
 
-router.get('/logout', async (ctx, next) => {
+router.get('/logout', auth.redirectWhenLoggedOut('/'), async (ctx, next) => {
   auth.logout(ctx);
   ctx.redirect('/');
   await next();
 });
 
-router.get('/register', async (ctx) => {
-  if (await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/');
-    return;
-  }
-
+router.get('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   await ctx.render('register.html', await getContextForRoute(ctx, 'get', '/register'));
 });
 
-router.post('/register', async (ctx) => {
-  if (await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/');
-    return;
-  }
-
+router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   const errors = [];
   const {
     email,
@@ -159,7 +139,7 @@ router.post('/register', async (ctx) => {
     errors.push('Passwords are not the same.');
   }
 
-  if (await users.fetchUser({ email })) {
+  if (await users.userExists({ email })) {
     errors.push('Email is already taken');
   }
 
@@ -176,11 +156,7 @@ router.post('/register', async (ctx) => {
   await ctx.render('register.html', await getContextForRoute(ctx, 'post', '/register'));
 });
 
-router.get('/profile', async (ctx) => {
-  if (!await auth.isLoggedIn(ctx)) {
-    ctx.redirect('/login');
-    return;
-  }
+router.get('/profile', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   await ctx.render('profile.html', await getContextForRoute(ctx, 'get', '/profile'));
 });
 

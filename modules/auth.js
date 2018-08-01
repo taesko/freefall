@@ -1,12 +1,37 @@
 const users = require('./users');
 const log = require('./log');
-const { AppError } = require('./error-handling');
+const { AppError, assertApp } = require('./error-handling');
 
 class InvalidCredentials extends AppError {}
 
 class UserExists extends AppError {}
 
 class AlreadyLoggedIn extends AppError {}
+
+const redirectWhenLoggedOut = (redirectRoute) => async (ctx, next) => {
+  assertApp(typeof redirectRoute === 'string');
+  if (!await isLoggedIn(ctx)) {
+    // invalidate cookie because deleted user accounts have a valid id in the database
+    // this causes problems like register() method automatically logging them in
+    log.info('User is not logged in. Invalidating cookie and redirecting to', redirectRoute);
+    ctx.session.userID = null;
+    ctx.redirect(redirectRoute);
+  } else {
+    await next();
+  }
+};
+
+const redirectWhenLoggedIn = (redirectRoute) => async (ctx, next) => {
+  assertApp(typeof redirectRoute === 'string');
+  // TODO what happens when a user has a deactivated account that becomes active during
+  // await next()
+  if (await isLoggedIn(ctx)) {
+    log.info('User is logged in. Redirecting to', redirectRoute);
+    ctx.redirect(redirectRoute);
+  } else {
+    await next();
+  }
+};
 
 async function login (ctx, email, password) {
   password = users.hashPassword(password);
@@ -33,7 +58,7 @@ function logout (ctx) {
 
 async function register (email, password) {
   password = users.hashPassword(password);
-  if (await users.fetchUser({ email, password })) {
+  if (await users.userExists({ email })) {
     throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`);
   }
 
@@ -60,6 +85,8 @@ function serializeUser (user) {
 }
 
 module.exports = {
+  redirectWhenLoggedOut,
+  redirectWhenLoggedIn,
   login,
   logout,
   register,
