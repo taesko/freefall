@@ -11,12 +11,24 @@ pool.on('error', (err, client) => {
 });
 
 async function client (ctx, next) {
-  const client = await pool.connect();
+  const pgClient = await pool.connect();
   // TODO find out a client id and log it
   log.info('Created a new client connection to database.');
 
   // TODO make this a class so it can be checked with isinstance ?
-  ctx.state.dbClient = {
+  ctx.state.dbClient = wrapPgClient(pgClient);
+
+  // TODO is client.on error needed ?
+  try {
+    await next();
+  } finally {
+    pgClient.release();
+    log.info('Released client connection');
+  }
+}
+
+function wrapPgClient (client) {
+  return {
     executeQuery: executeQuery(client),
     select: select(client),
     insert: insert(client),
@@ -30,14 +42,6 @@ async function client (ctx, next) {
     updateWhere: updateWhere(client),
     updateEmailSub: updateEmailSub(client),
   };
-
-  // TODO is client.on error needed ?
-  try {
-    await next();
-  } finally {
-    client.release();
-    log.info('Released client connection');
-  }
 }
 
 async function session (ctx, next) {
@@ -110,7 +114,7 @@ const executeQuery = (client) => async (query, values) => {
   // TODO find out how to log client
   log.debug('Executing query', query, 'replaced with values: ', values);
   return client.query(query, values);
-}
+};
 
 const select = (client) => async (table, columns = '*') => {
   assertApp(
@@ -456,4 +460,6 @@ module.exports = {
   client,
   session,
   dbConnect, // TODO still used in send-mail.js script
+  pool,
+  wrapPgClient,
 };
