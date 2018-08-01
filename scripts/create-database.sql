@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS subscriptions_fetches_account_transfers;
+DROP TABLE IF EXISTS user_subscription_account_transfers;
 DROP TABLE IF EXISTS account_transfers;
 DROP TABLE IF EXISTS routes_flights;
 DROP TABLE IF EXISTS flights;
