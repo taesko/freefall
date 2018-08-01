@@ -29,6 +29,7 @@
           <div class="form-group fixed-form-height">
             <label for="from-input" text-center">Airport from:</label>
             <input id="from-input" class="form-control" name="from" type="text" placeholder="From" list="from-airports" required>
+
           </div>
           <div class="form-group fixed-form-height">
             <label for="to-input" text-center">Airport to:</label>
@@ -53,6 +54,17 @@
         {{> messages }}
       </div>
     </form>
+    <div id="weather-container" class="row text-center" hidden>
+      <h3>The current weather in the selected airports:</h3>
+      <div class="col-md-6">
+        <p>Airport from:</p>
+        <div id="dalipeche-airport-from"></div>
+      </div>
+      <div class="col-md-6">
+        <p>Airport to:</p>
+        <div id="dalipeche-airport-to"></div>
+      </div>
+    </div>
     <div id="routes-container" class="row text-center">
       <ul class="list-unstyled col-sm-12" id="all-routes-list">
         <li id="flights-list-item-template" class="collapse">
@@ -112,6 +124,7 @@
   <script src="js/js-yaml/js-yaml.min.js"></script>
   <script src="js/api-methods.js"></script>
   <script src="js/parsers.js"></script>
+  <script src="js/dalipeche.js"></script>
   <script src="js/main.js"></script>
   <script src="js/search.js"></script>
 </body>

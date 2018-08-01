@@ -270,6 +270,12 @@ function start () {
     return searchFormParams;
   }
 
+  function showWeather (airportFromIATACode, airportToIATACode) {
+    $('#weather-container').removeAttr('hidden');
+    $('#dalipeche-airport-from').getForecastByIATACode(airportFromIATACode);
+    $('#dalipeche-airport-to').getForecastByIATACode(airportToIATACode);
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $allRoutesList = $('#all-routes-list');
 
@@ -286,6 +292,20 @@ function start () {
         mainUtils.handleError(e);
         return false;
       }
+
+      const airportFrom = getAirport(formParams.fly_from, airports); // eslint-disable-line no-var
+      const airportTo = getAirport(formParams.fly_to, airports); // eslint-disable-line no-var
+
+      assertUser(_.isObject(airportFrom), {
+        msg: 'Could not find airport "' + formParams.fly_from + '"', // eslint-disable-line prefer-template
+        userMessage: 'Could not find airport "' + formParams.fly_from + '"', // eslint-disable-line prefer-template
+      });
+      assertUser(_.isObject(airportTo), {
+        msg: 'Could not find airport "' + formParams.fly_to + '"', // eslint-disable-line prefer-template
+        userMessage: 'Could not find airport "' + formParams.fly_to + '"', // eslint-disable-line prefer-template
+      });
+
+      showWeather(airportFrom.iata_code, airportTo.iata_code);
 
       $submitBtn.prop('disabled', true);
 
