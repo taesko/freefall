@@ -127,16 +127,18 @@
   <script src="../js/jquery/jquery-2.2.4.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ajv/6.5.2/ajv.min.js"></script>
+  <script src="../js/autocomplete-plugin.js"></script>
   <script src="../js/json-schemas.js"></script>
   <script src="../js/admin-json-schemas.js"></script>
+  <script src="../js/parsers.js"></script>
+  <script src="../js/api-methods.js"></script>
+  <script src="../js/admin-api-methods.js"></script>
   <script src="../js/main.js"></script>
   <script type="text/javascript">
-    function getUserCredentials () {
-      return {
-        id: '{{user_credentials.id}}',
-        email: '{{user_credentials.email}}',
-        credits: Number('{{user_credentials.credits}}'),
-      };
+    var user = {
+      id: '{{user_credentials.id}}',
+      email: '{{user_credentials.email}}',
+      credits: Number('{{user_credentials.credits}}'),
     };
   </script>
   <script type="text/javascript" src="../js/user.js"></script>

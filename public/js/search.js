@@ -5,20 +5,12 @@ function start () {
   const $submitBtn = $('#submit-button');
 
   const mainUtils = main();
-  const PeerError = mainUtils.PeerError;
   const assertApp = mainUtils.assertApp;
   const assertUser = mainUtils.assertUser;
-  const assertPeer = mainUtils.assertPeer;
   const trace = mainUtils.trace;
-  const handleError = mainUtils.handleError;
-  const getValidatorMsg = mainUtils.getValidatorMsg;
-  const sendRequest = mainUtils.sendRequest;
   const displayUserMessage = mainUtils.displayUserMessage;
-  const listAirports = mainUtils.listAirports;
-  const SERVER_URL = mainUtils.SERVER_URL;
-  const validateSearchReq = validators.getValidateSearchReq();
-  const validateSearchRes = validators.getValidateSearchRes();
-  const validateErrorRes = validators.getValidateErrorRes();
+
+  const api = getAPIMethods(mainUtils);
 
   var airports = []; // eslint-disable-line no-var
 
@@ -75,18 +67,6 @@ function start () {
     return null;
   }
 
-  function sortRoute (route) {
-    function comparison (a, b) {
-      return a.dtime - b.dtime;
-    }
-
-    const result = route.slice(0);
-
-    result.sort(comparison);
-
-    return result;
-  }
-
   function setupLoading ($button, $routesList) {
     const step = 5;
 
@@ -118,13 +98,13 @@ function start () {
       .toString();
 
     if (hours.length < 2) {
-      hours = '0' + hours;
+      hours = '0' + hours; // eslint-disable-line prefer-template
     }
 
     var minutes = date.getUTCMinutes().toString(); // eslint-disable-line no-var
 
     if (minutes.length < 2) {
-      minutes = '0' + minutes;
+      minutes = '0' + minutes; // eslint-disable-line prefer-template
     }
 
     return '' + hours + ':' + minutes + ''; // eslint-disable-line prefer-template
@@ -290,77 +270,6 @@ function start () {
     return searchFormParams;
   }
 
-  /**
-   * Make a search method call to the server and retrieve possible routes
-   * All parameters must be JS primitives with their corresponding type in
-   * the API docs.
-   *
-   **/
-  function search (params, protocolName, callback) {
-    trace('search(' + JSON.stringify(params) + '), typeof arg=' + typeof params + ''); // eslint-disable-line prefer-template
-    // JSON.stringify - handle potential exception in a new function - stringifyObject
-
-    assertApp(validateSearchReq(params), {
-      msg: 'Params do not adhere to searchRequestSchema: ' + getValidatorMsg(validateSearchReq), // eslint-disable-line prefer-template
-    });
-
-    sendRequest({
-      url: SERVER_URL,
-      data: {
-        method: 'search',
-        params: params,
-      },
-      protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
-      if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
-        trace('Error in search:' + JSON.stringify(error)); // eslint-disable-line prefer-template
-        throw new PeerError({
-          msg: error.message,
-        });
-      }
-
-      assertPeer(validateSearchRes(result), {
-        msg: 'Params do not adhere to searchResponseSchema: ' + getValidatorMsg(validateSearchRes), // eslint-disable-line prefer-template
-      });
-
-      var i, k; // eslint-disable-line no-var
-
-      for (i = 0; i < result.routes.length; i++) {
-        // server doesn't provide currency yet
-        if (result.currency) {
-          result.routes[i].price += ' ' + result.currency + ''; // eslint-disable-line prefer-template
-        } else {
-          result.routes[i].price += ' $';
-        }
-
-        for (k = 0; k < result.routes[i].route.length; k++) {
-          result.routes[i].route[k].dtime = new Date(result.routes[i].route[k].dtime);
-          result.routes[i].route[k].atime = new Date(result.routes[i].route[k].atime);
-
-          // server doesn't provide city_from and city_to yet
-          result.routes[i].route[k].cityFrom = result.routes[i].route[k].cityFrom || '';
-          result.routes[i].route[k].cityTo = result.routes[i].route[k].cityTo || '';
-        }
-
-        result.routes[i].route = sortRoute(result.routes[i].route);
-        result.routes[i].dtime = result.routes[i].route[0].dtime;
-        result.routes[i].atime = result.routes[i].route[result.routes[i].route.length - 1].atime;
-      }
-
-      result.routes = _.sortBy(result.routes, [function (routeObj) {
-        return routeObj.dtime;
-      }]);
-
-      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
-        callback(result);
-      }, 0);
-    });
-  }
-
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $allRoutesList = $('#all-routes-list');
 
@@ -374,13 +283,13 @@ function start () {
       try {
         formParams = getSearchFormParams($flightForm);
       } catch (e) {
-        handleError(e);
+        mainUtils.handleError(e);
         return false;
       }
 
       $submitBtn.prop('disabled', true);
 
-      search(formParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      api.search(formParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
         // use lexicographical/ordinal string comparison
         if (result.status_code >= '1000' && result.status_code < '2000') {
           displaySearchResult(
@@ -412,7 +321,7 @@ function start () {
 
     setupLoading($('#load-more-button'), $allRoutesList);
 
-    listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    api.listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       airports = result.airports;
 
       const airportNames = airports.map(function (airport) { // eslint-disable-line prefer-arrow-callback

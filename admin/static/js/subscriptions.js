@@ -1,37 +1,81 @@
 function start () {
   const mainUtils = main();
-  const trace = mainUtils.trace;
   const assertApp = mainUtils.assertApp;
   const assertUser = mainUtils.assertUser;
-  const getAirportName = mainUtils.getAirportName;
-  const getAirportId = mainUtils.getAirportId;
-  const getUniqueId = mainUtils.getUniqueId;
-  const getAPIKey = mainUtils.getAPIKey;
-  const listAirports = mainUtils.listAirports;
-  const getElementUniqueId = mainUtils.getElementUniqueId;
-  const sendRequest = mainUtils.sendRequest;
-  const getValidatorMsg = mainUtils.getValidatorMsg;
-  const SERVER_URL = mainUtils.SERVER_URL;
-  const assertPeer = mainUtils.assertPeer;
-  const PeerError = mainUtils.PeerError;
   const UserError = mainUtils.UserError;
-  const displayUserMessage = mainUtils.displayUserMessage;
-  const validateErrorRes = validators.getValidateErrorRes();
-  const validateAdminListSubscriptionsReq = adminValidators.getValidateAdminListSubscriptionsReq();
-  const validateAdminListSubscriptionsRes = adminValidators.getValidateAdminListSubscriptionsRes();
-  const validateAdminSubscribeReq = adminValidators.getValidateAdminSubscribeReq();
-  const validateAdminSubscribeRes = adminValidators.getValidateAdminSubscribeRes();
-  const validateAdminUnsubscribeReq = adminValidators.getValidateAdminUnsubscribeReq();
-  const validateAdminUnsubscribeRes = adminValidators.getValidateAdminUnsubscribeRes();
-  const validateAdminEditSubscriptionReq = adminValidators.getValidateAdminEditSubscriptionReq();
-  const validateAdminEditSubscriptionRes = adminValidators.getValidateAdminEditSubscriptionRes();
+  const APIKeyRef = mainUtils.APIKeyRef;
+
+  const adminAPI = getAdminAPIMethods(mainUtils);
+  const api = getAPIMethods(mainUtils);
 
   var airports = []; // eslint-disable-line no-var
   var userSubscriptions = []; // eslint-disable-line no-var
   var rowIdUserSubscriptionMap = {}; // eslint-disable-line no-var
   var guestSubscriptions = []; // eslint-disable-line no-var
   var rowIdGuestSubscriptionMap = {}; // eslint-disable-line no-var
-  var APIKey; // eslint-disable-line no-var
+
+  function getAirportName (airports, id) {
+    mainUtils.trace('getAirportName(airports, ' + id + '), typeof arg=' + typeof id + ''); // eslint-disable-line prefer-template
+
+    assertApp(airports instanceof Array, {
+      msg: 'Expected airports to be instance of array, but was ' + typeof airports, // eslint-disable-line prefer-template
+    });
+
+    assertApp(typeof id === 'string', {
+      msg: 'Expected id to be a string, but was ' + typeof id, // eslint-disable-line prefer-template
+    });
+
+    var i; // eslint-disable-line no-var
+
+    for (i = 0; i < airports.length; i++) {
+      const expectedProps = ['id', 'name'];
+
+      _.each(expectedProps, function (prop) { // eslint-disable-line prefer-arrow-callback
+        assertApp(typeof airports[i][prop] === 'string', {
+          msg: 'Expected airport ' + prop + ' to be string, but was ' + typeof airports[i][prop], // eslint-disable-line prefer-template
+        });
+      });
+
+      if (airports[i].id === id) {
+        return airports[i].name;
+      }
+    }
+
+    throw new UserError({
+      msg: 'Could not find airport with id ' + id, // eslint-disable-line prefer-template
+    });
+  }
+
+  function getAirportId (airports, name) {
+    mainUtils.trace('getAirportId(airports, ' + name + '), typeof arg=' + typeof name + ''); // eslint-disable-line prefer-template
+
+    assertApp(airports instanceof Array, {
+      msg: 'Expected airports to be instance of array, but was ' + typeof airports, // eslint-disable-line prefer-template
+    });
+
+    assertApp(typeof name === 'string', {
+      msg: 'Expected name to be a string, but was ' + typeof name, // eslint-disable-line prefer-template
+    });
+
+    const normalizedName = name.trim().toLowerCase();
+
+    var i; // eslint-disable-line no-var
+    for (i = 0; i < airports.length; i++) {
+      const expectedProps = ['id', 'name'];
+
+      _.each(expectedProps, function (prop) { // eslint-disable-line prefer-arrow-callback
+        assertApp(typeof airports[i][prop] === 'string', {
+          msg: 'Expected airport ' + prop + ' to be string, but was ' + typeof airports[i][prop], // eslint-disable-line prefer-template
+        });
+      });
+
+      if (airports[i].name.trim().toLowerCase() === normalizedName) {
+        return airports[i].id;
+      }
+    }
+
+    return null;
+  }
 
   function applyDatePicker () {
     const datepickerOptions = {
@@ -66,7 +110,7 @@ function start () {
   }
 
   function renderGuestSubscriptions ($guestSubscriptionsTable) {
-    trace('renderGuestSubscriptions');
+    mainUtils.trace('renderGuestSubscriptions');
 
     if (guestSubscriptions.length > 0) {
       showGuestSubscriptionsTable();
@@ -95,7 +139,7 @@ function start () {
   }
 
   function renderGuestSubscriptionRow (mode, subscription, $row) {
-    trace('renderGuestSubscriptionRow');
+    mainUtils.trace('renderGuestSubscriptionRow');
 
     assertApp(_.isObject(subscription), {
       msg: 'Expected subscription to be an object, but was ' + typeof subscription, // eslint-disable-line prefer-template
@@ -117,8 +161,8 @@ function start () {
     );
 
     var rowId = // eslint-disable-line no-var
-      ($row == null) ? String(getUniqueId())
-        : getElementUniqueId($row[0], 'guest-subscription-');
+      ($row == null) ? String(mainUtils.getUniqueId())
+        : mainUtils.getElementUniqueId($row[0], 'guest-subscription-');
 
     rowIdGuestSubscriptionMap[rowId] = subscription;
 
@@ -140,7 +184,7 @@ function start () {
   }
 
   function renderGuestSubscriptionRowViewMode (subscription, rowId, $row) {
-    trace('renderGuestSubscriptionRowViewMode');
+    mainUtils.trace('renderGuestSubscriptionRowViewMode');
 
     const $guestSubscriptionViewModeClone = $('#guest-subscription-view-mode').clone()
       .removeAttr('hidden')
@@ -168,7 +212,7 @@ function start () {
   }
 
   function renderGuestSubscriptionRowEditMode (subscription, rowId, $row) {
-    trace('renderGuestSubscriptionRowEditMode');
+    mainUtils.trace('renderGuestSubscriptionRowEditMode');
 
     const $guestSubscriptionEditModeClone = $('#guest-subscription-edit-mode').clone()
       .removeAttr('hidden')
@@ -201,156 +245,12 @@ function start () {
     $row.replaceWith($guestSubscriptionEditModeClone);
   }
 
-  function adminListSubscriptions (params, protocolName, callback) {
-    trace('adminListSubscriptions');
-
-    assertApp(validateAdminListSubscriptionsReq(params), {
-      msg: 'Params do not adhere to adminListSubscriptionsRequestSchema: ' + getValidatorMsg(validateAdminListSubscriptionsReq), // eslint-disable-line prefer-template
-    });
-
-    sendRequest({
-      url: SERVER_URL,
-      data: {
-        method: 'admin_list_subscriptions',
-        params: params,
-      },
-      protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
-      if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
-        trace('Error in adminListSubscriptions:' + JSON.stringify(error)); // eslint-disable-line prefer-template
-        throw new PeerError({
-          msg: error.message,
-        });
-      }
-
-      assertPeer(validateAdminListSubscriptionsRes(result), {
-        msg: 'Params do not adhere to adminListSubscriptionsResponseSchema: ' + getValidatorMsg(validateAdminListSubscriptionsRes), // eslint-disable-line prefer-template
-      });
-
-      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
-        callback(result);
-      }, 0);
-    });
-  }
-
-  function adminSubscribe (params, protocolName, callback) {
-    trace('adminSubscrbe');
-
-    assertApp(validateAdminSubscribeReq(params), {
-      msg: 'Params do not adhere to adminSubscribeRequestSchema: ' + getValidatorMsg(validateAdminSubscribeReq), // eslint-disable-line prefer-template
-    });
-
-    sendRequest({
-      url: SERVER_URL,
-      data: {
-        method: 'admin_subscribe',
-        params: params,
-      },
-      protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
-      if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
-        trace('Error in adminSubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
-        throw new PeerError({
-          msg: error.message,
-        });
-      }
-
-      assertPeer(validateAdminSubscribeRes(result), {
-        msg: 'Params do not adhere to adminSubscribeResponseSchema: ' + getValidatorMsg(validateAdminSubscribeRes), // eslint-disable-line prefer-template
-      });
-
-      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
-        callback(result);
-      }, 0);
-    });
-  }
-
-  function adminUnsubscribe (params, protocolName, callback) {
-    trace('adminUnsubscribe');
-
-    assertApp(validateAdminUnsubscribeReq(params), {
-      msg: 'Params do not adhere to adminUnsubscribeRequestSchema: ' + getValidatorMsg(validateAdminUnsubscribeReq) // eslint-disable-line prefer-template
-    });
-
-    sendRequest({
-      url: SERVER_URL,
-      data: {
-        method: 'admin_unsubscribe',
-        params: params,
-      },
-      protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
-      if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
-        trace('Error in adminUnsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
-        throw new PeerError({
-          msg: error.message,
-        });
-      }
-
-      assertPeer(validateAdminUnsubscribeRes(result), {
-        msg: 'Params do not adhere to adminUnsubscribeResponseSchema: ' + getValidatorMsg(validateAdminUnsubscribeRes), // eslint-disable-line prefer-template
-      });
-
-      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
-        callback(result);
-      }, 0);
-    });
-  }
-
-  function adminEditSubscription (params, protocolName, callback) {
-    trace('adminEditSubscription');
-
-    assertApp(validateAdminEditSubscriptionReq(params), {
-      msg: 'Params do not adhere to adminEditSubscriptionRequestSchema: ' + getValidatorMsg(validateAdminEditSubscriptionReq) // eslint-disable-line prefer-template
-    });
-
-    sendRequest({
-      url: SERVER_URL,
-      data: {
-        method: 'admin_edit_subscription',
-        params: params,
-      },
-      protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
-      if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
-        trace('Error in adminUnsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
-        throw new PeerError({
-          msg: error.message,
-        });
-      }
-
-      assertPeer(validateAdminEditSubscriptionRes(result), {
-        msg: 'Params do not adhere to adminEditSubscriptionResponseSchema: ' + getValidatorMsg(validateAdminEditSubscriptionRes), // eslint-disable-line prefer-template
-      });
-
-      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
-        callback(result);
-      }, 0);
-    });
-  }
-
   const onEditGuestSubscriptionClick = function (event) {
-    trace('onEditGuestSubscriptionClick');
+    mainUtils.trace('onEditGuestSubscriptionClick');
 
-    displayUserMessage('Warning: this is a preview of edit guest subscription functionality. Work is in progess to implement this feature.', 'info');
+    mainUtils.displayUserMessage('Warning: this is a preview of edit guest subscription functionality. Work is in progess to implement this feature.', 'info');
 
-    const rowId = getElementUniqueId(event.target, 'guest-subscription-view-mode-edit-btn-');
+    const rowId = mainUtils.getElementUniqueId(event.target, 'guest-subscription-view-mode-edit-btn-');
     const subscription = rowIdGuestSubscriptionMap[rowId];
 
     renderGuestSubscriptionRow(
@@ -361,9 +261,9 @@ function start () {
   };
 
   const onCancelGuestSubscriptionClick = function (event) {
-    trace('onCancelGuestSubscriptionClick');
+    mainUtils.trace('onCancelGuestSubscriptionClick');
 
-    const rowId = getElementUniqueId(event.target, 'guest-subscription-edit-mode-cancel-btn-');
+    const rowId = mainUtils.getElementUniqueId(event.target, 'guest-subscription-edit-mode-cancel-btn-');
     const subscription = rowIdGuestSubscriptionMap[rowId];
 
     renderGuestSubscriptionRow(
@@ -374,7 +274,7 @@ function start () {
   };
 
   const onSaveGuestSubscriptionClick = function (event) {
-    trace('onSaveGuestSubscriptionClick');
+    mainUtils.trace('onSaveGuestSubscriptionClick');
 
     throw new UserError({
       userMessage: 'Feature not implemented yet.',
@@ -383,7 +283,7 @@ function start () {
 
     const saveButton = event.target;
 
-    const rowId = getElementUniqueId(saveButton, 'guest-subscription-edit-mode-save-btn-');
+    const rowId = mainUtils.getElementUniqueId(saveButton, 'guest-subscription-edit-mode-save-btn-');
     const oldSubscription = rowIdGuestSubscriptionMap[rowId];
 
     const airportFrom = $('#guest-subscription-edit-mode-airport-from-' + rowId).val(); // eslint-disable-line prefer-template
@@ -430,7 +330,7 @@ function start () {
   };
 
   const onRemoveGuestSubscriptionClick = function (event) {
-    trace('onRemoveGuestSubscriptionClick');
+    mainUtils.trace('onRemoveGuestSubscriptionClick');
 
     throw new UserError({
       userMessage: 'Feature not implemented yet.',
@@ -439,7 +339,7 @@ function start () {
 
     const removeButton = event.target;
 
-    const rowId = getElementUniqueId(removeButton, 'guest-subscription-edit-mode-remove-btn-');
+    const rowId = mainUtils.getElementUniqueId(removeButton, 'guest-subscription-edit-mode-remove-btn-');
     const oldSubscription = rowIdGuestSubscriptionMap[rowId];
 
     removeButton.disabled = true;
@@ -464,7 +364,7 @@ function start () {
   };
 
   const onSubscribeSubmit = function (event) {
-    trace('subscribe submit button clicked');
+    mainUtils.trace('subscribe submit button clicked');
 
     throw new UserError({
       userMessage: 'Feature not implemented yet.',
@@ -473,7 +373,7 @@ function start () {
   };
 
   function renderUserSubscriptions ($userSubscriptionsTable) {
-    trace('renderUserSubscriptions');
+    mainUtils.trace('renderUserSubscriptions');
 
     if (userSubscriptions.length > 0) {
       showUserSubscriptionsTable();
@@ -502,7 +402,7 @@ function start () {
   }
 
   function renderUserSubscriptionRowViewMode (subscription, rowId, $row) {
-    trace('renderUserSubscriptionRowViewMode');
+    mainUtils.trace('renderUserSubscriptionRowViewMode');
 
     const $userSubscriptionViewModeClone = $('#user-subscription-view-mode').clone()
       .removeAttr('hidden')
@@ -543,7 +443,7 @@ function start () {
   }
 
   function renderUserSubscriptionRowEditMode (subscription, rowId, $row) {
-    trace('renderUserSubscriptionRowEditMode');
+    mainUtils.trace('renderUserSubscriptionRowEditMode');
 
     const $userSubscriptionEditModeClone = $('#user-subscription-edit-mode').clone()
       .removeAttr('hidden')
@@ -594,7 +494,7 @@ function start () {
   }
 
   function renderUserSubscriptionRow (mode, subscription, $row) {
-    trace('renderUserSubscriptionRow');
+    mainUtils.trace('renderUserSubscriptionRow');
 
     assertApp(_.isObject(subscription), {
       msg: 'Expected subscription to be an object, but was ' + typeof subscription, // eslint-disable-line prefer-template
@@ -628,8 +528,8 @@ function start () {
     );
 
     var rowId = // eslint-disable-line no-var
-      ($row == null) ? String(getUniqueId())
-        : getElementUniqueId($row[0], 'user-subscription-');
+      ($row == null) ? String(mainUtils.getUniqueId())
+        : mainUtils.getElementUniqueId($row[0], 'user-subscription-');
 
     rowIdUserSubscriptionMap[rowId] = subscription;
 
@@ -651,9 +551,9 @@ function start () {
   }
 
   const onEditUserSubscriptionClick = function (event) {
-    trace('edit user subscription button click');
+    mainUtils.trace('edit user subscription button click');
 
-    const rowId = getElementUniqueId(event.target, 'user-subscription-view-mode-edit-btn-');
+    const rowId = mainUtils.getElementUniqueId(event.target, 'user-subscription-view-mode-edit-btn-');
     const subscription = rowIdUserSubscriptionMap[rowId];
 
     renderUserSubscriptionRow(
@@ -664,9 +564,9 @@ function start () {
   };
 
   const onCancelUserSubscriptionClick = function (event) {
-    trace('user subscription cancel button click');
+    mainUtils.trace('user subscription cancel button click');
 
-    const rowId = getElementUniqueId(event.target, 'user-subscription-edit-mode-cancel-btn-');
+    const rowId = mainUtils.getElementUniqueId(event.target, 'user-subscription-edit-mode-cancel-btn-');
     const subscription = rowIdUserSubscriptionMap[rowId];
 
     renderUserSubscriptionRow(
@@ -677,11 +577,11 @@ function start () {
   };
 
   const onSaveUserSubscriptionClick = function (event) {
-    trace('user subscription save button click');
+    mainUtils.trace('user subscription save button click');
 
     const saveButton = event.target;
 
-    const rowId = getElementUniqueId(saveButton, 'user-subscription-edit-mode-save-btn-');
+    const rowId = mainUtils.getElementUniqueId(saveButton, 'user-subscription-edit-mode-save-btn-');
     const oldSubscription = rowIdUserSubscriptionMap[rowId];
 
     const airportFrom = $('#user-subscription-edit-mode-airport-from-' + rowId).val(); // eslint-disable-line prefer-template
@@ -706,7 +606,7 @@ function start () {
 
     const editSubscriptionParams = {
       v: '2.0',
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
       user_subscription_id: oldSubscription.id,
       fly_from: airportFromId,
       fly_to: airportToId,
@@ -714,11 +614,11 @@ function start () {
       date_to: dateTo,
     };
 
-    adminEditSubscription(editSubscriptionParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminEditSubscription(editSubscriptionParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
       if (result.status_code < 1000 || result.status_code >= 2000) {
-        displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       } else {
         const newSubscription = {
           id: oldSubscription.id,
@@ -743,17 +643,17 @@ function start () {
           $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
         );
 
-        displayUserMessage('Successfully edited user subscription!', 'success');
+        mainUtils.displayUserMessage('Successfully edited user subscription!', 'success');
       }
     });
   };
 
   const onRemoveUserSubscriptionClick = function (event) {
-    trace('user subscription remove button click');
+    mainUtils.trace('user subscription remove button click');
 
     const removeButton = event.target;
 
-    const rowId = getElementUniqueId(removeButton, 'user-subscription-edit-mode-remove-btn-');
+    const rowId = mainUtils.getElementUniqueId(removeButton, 'user-subscription-edit-mode-remove-btn-');
     const oldSubscription = rowIdUserSubscriptionMap[rowId];
 
     removeButton.disabled = true;
@@ -761,12 +661,12 @@ function start () {
     const unsubscribeParams = {
       v: '2.0',
       user_subscription_id: oldSubscription.id,
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
     };
 
-    adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === 2000) {
-        displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       } else if (result.status_code >= 1000 && result.status_code < 2000) {
         removeButton.disabled = false;
 
@@ -783,13 +683,13 @@ function start () {
         } else {
           hideUserSubscriptionsTable();
         }
-        displayUserMessage('Successfully removed user subscription!', 'success');
+        mainUtils.displayUserMessage('Successfully removed user subscription!', 'success');
       }
     });
   };
 
   const onUserSubscriptionsTabClick = function () {
-    trace('clicked users tab');
+    mainUtils.trace('clicked users tab');
 
     if (userSubscriptions.length > 0) {
       showUserSubscriptionsTable();
@@ -805,7 +705,7 @@ function start () {
   };
 
   const onGuestSubscriptionsTabClick = function () {
-    trace('clicked guest tab');
+    mainUtils.trace('clicked guest tab');
 
     if (guestSubscriptions.length > 0) {
       showGuestSubscriptionsTable();
@@ -825,20 +725,20 @@ function start () {
     const $guestSubscriptionsTab = $('#guest-subscriptions-tab');
     const $subscribeSubmitBtn = $('#subscribe-submit-btn');
 
-    getAPIKey({
+    api.getAPIKey({
       v: '2.0',
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code < 1000 || result.status_code >= 2000) {
         window.location.replace('/login');
       } else {
-        APIKey = result.api_key;
+        APIKeyRef.APIKey = result.api_key;
 
         const params = {
           v: '2.0',
-          api_key: APIKey,
+          api_key: APIKeyRef.APIKey,
         };
 
-        adminListSubscriptions(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+        adminAPI.adminListSubscriptions(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
           userSubscriptions = result.user_subscriptions;
           guestSubscriptions = result.guest_subscriptions;
 
@@ -848,7 +748,7 @@ function start () {
       }
     });
 
-    listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    api.listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       airports = result.airports;
 
       const toAirportName = function (airport) { // eslint-disable-line prefer-arrow-callback
