@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const moment = require('moment');
 
 const log = require('./log');
 const errors = require('./error-handling');
@@ -17,13 +18,22 @@ async function subscribeUser (
   // TODO validate dates.
   errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   errors.assertApp(Number.isInteger(userId), `got ${typeof userId} but expected integer`);
+  errors.assertPeer(
+    moment(dateFrom).format('YYYY-MM-DD') < moment(dateTo).format('YYYY-MM-DD'),
+    'date_from must be less than date_to',
+  );
 
   log.info(
     `Subscribing user ${userId} with parameters - `,
     { airportFromId, airportToId, dateFrom, dateTo },
   );
 
-  const globalSub = await getGlobalSubscription(dbClient, airportFromId, airportToId);
+  const globalSub = await getGlobalSubscription(
+    dbClient,
+    airportFromId,
+    airportToId,
+  );
+
   let globalSubId;
 
   if (globalSub == null) {
@@ -102,6 +112,10 @@ async function updateUserSubscription (
   errors.assertApp(
     Number.isInteger(userSubscriptionId),
     `got ${typeof userSubscriptionId} but expected integer`,
+  );
+  errors.assertPeer(
+    moment(dateFrom).format('YYYY-MM-DD') < moment(dateTo).format('YYYY-MM-DD'),
+    'date_from must be less than date_to',
   );
 
   const globalSubscriptionId = await getGlobalSubscription(
@@ -284,6 +298,7 @@ async function subscribeGlobally (dbClient, airportFromId, airportToId) {
     `Cannot subscribe globally to airports with ids ${airportFromId}, ${airportToId}. Subscription already exists.`,
   );
 
+  // TODO raises error when airport doesn't exist
   const sub = await dbClient.insert(
     'subscriptions',
     {
