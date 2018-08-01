@@ -1,8 +1,8 @@
-const db = require('../modules/db');
-const log = require('../modules/log');
-const { assertApp } = require('../modules/error-handling');
-const { execute: callAPI } = require('../methods/resolve-method');
+const { Client } = require('pg');
 const mailer = require('nodemailer');
+const log = require('../modules/log');
+const db = require('../modules/db');
+const { assertApp } = require('../modules/error-handling');
 
 const [FREEFALL_MAIL, mailTransporter] = (function init () {
   // TODO get another environment variable for service
@@ -23,28 +23,6 @@ const [FREEFALL_MAIL, mailTransporter] = (function init () {
     }),
   ];
 })();
-
-async function sendNotifications () {
-  const notifications = await findNotificationsToSend();
-  for (const email of Object.keys(notifications)) {
-    try {
-      await sendEmail(email, {});
-      log.info('sent notification to', email);
-    } catch (e) {
-      log.warn('failed to send notification to', email);
-      continue;
-    }
-    try {
-      await db.updateEmailSub(email);
-    } catch (e) {
-      // should this crash ?
-      assertApp(
-        false,
-        `Failed to update email sub for email ${email} after sending notification. Reason: ${e}`,
-      );
-    }
-  }
-}
 
 async function sendEmail (destinationEmail, {
   subject = 'Freefall subscriptions',
@@ -69,81 +47,61 @@ async function sendEmail (destinationEmail, {
   });
 }
 
-async function selectEmailsToNotify (db) {
-  return db.all(`
-      SELECT *
-      FROM email_subscriptions
-      WHERE fetch_id_of_last_send IS NULL OR
-       fetch_id_of_last_send NOT IN 
-        (
-        SELECT id 
-        FROM fetches
-        WHERE timestamp=(select MAX(timestamp) from fetches)
-        )
+async function notifyEmails (client) {
+  const { rows: emailRows } = await client.executeQuery(`
+      SELECT users.id, users.email
+      FROM users_subscriptions
+      JOIN users ON users_subscriptions.user_id = users.id
+      JOIN subscriptions ON users_subscriptions.subscription_id = subscriptions.id
+      JOIN subscriptions_fetches ON  subscriptions.id = subscriptions_fetches.subscription_id
+      WHERE 
+        fetch_id_of_last_send IS NULL OR
+        fetch_id_of_last_send < subscriptions_fetches.fetch_id
       ;
   `);
-}
 
-async function newRoutesForEmailSub (emailSub) {
-  // TODO rename or refactor
-  const rows = await db.selectWhere(
-    'subscriptions',
-    ['airport_from_id', 'airport_to_id'],
-    { 'id': emailSub.subscription_id },
+  const { rows: fetchIdRows } = await client.executeQuery(
+    `
+      SELECT id
+      FROM fetches
+      ORDER BY fetch_time
+      LIMIT 1
+    `
   );
+  assertApp(fetchIdRows.length === 1);
+  const currentFetchId = fetchIdRows[0].id;
+  log.info('Most recent fetch id is: ', currentFetchId);
 
-  // TODO ask Ivan if database constraints should be double checked like this
-  // alternative results in removing rows[0]
-  assertApp(rows.length === 1,
-    `email subscription with ID=${emailSub.id} has more than one subscription associated with it`,
-  );
-
-  const params = {
-    v: '1.0',
-    fly_from: rows[0].airport_from_id.toString(),
-    fly_to: rows[0].airport_to_id.toString(),
-    date_from: emailSub.date_from,
-    date_to: emailSub.date_to,
-  };
-
-  log.info('Searching flights for email', emailSub.email, 'with params: \n\t', params);
-  return callAPI(
-    'search',
-    params,
-    db,
-  );
-}
-
-async function findNotificationsToSend () {
-  // TODO rename to emailRecords
-  const emails = await selectEmailsToNotify(db);
-  const notifications = {};
-
-  log.info('Emails that are awaiting notification are: \n\t', emails.map(e => e.email));
-
-  for (const email of emails) {
+  for (const {id, email} of emailRows) {
+    await client.executeQuery('BEGIN');
     try {
-      const routes = await newRoutesForEmailSub(email);
-      if (+routes.status_code === 1000) {
-        log.info(email.email, 'will be notified');
-        notifications[email.email] = routes;
-      } else {
-        log.info(email.email, 'will NOT be notified');
-      }
-    } catch (e) {
-      log.critical(
-        'Tried to find if email', email.email,
-        'needs to be notified but an error occurred:', e,
+      await sendEmail(email, {});
+      log.info('Updating fetch_id_of_last_send of subscriptions of user with email', email);
+      await client.executeQuery(
+        `
+          UPDATE users_subscriptions
+          SET fetch_id_of_last_send = $1
+          WHERE users_subscriptions.user_id = $2
+        `,
+        [currentFetchId, id],
       );
+      await client.executeQuery('COMMIT');
+    } catch (e) {
+      log.critical(`Couldn't send notification to email ${email}. Reason:`, e);
+      await client.executeQuery('ROLLBACK');
     }
   }
-
-  return notifications;
 }
 
-async function start () {
-  await db.dbConnect();
-  return sendNotifications();
+async function main () {
+  const client = new Client();
+  await client.connect();
+  try {
+    await notifyEmails(db.wrapPgClient(client));
+  } finally {
+    client.end();
+  }
 }
 
-start();
+main()
+  .catch(reason => log.critical('Failed to notify emails. Reason:', reason));
