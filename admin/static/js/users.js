@@ -1,138 +1,17 @@
 function start () {
   const mainUtils = main();
-  const trace = mainUtils.trace;
   const assertApp = mainUtils.assertApp;
   const getUniqueId = mainUtils.getUniqueId;
-  const getAPIKey = mainUtils.getAPIKey;
-  const getElementUniqueId = mainUtils.getElementUniqueId;
-  const sendRequest = mainUtils.sendRequest;
-  const getValidatorMsg = mainUtils.getValidatorMsg;
-  const SERVER_URL = mainUtils.SERVER_URL;
-  const assertPeer = mainUtils.assertPeer;
-  const PeerError = mainUtils.PeerError;
-  const displayUserMessage = mainUtils.displayUserMessage;
-  const validateErrorRes = validators.getValidateErrorRes();
-  const validateAdminListUsersReq = adminValidators.getValidateAdminListUsersReq();
-  const validateAdminListUsersRes = adminValidators.getValidateAdminListUsersRes();
-  const validateAdminRemoveUserReq = adminValidators.getValidateAdminRemoveUserReq();
-  const validateAdminRemoveUserRes = adminValidators.getValidateAdminRemoveUserRes();
-  const validateAdminEditUserReq = adminValidators.getValidateAdminEditUserReq();
-  const validateAdminEditUserRes = adminValidators.getValidateAdminEditUserRes();
+
+  const adminAPI = getAdminAPIMethods(mainUtils);
+  const api = getAPIMethods(mainUtils);
 
   var users = []; // eslint-disable-line no-var
   var rowIdUserMap = {}; // eslint-disable-line no-var
   var APIKey; // eslint-disable-line no-var
 
-  function adminListUsers (params, protocolName, callback) {
-    trace('adminListUsers');
-
-    assertApp(validateAdminListUsersReq(params), {
-      msg: 'Params do not adhere to adminListUsersRequestSchema: ' + getValidatorMsg(validateAdminListUsersReq), // eslint-disable-line prefer-template
-    });
-
-    sendRequest({
-      url: SERVER_URL,
-      data: {
-        method: 'admin_list_users',
-        params: params,
-      },
-      protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
-      if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
-        trace('Error in adminListUsers:' + JSON.stringify(error)); // eslint-disable-line prefer-template
-        throw new PeerError({
-          msg: error.message,
-        });
-      }
-
-      assertPeer(validateAdminListUsersRes(result), {
-        msg: 'Params do not adhere to adminListUsersResponseSchema: ' + getValidatorMsg(validateAdminListUsersRes), // eslint-disable-line prefer-template
-      });
-
-      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
-        callback(result);
-      }, 0);
-    });
-  }
-
-  function adminRemoveUser (params, protocolName, callback) {
-    trace('adminRemoveUser');
-
-    assertApp(validateAdminRemoveUserReq(params), {
-      msg: 'Params do not adhere to adminRemoveUserRequestSchema: ' + getValidatorMsg(validateAdminRemoveUserReq), // eslint-disable-line prefer-template
-    });
-
-    sendRequest({
-      url: SERVER_URL,
-      data: {
-        method: 'admin_remove_user',
-        params: params,
-      },
-      protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
-      if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
-        trace('Error in adminRemoveUser:' + JSON.stringify(error)); // eslint-disable-line prefer-template
-        throw new PeerError({
-          msg: error.message,
-        });
-      }
-
-      assertPeer(validateAdminRemoveUserRes(result), {
-        msg: 'Params do not adhere to adminRemoveUserResponseSchema: ' + getValidatorMsg(validateAdminRemoveUserRes), // eslint-disable-line prefer-template
-      });
-
-      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
-        callback(result);
-      }, 0);
-    });
-  }
-
-  function adminEditUser (params, protocolName, callback) {
-    trace('adminEditUser');
-
-    assertApp(validateAdminEditUserReq(params), {
-      msg: 'Params do not adhere to adminEditUserRequestSchema: ' + getValidatorMsg(validateAdminEditUserReq), // eslint-disable-line prefer-template
-    });
-
-    sendRequest({
-      url: SERVER_URL,
-      data: {
-        method: 'admin_edit_user',
-        params: params,
-      },
-      protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
-      if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
-        trace('Error in adminEditUser:' + JSON.stringify(error)); // eslint-disable-line prefer-template
-        throw new PeerError({
-          msg: error.message,
-        });
-      }
-
-      assertPeer(validateAdminEditUserRes(result), {
-        msg: 'Params do not adhere to adminEditUserResponseSchema: ' + getValidatorMsg(validateAdminEditUserRes), // eslint-disable-line prefer-template
-      });
-
-      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
-        callback(result);
-      }, 0);
-    });
-  }
-
   function renderUsers ($usersTable) {
-    trace('renderUsers');
+    mainUtils.trace('renderUsers');
 
     if (users.length > 0) {
       showUsersTable();
@@ -161,7 +40,7 @@ function start () {
   }
 
   function renderUserRow (mode, user, $row) {
-    trace('renderUserRow');
+    mainUtils.trace('renderUserRow');
 
     assertApp(_.isObject(user), {
       msg: 'Expected user to be an object, but was ' + typeof user, // eslint-disable-line prefer-template
@@ -187,7 +66,7 @@ function start () {
     if ($row == null) {
       rowId = String(getUniqueId());
     } else {
-      rowId = getElementUniqueId($row[0], 'user-');
+      rowId = mainUtils.getElementUniqueId($row[0], 'user-');
     }
 
     rowIdUserMap[rowId] = user;
@@ -205,7 +84,7 @@ function start () {
   }
 
   function renderUserRowViewMode (user, rowId, $row) {
-    trace('renderUserRowViewMode');
+    mainUtils.trace('renderUserRowViewMode');
 
     const $userViewModeClone = $('#user-view-mode').clone()
       .removeAttr('hidden')
@@ -238,7 +117,7 @@ function start () {
   }
 
   function renderUserRowEditMode (user, rowId, $row) {
-    trace('renderUserRowEditMode');
+    mainUtils.trace('renderUserRowEditMode');
 
     const $userEditModeClone = $('#user-edit-mode').clone()
       .removeAttr('hidden')
@@ -285,10 +164,10 @@ function start () {
   }
 
   const onRemoveUserClick = function (event) {
-    trace('clicked on remove user button');
+    mainUtils.trace('clicked on remove user button');
 
     const removeButton = event.target;
-    const rowId = getElementUniqueId(removeButton, 'user-edit-mode-remove-btn-');
+    const rowId = mainUtils.getElementUniqueId(removeButton, 'user-edit-mode-remove-btn-');
     const oldUser = rowIdUserMap[rowId];
 
     removeButton.disabled = true;
@@ -299,9 +178,9 @@ function start () {
       api_key: APIKey,
     };
 
-    adminRemoveUser(removeUserParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminRemoveUser(removeUserParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === 2000) {
-        displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        mainUtils.displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       } else if (result.status_code >= 1000 && result.status_code < 2000) {
         removeButton.disabled = false;
 
@@ -318,15 +197,15 @@ function start () {
         } else {
           hideUsersTable();
         }
-        displayUserMessage('Successfully removed user!', 'success');
+        mainUtils.displayUserMessage('Successfully removed user!', 'success');
       }
     });
   };
 
   const onEditUserClick = function (event) {
-    trace('clicked on edit user button');
+    mainUtils.trace('clicked on edit user button');
 
-    const rowId = getElementUniqueId(event.target, 'user-view-mode-edit-btn-');
+    const rowId = mainUtils.getElementUniqueId(event.target, 'user-view-mode-edit-btn-');
     const user = rowIdUserMap[rowId];
 
     renderUserRow(
@@ -337,9 +216,9 @@ function start () {
   };
 
   const onCancelEditUserClick = function (event) {
-    trace('clicked on cancel edit user button');
+    mainUtils.trace('clicked on cancel edit user button');
 
-    const rowId = getElementUniqueId(event.target, 'user-edit-mode-cancel-btn-');
+    const rowId = mainUtils.getElementUniqueId(event.target, 'user-edit-mode-cancel-btn-');
     const user = rowIdUserMap[rowId];
 
     renderUserRow(
@@ -350,11 +229,11 @@ function start () {
   };
 
   const onSaveUserClick = function (event) {
-    trace('clicked on save user button');
+    mainUtils.trace('clicked on save user button');
 
     const saveButton = event.target;
 
-    const rowId = getElementUniqueId(event.target, 'user-edit-mode-save-btn-');
+    const rowId = mainUtils.getElementUniqueId(event.target, 'user-edit-mode-save-btn-');
     const user = rowIdUserMap[rowId];
 
     const newEmail = $('#user-edit-mode-email-' + rowId).val().trim(); // eslint-disable-line prefer-template
@@ -397,11 +276,11 @@ function start () {
     //   console.log(result);
     // }))
 
-    adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
       if (result.status_code === 2000) {
-        displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        mainUtils.displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       } else if (result.status_code >= 1000 && result.status_code < 2000) {
         const newUser = {
           id: user.id,
@@ -413,13 +292,13 @@ function start () {
           newUser,
           $('#user-' + rowId) // eslint-disable-line prefer-template
         );
-        displayUserMessage('Successfully updated user!', 'success');
+        mainUtils.displayUserMessage('Successfully updated user!', 'success');
       }
     });
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    getAPIKey({
+    api.getAPIKey({
       v: '2.0',
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code < 1000 || result.status_code >= 2000) {
@@ -432,7 +311,7 @@ function start () {
           api_key: APIKey,
         };
 
-        adminListUsers(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+        adminAPI.adminListUsers(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
           users = result.users;
 
           renderUsers($('#users-table'));
