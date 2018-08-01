@@ -4,8 +4,15 @@
   "title": "Body of the list_subscriptions API method sent from the client.",
   "type": "object",
   "properties": {
-    "email": {
+    "v": {
+      "type": "string"
+    },
+    "api_key": {
       "type": "string"
     }
-  }
+  },
+  "required": [
+    "v",
+    "api_key"
+  ]
 }
