@@ -142,7 +142,6 @@ function start () {
 
   const onSaveUserClick = function (event) {
     mainUtils.trace('onSaveUserClick');
-    mainUtils.displayUserMessage('Feature not implemented yet.', 'error');
 
     const saveButton = event.target;
 
@@ -152,7 +151,7 @@ function start () {
     const params = {
       v: '2.0',
       api_key: APIKeyRef.APIKey,
-      user_id: user.id,
+      user_id: userGlobal.id,
     };
 
     if (newEmail.length > 0) {
@@ -170,7 +169,12 @@ function start () {
         mainUtils.displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       } else if (result.status_code >= 1000 && result.status_code < 2000) {
         saveButton.disabled = false;
-        renderUserRow('view', user);
+
+        if (newEmail.length > 0) {
+          userGlobal.email = newEmail;
+        }
+
+        renderUserRow('view', userGlobal);
         mainUtils.displayUserMessage('Successfully updated user!', 'success');
       }
     });
@@ -179,7 +183,7 @@ function start () {
   const onCancelEditUserClick = function (event) {
     mainUtils.trace('onCancelEditUserClick');
 
-    renderUserRow('view', user);
+    renderUserRow('view', userGlobal);
   };
 
   const onRemoveUserClick = function (event) {
@@ -190,7 +194,7 @@ function start () {
 
     const removeUserParams = {
       v: '2.0',
-      user_id: user.id,
+      user_id: userGlobal.id,
       api_key: APIKeyRef.APIKey,
     };
 
@@ -206,7 +210,7 @@ function start () {
   const onEditUserClick = function (event) {
     mainUtils.trace('onEditUserClick');
 
-    renderUserRow('edit', user);
+    renderUserRow('edit', userGlobal);
   };
 
   function applyDatePicker () {
@@ -560,7 +564,7 @@ function start () {
     const alterUserCreditsParams = {
       v: '2.0',
       api_key: APIKeyRef.APIKey,
-      user_id: user.id,
+      user_id: userGlobal.id,
       credits_difference: Number(userCreditsChange),
     };
 
@@ -582,8 +586,8 @@ function start () {
           msg: genericMessage,
         });
       } else {
-        user.credits += Number(userCreditsChange);
-        renderUserRow('view', user);
+        userGlobal.credits += Number(userCreditsChange);
+        renderUserRow('view', userGlobal);
         mainUtils.displayUserMessage('Successfully altered user credits!', 'success');
       }
     });
@@ -600,7 +604,7 @@ function start () {
 
         const params = {
           v: '2.0',
-          user_id: user.id,
+          user_id: userGlobal.id,
           api_key: APIKeyRef.APIKey,
         };
 
@@ -618,7 +622,7 @@ function start () {
       }
     });
 
-    renderUserRow('view', user);
+    renderUserRow('view', userGlobal);
 
     $('#user-view-mode-edit-btn').click(onEditUserClick);
     $('#user-edit-mode-save-btn').click(onSaveUserClick);

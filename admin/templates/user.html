@@ -135,10 +135,10 @@
   <script src="../js/admin-api-methods.js"></script>
   <script src="../js/main.js"></script>
   <script type="text/javascript">
-    var user = {
-      id: '{{user_credentials.id}}',
-      email: '{{user_credentials.email}}',
-      credits: Number('{{user_credentials.credits}}'),
+    var userGlobal = {
+      id: _.unescape('{{{escape user_credentials.id}}}'),
+      email: _.unescape('{{{escape user_credentials.email}}}'),
+      credits: Number(_.unescape('{{{escape user_credentials.credits}}}')),
     };
   </script>
   <script type="text/javascript" src="../js/user.js"></script>

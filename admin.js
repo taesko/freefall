@@ -7,7 +7,7 @@ const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
 const session = require('koa-session');
-const { each } = require('lodash');
+const { each, escape } = require('lodash');
 const log = require('./modules/log');
 const auth = require('./modules/auth');
 const db = require('./modules/db');
@@ -79,6 +79,7 @@ app.use(views(path.join(__dirname, 'admin', 'templates'), {
           return '';
         }
       },
+      escape,
     },
     partials: {
       menu: 'menu',
