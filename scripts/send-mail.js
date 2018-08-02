@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 const { Client } = require('pg');
 const mailer = require('nodemailer');
 const log = require('../modules/log');
@@ -49,11 +50,15 @@ async function sendEmail (destinationEmail, {
 
 async function notifyEmails (client) {
   const { rows: emailRows } = await client.executeQuery(`
-      SELECT users.id, users.email
+      SELECT DISTINCT 
+        users.id, users.email,
+        airports_from.name airport_from, airports_to.name airport_to
       FROM users_subscriptions
       JOIN users ON users_subscriptions.user_id = users.id
       JOIN subscriptions ON users_subscriptions.subscription_id = subscriptions.id
       JOIN subscriptions_fetches ON  subscriptions.id = subscriptions_fetches.subscription_id
+      JOIN airports airports_from ON subscriptions.airport_from_id = airports_from.id
+      JOIN airports airports_to ON subscriptions.airport_to_id = airports_to.id
       WHERE 
         fetch_id_of_last_send IS NULL OR
         fetch_id_of_last_send < subscriptions_fetches.fetch_id
@@ -66,16 +71,28 @@ async function notifyEmails (client) {
       FROM fetches
       ORDER BY fetch_time
       LIMIT 1
-    `
+    `,
   );
   assertApp(fetchIdRows.length === 1);
   const currentFetchId = fetchIdRows[0].id;
   log.info('Most recent fetch id is: ', currentFetchId);
 
-  for (const {id, email} of emailRows) {
+  const emailsToSend = {};
+
+  for (const { id, email, airport_from, airport_to } of emailRows) {
+    emailsToSend[id] = emailsToSend[id] || [];
+    emailsToSend[id].push({ id, email, airport_from, airport_to });
+  }
+
+  log.info('Emails to send are: ', emailsToSend);
+
+  for (const [id, subscriptions] of Object.entries(emailsToSend)) {
+    const email = subscriptions[0].email;
+    const content = generateMailContent(subscriptions);
+
     await client.executeQuery('BEGIN');
     try {
-      await sendEmail(email, {});
+      await sendEmail(email, { text: content });
       log.info('Updating fetch_id_of_last_send of subscriptions of user with email', email);
       await client.executeQuery(
         `
@@ -91,6 +108,22 @@ async function notifyEmails (client) {
       await client.executeQuery('ROLLBACK');
     }
   }
+}
+
+function generateMailContent (subscriptions) {
+  assertApp(Array.isArray(subscriptions), `got ${typeof subscriptions}`);
+
+  const mainContent = subscriptions
+    .map(({ airport_from: from, airport_to: to }) => {
+      assertApp(typeof from === 'string', `got ${typeof from}`);
+      assertApp(typeof to === 'string', `got ${typeof to}`);
+
+      return `${from} -----> ${to}`;
+    })
+    .join('\n');
+
+  return `We have new information about the following flights:
+  ${mainContent}`;
 }
 
 async function main () {
