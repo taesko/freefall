@@ -87,24 +87,30 @@ async function editUser (dbClient, userId, { email, password, apiKey }) {
   );
 
   const setHash = utils.cleanHash({ email, password, api_key: apiKey });
+  const user = await fetchUser(dbClient, { userId });
+
+  errors.assertPeer(
+    user != null,
+    'tried to edit user that did not exist',
+    errors.errorCodes.userDoesNotExist,
+  );
 
   log.info(`Updating user with id=${userId}. New columns are going to be: `, setHash);
-  if (email) {
+
+  if (email && email !== user.email) {
     errors.assertPeer(
       !await anyUserExists(dbClient, { email }),
       `Cannot update email of ${userId} to ${email} - email is already taken`,
       errors.errorCodes.emailTaken,
     );
   }
-  if (apiKey) {
+  if (apiKey && apiKey !== user.api_key) {
     errors.assertPeer(
       !await anyUserExists(dbClient, { apiKey }),
       `Cannot update api key of user ${userId} to ${apiKey} - API key is taken`,
       errors.errorCodes.apiKeyTaken,
     );
   }
-
-  const user = await fetchUser(dbClient, { userId });
 
   errors.assertPeer(
     user,
@@ -217,10 +223,23 @@ async function inactiveUserExists (
 }
 
 async function anyUserExists (dbClient, { userId, email, password, apiKey }) {
-  const active = await userExists(dbClient, { userId, email, password, apiKey });
+  const active = await userExists(
+    dbClient,
+    {
+      userId,
+      email,
+      password,
+      apiKey,
+    },
+  );
   const inactive = await inactiveUserExists(
     dbClient,
-    { userId, email, password, apiKey },
+    {
+      userId,
+      email,
+      password,
+      apiKey,
+    },
   );
 
   return active || inactive;

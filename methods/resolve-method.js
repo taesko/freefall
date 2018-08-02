@@ -691,7 +691,7 @@ async function adminEditUser (params, dbClient) {
   let password;
 
   if (params.password) {
-    password = users.hashPassword(dbClient, params.password);
+    password = users.hashPassword(params.password);
   }
 
   try {
@@ -755,7 +755,11 @@ async function adminAlterUserCredits (params, dbClient) {
 
   if (params.credits_difference > 0) {
     try {
-      accountTransfer = await accounting.depositCredits(dbClient, userId, amount);
+      accountTransfer = await accounting.depositCredits(
+        dbClient,
+        userId,
+        amount
+      );
     } catch (e) {
       if (e.code === errorCodes.userDoesNotExist) {
         return { status_code: '2102' };
