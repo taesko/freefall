@@ -157,8 +157,8 @@ async function search (params, dbClient) {
   if (!subscribed) {
     await subscriptions.subscribeGlobally(
       dbClient,
-      params.fly_from,
-      params.fly_to,
+      +params.fly_from,
+      +params.fly_to,
     );
 
     result.status_code = '3000';
