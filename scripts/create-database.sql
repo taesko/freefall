@@ -139,12 +139,6 @@ CREATE TABLE subscriptions_fetches_account_transfers (
   FOREIGN KEY (subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE account_transfers_by_admin (
-  id serial PRIMARY KEY,
-  account_transfer_id integer NOT NULL UNIQUE REFERENCES account_transfers,
-  admin_user_id integer NOT NULL REFERENCES users CHECK (is_admin(admin_user_id))
-);
-
 CREATE OR REPLACE FUNCTION is_admin (user_id integer)
   RETURNS boolean AS
 $$
@@ -166,3 +160,9 @@ $$
   END;
 $$
 LANGUAGE plpgsql;
+
+CREATE TABLE account_transfers_by_admin (
+  id serial PRIMARY KEY,
+  account_transfer_id integer NOT NULL UNIQUE REFERENCES account_transfers,
+  admin_user_id integer NOT NULL REFERENCES users CHECK (is_admin(admin_user_id))
+);
