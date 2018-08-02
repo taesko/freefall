@@ -157,8 +157,8 @@ async function search (params, dbClient) {
   if (!subscribed) {
     await subscriptions.subscribeGlobally(
       dbClient,
-      params.fly_from,
-      params.fly_to,
+      +params.fly_from,
+      +params.fly_to,
     );
 
     result.status_code = '3000';
@@ -733,14 +733,21 @@ async function adminAlterUserCredits (params, dbClient) {
     `Expected user_id to be an integer, represented as string, but was ${typeof Number(params.user_id)}`,
   );
 
+  const adminId = await users.fetchUser(dbClient, { apiKey: params.api_key })
+    .then(user => { return user == null ? null : user.id; });
+
   const userId = Number(params.user_id);
   const amount = Math.abs(params.credits_difference);
 
+  let accountTransfer;
+
   if (params.credits_difference > 0) {
-    await accounting.depositCredits(dbClient, userId, amount);
+    accountTransfer = await accounting.depositCredits(dbClient, userId, amount);
   } else {
-    await accounting.taxUser(dbClient, userId, amount);
+    accountTransfer = await accounting.taxUser(dbClient, userId, amount);
   }
+
+  await accounting.registerTransferByAdmin(dbClient, accountTransfer.id, adminId);
 
   return {
     status_code: '1000',

@@ -170,18 +170,10 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   const defaultContext = await getAdminContext(ctx, 'get', '/transfers');
   const rows = await dbClient.selectAccountTransfersUsers();
   const accountTransfers = rows.map(row => {
-    const expectRowProps = [
+    const expectRequiredRowProps = [
       {
         name: 'account_transfer_id',
         test: Number.isInteger,
-      },
-      {
-        name: 'user_id',
-        test: Number.isInteger,
-      },
-      {
-        name: 'email',
-        test: (value) => typeof value === 'string',
       },
       {
         name: 'transfer_amount',
@@ -191,19 +183,122 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
         name: 'transferred_at',
         test: (value) => value instanceof Date,
       },
+      {
+        name: 'account_owner_id',
+        test: Number.isInteger,
+      },
+      {
+        name: 'account_owner_email',
+        test: (value) => typeof value === 'string',
+      },
     ];
 
-    each(expectRowProps, (prop) => {
+    each(expectRequiredRowProps, (prop) => {
       assertApp(prop.test(row[prop.name]), `Property "${prop.name}" does not pass test for expected type.`);
     });
 
-    row.user = {
-      email: row.email,
-      id: row.user_id,
+    const transferByAdminGroupCheck = {
+      name: 'transfer_by_admin',
+      check: [
+        {
+          name: 'user_transferrer_id',
+          test: Number.isInteger,
+        },
+        {
+          name: 'user_transferrer_email',
+          test: (value) => typeof value === 'string',
+        },
+      ],
     };
-    row.transferred_at = row.transferred_at.toISOString();
+    const newUserSubscriptionGroupCheck = {
+      name: 'new_user_subscription',
+      check: [
+        {
+          name: 'user_subscr_airport_from_name',
+          test: (value) => typeof value === 'string',
+        },
+        {
+          name: 'user_subscr_airport_to_name',
+          test: (value) => typeof value === 'string',
+        },
+        {
+          name: 'user_subscr_date_from',
+          test: (value) => value instanceof Date,
+        },
+        {
+          name: 'user_subscr_date_to',
+          test: (value) => value instanceof Date,
+        },
+      ],
+    };
+    const newFetchGroupCheck = {
+      name: 'new_fetch',
+      check: [
+        {
+          name: 'subscr_airport_from_name',
+          test: (value) => typeof value === 'string',
+        },
+        {
+          name: 'subscr_airport_to_name',
+          test: (value) => typeof value === 'string',
+        },
+        {
+          name: 'fetch_time',
+          test: (value) => value instanceof Date,
+        },
+      ],
+    };
+    const groupChecks = [
+      transferByAdminGroupCheck,
+      newUserSubscriptionGroupCheck,
+      newFetchGroupCheck,
+    ];
+    // in null groups all props must be null
+    // in a not null group all props must pass their test
+    // there must be exactly one not null group
+    let isFoundNotNullGroup = false;
 
-    return row;
+    for (const groupCheck of groupChecks) {
+      const check = groupCheck.check;
+
+      if (isFoundNotNullGroup || row[check[0].name] == null) {
+        each(check, (prop) => {
+          assertApp(row[prop.name] == null, `Property "${prop.name}" does not pass test for expected type = null.`);
+        });
+        continue;
+      }
+
+      isFoundNotNullGroup = true;
+
+      each(check, (prop) => {
+        assertApp(prop.test(row[prop.name]), `Property "${prop.name}" does not pass test for expected type. (isFoundNotNullGroup = true)`);
+      });
+    }
+
+    assertApp(isFoundNotNullGroup, 'Reason for transaction not found');
+
+    const accountTransfer = {
+      account_transfer_id: row.account_transfer_id,
+      user: {
+        email: row.account_owner_email,
+        id: row.account_owner_id,
+      },
+      transfer_amount: row.transfer_amount,
+      transferred_at: row.transferred_at.toISOString(),
+      user_transferrer_id: row.user_transferrer_id,
+      user_transferrer_email: row.user_transferrer_email,
+      user_subscr_airport_from_name: row.user_subscr_airport_from_name,
+      user_subscr_airport_to_name: row.user_subscr_airport_to_name,
+      user_subscr_date_from: row.user_subscr_date_from && row.user_subscr_date_from.toISOString(),
+      user_subscr_date_to: row.user_subscr_date_to && row.user_subscr_date_to.toISOString(),
+      subscr_airport_from_name: row.subscr_airport_from_name,
+      subscr_airport_to_name: row.subscr_airport_to_name,
+      fetch_time: row.fetch_time && row.fetch_time.toISOString(),
+    };
+
+    log.debug(accountTransfer);
+
+    return accountTransfer;
   });
 
   return ctx.render('account-transfers.html', {
