@@ -12,7 +12,8 @@ async function depositCredits (dbClient, userId, amount) {
   assertApp(amount > 0, 'tried to deposit a non-positive amount of credits.');
   assertPeer(
     await users.userExists(dbClient, { userId }),
-    `user with id ${userId}`
+    `user with id ${userId} does not exist`,
+    errorCodes.userDoesNotExist,
   );
 
   log.info(`Depositing ${amount} credits into user ${userId}.`);
