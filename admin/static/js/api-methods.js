@@ -184,8 +184,8 @@ function getAPIMethods (mainUtils) {
         msg: 'Params do not adhere to subscriptionResponseSchema: ' + mainUtils.getValidatorMsg(validateSubscribeRes), // eslint-disable-line prefer-template
       });
       assertUser(result.status_code >= 1000 && result.status_code < 2000, {
-        userMessage: 'Error.', // eslint-disable-line prefer-template
-        msg: 'Tried to subscribe but subscription already existed. Sent params: ' + params + '. Got result: ' + result + '', // eslint-disable-line prefer-template
+        userMessage: 'Subscribe failed.', // eslint-disable-line prefer-template
+        msg: 'Subscribe failed with status code: ' + result.status_code, // eslint-disable-line prefer-template
       });
 
       setTimeout(function () { // eslint-disable-line prefer-arrow-callback

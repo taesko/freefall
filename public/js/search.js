@@ -311,7 +311,7 @@ function start () {
 
       api.search(formParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
         // use lexicographical/ordinal string comparison
-        if (result.status_code >= '1000' && result.status_code < '2000') {
+        if (result.status_code === '1000') {
           displaySearchResult(
             result,
             $allRoutesList,
@@ -320,8 +320,10 @@ function start () {
               $flightItemTemplate: $flightItemTemplate,
             }
           );
-        } else if (result.status_code === '2000' || result.status_code === '3000') {
+        } else if (result.status_code === '1001' || result.status_code === '1002') {
           displayUserMessage('There is no information about this flight at the moment. Please come back in 15 minutes.', 'info');
+        } else {
+          displayUserMessage('Search failed.', 'error');
         }
 
         $submitBtn.prop('disabled', false);
