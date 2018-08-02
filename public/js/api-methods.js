@@ -183,8 +183,15 @@ function getAPIMethods (mainUtils) {
       assertPeer(validateSubscribeRes(result), {
         msg: 'Params do not adhere to subscriptionResponseSchema: ' + mainUtils.getValidatorMsg(validateSubscribeRes), // eslint-disable-line prefer-template
       });
+      const messages = {
+        '2000': 'Already subscribed.',
+        '2001': 'You do not have enough credits',
+        '2100': 'The entered dates and/or airports are not correct.',
+        '2200': 'Your API key is incorrect, please contact tech support.',
+      };
+      const userMessage = messages[result.status_code] || 'Error.';
       assertUser(result.status_code >= 1000 && result.status_code < 2000, {
-        userMessage: 'Error.', // eslint-disable-line prefer-template
+        userMessage,
         msg: 'Tried to subscribe but subscription already existed. Sent params: ' + params + '. Got result: ' + result + '', // eslint-disable-line prefer-template
       });
 
