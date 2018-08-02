@@ -21,6 +21,7 @@ async function subscribeUser (
   errors.assertPeer(
     moment(dateFrom).format('YYYY-MM-DD') < moment(dateTo).format('YYYY-MM-DD'),
     'date_from must be less than date_to',
+    'SUBSCRIBE_USER_BAD_DATE',
   );
 
   log.info(

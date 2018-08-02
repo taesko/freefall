@@ -5,16 +5,13 @@
   "type": "object",
   "properties": {
     "subscription_id": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "status_code": {
-      "type": "string",
-      "enum": [
-        "1000",
-        "2000",
-        "2001",
-        "2999"
-      ]
+      "type": "string"
     }
   }
 }

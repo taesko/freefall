@@ -268,10 +268,15 @@ async function search (params, dbClient) {
 }
 
 async function subscribe (params, dbClient) {
-  assertPeer(
-    Number.isInteger(+params.fly_from) && Number.isInteger(+params.fly_to),
-    'subscribe params fly_from and fly_to must be an integer wrapped in a string',
-  );
+  if (
+    !(Number.isInteger(+params.fly_from) && Number.isInteger(+params.fly_to))
+  ) {
+    return {
+      status_code: '2100',
+      subscription_id: null,
+    };
+  }
+
   const flyFrom = +params.fly_from;
   const flyTo = +params.fly_to;
   const dateFrom = params.date_from;
@@ -281,7 +286,12 @@ async function subscribe (params, dbClient) {
   const userId = await users.fetchUser(dbClient, { apiKey: params.api_key })
     .then(user => { return user == null ? null : user.id; });
 
-  assertPeer(userId != null, 'invalid api key');
+  if (userId == null) {
+    return {
+      status_code: '2200',
+      subscriptionId: null,
+    };
+  }
 
   const subscribeAndTax = async (
     userId,
@@ -321,11 +331,14 @@ async function subscribe (params, dbClient) {
       dateTo,
     });
     statusCode = '1000';
+    subscriptionId = `${subscriptionId}`;
   } catch (e) {
     if (e instanceof PeerError) {
       log.info('Peer error occurred while subscribing user.');
       statusCode = statusCodeHash[e.code];
-      if (!statusCode) {
+      if (e.code === 'SUBSCRIBE_USER_BAD_DATE') {
+        statusCode = '2100';
+      } else if (!statusCode) {
         log.warn(`Error has an unknown code. Setting statusCode to '2999'`);
         statusCode = '2999';
       }
@@ -336,7 +349,7 @@ async function subscribe (params, dbClient) {
   }
 
   return {
-    subscription_id: `${subscriptionId}`,
+    subscription_id: subscriptionId,
     status_code: `${statusCode}`,
   };
 }

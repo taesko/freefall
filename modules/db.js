@@ -49,9 +49,14 @@ async function session (ctx, next) {
   assertApp(client != null, 'Cannot begin transaction - ctx.state.dbClient is null');
 
   await client.executeQuery('BEGIN');
+  ctx.state.commitDB = false;
   try {
     await next();
-    await client.executeQuery('COMMIT');
+    if (ctx.state.commitDB) {
+      await client.executeQuery('COMMIT');
+    } else {
+      await client.executeQuery('ROLLBACK');
+    }
   } catch (e) {
     await client.executeQuery('ROLLBACK');
     throw e;
@@ -474,10 +479,6 @@ const updateEmailSub = (client) => async (email) => {
   return updatedRows[0];
 };
 
-function dbConnect () {
-  return false;
-}
-
 module.exports = {
   // executeQuery,
   // buildWhereClause,
@@ -494,7 +495,6 @@ module.exports = {
   // updateEmailSub,
   client,
   session,
-  dbConnect, // TODO still used in send-mail.js script
   pool,
   wrapPgClient,
 };
