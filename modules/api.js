@@ -13,7 +13,15 @@ async function errorHandling (ctx, next) {
   ctx.state.api = {};
   try {
     await next();
-    ctx.state.commitDB = true;
+    if (
+      ctx.state.api.caughtPeerError != null &&
+      ctx.state.api.caughtPeerError === true
+    ) {
+      log.info('API method finished successfully but with a PeerError. Setting state.commitDB');
+      ctx.state.commitDB = false;
+    } else {
+      ctx.state.commitDB = true;
+    }
   } catch (err) {
     ctx.status = 200;
     const format = validateRequestFormat({
@@ -49,12 +57,6 @@ async function errorHandling (ctx, next) {
     ctx.body = multiParser.stringify(response, format);
     log.critical('Unhandled error occurred in the API layer and ctx.body was set to:', ctx.body);
     log.critical(err);
-  }
-
-  if (ctx.state.api.caughtPeerError) {
-    ctx.state.commitDB = false;
-  } else {
-    ctx.state.commitDB = true;
   }
 }
 
