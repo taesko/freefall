@@ -1,0 +1,13 @@
+{
+  "method": "subscribe",
+  "params": {
+    "v": "2.0",
+    "api_key": "3b488149d9f06b362ad86b5b88785ed7",
+    "fly_from": "1",
+    "fly_to": "2",
+    "date_from": "2018-08-03",
+    "date_to": "2018-08-17"
+  },
+  "jsonrpc": "2.0",
+  "id": 2
+}

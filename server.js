@@ -21,12 +21,6 @@ const router = new Router();
 app.keys = ['freefall is love freefall is life'];
 
 app.use(async (ctx, next) => {
-  log.debug('GOT REQUEST', ctx.request);
-  await next();
-  log.debug('SENDING BACK RESPONSE', ctx.response);
-});
-
-app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
@@ -68,7 +62,6 @@ app.use(bodyParser({ // TODO crashes on bad json, best avoid the inner parser
 }));
 
 app.use(db.client);
-app.use(db.session);
 
 app.use(serve(path.join(__dirname, 'public')));
 app.use(views(path.join(__dirname, 'templates/'), {
@@ -95,6 +88,14 @@ app.use(views(path.join(__dirname, 'templates/'), {
     },
   },
 }));
+
+app.use(db.session);
+
+app.use(async (ctx, next) => {
+  log.debug('GOT REQUEST', ctx.request);
+  await next();
+  log.debug('SENDING BACK RESPONSE', ctx.response);
+});
 
 router.get('/', async (ctx, next) => {
   const airports = await ctx.state.dbClient.select('airports');
@@ -161,7 +162,13 @@ router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
     // TODO fix errors in auth and try catch instead of using users.fetchUser
     await auth.register(ctx, email, password);
     log.info('Registered user with email and password: ', email, password);
-    await auth.login(ctx, email, password);
+    try {
+      await auth.login(ctx, email, password);
+    } catch (e) {
+      if (!(e instanceof auth.AlreadyLoggedIn)) {
+        throw e;
+      }
+    }
     ctx.state.commitDB = true;
     ctx.redirect('/');
     return;

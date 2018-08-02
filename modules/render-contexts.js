@@ -54,9 +54,17 @@ function loginPageContext (appCtx) {
 }
 
 function registerPageContext (appCtx) {
+  let errMsg;
+
+  if (appCtx.state.register_errors) {
+    errMsg = appCtx.state.register_errors.join('\n');
+  } else {
+    errMsg = '';
+  }
+
   return {
     item: 'register',
-    error_messages: appCtx.state.register_errors || [],
+    error_message: errMsg,
   };
 }
 
