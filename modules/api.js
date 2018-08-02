@@ -47,14 +47,13 @@ async function errorHandling (ctx, next) {
 
     ctx.body = multiParser.stringify(response, format);
     log.critical('Unhandled error occurred in the API layer and ctx.body was set to:', ctx.body);
-    ctx.state.errorResponseIsSet = true;
-    throw err;
+    log.critical(err);
   }
+
   if (ctx.state.api.caughtPeerError) {
-    ctx.state.errorResponseIsSet = true;
-    assertPeer(
-      false,
-      `Caught a peer error and handled the response. This exception is used to rollback the database`);
+    ctx.state.commitDB = false;
+  } else {
+    ctx.state.commitDB = true;
   }
 }
 
@@ -105,6 +104,7 @@ async function api (ctx, next) {
   }
   ctx.status = 200;
   ctx.body = multiParser.stringify(responseBody, format);
+  ctx.type = 'application/json';
 
   log.info('Response validated. Setting ctx body.');
   log.debug('Set ctx.body to', ctx.body);

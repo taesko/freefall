@@ -27,14 +27,12 @@ app.use(async (ctx, next) => {
 });
 
 app.use(async (ctx, next) => {
-  ctx.state.errorResponseIsSet = false;
   try {
     await next();
   } catch (err) {
-    if (!ctx.state.errorResponseIsSet) {
-      ctx.status = 500;
-      ctx.body = 'Our servers our currently experiencing problems. Please try again later.';
-    }
+    log.critical('Unhandled error reached the top layer -', err);
+    ctx.status = 500;
+    ctx.body = 'Our servers our currently experiencing problems. Please try again later.';
     ctx.app.emit('error', err, ctx);
   }
 });
@@ -116,6 +114,7 @@ router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   const { email, password } = ctx.request.body;
   try {
     await auth.login(ctx, email, password);
+    ctx.state.commitDB = true;
     ctx.redirect('/');
 
     return;
@@ -163,6 +162,7 @@ router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
     await auth.register(ctx, email, password);
     log.info('Registered user with email and password: ', email, password);
     await auth.login(ctx, email, password);
+    ctx.state.commitDB = true;
     ctx.redirect('/');
     return;
   }
