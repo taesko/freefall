@@ -608,6 +608,12 @@ async function adminUnsubscribe (params, dbClient) {
 }
 
 async function adminEditSubscription (params, dbClient) {
+  if (!await auth.tokenHasRole(dbClient, params.api_key, 'admin')) {
+    return {
+      status_code: '2200',
+    };
+  }
+
   const userSubId = +params.user_subscription_id;
   const airportFromId = +params.fly_from;
   const airportToId = +params.fly_to;
@@ -727,15 +733,17 @@ async function adminListFetches (params, dbClient) {
 }
 
 async function adminAlterUserCredits (params, dbClient) {
-  assertPeer(
-    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
-    'You do not have sufficient permission to call admin_alter_user_credits method.',
-  );
+  if (!await auth.tokenHasRole(dbClient, params.api_key, 'admin')) {
+    return {
+      status_code: '2100',
+    };
+  }
 
-  assertPeer(
-    Number.isInteger(Number(params.user_id)),
-    `Expected user_id to be an integer, represented as string, but was ${typeof Number(params.user_id)}`,
-  );
+  if (!Number.isInteger(Number(params.user_id))) {
+    return {
+      status_code: '2103', // user not found or parameter error ?
+    };
+  }
 
   const adminId = await users.fetchUser(dbClient, { apiKey: params.api_key })
     .then(user => { return user == null ? null : user.id; });
@@ -746,9 +754,25 @@ async function adminAlterUserCredits (params, dbClient) {
   let accountTransfer;
 
   if (params.credits_difference > 0) {
-    accountTransfer = await accounting.depositCredits(dbClient, userId, amount);
+    try {
+      accountTransfer = await accounting.depositCredits(dbClient, userId, amount);
+    } catch (e) {
+      if (e.code === errorCodes.userDoesNotExist) {
+        return { status_code: '2102' };
+      } else {
+        throw e;
+      }
+    }
   } else {
-    accountTransfer = await accounting.taxUser(dbClient, userId, amount);
+    try {
+      accountTransfer = await accounting.taxUser(dbClient, userId, amount);
+    } catch (e) {
+      if (e.code === errorCodes.notEnoughCredits) {
+        return { status_code: '2101' };
+      } else {
+        throw e;
+      }
+    }
   }
 
   await accounting.registerTransferByAdmin(
