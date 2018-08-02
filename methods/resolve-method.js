@@ -161,7 +161,7 @@ async function search (params, dbClient) {
       +params.fly_to,
     );
 
-    result.status_code = '3000';
+    result.status_code = '1001';
     result.routes = [];
 
     return result;
@@ -174,7 +174,7 @@ async function search (params, dbClient) {
 
   // subs.length can be equal to 0 if we haven't yet fetched flights for it.
   if (subs.length === 0) {
-    result.status_code = '2000';
+    result.status_code = '1002';
     result.routes = [];
 
     return result;
@@ -747,7 +747,11 @@ async function adminAlterUserCredits (params, dbClient) {
     accountTransfer = await accounting.taxUser(dbClient, userId, amount);
   }
 
-  await accounting.registerTransferByAdmin(dbClient, accountTransfer.id, adminId);
+  await accounting.registerTransferByAdmin(
+    dbClient,
+    accountTransfer.id,
+    adminId
+  );
 
   return {
     status_code: '1000',
