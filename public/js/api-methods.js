@@ -192,7 +192,7 @@ function getAPIMethods (mainUtils) {
       const userMessage = messages[result.status_code] || 'Error.';
       assertUser(result.status_code >= 1000 && result.status_code < 2000, {
         userMessage: userMessage,
-        msg: 'Tried to subscribe but subscription already existed. Sent params: ' + params + '. Got result: ' + result + '', // eslint-disable-line prefer-template
+        msg: 'Subscribe failed.', // eslint-disable-line prefer-template
       });
 
       setTimeout(function () { // eslint-disable-line prefer-arrow-callback
