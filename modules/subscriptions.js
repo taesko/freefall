@@ -29,19 +29,12 @@ async function subscribeUser (
     { airportFromId, airportToId, dateFrom, dateTo },
   );
 
-  const globalSub = await getGlobalSubscription(
+  const globalSubId = await subscribeGloballyIfNotSubscribed(
     dbClient,
     airportFromId,
-    airportToId,
+    airportToId
   );
-
-  let globalSubId;
-
-  if (globalSub == null) {
-    globalSubId = await subscribeGlobally(dbClient, airportFromId, airportToId);
-  } else {
-    globalSubId = globalSub.id;
-  }
+  log.info('Found global subscriptions between airports', airportFromId, airportToId);
 
   log.info('Searching for inactive user subscription');
 
@@ -85,16 +78,31 @@ async function subscribeUser (
 
   log.info('Inserting new user subscription');
 
-  return dbClient.insert(
-    'users_subscriptions',
-    {
-      user_id: userId,
-      subscription_id: globalSubId,
-      fetch_id_of_last_send: null,
-      date_from: dateFrom,
-      date_to: dateTo,
-    },
-  );
+  let result;
+
+  try {
+    result = await dbClient.insert(
+      'users_subscriptions',
+      {
+        user_id: userId,
+        subscription_id: globalSubId,
+        fetch_id_of_last_send: null,
+        date_from: dateFrom,
+        date_to: dateTo,
+      },
+    );
+  } catch (e) {
+    if (e.code === '23505') {
+      throw errors.PeerError(
+        `already subscribed with these parameters`,
+        errors.errorCodes.subscriptionExists,
+      );
+    } else {
+      throw e;
+    }
+  }
+
+  return result;
 }
 
 async function updateUserSubscription (
@@ -281,6 +289,60 @@ async function globalSubscriptionExists (dbClient, airportFromId, airportToId) {
     airportFromId,
     airportToId,
   ) != null;
+}
+
+async function subscribeGloballyIfNotSubscribed (
+  dbClient,
+  airportFromId,
+  airportToId
+) {
+  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(Number.isInteger(airportFromId),
+    `got ${typeof airportFromId} but expected number`,
+  );
+  errors.assertApp(Number.isInteger(airportToId), `got ${typeof airportToId} but expected number`);
+
+  log.info('Subscribing globally to airports', airportFromId, airportToId);
+  airportFromId = +airportFromId;
+  airportToId = +airportToId;
+
+  // errors.assertApp(
+  //   !await globalSubscriptionExists(dbClient, airportFromId, airportToId),
+  //   `Cannot subscribe globally to airports with ids ${airportFromId}, ${airportToId}. Subscription already exists.`,
+  // );
+
+  // TODO raises error when airport doesn't exist
+  await dbClient.executeQuery(
+    `
+      INSERT INTO subscriptions
+        (airport_from_id, airport_to_id)
+      VALUES
+        ($1, $2)
+      ON CONFLICT DO NOTHING
+    `,
+    [airportFromId, airportToId],
+  );
+
+  const subRows = await dbClient.selectWhere(
+    'subscriptions',
+    '*',
+    {
+      airport_from_id: airportFromId,
+      airport_to_id: airportToId,
+    },
+  );
+
+  // TODO what happens when someone deletes the subscription?
+  errors.assertApp(
+    subRows.length === 1,
+    'Inserted global subscription but could not find it later. TODO CASE NOT HANDLED',
+  );
+
+  const sub = subRows[0];
+
+  log.info('Fetched global subscription with id', sub.id);
+
+  return sub.id;
 }
 
 async function subscribeGlobally (dbClient, airportFromId, airportToId) {
