@@ -128,17 +128,11 @@ async function updateUserSubscription (
     'UPDATE_SUBSCR_BAD_DATE',
   );
 
-  const globalSubscriptionId = await getGlobalSubscription(
+  const globalSubscriptionId = await subscribeGloballyIfNotSubscribed(
     dbClient,
     airportFromId,
     airportToId,
-  ).then(s => {
-    if (s == null) {
-      s = subscribeGlobally(dbClient, airportFromId, airportToId);
-    }
-
-    return s.id;
-  });
+  );
 
   const result = await dbClient.updateWhere(
     'users_subscriptions',
