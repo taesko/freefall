@@ -13,6 +13,7 @@ async function errorHandling (ctx, next) {
   ctx.state.api = {};
   try {
     await next();
+    ctx.state.commitDB = true;
   } catch (err) {
     ctx.status = 200;
     const format = validateRequestFormat({
