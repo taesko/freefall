@@ -283,38 +283,50 @@ const selectAccountTransfersUsers = (client) => async () => {
     `
     SELECT
       account_transfers.id AS account_transfer_id,
-      email,
       transfer_amount,
       transferred_at,
-      user_id
+      account_transfers.user_id AS account_owner_id,
+      u1.email AS account_owner_email,
+      u2.id AS user_transferrer_id,
+      u2.email AS user_transferrer_email,
+      a1.name AS user_subscr_airport_from_name,
+      a2.name AS user_subscr_airport_to_name,
+      users_subscriptions.date_from AS user_subscr_date_from,
+      users_subscriptions.date_from AS user_subscr_date_to,
+      a3.name AS subscr_airport_from_name,
+      a4.name AS subscr_airport_to_name,
+      fetch_time
     FROM account_transfers
-    LEFT JOIN users
-    ON account_transfers.user_id = users.id
+    LEFT JOIN users u1
+    ON account_transfers.user_id = u1.id
+    LEFT JOIN user_subscription_account_transfers
+    ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
+    LEFT JOIN subscriptions_fetches_account_transfers
+    ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
+    LEFT JOIN account_transfers_by_admin
+    ON account_transfers_by_admin.account_transfer_id = account_transfers.id
+    LEFT JOIN users u2
+    ON u2.id = account_transfers_by_admin.admin_user_id
+    LEFT JOIN users_subscriptions
+    ON user_subscription_account_transfers.user_subscription_id = users_subscriptions.id
+    LEFT JOIN subscriptions s1
+    ON users_subscriptions.subscription_id = s1.id
+    LEFT JOIN airports a1
+    ON s1.airport_from_id = a1.id
+    LEFT JOIN airports a2
+    ON s1.airport_to_id = a2.id
+    LEFT JOIN subscriptions_fetches
+    ON subscriptions_fetches_account_transfers.subscription_fetch_id = subscriptions_fetches.id
+    LEFT JOIN subscriptions s2
+    ON subscriptions_fetches.subscription_id = s2.id
+    LEFT JOIN airports a3
+    ON s2.airport_from_id = a3.id
+    LEFT JOIN airports a4
+    ON s2.airport_to_id = a4.id
+    LEFT JOIN fetches
+    ON subscriptions_fetches.fetch_id = fetches.id
     ORDER BY account_transfer_id;
   `);
-
-  // TODO:
-  // const selectResult = await executeQuery(client)(
-  //   `
-  //   SELECT
-  //     account_transfers.id AS account_transfer_id,
-  //     email,
-  //     transfer_amount,
-  //     transferred_at,
-  //     user_id
-  //   FROM account_transfers
-  //   LEFT JOIN users
-  //   ON account_transfers.user_id = users.id
-  //   LEFT JOIN user_subscription_account_transfers
-  //   ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
-  //   LEFT JOIN subscriptions_fetches_account_transfers
-  //   ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
-  //   LEFT JOIN account_transfers_by_admin
-  //   ON account_transfers_by_admin.account_transfer_id = account_transfers.id
-  //   LEFT JOIN users
-  //   ON users.id = account_transfers_by_admin.admin_user_id
-  //   ORDER BY account_transfer_id;
-  // `);
 
   assertApp(isObject(selectResult), `Expected selectResult to be an object, but was ${typeof selectResult}`);
   assertApp(Array.isArray(selectResult.rows), `Expected selectResult.rows to be array, but was ${typeof selectResult.rows}`);

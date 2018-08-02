@@ -17,6 +17,7 @@
           <th>User</th>
           <th>Transfer amount</th>
           <th>Transferred at</th>
+          <th>More information</th>
         </tr>
       </thead>
       <tbody>
@@ -33,6 +34,25 @@
           </td>
           <td>
             {{this.transferred_at}}
+          </td>
+          <td>
+            {{#if user_transferrer_id}}
+              <p><label>Type:</label> admin</p>
+              <p><label>Admin:</label> <a href="/users/{{this.user_transferrer_id}}">{{this.user_transferrer_email}}</a></p>
+            {{/if}}
+            {{#if user_subscr_airport_from_name}}
+              <p><label>Type:</label> new subscription</p>
+              <p><label>Airport from:</label> {{user_subscr_airport_from_name}}</p>
+              <p><label>Airport to:</label> {{user_subscr_airport_to_name}}</p>
+              <p><label>Date from:</label> {{user_subscr_date_from}}</p>
+              <p><label>Date to:</label> {{user_subscr_date_to}}</p>
+            {{/if}}
+            {{#if fetch_time}}
+              <p><label>Type:</label> fetch</p>
+              <p><label>Fetch time:</label> {{fetch_time}}</p>
+              <p><label>Airport from:</label> {{subscr_airport_from_name}}</p>
+              <p><label>Airport to:</label> {{subscr_airport_to_name}}</p>
+            {{/if}}
           </td>
         </tr>
         {{/each}}

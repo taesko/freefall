@@ -134,8 +134,35 @@ async function taxSubscribe (dbClient, userId, userSubscriptionId) {
   return subTransfer;
 }
 
+async function registerTransferByAdmin (dbClient, accountTransferId, adminId) {
+  assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  assertApp(
+    typeof accountTransferId === 'number',
+    `expected accountTransferId to be number but got ${typeof accountTransferId} instead - ${accountTransferId}`
+  );
+  assertApp(
+    typeof adminId === 'number',
+    `expected adminId to be number but got ${typeof adminId} instead - ${adminId}`
+  );
+
+  log.info(`Registering transfer ${accountTransferId} from admin ${adminId}`);
+
+  const accountTransferByAdmin = await dbClient.insert(
+    'account_transfers_by_admin',
+    {
+      'account_transfer_id': accountTransferId,
+      'admin_user_id': adminId,
+    },
+  );
+
+  log.info('account_transfers_by_admin id is', accountTransferByAdmin.id);
+
+  return accountTransferByAdmin;
+}
+
 module.exports = {
   depositCredits,
   taxUser,
   taxSubscribe,
+  registerTransferByAdmin,
 };
