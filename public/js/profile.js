@@ -357,40 +357,46 @@ function start () {
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       subscribeBtn.disabled = false;
 
-      if (result.status_code === 2000) {
-        mainUtils.trace('subscribe method error');
+      const messages = {
+        '2000': 'Already subscribed.',
+        '2001': 'You do not have enough credits',
+        '2100': 'The entered dates and/or airports are not correct.',
+        '2200': 'Your API key is incorrect, please contact tech support.',
+      };
+      const userMessage = messages[result.status_code] || 'Error.';
+      assertUser(result.status_code >= 1000 && result.status_code < 2000, {
+        userMessage: userMessage,
+        msg: 'Subscribe failed.', // eslint-disable-line prefer-template
+      });
 
-        // TODO handle ERROR
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
-        mainUtils.trace('subscribe method success');
+      mainUtils.trace('subscribe method success');
 
-        const newSubscription = {
-          id: result.subscription_id,
-          fly_from: airportFromId,
-          fly_to: airportToId,
-          date_from: dateFrom,
-          date_to: dateTo,
-        };
+      const newSubscription = {
+        id: result.subscription_id,
+        fly_from: airportFromId,
+        fly_to: airportToId,
+        date_from: dateFrom,
+        date_to: dateTo,
+      };
 
-        subscriptions = subscriptions.concat([newSubscription]);
+      subscriptions = subscriptions.concat([newSubscription]);
 
-        // TODO check if table empty
+      // TODO check if table empty
 
-        const newRow = $('#subscriptions-table tbody')[0].insertRow();
-        const rowId = String(mainUtils.getUniqueId());
-        const rowValues = [
-          airportFrom,
-          airportTo,
-          dateFrom,
-          dateTo,
-          'options',
-        ];
+      const newRow = $('#subscriptions-table tbody')[0].insertRow();
+      const rowId = String(mainUtils.getUniqueId());
+      const rowValues = [
+        airportFrom,
+        airportTo,
+        dateFrom,
+        dateTo,
+        'options',
+      ];
 
-        rowIdSubscriptionMap[rowId] = newSubscription;
-        $(newRow).attr('id', 'row-' + rowId); // eslint-disable-line prefer-template
+      rowIdSubscriptionMap[rowId] = newSubscription;
+      $(newRow).attr('id', 'row-' + rowId); // eslint-disable-line prefer-template
 
-        renderRowViewMode(newRow, rowValues);
-      }
+      renderRowViewMode(newRow, rowValues);
     });
   };
 
