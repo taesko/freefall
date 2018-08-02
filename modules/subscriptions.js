@@ -125,6 +125,7 @@ async function updateUserSubscription (
   errors.assertPeer(
     moment(dateFrom).format('YYYY-MM-DD') < moment(dateTo).format('YYYY-MM-DD'),
     'date_from must be less than date_to',
+    'UPDATE_SUBSCR_BAD_DATE',
   );
 
   const globalSubscriptionId = await getGlobalSubscription(

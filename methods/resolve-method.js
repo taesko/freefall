@@ -633,7 +633,11 @@ async function adminEditSubscription (params, dbClient) {
         'An error occurred while executing method admin_edit_subscription with params',
         params,
       );
-      return { status_code: '2000' };
+      if (e.code === 'UPDATE_SUBSCR_BAD_DATE') {
+        return { status_code: '2100' };
+      } else {
+        return { status_code: '2000' };
+      }
     } else {
       throw e;
     }
