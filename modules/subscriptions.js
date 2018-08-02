@@ -166,7 +166,7 @@ async function removeUserSubscription (dbClient, userSubscriptionId) {
   errors.assertPeer(
     result.length === 1,
     `User subscription with id ${userSubscriptionId} does not exist.`,
-    errors.errorCodes.subscriptionDoesNotExist,
+    'RUS_BAD_ID',
   );
 }
 

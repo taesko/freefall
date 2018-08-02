@@ -5,11 +5,7 @@
   "type": "object",
   "properties": {
     "status_code": {
-      "type": "string",
-      "enum": [
-        "1000",
-        "2000"
-      ]
+      "type": "string"
     }
   }
 }

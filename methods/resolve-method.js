@@ -355,26 +355,29 @@ async function subscribe (params, dbClient) {
 }
 
 async function unsubscribe (params, dbClient) {
-  assertPeer(
-    Number.isInteger(+params.user_subscription_id),
-    'user_subscription_id must be an integer wrapped in a string',
-  );
+  if (!Number.isInteger(+params.user_subscription_id)) {
+    return { status_code: '2100' };
+  }
+
   const userSubId = +params.user_subscription_id;
   const apiKey = params.api_key;
 
   const user = await users.fetchUser(dbClient, { apiKey });
 
-  assertPeer(user, 'invalid api key');
+  if (user == null) {
+    return { status_code: '2200' };
+  }
 
   const userSubscriptions = await subscriptions.listUserSubscriptions(
     dbClient,
     user.id,
   );
 
-  assertPeer(
-    userSubscriptions.some(sub => +sub.id === +userSubId),
-    'This api key is not allowed to modify this subscription.',
-  );
+  if (!userSubscriptions.some(sub => +sub.id === +userSubId)) {
+    return {
+      status_code: '2200',
+    };
+  }
 
   let statusCode;
 
@@ -384,7 +387,9 @@ async function unsubscribe (params, dbClient) {
   } catch (e) {
     if (e instanceof PeerError) {
       log.warn('Peer error occurred while removing subscription: ', userSubId);
-      statusCode = 2000;
+      if (e.code === 'RUS_BAD_ID') {
+        statusCode = '2000';
+      }
     } else {
       throw e;
     }
