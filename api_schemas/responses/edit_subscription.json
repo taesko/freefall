@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "response/edit_subscription",
+  "title": "API response of edit_subscription method",
+  "type": "object",
+  "properties": {
+    "status_code": {
+      "type": "string"
+    }
+  }
+}

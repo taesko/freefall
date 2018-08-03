@@ -21,6 +21,7 @@
         "search",
         "subscribe",
         "unsubscribe",
+        "edit_subscription",
         "list_airports",
         "get_api_key",
         "list_subscriptions",

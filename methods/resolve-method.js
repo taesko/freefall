@@ -13,6 +13,7 @@ const API_METHODS = {
   search,
   subscribe,
   unsubscribe,
+  edit_subscription: editSubscription,
   list_airports: listAirports,
   list_subscriptions: listSubscriptions,
   admin_list_subscriptions: adminListSubscriptions,
@@ -415,6 +416,71 @@ async function unsubscribe (params, dbClient) {
   return { status_code: `${statusCode}` };
 }
 
+async function editSubscription (params, dbClient) {
+  const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
+  const userSubscr = await dbClient.selectWhere(
+    'users_subscriptions',
+    '*',
+    {
+      user_id: user.id,
+    },
+  );
+  const subscriptionId = +params.user_subscription_id;
+  const airportFromId = +params.fly_from;
+  const airportToId = +params.fly_to;
+  const dateFrom = params.date_from;
+  const dateTo = params.date_to;
+
+  if (!userSubscr.find(subscr => subscr.id === subscriptionId)) {
+    log.info(`Peer with api_key ${params.api_key} cannot modify user subscription ${subscriptionId}.`);
+    return { status_code: '2200' };
+  }
+  if (
+    !Number.isInteger(airportFromId) ||
+    !Number.isInteger(airportToId) ||
+    !Number.isInteger(subscriptionId)
+  ) {
+    log.info('Peer entered non-integer ids');
+    return { status_code: '2100' };
+  }
+  if (moment(dateFrom) > moment(dateTo)) {
+    log.info('Peer entered invalid dates.');
+    return { status_code: '2102' };
+  }
+
+  const pgResult = await dbClient.executeQuery(
+    `
+      SELECT *
+      FROM airports
+      WHERE id IN ($1, $2)
+    `,
+    [airportFromId, airportToId],
+  );
+  assertApp(Array.isArray(pgResult.rows), `db returned ${pgResult.rows} for rows`);
+  if (pgResult.rows.length !== 2) {
+    log.info('Peer sent airport ids that did not exist.');
+    return { status_code: '2101' };
+  }
+
+  try {
+    await subscriptions.updateUserSubscription(dbClient, subscriptionId, {
+      airportFromId,
+      airportToId,
+      dateFrom,
+      dateTo,
+    });
+  } catch (e) {
+    if (e.code === '23505') { // unique constraint failed
+      log.info(`Peer tried to update user subscription ${subscriptionId} to another already existing one.`);
+      return { status_code: '2000' };
+    } else {
+      throw e;
+    }
+  }
+
+  return { status_code: '1000' };
+}
+
 async function listAirports (params, dbClient) {
   const airports = await dbClient.select('airports');
 
@@ -772,7 +838,7 @@ async function adminAlterUserCredits (params, dbClient) {
       accountTransfer = await accounting.depositCredits(
         dbClient,
         userId,
-        amount
+        amount,
       );
     } catch (e) {
       if (e.code === errorCodes.userDoesNotExist) {
@@ -796,7 +862,7 @@ async function adminAlterUserCredits (params, dbClient) {
   await accounting.registerTransferByAdmin(
     dbClient,
     accountTransfer.id,
-    adminId
+    adminId,
   );
 
   return {
