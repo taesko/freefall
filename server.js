@@ -157,9 +157,14 @@ router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   if (await users.userExists(ctx.state.dbClient, { email })) {
     errors.push('Email is already taken');
   }
+  if (email.length < 3) {
+    errors.push('Email is too short.');
+  }
+  if (password.length < 8) {
+    errors.push('Password is too short.');
+  }
 
   if (errors.length === 0) {
-    // TODO fix errors in auth and try catch instead of using users.fetchUser
     await auth.register(ctx, email, password);
     log.info('Registered user with email and password: ', email, password);
     try {

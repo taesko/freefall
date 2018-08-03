@@ -63,6 +63,8 @@ CREATE TABLE users (
   active boolean NOT NULL DEFAULT TRUE,
   credits integer NOT NULL DEFAULT 0,
   CHECK(credits >= 0),
+  CHECK email_length (char_length(email) > 3)
+  CHECK password_length (char_length(password) > 8)
   UNIQUE(email)
 );
 

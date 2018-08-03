@@ -20,6 +20,8 @@ async function addUser (dbClient, { email, password, role = 'customer' }) {
 
   log.info(`Adding user with email=${email} and role=${role}`);
 
+  errors.assertPeer(email.length >= 3, 'bad email.', 'FF_SHORT_EMAIL');
+  errors.assertPeer(password.length >= 8, 'bad password.', 'FF_SHORT_PASSWORD');
   errors.assertPeer(
     !await userExists(dbClient, { email }),
     `Failed adding user, because email ${email} is taken`,
