@@ -1,4 +1,3 @@
-const _ = require('lodash');
 
 const users = require('./users');
 const log = require('./log');
@@ -74,7 +73,9 @@ async function register (ctx, email, password) {
 
 async function isLoggedIn (ctx) {
   const id = ctx.session.userID;
-  return id != null && await users.fetchUser(ctx.state.dbClient, { userId: id }) != null;
+  const user = await users.fetchUser(ctx.state.dbClient, { userId: id });
+
+  return (id != null && user != null);
 }
 
 async function getLoggedInUser (ctx) {
