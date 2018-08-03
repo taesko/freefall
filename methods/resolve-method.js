@@ -436,10 +436,8 @@ async function listSubscriptions (params, dbClient) {
     sr.id = `${sr.id}`;
     sr.fly_from = `${sr.fly_from}`;
     sr.fly_to = `${sr.fly_to}`;
-    const dateFrom = new Date(sr.date_from);
-    const dateTo = new Date(sr.date_to);
-    sr.date_from = dateFrom.toISOString().split('T')[0]; // ISO 8601 is delimited with T in JS
-    sr.date_to = dateTo.toISOString().split('T')[0];
+    sr.date_from = moment(sr.date_from).format('Y-MM-DD');
+    sr.date_to = moment(sr.date_to).format('Y-MM-DD');
   }
 
   return {
