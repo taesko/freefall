@@ -29,7 +29,7 @@ function getAPIMethods (mainUtils) {
         },
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -61,7 +61,7 @@ function getAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -96,7 +96,7 @@ function getAPIMethods (mainUtils) {
         },
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -132,7 +132,7 @@ function getAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -168,7 +168,7 @@ function getAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -182,10 +182,6 @@ function getAPIMethods (mainUtils) {
 
       assertPeer(validateSubscribeRes(result), {
         msg: 'Params do not adhere to subscriptionResponseSchema: ' + mainUtils.getValidatorMsg(validateSubscribeRes), // eslint-disable-line prefer-template
-      });
-      assertUser(result.status_code >= 1000 && result.status_code < 2000, {
-        userMessage: 'Subscribe failed.', // eslint-disable-line prefer-template
-        msg: 'Subscribe failed with status code: ' + result.status_code, // eslint-disable-line prefer-template
       });
 
       setTimeout(function () { // eslint-disable-line prefer-arrow-callback
@@ -221,7 +217,7 @@ function getAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template

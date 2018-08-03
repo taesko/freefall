@@ -5,6 +5,7 @@ function start () {
 
   const UserError = mainUtils.UserError;
   const assertUser = mainUtils.assertUser;
+  const assertPeer = mainUtils.assertPeer;
   const assertApp = mainUtils.assertApp;
 
   const api = getAPIMethods(mainUtils);
@@ -196,61 +197,85 @@ function start () {
       user_subscription_id: rowValues.id,
       api_key: APIKeyRef.APIKey,
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code === 2000) {
-        mainUtils.trace('unsubscribe method error');
+      const messages = {
+        '1000': 'Successfully unsubscribed!',
+        '2000': 'Could not find subscription to remove. Please, refresh the page and try again.',
+        '2100': 'Invalid unsubscribe parameters. Please, refresh the page and try again.',
+        '2200': 'Your API key is incorrect, please contact tech support.',
+      };
 
-        mainUtils.displayUserMessage('There is no information about this flight at the moment. Please come back in 15 minutes.', 'info');
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
-        mainUtils.trace('unsubscribe method success');
+      assertPeer(typeof messages[result.status_code] === 'string', {
+        msg: 'Unexpected status code in profile edit subscription. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
 
-        // displayUserMessage('Successfully unsubscribed!', 'success');
-        api.subscribe({
-          v: '2.0',
-          fly_from: airportFromId,
-          fly_to: airportToId,
-          date_from: dateFrom,
-          date_to: dateTo,
-          api_key: APIKeyRef.APIKey,
-        }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-          saveButton.disabled = false;
+      const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
+      assertUser(result.status_code === '1000', {
+        userMessage: userMessage,
+        msg: 'Subscribe failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
 
-          if (result.status_code === 2000) {
-            mainUtils.trace('subscribe method error');
+      mainUtils.trace('unsubscribe method success');
 
-            // TODO handle ERROR
-          } else if (result.status_code >= 1000 && result.status_code < 2000) {
-            mainUtils.trace('subscribe method success');
+      api.subscribe({
+        v: '2.0',
+        fly_from: airportFromId,
+        fly_to: airportToId,
+        date_from: dateFrom,
+        date_to: dateTo,
+        api_key: APIKeyRef.APIKey,
+      }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+        saveButton.disabled = false;
 
-            subscriptions = subscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
-              if (subscription.id !== rowValues.id) {
-                return subscription;
-              }
+        const messages = {
+          '1000': 'Successfully subscribed.',
+          '2000': 'Already subscribed.',
+          '2001': 'You do not have enough credits.',
+          '2100': 'The entered dates and/or airports are not correct.',
+          '2200': 'Your API key is incorrect, please contact tech support.',
+        };
 
-              const newSubscription = {
-                id: result.subscription_id,
-                fly_from: airportFromId,
-                fly_to: airportToId,
-                date_from: dateFrom,
-                date_to: dateTo,
-              };
-
-              rowIdSubscriptionMap[rowId] = newSubscription;
-
-              return newSubscription;
-            });
-
-            const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
-
-            renderRowViewMode(rowElement, [
-              airportFrom,
-              airportTo,
-              dateFrom,
-              dateTo,
-              'options',
-            ]);
-          }
+        assertPeer(typeof messages[result.status_code] === 'string', {
+          msg: 'Unexpected status code in profile edit subscription. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
         });
-      }
+
+        const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
+        assertUser(result.status_code === '1000', {
+          userMessage: userMessage,
+          msg: 'Subscribe failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        });
+
+        mainUtils.trace('subscribe method success');
+
+        subscriptions = subscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
+          if (subscription.id !== rowValues.id) {
+            return subscription;
+          }
+
+          const newSubscription = {
+            id: result.subscription_id,
+            fly_from: airportFromId,
+            fly_to: airportToId,
+            date_from: dateFrom,
+            date_to: dateTo,
+          };
+
+          rowIdSubscriptionMap[rowId] = newSubscription;
+
+          return newSubscription;
+        });
+
+        const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
+
+        renderRowViewMode(rowElement, [
+          airportFrom,
+          airportTo,
+          dateFrom,
+          dateTo,
+          'options',
+        ]);
+
+        mainUtils.displayUserMessage('Successfully edited subscription!', 'success');
+      });
     });
   };
 
@@ -288,27 +313,40 @@ function start () {
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       removeButton.disabled = false;
 
-      if (result.status_code === 2000) {
-        mainUtils.trace('unsubscribe method error');
+      const messages = {
+        '1000': 'Successfully unsubscribed!',
+        '2000': 'Could not find subscription to remove. Please, refresh the page and try again.',
+        '2100': 'Invalid unsubscribe parameters. Please, refresh the page and try again.',
+        '2200': 'Your API key is incorrect, please contact tech support.'
+      };
 
-        // TODO handle ERROR
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
-        mainUtils.trace('unsubscribe method success');
+      assertPeer(typeof messages[result.status_code] === 'string', {
+        msg: 'Unexpected status code in profile unsubscribe. Status code: "' + result.status_code + '"' , // eslint-disable-line prefer-template
+      });
 
-        subscriptions = subscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
-          return subscription.id !== rowValues.id;
-        });
+      const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
+      assertUser(result.status_code === '1000', {
+        userMessage: userMessage,
+        msg: 'Subscribe failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
 
-        delete rowIdSubscriptionMap[rowId];
+      mainUtils.trace('unsubscribe method success');
 
-        $('#row-' + rowId).remove(); // eslint-disable-line prefer-template
+      subscriptions = subscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
+        return subscription.id !== rowValues.id;
+      });
 
-        if (subscriptions.length > 0) {
-          showSubscriptionsTable($('#subscriptions-table'));
-        } else {
-          hideSubscriptionTable($('#subscriptions-table'));
-        }
+      delete rowIdSubscriptionMap[rowId];
+
+      $('#row-' + rowId).remove(); // eslint-disable-line prefer-template
+
+      if (subscriptions.length > 0) {
+        showSubscriptionsTable($('#subscriptions-table'));
+      } else {
+        hideSubscriptionTable($('#subscriptions-table'));
       }
+
+      mainUtils.displayUserMessage('Successfully unsubscribed!', 'success');
     });
   };
 
@@ -358,15 +396,21 @@ function start () {
       subscribeBtn.disabled = false;
 
       const messages = {
+        '1000': 'Successfully subscribed.',
         '2000': 'Already subscribed.',
         '2001': 'You do not have enough credits',
         '2100': 'The entered dates and/or airports are not correct.',
         '2200': 'Your API key is incorrect, please contact tech support.',
       };
-      const userMessage = messages[result.status_code] || 'Error.';
-      assertUser(result.status_code >= 1000 && result.status_code < 2000, {
+
+      assertPeer(typeof messages[result.status_code] === 'string', {
+        msg: 'Unexpected status code in profile subscribe. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
+
+      const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
+      assertUser(result.status_code === '1000', {
         userMessage: userMessage,
-        msg: 'Subscribe failed.', // eslint-disable-line prefer-template
+        msg: 'Subscribe failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
       });
 
       mainUtils.trace('subscribe method success');
@@ -503,9 +547,7 @@ function start () {
     api.getAPIKey({
       v: '2.0',
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code < 1000 || result.status_code >= 2000) {
-        window.location.replace('/login');
-      } else {
+      if (result.status_code === '1000') {
         APIKeyRef.APIKey = result.api_key;
         const $subscriptionsTable = $('#subscriptions-table');
 
@@ -527,6 +569,8 @@ function start () {
         });
 
         applyDatePicker();
+      } else {
+        window.location.replace('/login');
       }
     });
   });

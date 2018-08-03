@@ -179,11 +179,9 @@ function start () {
     };
 
     adminAPI.adminRemoveUser(removeUserParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code === 2000) {
-        mainUtils.displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
-        removeButton.disabled = false;
+      removeButton.disabled = false;
 
+      if (result.status_code === '1000') {
         users = users.filter(function (user) { // eslint-disable-line prefer-arrow-callback
           return user.id !== oldUser.id;
         });
@@ -198,6 +196,8 @@ function start () {
           hideUsersTable();
         }
         mainUtils.displayUserMessage('Successfully removed user!', 'success');
+      } else {
+        mainUtils.displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
     });
   };
@@ -279,9 +279,7 @@ function start () {
     adminAPI.adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
-      if (result.status_code === 2000) {
-        mainUtils.displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
+      if (result.status_code === '1000') {
         const newUser = {
           id: user.id,
           email: (newEmail.length > 0) ? newEmail : user.email,
@@ -293,6 +291,8 @@ function start () {
           $('#user-' + rowId) // eslint-disable-line prefer-template
         );
         mainUtils.displayUserMessage('Successfully updated user!', 'success');
+      } else {
+        mainUtils.displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
     });
   };
@@ -301,9 +301,7 @@ function start () {
     api.getAPIKey({
       v: '2.0',
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code < 1000 || result.status_code >= 2000) {
-        window.location.replace('/login');
-      } else {
+      if (result.status_code === '1000') {
         APIKey = result.api_key;
 
         const params = {
@@ -316,6 +314,8 @@ function start () {
 
           renderUsers($('#users-table'));
         });
+      } else {
+        window.location.replace('/login');
       }
     });
   });
