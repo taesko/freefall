@@ -691,14 +691,12 @@ async function adminRemoveUser (params, dbClient) {
 }
 
 async function adminEditUser (params, dbClient) {
-  assertPeer(
-    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
-    'You do not have sufficient permission to call admin_list_subscriptions method.',
-  );
-  assertPeer(
-    Number.isInteger(+params.user_id),
-    'user_id parameter must be an integer wrapped in a string.',
-  );
+  if (!await auth.tokenHasRole(dbClient, params.api_key, 'admin')) {
+    return { status_code: '2100' };
+  }
+  if (!Number.isInteger(+params.user_id)) {
+    return { status_code: '2200' };
+  }
 
   let statusCode;
   const userId = +params.user_id;
@@ -720,11 +718,12 @@ async function adminEditUser (params, dbClient) {
     );
     statusCode = '1000';
   } catch (e) {
-    if (e instanceof PeerError) {
-      log.warn(
-        'An error occurred while executing method admin_unsubscribe with params',
-        params,
-      );
+    // TODO verify emails
+    if (e.code === 'FF_SHORT_EMAIL') {
+      statusCode = '2201';
+    } else if (e.code === 'FF_SHORT_PASSWORD') {
+      statusCode = '2202';
+    } else if (e instanceof PeerError) {
       statusCode = '2000';
     } else {
       throw e;
