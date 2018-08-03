@@ -113,6 +113,13 @@ router.get('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
 
 router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   const { email, password } = ctx.request.body;
+  // TODO if typeof email or password is not string this is a peer error
+  // application currently does not support peer errors thrown from here
+  if (email.length < 3 || password.length < 8) {
+    ctx.state.login_error_message = 'Invalid username or password.';
+    ctx.redirect('/login');
+  }
+
   try {
     await auth.login(ctx, email, password);
     ctx.state.commitDB = true;

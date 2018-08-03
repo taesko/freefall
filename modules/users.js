@@ -148,10 +148,15 @@ async function fetchUser (
     apiKey,
     active = true,
   }) {
-  errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(_.isObject(dbClient), `got ${dbClient}`);
+  errors.assertApp(email == null || typeof email === 'string', `got ${email}`);
+  errors.assertApp(password == null || typeof password === 'string', `got ${password}`);
+  errors.assertApp(apiKey == null || typeof apiKey === 'string', `got ${apiKey}`);
+  errors.assertApp(active == null || typeof active === 'boolean', `got ${active}`);
+
   if (password) {
     errors.assertApp(
-      email,
+      email != null,
       'fetchUser - if password parameter is given email must also be provided.',
       errors.errorCodes.badFunctionArgs,
     );
