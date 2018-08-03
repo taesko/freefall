@@ -117,7 +117,8 @@ router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   // application currently does not support peer errors thrown from here
   if (email.length < 3 || password.length < 8) {
     ctx.state.login_error_message = 'Invalid username or password.';
-    ctx.redirect('/login');
+    await ctx.render('login.html', await getContextForRoute(ctx, 'post', '/login'));
+    return;
   }
 
   try {
