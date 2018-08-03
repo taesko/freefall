@@ -311,7 +311,24 @@ async function subscribe (params, dbClient) {
         dateTo,
       },
     );
-    await accounting.taxSubscribe(dbClient, userId, subId);
+    // reactivating and old user subscription shouldn't be taxed
+    // if subscription has been taxed pass silently.
+    // NOTE in concurrent requests the subscription might be taxed after this query
+    // unique constraints will fail in that case.
+    if (await accounting.subscriptionIsTaxed(dbClient, subId)) {
+      log.info('Subscription is already taxed. Skipping taxing');
+      return subId;
+    }
+
+    try {
+      await accounting.taxSubscribe(dbClient, userId, subId);
+    } catch (e) {
+      if (e.code === '23505') { // unique constraint failed
+        throw PeerError('subscription already exists.', errorCodes.subscriptionExists);
+      } else {
+        throw e;
+      }
+    }
 
     return subId;
   };

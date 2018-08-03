@@ -1,0 +1,10 @@
+{
+    "method": "unsubscribe",
+    "params": { 
+        "v": "2.0",
+        "user_subscription_id": "6",
+        "api_key": "3b488149d9f06b362ad86b5b88785ed7"
+    },
+    "jsonrpc": "2.0",
+    "id": 2
+}

@@ -32,7 +32,7 @@ async function subscribeUser (
   const globalSubId = await subscribeGloballyIfNotSubscribed(
     dbClient,
     airportFromId,
-    airportToId
+    airportToId,
   );
   log.info('Found global subscriptions between airports', airportFromId, airportToId);
 
@@ -57,22 +57,28 @@ async function subscribeUser (
       errors.errorCodes.subscriptionExists,
     );
 
+    // race condition happens on multiple concurrent requests
+    // two connections can successfully update the subscription
+    // use WHERE active=false to only allow the first one to go through.
     const result = await dbClient.updateWhere(
       'users_subscriptions',
       {
-        active: 1,
+        active: true,
       },
       {
         id: sub.id,
+        active: false,
       },
     );
 
-    errors.assertApp(
+    // query may be update 0 rows because an earlier concurrent query already updated them.
+    errors.assertPeer(
       result.length === 1,
-      `Failed to re-activate user subscription with id ${sub.id}`,
-      errors.errorCodes.databaseError,
+      `user subscription ${sub.id} was reactivated from another request.`,
+      errors.errorCodes.subscriptionExists,
     );
 
+    log.info('Reactivated old user subscription with id: ', sub.id);
     return sub;
   }
 
@@ -92,8 +98,8 @@ async function subscribeUser (
       },
     );
   } catch (e) {
-    if (e.code === '23505') {
-      throw errors.PeerError(
+    if (e.code === '23505') { // unique constraint failed
+      throw new errors.PeerError(
         `already subscribed with these parameters`,
         errors.errorCodes.subscriptionExists,
       );
@@ -102,6 +108,7 @@ async function subscribeUser (
     }
   }
 
+  log.info('Inserted new user subscription id: ', result.id);
   return result;
 }
 
@@ -289,7 +296,7 @@ async function globalSubscriptionExists (dbClient, airportFromId, airportToId) {
 async function subscribeGloballyIfNotSubscribed (
   dbClient,
   airportFromId,
-  airportToId
+  airportToId,
 ) {
   errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   errors.assertApp(Number.isInteger(airportFromId),

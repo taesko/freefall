@@ -56,10 +56,13 @@ async function depositCredits (dbClient, userId, amount) {
 }
 
 async function taxUser (dbClient, userId, amount) {
-  assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
-  assertApp(typeof userId === 'number');
-  assertApp(typeof amount === 'number' && amount > 0);
-  assertPeer(await users.userExists(dbClient, { userId }), `user with id ${userId} does not exist.`);
+  assertApp(_.isObject(dbClient), `got ${dbClient}`);
+  assertApp(typeof userId === 'number', `got ${userId}`);
+  assertApp(typeof amount === 'number' && amount > 0, `got ${amount}`);
+  assertPeer(
+    await users.userExists(dbClient, { userId }),
+    `user with id ${userId} does not exist.`,
+  );
   // Does taxing 0 count as a transaction ?
 
   log.info(`Taxing user ${userId} with amount=${amount}`);
@@ -83,7 +86,10 @@ async function taxUser (dbClient, userId, amount) {
   );
 
   if (creditRows.length === 0) {
-    throw new PeerError(`User ${userId} does not have enough credits.`, errorCodes.notEnoughCredits);
+    throw new PeerError(
+      `User ${userId} does not have enough credits.`,
+      errorCodes.notEnoughCredits,
+    );
   } else if (creditRows.length > 1) {
     throw new AppError(`Tried to only tax user with id ${userId} but taxed ${creditRows.length} users.`);
   }
@@ -105,16 +111,30 @@ async function taxUser (dbClient, userId, amount) {
   return accountTransfer;
 }
 
+async function subscriptionIsTaxed (dbClient, userSubscriptionId) {
+  assertApp(_.isObject(dbClient), `got ${dbClient}`);
+  assertApp(Number.isInteger(userSubscriptionId), `got ${userSubscriptionId}`);
+
+  const { rows: subscrTransfer } = await dbClient.executeQuery(
+    `
+    SELECT * FROM user_subscription_account_transfers
+    WHERE user_subscription_id = $1
+    `,
+    [userSubscriptionId],
+  );
+  assertApp(Array.isArray(subscrTransfer), `bad db response - ${subscrTransfer}`);
+  assertApp(
+    subscrTransfer.length <= 1,
+    `user subscription ${userSubscriptionId} is taxed more than once`,
+  );
+
+  return subscrTransfer.length === 1;
+}
+
 async function taxSubscribe (dbClient, userId, userSubscriptionId) {
-  assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
-  assertApp(
-    typeof userId === 'number',
-    `expected user id to be number but got ${typeof userId} instead - ${userId}`
-  );
-  assertApp(
-    typeof userSubscriptionId === 'number',
-    `expected subscr id to be a number but got ${typeof userSubscriptionId} instead - ${userSubscriptionId}`
-  );
+  assertApp(_.isObject(dbClient), `got ${dbClient}`);
+  assertApp(typeof userId === 'number', `got ${userId}`);
+  assertApp(typeof userSubscriptionId === 'number', `got ${userSubscriptionId}`);
 
   log.info(`Taxing user ${userId} for subscription ${userSubscriptionId}`);
 
@@ -122,7 +142,9 @@ async function taxSubscribe (dbClient, userId, userSubscriptionId) {
 
   log.info(`Linking account transfer ${transfer.id} with user subscription ${userSubscriptionId}`);
 
-  const subTransfer = await dbClient.insert(
+  // unique constrain error is thrown here if a subscription has been reactivated instead of created
+  // and userSubscriptionId has already been taxed. - can happen during concurrent requests
+  const subscrTransfer = await dbClient.insert(
     'user_subscription_account_transfers',
     {
       'account_transfer_id': transfer.id,
@@ -130,20 +152,20 @@ async function taxSubscribe (dbClient, userId, userSubscriptionId) {
     },
   );
 
-  log.info('user_subscription_account_transfer id is', subTransfer.id);
+  log.info('user_subscription_account_transfer id is', subscrTransfer.id);
 
-  return subTransfer;
+  return subscrTransfer;
 }
 
 async function registerTransferByAdmin (dbClient, accountTransferId, adminId) {
   assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   assertApp(
     typeof accountTransferId === 'number',
-    `expected accountTransferId to be number but got ${typeof accountTransferId} instead - ${accountTransferId}`
+    `expected accountTransferId to be number but got ${typeof accountTransferId} instead - ${accountTransferId}`,
   );
   assertApp(
     typeof adminId === 'number',
-    `expected adminId to be number but got ${typeof adminId} instead - ${adminId}`
+    `expected adminId to be number but got ${typeof adminId} instead - ${adminId}`,
   );
 
   log.info(`Registering transfer ${accountTransferId} from admin ${adminId}`);
@@ -165,5 +187,6 @@ module.exports = {
   depositCredits,
   taxUser,
   taxSubscribe,
+  subscriptionIsTaxed,
   registerTransferByAdmin,
 };
