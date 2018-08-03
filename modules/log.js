@@ -22,7 +22,7 @@ function debug (...messages) {
 
 function info (...messages) {
   if (shouldPrintLevel(INFO)) {
-    console.info(...messages);
+    console.info('INFO', ...messages);
   }
 }
 
