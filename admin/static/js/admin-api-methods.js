@@ -35,7 +35,7 @@ function getAdminAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -71,7 +71,7 @@ function getAdminAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -107,7 +107,7 @@ function getAdminAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -143,7 +143,7 @@ function getAdminAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -179,7 +179,7 @@ function getAdminAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -215,7 +215,7 @@ function getAdminAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -251,7 +251,7 @@ function getAdminAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
@@ -285,7 +285,7 @@ function getAdminAPIMethods (mainUtils) {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
         assertPeer(validateErrorRes(error), {
           msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template

@@ -165,17 +165,19 @@ function start () {
     saveButton.disabled = true;
 
     adminAPI.adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code === 2000) {
-        mainUtils.displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
-        saveButton.disabled = false;
+      saveButton.disabled = false;
 
+      if (result.status_code === '1000') {
         if (newEmail.length > 0) {
           userGlobal.email = newEmail;
         }
 
         renderUserRow('view', userGlobal);
         mainUtils.displayUserMessage('Successfully updated user!', 'success');
+      } else if (result.status_code === '2201') {
+        mainUtils.displayUserMessage('Edit user failed: Email is already taken.', 'error');
+      } else {
+        mainUtils.displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
     });
   };
@@ -199,10 +201,10 @@ function start () {
     };
 
     adminAPI.adminRemoveUser(removeUserParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code === 2000) {
-        mainUtils.displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
+      if (result.status_code === '1000') {
         window.location.replace('/users');
+      } else {
+        mainUtils.displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
     });
   };
@@ -446,12 +448,9 @@ function start () {
     };
 
     adminAPI.adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code === 2000) {
-        mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-        removeButton.disabled = false;
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
-        removeButton.disabled = false;
+      removeButton.disabled = false;
 
+      if (result.status_code === '1000') {
         subscriptions = subscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
           return subscription.id !== oldSubscription.id;
         });
@@ -467,6 +466,8 @@ function start () {
         }
 
         mainUtils.displayUserMessage('Successfully deleted user subscription!', 'success');
+      } else {
+        mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
     });
   };
@@ -512,9 +513,7 @@ function start () {
     adminAPI.adminEditSubscription(editSubscriptionParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
-      if (result.status_code < 1000 || result.status_code >= 2000) {
-        mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-      } else {
+      if (result.status_code === '1000') {
         const newSubscription = {
           id: oldSubscription.id,
           user: oldSubscription.user,
@@ -539,6 +538,8 @@ function start () {
         );
 
         mainUtils.displayUserMessage('Successfully edited user subscription!', 'success');
+      } else {
+        mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
     });
   };
@@ -571,7 +572,11 @@ function start () {
     adminAPI.adminAlterUserCredits(alterUserCreditsParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       submitButton.disabled = false;
 
-      if (result.status_code < 1000 || result.status_code >= 2000) {
+      if (result.status_code === '1000') {
+        userGlobal.credits += Number(userCreditsChange);
+        renderUserRow('view', userGlobal);
+        mainUtils.displayUserMessage('Successfully altered user credits!', 'success');
+      } else {
         const errCodeMsgMap = {
           2100: 'Invalid api key!',
           2101: 'User does not have enough credits for this transaction!',
@@ -585,10 +590,6 @@ function start () {
           userMessage: userMessage,
           msg: genericMessage,
         });
-      } else {
-        userGlobal.credits += Number(userCreditsChange);
-        renderUserRow('view', userGlobal);
-        mainUtils.displayUserMessage('Successfully altered user credits!', 'success');
       }
     });
   };

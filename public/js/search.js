@@ -6,6 +6,7 @@ function start () {
 
   const mainUtils = main();
   const assertApp = mainUtils.assertApp;
+  const assertPeer = mainUtils.assertPeer;
   const assertUser = mainUtils.assertUser;
   const trace = mainUtils.trace;
   const displayUserMessage = mainUtils.displayUserMessage;
@@ -284,14 +285,7 @@ function start () {
 
       event.preventDefault();
 
-      var formParams; // eslint-disable-line no-var
-
-      try {
-        formParams = getSearchFormParams($flightForm);
-      } catch (e) {
-        mainUtils.handleError(e);
-        return false;
-      }
+      const formParams = getSearchFormParams($flightForm);
 
       const airportFrom = getAirport(formParams.fly_from, airports); // eslint-disable-line no-var
       const airportTo = getAirport(formParams.fly_to, airports); // eslint-disable-line no-var
@@ -310,7 +304,25 @@ function start () {
       $submitBtn.prop('disabled', true);
 
       api.search(formParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-        // use lexicographical/ordinal string comparison
+        $submitBtn.prop('disabled', false);
+
+        const messages = {
+          '1000': 'Search success, results found.',
+          '1001': 'There is no information about such routes at the moment. But we will check for you. Please come back in 15 minutes.',
+          '1002': 'There is no information about such routes at the moment.',
+          '2000': 'Search input was not correct.',
+        };
+
+        assertPeer(typeof messages[result.status_code] === 'string', {
+          msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        });
+
+        const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
+        assertUser(result.status_code === '1000', {
+          userMessage: userMessage,
+          msg: 'Subscribe failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        });
+
         if (result.status_code === '1000') {
           displaySearchResult(
             result,
@@ -320,13 +332,9 @@ function start () {
               $flightItemTemplate: $flightItemTemplate,
             }
           );
-        } else if (result.status_code === '1001' || result.status_code === '1002') {
-          displayUserMessage('There is no information about this flight at the moment. Please come back in 15 minutes.', 'info');
         } else {
-          displayUserMessage('Search failed.', 'error');
+          displayUserMessage(messages[result.status_code], 'info');
         }
-
-        $submitBtn.prop('disabled', false);
       });
     });
 

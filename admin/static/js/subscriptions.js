@@ -617,9 +617,7 @@ function start () {
     adminAPI.adminEditSubscription(editSubscriptionParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
-      if (result.status_code < 1000 || result.status_code >= 2000) {
-        mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-      } else {
+      if (result.status_code === '1000') {
         const newSubscription = {
           id: oldSubscription.id,
           user: oldSubscription.user,
@@ -644,6 +642,8 @@ function start () {
         );
 
         mainUtils.displayUserMessage('Successfully edited user subscription!', 'success');
+      } else {
+        mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
     });
   };
@@ -665,11 +665,9 @@ function start () {
     };
 
     adminAPI.adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code === 2000) {
-        mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-      } else if (result.status_code >= 1000 && result.status_code < 2000) {
-        removeButton.disabled = false;
+      removeButton.disabled = false;
 
+      if (result.status_code === '1000') {
         userSubscriptions = userSubscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
           return subscription.id !== oldSubscription.id;
         });
@@ -684,6 +682,8 @@ function start () {
           hideUserSubscriptionsTable();
         }
         mainUtils.displayUserMessage('Successfully removed user subscription!', 'success');
+      } else {
+        mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
     });
   };
@@ -728,9 +728,7 @@ function start () {
     api.getAPIKey({
       v: '2.0',
     }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code < 1000 || result.status_code >= 2000) {
-        window.location.replace('/login');
-      } else {
+      if (result.status_code === '1000') {
         APIKeyRef.APIKey = result.api_key;
 
         const params = {
@@ -745,6 +743,8 @@ function start () {
           renderUserSubscriptions($('#user-subscriptions-table'));
           renderGuestSubscriptions($('#guest-subscriptions-table'));
         });
+      } else {
+        window.location.replace('/login');
       }
     });
 

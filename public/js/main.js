@@ -35,7 +35,7 @@ function main () {
       stack_trace: error.stack,
     }, 'jsonrpc');
 
-    handleError(messages, 'error');
+    handleError(messages);
   };
 
   const ApplicationError = function (messages) {
@@ -53,7 +53,9 @@ function main () {
   };
 
   const UserError = function (messages) {
-    BaseError.call(this, messages, true);
+    // 10% of user errors should be sent
+    const shouldSend = Math.floor(Math.random() * 10) === 0;
+    BaseError.call(this, messages, shouldSend);
   };
 
   const inherit = function (childClass, parentClass) {
@@ -108,8 +110,6 @@ function main () {
   };
 
   const handleError = function (error) {
-    console.log(error);
-
     if (error.userMessage) {
       displayUserMessage(error.userMessage, 'error');
     }
@@ -196,7 +196,7 @@ function main () {
         params: params,
       },
       protocolName: protocolName,
-    }, function (result, error) { // eslint-disable-line prefer-arrow-callback
+    }, function (error, result) { // eslint-disable-line
       assertPeer(validateSendErrorRes(result), {
         msg: 'Params do not adhere to sendErrorResponseSchema: ' + getValidatorMsg(validateSendErrorRes), // eslint-disable-line prefer-template
       });
@@ -216,7 +216,7 @@ function main () {
       if (xhr.readyState === window.XMLHttpRequest.DONE) {
         if (xhr.status === 200) {
           const responseParsed = parser.parseResponse(xhr.responseText);
-          callback(responseParsed.result || null, responseParsed.error || null); // TODO handle error;
+          callback(responseParsed.error || null, responseParsed.result || null); // TODO handle error;
         } else if (xhr.status !== 204) {
           handleError({
             userMessage: 'Service is not available at the moment due to network issues',
@@ -246,10 +246,6 @@ function main () {
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $messagesList = $('#messages-list');
-  });
-
-  window.addEventListener('error', function (error) { // eslint-disable-line prefer-arrow-callback
-    handleError(error);
   });
 
   return {
