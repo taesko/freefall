@@ -3,7 +3,6 @@ function getAPIMethods (mainUtils) {
   const assertPeer = mainUtils.assertPeer;
   const assertApp = mainUtils.assertApp;
 
-  const validateErrorRes = validators.getValidateErrorRes();
   const validateListSubscriptionsRes = validators.getValidateListSubscriptionsRes();
   const validateSubscribeReq = validators.getValidateSubscribeReq();
   const validateUnsubscribeReq = validators.getValidateUnsubscribeReq();
@@ -11,8 +10,10 @@ function getAPIMethods (mainUtils) {
   const validateUnsubscribeRes = validators.getValidateUnsubscribeRes();
   const validateListAirportsRes = validators.getValidateListAirportsRes();
   const validateGetAPIKeyRes = validators.getValidateGetAPIKeyRes();
-  const validateSearchReq = validators.getValidateSearchReq()
+  const validateSearchReq = validators.getValidateSearchReq();
   const validateSearchRes = validators.getValidateSearchRes();
+  const validateEditSubscriptionReq = validators.getValidateEditSubscriptionReq();
+  const validateEditSubscriptionRes = validators.getValidateEditSubscriptionRes();
 
   assertApp(_.isObject(mainUtils), 'Expected mainUtils arg of getAPIMethods to be an object, but was' + typeof mainUtils); // eslint-disable-line prefer-template
 
@@ -30,10 +31,6 @@ function getAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in listAirports:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -62,10 +59,6 @@ function getAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in subscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -97,10 +90,6 @@ function getAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in listSubscriptions:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -133,10 +122,6 @@ function getAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in unsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -157,7 +142,7 @@ function getAPIMethods (mainUtils) {
     mainUtils.trace('subscribe(' + JSON.stringify(params) + '), typeof arg=' + typeof params + ''); // eslint-disable-line prefer-template
 
     assertApp(validateSubscribeReq(params), {
-      msg: 'Params do not adhere to subscriptionRequestSchema: ' + mainUtils.getValidatorMsg(validateSubscribeReq), // eslint-disable-line prefer-template
+      msg: 'Params do not adhere to subscribeRequestSchema: ' + mainUtils.getValidatorMsg(validateSubscribeReq), // eslint-disable-line prefer-template
     });
 
     mainUtils.sendRequest({
@@ -169,10 +154,6 @@ function getAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in subscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -180,7 +161,39 @@ function getAPIMethods (mainUtils) {
       }
 
       assertPeer(validateSubscribeRes(result), {
-        msg: 'Params do not adhere to subscriptionResponseSchema: ' + mainUtils.getValidatorMsg(validateSubscribeRes), // eslint-disable-line prefer-template
+        msg: 'Params do not adhere to subscribeResponseSchema: ' + mainUtils.getValidatorMsg(validateSubscribeRes), // eslint-disable-line prefer-template
+      });
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
+
+  const editSubscription = function (params, protocolName, callback) {
+    mainUtils.trace('editSubscription');
+
+    assertApp(validateEditSubscriptionReq(params), {
+      msg: 'Params do not adhere to editSubscriptionRequestSchema: ' + mainUtils.getValidatorMsg(validateEditSubscriptionReq), // eslint-disable-line prefer-template
+    });
+
+    mainUtils.sendRequest({
+      url: mainUtils.SERVER_URL,
+      data: {
+        method: 'edit_subscription',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in editSubscription:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateEditSubscriptionRes(result), {
+        msg: 'Params do not adhere to editSubscriptionResponseSchema: ' + mainUtils.getValidatorMsg(validateEditSubscriptionRes), // eslint-disable-line prefer-template
       });
 
       setTimeout(function () { // eslint-disable-line prefer-arrow-callback
@@ -218,10 +231,6 @@ function getAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in search:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -273,5 +282,6 @@ function getAPIMethods (mainUtils) {
     unsubscribe: unsubscribe,
     subscribe: subscribe,
     search: search,
+    editSubscription: editSubscription,
   };
 }

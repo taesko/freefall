@@ -10,7 +10,7 @@ function start () {
   const assertUser = mainUtils.assertUser;
   const trace = mainUtils.trace;
   const displayUserMessage = mainUtils.displayUserMessage;
-
+  const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const api = getAPIMethods(mainUtils);
 
   var airports = []; // eslint-disable-line no-var
@@ -303,7 +303,7 @@ function start () {
 
       $submitBtn.prop('disabled', true);
 
-      api.search(formParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      api.search(formParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
         $submitBtn.prop('disabled', false);
 
         const messages = {
@@ -351,7 +351,7 @@ function start () {
 
     setupLoading($('#load-more-button'), $allRoutesList);
 
-    api.listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       airports = result.airports;
 
       const airportNames = airports.map(function (airport) { // eslint-disable-line prefer-arrow-callback

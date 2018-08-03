@@ -7,6 +7,7 @@ function start () {
   const assertUser = mainUtils.assertUser;
   const assertPeer = mainUtils.assertPeer;
   const assertApp = mainUtils.assertApp;
+  const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
 
   const api = getAPIMethods(mainUtils);
 
@@ -192,15 +193,23 @@ function start () {
 
     saveButton.disabled = true;
 
-    api.unsubscribe({
+    api.editSubscription({
       v: '2.0',
-      user_subscription_id: rowValues.id,
       api_key: APIKeyRef.APIKey,
-    }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+      user_subscription_id: rowValues.id,
+      fly_from: airportFromId,
+      fly_to: airportToId,
+      date_from: dateFrom,
+      date_to: dateTo,
+    }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      saveButton.disabled = false;
+
       const messages = {
-        '1000': 'Successfully unsubscribed!',
-        '2000': 'Could not find subscription to remove. Please, refresh the page and try again.',
-        '2100': 'Invalid unsubscribe parameters. Please, refresh the page and try again.',
+        '1000': 'Successfully edited subscription.',
+        '2000': 'Such subscription already exists.',
+        '2100': 'Bad request parameters format.',
+        '2101': 'Such route does not exist. Departure airport or arrival airport could not be found.',
+        '2102': 'Invalid dates. Date to can not be earlier than date from.',
         '2200': 'Your API key is incorrect, please contact tech support.',
       };
 
@@ -211,71 +220,40 @@ function start () {
       const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
       assertUser(result.status_code === '1000', {
         userMessage: userMessage,
-        msg: 'Subscribe failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        msg: 'Edit subscription failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
       });
 
-      mainUtils.trace('unsubscribe method success');
+      mainUtils.trace('edit subscription success');
 
-      api.subscribe({
-        v: '2.0',
-        fly_from: airportFromId,
-        fly_to: airportToId,
-        date_from: dateFrom,
-        date_to: dateTo,
-        api_key: APIKeyRef.APIKey,
-      }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-        saveButton.disabled = false;
+      subscriptions = subscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
+        if (subscription.id !== rowValues.id) {
+          return subscription;
+        }
 
-        const messages = {
-          '1000': 'Successfully subscribed.',
-          '2000': 'Already subscribed.',
-          '2001': 'You do not have enough credits.',
-          '2100': 'The entered dates and/or airports are not correct.',
-          '2200': 'Your API key is incorrect, please contact tech support.',
+        const newSubscription = {
+          id: result.subscription_id,
+          fly_from: airportFromId,
+          fly_to: airportToId,
+          date_from: dateFrom,
+          date_to: dateTo,
         };
 
-        assertPeer(typeof messages[result.status_code] === 'string', {
-          msg: 'Unexpected status code in profile edit subscription. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
-        });
+        rowIdSubscriptionMap[rowId] = newSubscription;
 
-        const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
-        assertUser(result.status_code === '1000', {
-          userMessage: userMessage,
-          msg: 'Subscribe failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
-        });
-
-        mainUtils.trace('subscribe method success');
-
-        subscriptions = subscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
-          if (subscription.id !== rowValues.id) {
-            return subscription;
-          }
-
-          const newSubscription = {
-            id: result.subscription_id,
-            fly_from: airportFromId,
-            fly_to: airportToId,
-            date_from: dateFrom,
-            date_to: dateTo,
-          };
-
-          rowIdSubscriptionMap[rowId] = newSubscription;
-
-          return newSubscription;
-        });
-
-        const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
-
-        renderRowViewMode(rowElement, [
-          airportFrom,
-          airportTo,
-          dateFrom,
-          dateTo,
-          'options',
-        ]);
-
-        mainUtils.displayUserMessage('Successfully edited subscription!', 'success');
+        return newSubscription;
       });
+
+      const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
+
+      renderRowViewMode(rowElement, [
+        airportFrom,
+        airportTo,
+        dateFrom,
+        dateTo,
+        'options',
+      ]);
+
+      mainUtils.displayUserMessage('Successfully edited subscription!', 'success');
     });
   };
 
@@ -310,7 +288,7 @@ function start () {
       v: '2.0',
       user_subscription_id: rowValues.id,
       api_key: APIKeyRef.APIKey,
-    }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       removeButton.disabled = false;
 
       const messages = {
@@ -392,7 +370,7 @@ function start () {
       date_from: dateFrom,
       date_to: dateTo,
       api_key: APIKeyRef.APIKey,
-    }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       subscribeBtn.disabled = false;
 
       const messages = {
@@ -441,6 +419,7 @@ function start () {
       $(newRow).attr('id', 'row-' + rowId); // eslint-disable-line prefer-template
 
       renderRowViewMode(newRow, rowValues);
+      mainUtils.displayUserMessage('Successfully subscribed!', 'success');
     });
   };
 
@@ -546,12 +525,12 @@ function start () {
 
     api.getAPIKey({
       v: '2.0',
-    }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
         APIKeyRef.APIKey = result.api_key;
         const $subscriptionsTable = $('#subscriptions-table');
 
-        api.listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+        api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
           airports = result.airports;
 
           const toAirportName = function (airport) { // eslint-disable-line prefer-arrow-callback
@@ -562,7 +541,7 @@ function start () {
 
           applyAutocomplete(airportNames);
 
-          api.listSubscriptions('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+          api.listSubscriptions(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
             subscriptions = result.subscriptions;
             renderSubscriptions($subscriptionsTable, subscriptions);
           });

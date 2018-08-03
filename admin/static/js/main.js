@@ -12,9 +12,9 @@ function main () {
   const SERVER_URL = '/api';
   // const SERVER_URL = 'http://127.0.0.1:3000';
   const MAX_TRACE = 300;
+  const PROTOCOL_NAME = 'jsonrpc';
   var $messagesList; // eslint-disable-line no-var
   const validateSendErrorReq = validators.getValidateSendErrorReq();
-  const validateSendErrorRes = validators.getValidateSendErrorRes();
   const APIKeyRef = {};
 
   const traceLog = [];
@@ -33,7 +33,7 @@ function main () {
       msg: messages.msg,
       trace: traceLog,
       stack_trace: error.stack,
-    }, 'jsonrpc');
+    }, PROTOCOL_NAME);
 
     handleError(messages);
   };
@@ -196,15 +196,19 @@ function main () {
         params: params,
       },
       protocolName: protocolName,
-    }, function (error, result) { // eslint-disable-line
-      assertPeer(validateSendErrorRes(result), {
-        msg: 'Params do not adhere to sendErrorResponseSchema: ' + getValidatorMsg(validateSendErrorRes), // eslint-disable-line prefer-template
-      });
     });
   };
 
   const sendRequest = function (requestData, callback) {
     trace('sendRequest');
+
+    assertApp(_.isObject(requestData), {
+      msg: 'Expected requestData in sendRequest to be an object, but was "' + typeof requestData + "'", // eslint-disable-line prefer-template
+    });
+
+    assertApp(!callback || typeof callback === 'function', {
+      msg: 'Expected callback to be falsey or function, but was "' + typeof callback + '"', // eslint-disable-line prefer-template
+    });
 
     var url = requestData.url; // eslint-disable-line no-var
     var data = requestData.data; // eslint-disable-line no-var
@@ -216,10 +220,12 @@ function main () {
       if (xhr.readyState === window.XMLHttpRequest.DONE) {
         if (xhr.status === 200) {
           const responseParsed = parser.parseResponse(xhr.responseText);
-          callback(responseParsed.error || null, responseParsed.result || null); // TODO handle error;
+          if (typeof callback === 'function') {
+            callback(responseParsed.error || null, responseParsed.result || null);
+          }
         } else if (xhr.status !== 204) {
           handleError({
-            userMessage: 'Service is not available at the moment due to network issues',
+            userMessage: 'Service is not available at the moment due to network or other issues.',
           });
         }
       }
@@ -265,6 +271,7 @@ function main () {
     getUniqueId: getUniqueId,
     getElementUniqueId: getElementUniqueId,
     SERVER_URL: SERVER_URL,
+    PROTOCOL_NAME: PROTOCOL_NAME,
     APIKeyRef: APIKeyRef,
   };
 }

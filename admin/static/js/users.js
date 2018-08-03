@@ -2,6 +2,7 @@ function start () {
   const mainUtils = main();
   const assertApp = mainUtils.assertApp;
   const getUniqueId = mainUtils.getUniqueId;
+  const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
   const api = getAPIMethods(mainUtils);
@@ -178,7 +179,7 @@ function start () {
       api_key: APIKey,
     };
 
-    adminAPI.adminRemoveUser(removeUserParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminRemoveUser(removeUserParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       removeButton.disabled = false;
 
       if (result.status_code === '1000') {
@@ -276,7 +277,7 @@ function start () {
     //   console.log(result);
     // }))
 
-    adminAPI.adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminEditUser(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
       if (result.status_code === '1000') {
@@ -300,7 +301,7 @@ function start () {
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     api.getAPIKey({
       v: '2.0',
-    }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
         APIKey = result.api_key;
 
@@ -309,7 +310,7 @@ function start () {
           api_key: APIKey,
         };
 
-        adminAPI.adminListUsers(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+        adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
           users = result.users;
 
           renderUsers($('#users-table'));

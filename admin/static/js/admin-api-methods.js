@@ -3,7 +3,6 @@ function getAdminAPIMethods (mainUtils) {
   const assertPeer = mainUtils.assertPeer;
   const assertApp = mainUtils.assertApp;
 
-  const validateErrorRes = validators.getValidateErrorRes();
   const validateAdminListSubscriptionsReq = adminValidators.getValidateAdminListSubscriptionsReq();
   const validateAdminListSubscriptionsRes = adminValidators.getValidateAdminListSubscriptionsRes();
   const validateAdminRemoveUserReq = adminValidators.getValidateAdminRemoveUserReq();
@@ -37,10 +36,6 @@ function getAdminAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in adminListUsers:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -73,10 +68,6 @@ function getAdminAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in adminRemoveUser:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -109,10 +100,6 @@ function getAdminAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in adminEditUser:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -145,10 +132,6 @@ function getAdminAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in adminListSubscriptions:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -181,10 +164,6 @@ function getAdminAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in adminSubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -217,10 +196,6 @@ function getAdminAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in adminUnsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -253,10 +228,6 @@ function getAdminAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in adminUnsubscribe:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
@@ -287,10 +258,6 @@ function getAdminAPIMethods (mainUtils) {
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        assertPeer(validateErrorRes(error), {
-          msg: 'Params do not adhere to errorResponseSchema: ' + mainUtils.getValidatorMsg(validateErrorRes), // eslint-disable-line prefer-template
-        });
-
         mainUtils.trace('Error in adminAlterUserCredits:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,

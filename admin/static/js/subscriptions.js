@@ -4,6 +4,7 @@ function start () {
   const assertUser = mainUtils.assertUser;
   const UserError = mainUtils.UserError;
   const APIKeyRef = mainUtils.APIKeyRef;
+  const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
   const api = getAPIMethods(mainUtils);
@@ -614,7 +615,7 @@ function start () {
       date_to: dateTo,
     };
 
-    adminAPI.adminEditSubscription(editSubscriptionParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminEditSubscription(editSubscriptionParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
       if (result.status_code === '1000') {
@@ -664,7 +665,7 @@ function start () {
       api_key: APIKeyRef.APIKey,
     };
 
-    adminAPI.adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminUnsubscribe(unsubscribeParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       removeButton.disabled = false;
 
       if (result.status_code === '1000') {
@@ -727,7 +728,7 @@ function start () {
 
     api.getAPIKey({
       v: '2.0',
-    }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
         APIKeyRef.APIKey = result.api_key;
 
@@ -736,7 +737,7 @@ function start () {
           api_key: APIKeyRef.APIKey,
         };
 
-        adminAPI.adminListSubscriptions(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+        adminAPI.adminListSubscriptions(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
           userSubscriptions = result.user_subscriptions;
           guestSubscriptions = result.guest_subscriptions;
 
@@ -748,7 +749,7 @@ function start () {
       }
     });
 
-    api.listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       airports = result.airports;
 
       const toAirportName = function (airport) { // eslint-disable-line prefer-arrow-callback
