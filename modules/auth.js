@@ -73,9 +73,11 @@ async function register (ctx, email, password) {
 
 async function isLoggedIn (ctx) {
   const id = ctx.session.userID;
-  const user = await users.fetchUser(ctx.state.dbClient, { userId: id });
 
-  return (id != null && user != null);
+  return (
+    id != null &&
+    await users.fetchUser(ctx.state.dbClient, { userId: id }) != null
+  );
 }
 
 async function getLoggedInUser (ctx) {
