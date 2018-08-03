@@ -11,8 +11,8 @@ function main () {
 
   const SERVER_URL = '/api';
   // const SERVER_URL = 'http://127.0.0.1:3000';
-  const MAX_TRACE = 300;
   const PROTOCOL_NAME = 'jsonrpc';
+  const MAX_TRACE = 300;
   var $messagesList; // eslint-disable-line no-var
   const validateSendErrorReq = validators.getValidateSendErrorReq();
   const APIKeyRef = {};

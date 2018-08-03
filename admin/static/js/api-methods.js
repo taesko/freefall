@@ -97,7 +97,7 @@ function getAPIMethods (mainUtils) {
       }
 
       assertPeer(validateListSubscriptionsRes(result), {
-        msg: 'Params do not adhere to validateSubscriptionsResponseSchema: ' + mainUtils.getValidatorMsg(validateListSubscriptionsRes), // eslint-disable-line prefer-template
+        msg: 'Params do not adhere to listSubscriptionsResponseSchema: ' + mainUtils.getValidatorMsg(validateListSubscriptionsRes), // eslint-disable-line prefer-template
       });
 
       setTimeout(function () { // eslint-disable-line prefer-arrow-callback
