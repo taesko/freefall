@@ -833,7 +833,9 @@ async function adminAlterUserCredits (params, dbClient) {
 
   let accountTransfer;
 
-  if (params.credits_difference > 0) {
+  if (params.credits_difference === 0) {
+    return { status_code: '1000' }; // TODO does not fail when user id does not exist.
+  } else if (params.credits_difference > 0) {
     try {
       accountTransfer = await accounting.depositCredits(
         dbClient,
