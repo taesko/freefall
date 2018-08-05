@@ -8,6 +8,7 @@ const moment = require('moment');
 const subscriptions = require('../modules/subscriptions');
 const users = require('../modules/users');
 const accounting = require('../modules/accounting');
+const MAX_CREDITS_DIFFERENCE = Math.pow(10, 12);
 
 const API_METHODS = {
   search,
@@ -824,6 +825,9 @@ async function adminAlterUserCredits (params, dbClient) {
       status_code: '2103', // user not found or parameter error ?
     };
   }
+  if (!Number.isInteger(+params.credits_difference)) {
+    return { status_code: '2103' };
+  }
 
   const adminId = await users.fetchUser(dbClient, { apiKey: params.api_key })
     .then(user => { return user == null ? null : user.id; });
@@ -833,8 +837,10 @@ async function adminAlterUserCredits (params, dbClient) {
 
   let accountTransfer;
 
-  if (params.credits_difference === 0) {
-    return { status_code: '1000' }; // TODO does not fail when user id does not exist.
+  if (Math.abs(+params.credits_difference) > MAX_CREDITS_DIFFERENCE) {
+    return { status_code: '2103' }; // TODO set a new status code at the front end
+  } else if (params.credits_difference === 0) {
+    return { status_code: '2103' }; // TODO does not fail when user id does not exist.
   } else if (params.credits_difference > 0) {
     try {
       accountTransfer = await accounting.depositCredits(
