@@ -113,7 +113,7 @@ router.post('/login', auth.redirectWhenLoggedIn('/'), async (ctx) => {
     }
   }
 
-  return ctx.redirect('/login', { error_message: ctx.state.login_error_message });
+  return ctx.render('login.html', await getAdminContext(ctx, 'get', '/login'));
 });
 
 router.get(
