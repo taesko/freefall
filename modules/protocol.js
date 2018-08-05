@@ -1,8 +1,10 @@
 const { assertApp } = require('./error-handling');
+const log = require('./log');
 
 function normalizeRequest (requestObject) {
   // TODO modularize if
-  if (Object.hasOwnProperty(requestObject, 'yamlrpc')) {
+  if (requestObject.hasOwnProperty('yamlrpc')) {
+    log.debug('guessing that request is in yamlrpc format');
     return {
       jsonrpc: requestObject.yamlrpc,
       method: requestObject.action,
