@@ -283,10 +283,12 @@ function start () {
       const messagesByCode = {
         '1000': 'Successfully updated user!',
         '2001': 'Email is taken.',
+        '2000': 'An error occurred and could not edit user credentials.',
         '2100': 'You have an invalid api key.',
         '2201': 'Email is too short.',
         '2202': 'Password is too short.',
         '2203': 'Email is not valid.',
+        '2204': 'Email is taken',
       };
       const defaultErrorMessage = 'Edit user failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
 

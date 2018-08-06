@@ -794,6 +794,8 @@ async function adminEditUser (params, dbClient) {
       statusCode = '2201';
     } else if (e.code === 'FF_SHORT_PASSWORD') {
       statusCode = '2202';
+    } else if (e.code === errorCodes.emailTaken) {
+      statusCode = '2204';
     } else if (e instanceof PeerError) {
       statusCode = '2000';
     } else {
