@@ -2,8 +2,8 @@ const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
 const SEARCH_MONTHS_AHEAD = 1;
 const DEFAULT_PRICE_TO = 100000;
 const { assertPeer, assertApp, PeerError, errorCodes } = require('../modules/error-handling');
-const { toSmallestCurrencyUnit, fromSmallestCurrencyUnit } = require('../modules/utils');
-const { isObject, each, forOwn } = require('lodash');
+const { toSmallestCurrencyUnit } = require('../modules/utils');
+const { isObject } = require('lodash');
 const log = require('../modules/log');
 const auth = require('../modules/auth');
 const moment = require('moment');
@@ -101,8 +101,6 @@ async function search (params, dbClient) {
     LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
     LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
     WHERE
-        afrom.id = $1 AND
-        ato.id = $2 AND
         flights.dtime >= $3::date AND
         flights.atime <= $4::date AND
         routes.price <= $5 AND
@@ -115,7 +113,7 @@ async function search (params, dbClient) {
             subscriptions.airport_from_id = $1 AND
             subscriptions.airport_to_id = $2 AND
             fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
-        );
+        )
     `,
     [flyFrom, flyTo, dateFrom, dateTo, priceTo], // 100 - cents into dollars
   );
@@ -158,6 +156,16 @@ async function search (params, dbClient) {
     flightsPerRoute[route_id].sort((flightA, flightB) => {
       return flightA.dtime - flightB.dtime;
     });
+
+    const flightCount = flightsPerRoute[route_id].length;
+    const first = flightsPerRoute[route_id][0];
+    const last = flightsPerRoute[route_id][flightCount - 1];
+    const departureAirport = first.airport_from_id;
+    const arrivalAirport = last.airport_to_id;
+
+    if (departureAirport !== flyFrom || arrivalAirport !== flyTo) {
+      continue;
+    }
 
     log.debug('length of flights per route is', route_id, flightsPerRoute[route_id].length);
     log.debug('flightPerRoute with id is', route_id, flightsPerRoute[route_id]);
