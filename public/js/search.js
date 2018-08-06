@@ -253,7 +253,6 @@ function start () {
 
     searchFormParams.fly_from = airportFrom.id;
     searchFormParams.fly_to = airportTo.id;
-    searchFormParams.format = formData.format;
 
     if (formData['price-to']) {
       searchFormParams.price_to = parseInt(formData['price-to']);
