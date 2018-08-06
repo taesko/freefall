@@ -56,7 +56,7 @@ CREATE TABLE subscriptions_fetches (
 
 CREATE TABLE users (
   id serial PRIMARY KEY NOT NULL,
-  email text NOT NULL CONSTRAINT email_length CHECK (char_length(email) > 3),
+  email text NOT NULL CONSTRAINT check_email_length CHECK (char_length(email) >= 3),
   password text NOT NULL,
   api_key text UNIQUE NOT NULL,
   role user_role NOT NULL,

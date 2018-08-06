@@ -280,6 +280,24 @@ function start () {
     adminAPI.adminEditUser(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
+      const messagesByCode = {
+        '1000': 'Successfully updated user!',
+        '2001': 'Email is taken.',
+        '2100': 'You have an invalid api key.',
+        '2201': 'Email is too short.',
+        '2202': 'Password is too short.',
+        '2203': 'Email is not valid.',
+      };
+      const defaultErrorMessage = 'Edit user failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+
+      var message; // eslint-disable-line no-var
+
+      if (messagesByCode[result.status_code] == null) {
+        message = defaultErrorMessage;
+      } else {
+        message = messagesByCode[result.status_code];
+      }
+
       if (result.status_code === '1000') {
         const newUser = {
           id: user.id,
@@ -291,9 +309,9 @@ function start () {
           newUser,
           $('#user-' + rowId) // eslint-disable-line prefer-template
         );
-        mainUtils.displayUserMessage('Successfully updated user!', 'success');
+        mainUtils.displayUserMessage(message, 'success');
       } else {
-        mainUtils.displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        mainUtils.displayUserMessage(message, 'error'); // eslint-disable-line prefer-template
       }
     });
   };

@@ -774,6 +774,10 @@ async function adminEditUser (params, dbClient) {
     password = users.hashPassword(params.password);
   }
 
+  if (email.indexOf('@') === -1) {
+    return { status_code: '2203' };
+  }
+
   try {
     await users.editUser(
       dbClient,
