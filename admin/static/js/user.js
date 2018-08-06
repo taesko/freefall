@@ -1,9 +1,10 @@
 function start () {
   const mainUtils = main();
   const assertApp = mainUtils.assertApp;
+  const assertPeer = mainUtils.assertPeer;
   const assertUser = mainUtils.assertUser;
   const UserError = mainUtils.UserError;
-
+  const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const APIKeyRef = mainUtils.APIKeyRef;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
@@ -164,21 +165,30 @@ function start () {
 
     saveButton.disabled = true;
 
-    adminAPI.adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminEditUser(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
-      if (result.status_code === '1000') {
-        if (newEmail.length > 0) {
-          userGlobal.email = newEmail;
-        }
+      const messages = {
+        '1000': 'Successfully updated user!',
+        '2201': 'Edit user failed: Email is already taken.',
+      };
 
-        renderUserRow('view', userGlobal);
-        mainUtils.displayUserMessage('Successfully updated user!', 'success');
-      } else if (result.status_code === '2201') {
-        mainUtils.displayUserMessage('Edit user failed: Email is already taken.', 'error');
-      } else {
-        mainUtils.displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+      assertPeer(typeof messages[result.status_code] === 'string', {
+        msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
+
+      const userMessage = messages[result.status_code] || 'Edit user failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+      assertUser(result.status_code === '1000', {
+        userMessage: userMessage,
+        msg: 'Edit user failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
+
+      if (newEmail.length > 0) {
+        userGlobal.email = newEmail;
       }
+
+      renderUserRow('view', userGlobal);
+      mainUtils.displayUserMessage('Successfully updated user!', 'success');
     });
   };
 
@@ -200,7 +210,7 @@ function start () {
       api_key: APIKeyRef.APIKey,
     };
 
-    adminAPI.adminRemoveUser(removeUserParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminRemoveUser(removeUserParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
         window.location.replace('/users');
       } else {
@@ -447,7 +457,7 @@ function start () {
       api_key: APIKeyRef.APIKey,
     };
 
-    adminAPI.adminUnsubscribe(unsubscribeParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminUnsubscribe(unsubscribeParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       removeButton.disabled = false;
 
       if (result.status_code === '1000') {
@@ -510,7 +520,7 @@ function start () {
       date_to: dateTo,
     };
 
-    adminAPI.adminEditSubscription(editSubscriptionParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminEditSubscription(editSubscriptionParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
       if (result.status_code === '1000') {
@@ -569,38 +579,39 @@ function start () {
       credits_difference: Number(userCreditsChange),
     };
 
-    adminAPI.adminAlterUserCredits(alterUserCreditsParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminAlterUserCredits(alterUserCreditsParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       submitButton.disabled = false;
+      $('#user-credits-change').val(0);
 
-      if (result.status_code === '1000') {
-        userGlobal.credits += Number(userCreditsChange);
-        renderUserRow('view', userGlobal);
-        mainUtils.displayUserMessage('Successfully altered user credits!', 'success');
-      } else {
-        const errCodeMsgMap = {
-          2100: 'Invalid api key!',
-          2101: 'User does not have enough credits for this transaction!',
-          2102: 'User not found',
-        };
+      const messages = {
+        '1000': 'Successfully altered user credits!',
+        '2100': 'Invalid api key!',
+        '2101': 'User does not have enough credits for this transaction!',
+        '2102': 'User not found',
+        '2103': 'Invalid credits value.',
+      };
 
-        const genericMessage = 'Alter user credits failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
-        const userMessage = errCodeMsgMap[result.status_code] || genericMessage;
+      assertPeer(typeof messages[result.status_code] === 'string', {
+        msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
 
-        throw new UserError({
-          userMessage: userMessage,
-          msg: genericMessage,
-        });
-      }
+      const userMessage = messages[result.status_code] || 'Alter user credits failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+      assertUser(result.status_code === '1000', {
+        userMessage: userMessage,
+        msg: 'Edit user failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
+
+      userGlobal.credits += Number(userCreditsChange);
+      renderUserRow('view', userGlobal);
+      mainUtils.displayUserMessage('Successfully altered user credits!', 'success');
     });
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     api.getAPIKey({
       v: '2.0',
-    }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code < 1000 || result.status_code >= 2000) {
-        window.location.replace('/login');
-      } else {
+    }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      if (result.status_code === '1000') {
         APIKeyRef.APIKey = result.api_key;
 
         const params = {
@@ -609,7 +620,7 @@ function start () {
           api_key: APIKeyRef.APIKey,
         };
 
-        api.listAirports('jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+        api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
           airports = result.airports;
 
           const adminListSubscriptionsCallback = function (result) {
@@ -618,8 +629,10 @@ function start () {
             renderUserSubscriptions($('#user-subscriptions-table'));
           };
 
-          adminAPI.adminListSubscriptions(params, 'jsonrpc', adminListSubscriptionsCallback);
+          adminAPI.adminListSubscriptions(params, PROTOCOL_NAME, adminListSubscriptionsCallback);
         });
+      } else {
+        window.location.replace('/login');
       }
     });
 

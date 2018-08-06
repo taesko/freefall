@@ -529,4 +529,61 @@ const validators = { // eslint-disable-line no-unused-vars
     };
     return ajv.compile(getAPIKeyResponseSchema);
   },
+
+  getValidateEditSubscriptionReq: function () {
+    const editSubscriptionRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/edit_subscription',
+      'title': 'Body of the edit_subscription API method sent from the client',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+        },
+        'api_key': {
+          'type': 'string',
+        },
+        'user_subscription_id': {
+          'type': 'string',
+        },
+        'fly_from': {
+          'type': 'string',
+        },
+        'fly_to': {
+          'type': 'string',
+        },
+        'date_from': {
+          'type': 'string',
+        },
+        'date_to': {
+          'type': 'string',
+        },
+      },
+      'required': [
+        'v',
+        'user_subscription_id',
+        'api_key',
+        'fly_from',
+        'fly_to',
+        'date_from',
+        'date_to',
+      ],
+    };
+    return ajv.compile(editSubscriptionRequestSchema);
+  },
+
+  getValidateEditSubscriptionRes: function () {
+    const editSubscriptionResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/edit_subscription',
+      'title': 'API response of edit_subscription method',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'type': 'string',
+        },
+      },
+    };
+    return ajv.compile(editSubscriptionResponseSchema);
+  },
 };

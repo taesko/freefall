@@ -15,6 +15,9 @@ addContextForRoute('get', '/profile', profilePageContext);
 addContextForRoute('get', '/transfers', accountTransfersContext);
 
 const adminContextFunctions = {};
+const addAdminContext = defineContextAdder(adminContextFunctions);
+
+addAdminContext('get', '/login', loginPageContext);
 
 async function defaultContext (appCtx) {
   if (await auth.isLoggedIn(appCtx)) {
@@ -68,13 +71,13 @@ function registerPageContext (appCtx) {
   };
 }
 
-async function profilePageContext () {
+function profilePageContext () {
   return {
     item: 'profile',
   };
 }
 
-async function accountTransfersContext () {
+function accountTransfersContext () {
   return {
     item: 'transfers',
   };

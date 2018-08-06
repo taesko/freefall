@@ -2,6 +2,7 @@ function start () {
   const mainUtils = main();
   const assertApp = mainUtils.assertApp;
   const getUniqueId = mainUtils.getUniqueId;
+  const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
   const api = getAPIMethods(mainUtils);
@@ -178,7 +179,7 @@ function start () {
       api_key: APIKey,
     };
 
-    adminAPI.adminRemoveUser(removeUserParams, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminRemoveUser(removeUserParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       removeButton.disabled = false;
 
       if (result.status_code === '1000') {
@@ -276,8 +277,28 @@ function start () {
     //   console.log(result);
     // }))
 
-    adminAPI.adminEditUser(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    adminAPI.adminEditUser(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
+
+      const messagesByCode = {
+        '1000': 'Successfully updated user!',
+        '2001': 'Email is taken.',
+        '2000': 'An error occurred and could not edit user credentials.',
+        '2100': 'You have an invalid api key.',
+        '2201': 'Email is too short.',
+        '2202': 'Password is too short.',
+        '2203': 'Email is not valid.',
+        '2204': 'Email is taken',
+      };
+      const defaultErrorMessage = 'Edit user failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+
+      var message; // eslint-disable-line no-var
+
+      if (messagesByCode[result.status_code] == null) {
+        message = defaultErrorMessage;
+      } else {
+        message = messagesByCode[result.status_code];
+      }
 
       if (result.status_code === '1000') {
         const newUser = {
@@ -290,9 +311,9 @@ function start () {
           newUser,
           $('#user-' + rowId) // eslint-disable-line prefer-template
         );
-        mainUtils.displayUserMessage('Successfully updated user!', 'success');
+        mainUtils.displayUserMessage(message, 'success');
       } else {
-        mainUtils.displayUserMessage('Edit user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        mainUtils.displayUserMessage(message, 'error'); // eslint-disable-line prefer-template
       }
     });
   };
@@ -300,7 +321,7 @@ function start () {
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     api.getAPIKey({
       v: '2.0',
-    }, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+    }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
         APIKey = result.api_key;
 
@@ -309,7 +330,7 @@ function start () {
           api_key: APIKey,
         };
 
-        adminAPI.adminListUsers(params, 'jsonrpc', function (result) { // eslint-disable-line prefer-arrow-callback
+        adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
           users = result.users;
 
           renderUsers($('#users-table'));

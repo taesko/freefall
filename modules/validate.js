@@ -60,29 +60,6 @@ function getSchemaId (type, name) {
   return id;
 }
 
-function validateProtocol (obj, protocol = 'jsonrpc', type = 'request') {
-  assertPeer(
-    ajv.validate(getSchemaId(type, protocol), obj),
-    `Bad protocol. Error: ${ajv.errorsText()}`,
-  );
-}
-
-function validateRequest (requestBody, protocol = 'jsonrpc') {
-  validateProtocol(requestBody, protocol, 'request');
-
-  log.info('Validating request for method', requestBody.method);
-
-  const method = requestBody.method;
-  const apiParams = requestBody.params;
-  const schemaName = getSchemaId('request', method);
-
-  log.debug('Using schema', schemaName);
-
-  assertPeer(ajv.validate(schemaName, apiParams),
-    `Invalid params for method ${method}. Error: ${ajv.errorsText()}`,
-  );
-}
-
 function validateRequestFormat ({ headerParam, queryParam }) {
   const [contentFormat] = headerParam.split(';'); // ignore charset:utf-8
   const headerFormat = FORMATS[contentFormat];
@@ -102,21 +79,42 @@ function validateRequestFormat ({ headerParam, queryParam }) {
   return headerFormat || queryFormat;
 }
 
-function validateResponse (responseBody, method, protocol = 'jsonrpc') {
-  log.info('Validating response for method', method, 'by protocol', protocol);
-  validateProtocol(responseBody, protocol, 'response');
+function validateProtocol (obj, protocol = 'jsonrpc', type = 'request') {
+  const assert = (type === 'request') ? assertPeer : assertApp;
 
-  log.debug('Validating body response for method', method, 'body: ', responseBody);
-  const schemaName = (responseBody.error == null) ? method : 'error';
-  const schemaId = getSchemaId('response', schemaName);
+  assert(
+    ajv.validate(getSchemaId(type, protocol), obj),
+    `Bad protocol. Error: ${ajv.errorsText()}`,
+  );
+}
+
+function validateAPIRequest (method, params) {
+  log.info('Validating request for method', method);
+
+  const schemaName = getSchemaId('request', method);
+
+  log.debug('Using schema', schemaName);
+
+  assertPeer(ajv.validate(schemaName, params),
+    `Invalid params for method ${method}. Error: ${ajv.errorsText()}`,
+  );
+}
+
+function validateAPIResponse (apiResult, method) {
+  log.info('Validating response for method', method);
+  log.debug('apiResult is: ', apiResult);
+
+  const schemaId = getSchemaId('response', method);
+
   assertApp(
-    ajv.validate(schemaId, responseBody.error || responseBody.result),
+    ajv.validate(schemaId, apiResult),
     `invalid error response for method ${method}. Error: ${ajv.errorsText()}`,
   );
 }
 
 module.exports = {
-  validateRequest,
-  validateResponse,
+  validateProtocol,
+  validateAPIRequest,
+  validateAPIResponse,
   validateRequestFormat,
 };

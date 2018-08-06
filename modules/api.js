@@ -1,5 +1,10 @@
 const { defineParsers, jsonParser, yamlParser } = require('./normalize');
-const { validateRequest, validateRequestFormat, validateResponse } = require('./validate');
+const {
+  validateRequestFormat,
+  validateProtocol,
+  validateAPIRequest,
+  validateAPIResponse,
+} = require('./validate');
 const { PeerError, UserError, assertPeer, assertApp } = require('./error-handling');
 const compose = require('koa-compose');
 const methods = require('../methods/resolve-method');
@@ -24,10 +29,20 @@ async function errorHandling (ctx, next) {
     }
   } catch (err) {
     ctx.status = 200;
-    const format = validateRequestFormat({
-      headerParam: ctx.headers['content-type'],
-      queryParam: ctx.query.format,
-    });
+    let format;
+
+    try {
+      format = validateRequestFormat({
+        headerParam: ctx.headers['content-type'],
+        queryParam: ctx.query.format,
+      });
+    } catch (e) {
+      if (e instanceof PeerError) {
+        format = 'json';
+      } else {
+        throw e;
+      }
+    }
     const protocol = `${format}rpc`;
     const version = '1.0';
     const id = ctx.state.api.requestId || 1; // TODO ignore for now
@@ -71,17 +86,23 @@ async function api (ctx, next) {
   const parsed = format === 'json' ? ctx.request.body : multiParser.parse(ctx.request.body, format);
   ctx.state.api.requestId = parsed.id;
 
-  validateRequest(parsed, protocol);
+  validateProtocol(parsed, protocol, 'request');
 
   // TODO modularize and pass a format/protocol parameter
-  const requestBody = normalizeRequest(parsed);
+  const { method, params, id, jsonrpc: version } = normalizeRequest(parsed);
 
-  log.info('Executing method', requestBody.method);
-  log.debug('With params: ', requestBody.params);
+  validateAPIRequest(method, params);
+
+  log.info(
+    'Executing method=', method,
+    'with params=', params,
+    'Request id', id,
+    'version', version,
+  );
 
   const result = await methods.execute({
-    methodName: requestBody.method,
-    params: requestBody.params,
+    methodName: method,
+    params: params,
     db: ctx.state.dbClient,
     appCtx: ctx,
   });
@@ -91,20 +112,16 @@ async function api (ctx, next) {
     ctx.state.api.caughtPeerError = true;
   }
 
+  validateAPIResponse(result, method, `${format}rpc`);
+
   const responseBody = buildRPCResponse({
     protocol,
-    id: requestBody.id,
-    version: requestBody.jsonrpc,
+    id,
+    version,
     resultObject: result,
   });
 
-  // TODO move inside validate
-  try {
-    validateResponse(responseBody, parsed.method, `${format}rpc`);
-  } catch (e) {
-    log.critical('Build an invalid response: ', responseBody);
-    throw e;
-  }
+  validateProtocol(responseBody, protocol, 'response');
   ctx.status = 200;
   ctx.body = multiParser.stringify(responseBody, format);
   ctx.type = 'application/json';
