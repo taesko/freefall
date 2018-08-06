@@ -1,5 +1,5 @@
 const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
-const SEARCH_YEARS_AHEAD = 1;
+const SEARCH_MONTHS_AHEAD = 1;
 const DEFAULT_PRICE_TO = 100000;
 const { assertPeer, assertApp, PeerError, errorCodes } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit, fromSmallestCurrencyUnit } = require('../modules/utils');
@@ -35,10 +35,23 @@ const API_METHODS = {
 async function search (params, dbClient) {
   const flyFrom = +params.fly_from;
   const flyTo = +params.fly_to;
-  const dateFrom = moment(params.date_from).format(SERVER_TIME_FORMAT) ||
-                   moment().format(SERVER_TIME_FORMAT);
-  const dateTo = moment(params.date_to).format(SERVER_TIME_FORMAT) ||
-                 moment().add(SEARCH_YEARS_AHEAD, 'years').format(SERVER_TIME_FORMAT);
+
+  let dateFrom;
+
+  if (params.date_from) {
+    dateFrom = moment(params.date_from).format(SERVER_TIME_FORMAT);
+  } else {
+    dateFrom = moment().format(SERVER_TIME_FORMAT);
+  }
+
+  let dateTo;
+
+  if (params.date_to) {
+    dateTo = moment(params.date_to).format(SERVER_TIME_FORMAT);
+  } else {
+    dateTo = moment().add(SEARCH_MONTHS_AHEAD, 'months').format(SERVER_TIME_FORMAT);
+  }
+
   const priceTo = toSmallestCurrencyUnit(params.price_to || DEFAULT_PRICE_TO);
   const currency = params.currency;
   const maxFlightDuration = params.max_fly_duration;
@@ -71,10 +84,10 @@ async function search (params, dbClient) {
       routes.price,
       airlines.name AS airline_name,
       airlines.logo_url AS airline_logo,
-      -- afrom.name AS afrom_name,
-      -- ato.name AS ato_name,
-      afrom.id::text AS airport_from,
-      ato.id::text AS airport_to,
+      afrom.name::text AS airport_from,
+      ato.name::text AS airport_to,
+      afrom.id AS airport_from_id,
+      ato.id AS airport_to_id,
       to_char(flights.dtime::timestamp, 'YYYY-MM-DD"T"HH24:MI:SSZ') dtime,
       to_char(flights.atime::timestamp, 'YYYY-MM-DD"T"HH24:MI:SSZ') atime,
       flights.flight_number AS flight_number,
@@ -88,9 +101,11 @@ async function search (params, dbClient) {
     LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
     LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
     WHERE
-        flights.dtime > $3::date AND
-        flights.atime < $4::date AND
-        routes.price < $5 AND
+        afrom.id = $1 AND
+        ato.id = $2 AND
+        flights.dtime >= $3::date AND
+        flights.atime <= $4::date AND
+        routes.price <= $5 AND
         fetches.id IN (
           SELECT fetches.id
           FROM subscriptions_fetches
@@ -111,7 +126,6 @@ async function search (params, dbClient) {
   const flightsPerRoute = {};
 
   for (const routeFlight of routesAndFlights) {
-    log.debug('routeFlight is', routeFlight);
     assertApp(isObject(routeFlight));
     assertApp(Number.isInteger(+routeFlight.route_id));
     assertApp(typeof routeFlight.booking_token === 'string');
@@ -132,7 +146,7 @@ async function search (params, dbClient) {
   const routes = [];
 
   // eslint-disable-next-line camelcase
-  for (const { route_id } of routesAndFlights) {
+  for (const route_id of Object.keys(flightsPerRoute)) {
     const totalDurationMS = flightsPerRoute[route_id].reduce(
       (total, flight) => total + (flight.atime - flight.atime),
       0,
@@ -145,10 +159,12 @@ async function search (params, dbClient) {
       return flightA.dtime - flightB.dtime;
     });
 
-    log.debug('SEARCH METHOD ROUTE', flightsPerRoute[route_id]);
+    log.debug('length of flights per route is', route_id, flightsPerRoute[route_id].length);
+    log.debug('flightPerRoute with id is', route_id, flightsPerRoute[route_id]);
     routes.push({ ...routesMeta[route_id], route: flightsPerRoute[route_id] });
   }
 
+  log.debug('list of routes is', routes);
   routes.sort((routeA, routeB) => {
     return routeA.price - routeB.price;
   });
