@@ -4,6 +4,12 @@ const errors = require('./error-handling');
 const log = require('./log');
 
 const API_KEY = process.env.DALIPECHE_API_KEY || 'I292zV60xqRltH3c';
+const DALIPECHE_ADDRESS = process.env.DALIPECHE_ADDRESS;
+const DALIPECHE_PORT = process.env.DALIPECHE_PORT;
+errors.assertApp(
+  DALIPECHE_ADDRESS && DALIPECHE_PORT,
+  'DALIPECHE_ADDRESS and/or DALIPECHE_PORT env variables are not set.',
+);
 
 errors.assertApp(
   API_KEY,
@@ -13,8 +19,8 @@ errors.assertApp(
 
 function buildPostRequestOptions (body) {
   return {
-    hostname: '10.20.1.137',
-    port: '3001',
+    hostname: DALIPECHE_ADDRESS,
+    port: DALIPECHE_PORT,
     path: '/api/forecast',
     method: 'POST',
     headers: {
