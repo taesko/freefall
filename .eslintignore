@@ -1,3 +1,13 @@
 public/js/jquery
+public/js/jquery-ui.min.js
 public/js/js-yaml
+public/js/ajv.min.js
+public/js/lodash
 public/css
+node_modules
+admin/static/js/jquery
+admin/static/js/js-yaml
+admin/static/css
+admin/static/js/jquery-ui.min.js
+admin/static/js/ajv.min.js
+admin/static/js/lodash

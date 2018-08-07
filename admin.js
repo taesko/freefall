@@ -289,8 +289,10 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
       user_transferrer_email: row.user_transferrer_email,
       user_subscr_airport_from_name: row.user_subscr_airport_from_name,
       user_subscr_airport_to_name: row.user_subscr_airport_to_name,
-      user_subscr_date_from: row.user_subscr_date_from && row.user_subscr_date_from.toISOString(),
-      user_subscr_date_to: row.user_subscr_date_to && row.user_subscr_date_to.toISOString(),
+      user_subscr_date_from: row.user_subscr_date_from &&
+        row.user_subscr_date_from.toISOString(),
+      user_subscr_date_to: row.user_subscr_date_to &&
+        row.user_subscr_date_to.toISOString(),
       subscr_airport_from_name: row.subscr_airport_from_name,
       subscr_airport_to_name: row.subscr_airport_to_name,
       fetch_time: row.fetch_time && row.fetch_time.toISOString(),

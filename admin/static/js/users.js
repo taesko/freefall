@@ -179,28 +179,32 @@ function start () {
       api_key: APIKey,
     };
 
-    adminAPI.adminRemoveUser(removeUserParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      removeButton.disabled = false;
+    adminAPI.adminRemoveUser(
+      removeUserParams,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        removeButton.disabled = false;
 
-      if (result.status_code === '1000') {
-        users = users.filter(function (user) { // eslint-disable-line prefer-arrow-callback
-          return user.id !== oldUser.id;
-        });
+        if (result.status_code === '1000') {
+          users = users.filter(function (user) { // eslint-disable-line prefer-arrow-callback
+            return user.id !== oldUser.id;
+          });
 
-        delete rowIdUserMap[rowId];
+          delete rowIdUserMap[rowId];
 
-        $('#user-' + rowId).remove(); // eslint-disable-line prefer-template
+          $('#user-' + rowId).remove(); // eslint-disable-line prefer-template
 
-        if (users.length > 0) {
-          showUsersTable();
+          if (users.length > 0) {
+            showUsersTable();
+          } else {
+            hideUsersTable();
+          }
+          mainUtils.displayUserMessage('Successfully removed user!', 'success');
         } else {
-          hideUsersTable();
+          mainUtils.displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
         }
-        mainUtils.displayUserMessage('Successfully removed user!', 'success');
-      } else {
-        mainUtils.displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
-    });
+    );
   };
 
   const onEditUserClick = function (event) {

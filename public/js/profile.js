@@ -295,11 +295,11 @@ function start () {
         '1000': 'Successfully unsubscribed!',
         '2000': 'Could not find subscription to remove. Please, refresh the page and try again.',
         '2100': 'Invalid unsubscribe parameters. Please, refresh the page and try again.',
-        '2200': 'Your API key is incorrect, please contact tech support.'
+        '2200': 'Your API key is incorrect, please contact tech support.',
       };
 
       assertPeer(typeof messages[result.status_code] === 'string', {
-        msg: 'Unexpected status code in profile unsubscribe. Status code: "' + result.status_code + '"' , // eslint-disable-line prefer-template
+        msg: 'Unexpected status code in profile unsubscribe. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
       });
 
       const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';

@@ -282,7 +282,7 @@ function start () {
       msg: 'Save guest subscription not implemented yet.',
     });
 
-    const saveButton = event.target;
+    const saveButton = event.target; // eslint-disable-line no-unreachable
 
     const rowId = mainUtils.getElementUniqueId(saveButton, 'guest-subscription-edit-mode-save-btn-');
     const oldSubscription = rowIdGuestSubscriptionMap[rowId];
@@ -323,7 +323,7 @@ function start () {
       return newSubscription;
     });
 
-    renderGuestSubscriptionRow(
+    renderGuestSubscriptionRow( // eslint-disable-line no-unreachable
       'view',
       newSubscription,
       $('#guest-subscription-' + rowId) // eslint-disable-line prefer-template
@@ -338,7 +338,7 @@ function start () {
       msg: 'Save guest subscription not implemented yet.',
     });
 
-    const removeButton = event.target;
+    const removeButton = event.target; // eslint-disable-line no-unreachable
 
     const rowId = mainUtils.getElementUniqueId(removeButton, 'guest-subscription-edit-mode-remove-btn-');
     const oldSubscription = rowIdGuestSubscriptionMap[rowId];
@@ -353,7 +353,7 @@ function start () {
       return subscription.id !== oldSubscription.id;
     });
 
-    delete rowIdGuestSubscriptionMap[rowId];
+    delete rowIdGuestSubscriptionMap[rowId]; // eslint-disable-line no-unreachable
 
     $('#guest-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
 
@@ -615,38 +615,42 @@ function start () {
       date_to: dateTo,
     };
 
-    adminAPI.adminEditSubscription(editSubscriptionParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      saveButton.disabled = false;
+    adminAPI.adminEditSubscription(
+      editSubscriptionParams,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        saveButton.disabled = false;
 
-      if (result.status_code === '1000') {
-        const newSubscription = {
-          id: oldSubscription.id,
-          user: oldSubscription.user,
-          fly_from: airportFromId,
-          fly_to: airportToId,
-          date_from: dateFrom,
-          date_to: dateTo,
-        };
+        if (result.status_code === '1000') {
+          const newSubscription = {
+            id: oldSubscription.id,
+            user: oldSubscription.user,
+            fly_from: airportFromId,
+            fly_to: airportToId,
+            date_from: dateFrom,
+            date_to: dateTo,
+          };
 
-        rowIdUserSubscriptionMap[rowId] = newSubscription;
-        userSubscriptions = userSubscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
-          if (subscription.id !== oldSubscription.id) {
-            return subscription;
-          }
-          return newSubscription;
-        });
+          rowIdUserSubscriptionMap[rowId] = newSubscription;
+          userSubscriptions = userSubscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
+            if (subscription.id !== oldSubscription.id) {
+              return subscription;
+            }
+            return newSubscription;
+          });
 
-        renderUserSubscriptionRow(
-          'view',
-          newSubscription,
-          $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
-        );
+          renderUserSubscriptionRow(
+            'view',
+            newSubscription,
+            $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
+          );
 
-        mainUtils.displayUserMessage('Successfully edited user subscription!', 'success');
-      } else {
-        mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+          mainUtils.displayUserMessage('Successfully edited user subscription!', 'success');
+        } else {
+          mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        }
       }
-    });
+    );
   };
 
   const onRemoveUserSubscriptionClick = function (event) {
@@ -665,28 +669,32 @@ function start () {
       api_key: APIKeyRef.APIKey,
     };
 
-    adminAPI.adminUnsubscribe(unsubscribeParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      removeButton.disabled = false;
+    adminAPI.adminUnsubscribe(
+      unsubscribeParams,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        removeButton.disabled = false;
 
-      if (result.status_code === '1000') {
-        userSubscriptions = userSubscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
-          return subscription.id !== oldSubscription.id;
-        });
+        if (result.status_code === '1000') {
+          userSubscriptions = userSubscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
+            return subscription.id !== oldSubscription.id;
+          });
 
-        delete rowIdUserSubscriptionMap[rowId];
+          delete rowIdUserSubscriptionMap[rowId];
 
-        $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
+          $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
 
-        if (userSubscriptions.length > 0) {
-          showUserSubscriptionsTable();
+          if (userSubscriptions.length > 0) {
+            showUserSubscriptionsTable();
+          } else {
+            hideUserSubscriptionsTable();
+          }
+          mainUtils.displayUserMessage('Successfully removed user subscription!', 'success');
         } else {
-          hideUserSubscriptionsTable();
+          mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
         }
-        mainUtils.displayUserMessage('Successfully removed user subscription!', 'success');
-      } else {
-        mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
-    });
+    );
   };
 
   const onUserSubscriptionsTabClick = function () {
@@ -737,13 +745,17 @@ function start () {
           api_key: APIKeyRef.APIKey,
         };
 
-        adminAPI.adminListSubscriptions(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-          userSubscriptions = result.user_subscriptions;
-          guestSubscriptions = result.guest_subscriptions;
+        adminAPI.adminListSubscriptions(
+          params,
+          PROTOCOL_NAME,
+          function (result) { // eslint-disable-line prefer-arrow-callback
+            userSubscriptions = result.user_subscriptions;
+            guestSubscriptions = result.guest_subscriptions;
 
-          renderUserSubscriptions($('#user-subscriptions-table'));
-          renderGuestSubscriptions($('#guest-subscriptions-table'));
-        });
+            renderUserSubscriptions($('#user-subscriptions-table'));
+            renderGuestSubscriptions($('#guest-subscriptions-table'));
+          }
+        );
       } else {
         window.location.replace('/login');
       }

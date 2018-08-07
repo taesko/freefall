@@ -125,7 +125,7 @@
   }
 
   function log (...msgs) {
-    console.log('Dalipeche plugin:', msgs.join(' ')); // eslint-disable-line prefer-template
+    console.log('Dalipeche plugin:', msgs.join(' ')); // eslint-disable-line no-console
   }
 
   function sendRequest (requestData, callback) {

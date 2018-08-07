@@ -4,6 +4,7 @@
   "description": "FreeFall app backend",
   "main": "index.js",
   "scripts": {
+    "lint": "eslint .",
     "server": "eslint . && node ./server.js",
     "fetch": "eslint . && node ./scripts/fetch-data.js"
   },

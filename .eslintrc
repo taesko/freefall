@@ -41,7 +41,12 @@
     "adminValidators": true,
     "main": true,
     "Ajv": true,
+    "ajv": true,
     "jsyaml": true,
+    "getParserGetter": true,
+    "userGlobal": true,
+    "getAPIMethods": true,
+    "getAdminAPIMethods": true,
     "window": true
   },
 }

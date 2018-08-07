@@ -1,9 +1,10 @@
-function getAPIMethods (mainUtils) {
+function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   const PeerError = mainUtils.PeerError;
   const assertPeer = mainUtils.assertPeer;
   const assertApp = mainUtils.assertApp;
 
-  const validateListSubscriptionsRes = validators.getValidateListSubscriptionsRes();
+  const validateListSubscriptionsRes =
+    validators.getValidateListSubscriptionsRes();
   const validateSubscribeReq = validators.getValidateSubscribeReq();
   const validateUnsubscribeReq = validators.getValidateUnsubscribeReq();
   const validateSubscribeRes = validators.getValidateSubscribeRes();
@@ -11,9 +12,12 @@ function getAPIMethods (mainUtils) {
   const validateListAirportsRes = validators.getValidateListAirportsRes();
   const validateGetAPIKeyRes = validators.getValidateGetAPIKeyRes();
   const validateSearchReq = validators.getValidateSearchReq();
-  const validateSearchRes = validators.getValidateSearchRes();
-  const validateEditSubscriptionReq = validators.getValidateEditSubscriptionReq();
-  const validateEditSubscriptionRes = validators.getValidateEditSubscriptionRes();
+  const validateSearchRes =
+    validators.getValidateSearchRes();
+  const validateEditSubscriptionReq =
+    validators.getValidateEditSubscriptionReq();
+  const validateEditSubscriptionRes =
+    validators.getValidateEditSubscriptionRes();
 
   assertApp(_.isObject(mainUtils), 'Expected mainUtils arg of getAPIMethods to be an object, but was' + typeof mainUtils); // eslint-disable-line prefer-template
 
@@ -252,8 +256,10 @@ function getAPIMethods (mainUtils) {
         }
 
         for (k = 0; k < result.routes[i].route.length; k++) {
-          result.routes[i].route[k].dtime = new Date(result.routes[i].route[k].dtime);
-          result.routes[i].route[k].atime = new Date(result.routes[i].route[k].atime);
+          result.routes[i].route[k].dtime =
+            new Date(result.routes[i].route[k].dtime);
+          result.routes[i].route[k].atime =
+            new Date(result.routes[i].route[k].atime);
 
           // server doesn't provide city_from and city_to yet
           result.routes[i].route[k].cityFrom = result.routes[i].route[k].cityFrom || '';
@@ -262,7 +268,8 @@ function getAPIMethods (mainUtils) {
 
         result.routes[i].route = sortRoute(result.routes[i].route);
         result.routes[i].dtime = result.routes[i].route[0].dtime;
-        result.routes[i].atime = result.routes[i].route[result.routes[i].route.length - 1].atime;
+        result.routes[i].atime =
+          result.routes[i].route[result.routes[i].route.length - 1].atime;
       }
 
       result.routes = _.sortBy(result.routes, [function (routeObj) {

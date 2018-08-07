@@ -210,13 +210,17 @@ function start () {
       api_key: APIKeyRef.APIKey,
     };
 
-    adminAPI.adminRemoveUser(removeUserParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code === '1000') {
-        window.location.replace('/users');
-      } else {
-        mainUtils.displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+    adminAPI.adminRemoveUser(
+      removeUserParams,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        if (result.status_code === '1000') {
+          window.location.replace('/users');
+        } else {
+          mainUtils.displayUserMessage('Remove user failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        }
       }
-    });
+    );
   };
 
   const onEditUserClick = function (event) {
@@ -457,29 +461,33 @@ function start () {
       api_key: APIKeyRef.APIKey,
     };
 
-    adminAPI.adminUnsubscribe(unsubscribeParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      removeButton.disabled = false;
+    adminAPI.adminUnsubscribe(
+      unsubscribeParams,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        removeButton.disabled = false;
 
-      if (result.status_code === '1000') {
-        subscriptions = subscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
-          return subscription.id !== oldSubscription.id;
-        });
+        if (result.status_code === '1000') {
+          subscriptions = subscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
+            return subscription.id !== oldSubscription.id;
+          });
 
-        delete rowIdUserSubscriptionMap[rowId];
+          delete rowIdUserSubscriptionMap[rowId];
 
-        $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
+          $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
 
-        if (subscriptions.length > 0) {
-          showUserSubscriptionsTable();
+          if (subscriptions.length > 0) {
+            showUserSubscriptionsTable();
+          } else {
+            hideUserSubscriptionsTable();
+          }
+
+          mainUtils.displayUserMessage('Successfully deleted user subscription!', 'success');
         } else {
-          hideUserSubscriptionsTable();
+          mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
         }
-
-        mainUtils.displayUserMessage('Successfully deleted user subscription!', 'success');
-      } else {
-        mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
       }
-    });
+    );
   };
 
   const onSaveUserSubscriptionClick = function (event) {
@@ -520,38 +528,42 @@ function start () {
       date_to: dateTo,
     };
 
-    adminAPI.adminEditSubscription(editSubscriptionParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      saveButton.disabled = false;
+    adminAPI.adminEditSubscription(
+      editSubscriptionParams,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        saveButton.disabled = false;
 
-      if (result.status_code === '1000') {
-        const newSubscription = {
-          id: oldSubscription.id,
-          user: oldSubscription.user,
-          fly_from: airportFromId,
-          fly_to: airportToId,
-          date_from: dateFrom,
-          date_to: dateTo,
-        };
+        if (result.status_code === '1000') {
+          const newSubscription = {
+            id: oldSubscription.id,
+            user: oldSubscription.user,
+            fly_from: airportFromId,
+            fly_to: airportToId,
+            date_from: dateFrom,
+            date_to: dateTo,
+          };
 
-        rowIdUserSubscriptionMap[rowId] = newSubscription;
-        subscriptions = subscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
-          if (subscription.id !== oldSubscription.id) {
-            return subscription;
-          }
-          return newSubscription;
-        });
+          rowIdUserSubscriptionMap[rowId] = newSubscription;
+          subscriptions = subscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
+            if (subscription.id !== oldSubscription.id) {
+              return subscription;
+            }
+            return newSubscription;
+          });
 
-        renderUserSubscriptionRow(
-          'view',
-          newSubscription,
-          $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
-        );
+          renderUserSubscriptionRow(
+            'view',
+            newSubscription,
+            $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
+          );
 
-        mainUtils.displayUserMessage('Successfully edited user subscription!', 'success');
-      } else {
-        mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+          mainUtils.displayUserMessage('Successfully edited user subscription!', 'success');
+        } else {
+          mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
+        }
       }
-    });
+    );
   };
 
   const onUserCreditsSubmitClick = function (event) {
@@ -579,32 +591,36 @@ function start () {
       credits_difference: Number(userCreditsChange),
     };
 
-    adminAPI.adminAlterUserCredits(alterUserCreditsParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      submitButton.disabled = false;
-      $('#user-credits-change').val(0);
+    adminAPI.adminAlterUserCredits(
+      alterUserCreditsParams,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        submitButton.disabled = false;
+        $('#user-credits-change').val(0);
 
-      const messages = {
-        '1000': 'Successfully altered user credits!',
-        '2100': 'Invalid api key!',
-        '2101': 'User does not have enough credits for this transaction!',
-        '2102': 'User not found',
-        '2103': 'Invalid credits value.',
-      };
+        const messages = {
+          '1000': 'Successfully altered user credits!',
+          '2100': 'Invalid api key!',
+          '2101': 'User does not have enough credits for this transaction!',
+          '2102': 'User not found',
+          '2103': 'Invalid credits value.',
+        };
 
-      assertPeer(typeof messages[result.status_code] === 'string', {
-        msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
-      });
+        assertPeer(typeof messages[result.status_code] === 'string', {
+          msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        });
 
-      const userMessage = messages[result.status_code] || 'Alter user credits failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
-      assertUser(result.status_code === '1000', {
-        userMessage: userMessage,
-        msg: 'Edit user failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
-      });
+        const userMessage = messages[result.status_code] || 'Alter user credits failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+        assertUser(result.status_code === '1000', {
+          userMessage: userMessage,
+          msg: 'Edit user failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        });
 
-      userGlobal.credits += Number(userCreditsChange);
-      renderUserRow('view', userGlobal);
-      mainUtils.displayUserMessage('Successfully altered user credits!', 'success');
-    });
+        userGlobal.credits += Number(userCreditsChange);
+        renderUserRow('view', userGlobal);
+        mainUtils.displayUserMessage('Successfully altered user credits!', 'success');
+      }
+    );
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
@@ -629,7 +645,11 @@ function start () {
             renderUserSubscriptions($('#user-subscriptions-table'));
           };
 
-          adminAPI.adminListSubscriptions(params, PROTOCOL_NAME, adminListSubscriptionsCallback);
+          adminAPI.adminListSubscriptions(
+            params,
+            PROTOCOL_NAME,
+            adminListSubscriptionsCallback
+          );
         });
       } else {
         window.location.replace('/login');

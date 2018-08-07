@@ -1,6 +1,6 @@
 'use strict';
 
-function main () {
+function main () { // eslint-disable-line no-unused-vars
   const idGenerator = function () {
     var id = 1; // eslint-disable-line no-var
 
@@ -184,7 +184,6 @@ function main () {
   };
 
   const sendError = function (params, protocolName) {
-    console.log(params);
     assertApp(validateSendErrorReq(params), {
       msg: 'Params do not adhere to sendErrorRequestSchema: ' + getValidatorMsg(validateSendErrorReq), // eslint-disable-line prefer-template
     });
@@ -221,7 +220,12 @@ function main () {
         if (xhr.status === 200) {
           const responseParsed = parser.parseResponse(xhr.responseText);
           if (typeof callback === 'function') {
-            callback(responseParsed.error || null, responseParsed.result || null);
+            setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+              callback(
+                responseParsed.error || null,
+                responseParsed.result || null
+              );
+            }, 0);
           }
         } else if (xhr.status !== 204) {
           handleError({

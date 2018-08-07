@@ -1,24 +1,40 @@
-function getAdminAPIMethods (mainUtils) {
+function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   const PeerError = mainUtils.PeerError;
   const assertPeer = mainUtils.assertPeer;
   const assertApp = mainUtils.assertApp;
 
-  const validateAdminListSubscriptionsReq = adminValidators.getValidateAdminListSubscriptionsReq();
-  const validateAdminListSubscriptionsRes = adminValidators.getValidateAdminListSubscriptionsRes();
-  const validateAdminRemoveUserReq = adminValidators.getValidateAdminRemoveUserReq();
-  const validateAdminRemoveUserRes = adminValidators.getValidateAdminRemoveUserRes();
-  const validateAdminEditUserReq = adminValidators.getValidateAdminEditUserReq();
-  const validateAdminEditUserRes = adminValidators.getValidateAdminEditUserRes();
-  const validateAdminUnsubscribeReq = adminValidators.getValidateAdminUnsubscribeReq();
-  const validateAdminUnsubscribeRes = adminValidators.getValidateAdminUnsubscribeRes();
-  const validateAdminEditSubscriptionReq = adminValidators.getValidateAdminEditSubscriptionReq();
-  const validateAdminEditSubscriptionRes = adminValidators.getValidateAdminEditSubscriptionRes();
-  const validateAdminAlterUserCreditsReq = adminValidators.getValidateAdminAlterUserCreditsReq();
-  const validateAdminAlterUserCreditsRes = adminValidators.getValidateAdminAlterUserCreditsRes();
-  const validateAdminListUsersReq = adminValidators.getValidateAdminListUsersReq();
-  const validateAdminListUsersRes = adminValidators.getValidateAdminListUsersRes();
-  const validateAdminSubscribeReq = adminValidators.getValidateAdminSubscribeReq();
-  const validateAdminSubscribeRes = adminValidators.getValidateAdminSubscribeRes();
+  const validateAdminListSubscriptionsReq =
+    adminValidators.getValidateAdminListSubscriptionsReq();
+  const validateAdminListSubscriptionsRes =
+    adminValidators.getValidateAdminListSubscriptionsRes();
+  const validateAdminRemoveUserReq =
+    adminValidators.getValidateAdminRemoveUserReq();
+  const validateAdminRemoveUserRes =
+    adminValidators.getValidateAdminRemoveUserRes();
+  const validateAdminEditUserReq =
+    adminValidators.getValidateAdminEditUserReq();
+  const validateAdminEditUserRes =
+    adminValidators.getValidateAdminEditUserRes();
+  const validateAdminUnsubscribeReq =
+    adminValidators.getValidateAdminUnsubscribeReq();
+  const validateAdminUnsubscribeRes =
+    adminValidators.getValidateAdminUnsubscribeRes();
+  const validateAdminEditSubscriptionReq =
+    adminValidators.getValidateAdminEditSubscriptionReq();
+  const validateAdminEditSubscriptionRes =
+    adminValidators.getValidateAdminEditSubscriptionRes();
+  const validateAdminAlterUserCreditsReq =
+    adminValidators.getValidateAdminAlterUserCreditsReq();
+  const validateAdminAlterUserCreditsRes =
+    adminValidators.getValidateAdminAlterUserCreditsRes();
+  const validateAdminListUsersReq =
+    adminValidators.getValidateAdminListUsersReq();
+  const validateAdminListUsersRes =
+    adminValidators.getValidateAdminListUsersRes();
+  const validateAdminSubscribeReq =
+    adminValidators.getValidateAdminSubscribeReq();
+  const validateAdminSubscribeRes =
+    adminValidators.getValidateAdminSubscribeRes();
 
   const adminListUsers = function (params, protocolName, callback) {
     mainUtils.trace('adminListUsers');

@@ -1,4 +1,4 @@
-function getParserGetter (errorHandlers) {
+function getParserGetter (errorHandlers) { // eslint-disable-line no-unused-vars
   const ApplicationError = errorHandlers.ApplicationError;
   const assertApp = errorHandlers.assertApp;
   const PeerError = errorHandlers.PeerError;
