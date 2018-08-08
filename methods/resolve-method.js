@@ -1,7 +1,9 @@
 const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
+const SEARCH_MONTHS_AHEAD = 1;
+const DEFAULT_PRICE_TO = 100000;
 const { assertPeer, assertApp, PeerError, errorCodes } = require('../modules/error-handling');
-const { toSmallestCurrencyUnit, fromSmallestCurrencyUnit } = require('../modules/utils');
-const { isObject, each, forOwn } = require('lodash');
+const { toSmallestCurrencyUnit } = require('../modules/utils');
+const { isObject } = require('lodash');
 const log = require('../modules/log');
 const auth = require('../modules/auth');
 const moment = require('moment');
@@ -31,124 +33,28 @@ const API_METHODS = {
 };
 
 async function search (params, dbClient) {
-  const dbToAPIRouteFlight = function dbToAPIRouteFlight (routeFlight) {
-    assertApp(
-      typeof routeFlight.airlineName === 'string' &&
-      typeof routeFlight.logoURL === 'string' &&
-      typeof routeFlight.afromName === 'string' &&
-      typeof routeFlight.atoName === 'string' &&
-      typeof routeFlight.dtime === 'string' &&
-      typeof routeFlight.atime === 'string' &&
-      typeof routeFlight.flightNumber === 'string' &&
-      (routeFlight.isReturn === true || routeFlight.isReturn === false),
-      'Invalid database flight response.',
-    );
+  const flyFrom = +params.fly_from;
+  const flyTo = +params.fly_to;
 
-    return {
-      airport_from: routeFlight.afromName,
-      airport_to: routeFlight.atoName,
-      return: !!routeFlight.isReturn,
-      dtime: routeFlight.dtime,
-      atime: routeFlight.atime,
-      airline_logo: routeFlight.logoURL,
-      airline_name: routeFlight.airlineName,
-      flight_number: routeFlight.flightNumber,
-    };
-  };
+  let dateFrom;
 
-  const flyDurationCalc = (acc, flight) => {
-    const arrivalTime = moment(flight.atime, SERVER_TIME_FORMAT);
-    const departureTime = moment(flight.dtime, SERVER_TIME_FORMAT);
-
-    return acc + arrivalTime.diff(departureTime, 'hours');
-  };
-
-  const flyDurationIncluder = (route) => {
-    const accInitValue = 0;
-    const flyDuration = route.route.reduce(flyDurationCalc, accInitValue);
-
-    return {
-      route,
-      flyDuration,
-    };
-  };
-
-  const flyDurationFilter = (route) => {
-    return (
-      !params.max_fly_duration ||
-      route.flyDuration <= params.max_fly_duration
-    );
-  };
-
-  const flyDurationExcluder = (route) => {
-    return { ...route.route };
-  };
-
-  const cmpPrices = function cmpPrices (route1, route2) {
-    if (route1.price > route2.price) {
-      return 1;
-    } else if (route1.price < route2.price) {
-      return -1;
-    }
-    return 0;
-  };
-
-  const cmpDepartureTimes = function cmpDepartureTimes (flight1, flight2) {
-    const departureTime1 = moment(flight1.dtime, SERVER_TIME_FORMAT);
-    const departureTime2 = moment(flight2.dtime, SERVER_TIME_FORMAT);
-
-    if (departureTime1.isAfter(departureTime2)) {
-      return 1;
-    } else if (departureTime2.isAfter(departureTime1)) {
-      return -1;
-    }
-    return 0;
-  };
-
-  const flightsInRouteSorter = function flightsInRouteSorter (route) {
-    // sorts flights in a route by departure time
-    return {
-      ...route,
-      route: route.route.sort(cmpDepartureTimes),
-    };
-  };
-
-  const hasMatchingDepartureAirport = (flight) => {
-    return flight.afromId === +params.fly_from;
-  };
-
-  const hasMatchingArrivalAirport = (flight) => {
-    return flight.atoId === +params.fly_to;
-  };
-
-  const areEndpointsCorrect = (route) => {
-    return route.some(hasMatchingDepartureAirport) &&
-           route.some(hasMatchingArrivalAirport);
-  };
-
-  assertPeer(
-    isObject(params) &&
-    typeof params.v === 'string' &&
-    Number.isInteger(+params.fly_from) &&
-    Number.isInteger(+params.fly_to) &&
-    (!params.price_to || Number.isInteger(params.price_to)) &&
-    (!params.currency || typeof params.currency === 'string') &&
-    (!params.date_from || typeof params.date_from === 'string') &&
-    (!params.date_to || typeof params.date_to === 'string') &&
-    (!params.sort || typeof params.sort === 'string') &&
-    (!params.max_fly_duration || Number.isInteger(params.max_fly_duration)),
-    'Invalid search request.',
-  );
-
-  if (Number.isInteger(params.price_to)) {
-    params.price_to = toSmallestCurrencyUnit(params.price_to);
+  if (params.date_from) {
+    dateFrom = moment(params.date_from).format(SERVER_TIME_FORMAT);
+  } else {
+    dateFrom = moment().format(SERVER_TIME_FORMAT);
   }
 
-  const result = {};
+  let dateTo;
 
-  if (params.currency) {
-    result.currency = params.currency;
+  if (params.date_to) {
+    dateTo = moment(params.date_to).format(SERVER_TIME_FORMAT);
+  } else {
+    dateTo = moment().add(SEARCH_MONTHS_AHEAD, 'months').format(SERVER_TIME_FORMAT);
   }
+
+  const priceTo = toSmallestCurrencyUnit(params.price_to || DEFAULT_PRICE_TO);
+  const currency = params.currency;
+  const maxFlightDuration = params.max_fly_duration;
 
   const subscribed = await subscriptions.globalSubscriptionExists(
     dbClient,
@@ -163,110 +69,150 @@ async function search (params, dbClient) {
       +params.fly_to,
     );
 
-    result.status_code = '1001';
-    result.routes = [];
-
-    return result;
+    return {
+      status_code: '1001',
+      routes: [],
+      currency,
+    };
   }
 
-  const subs = await dbClient.selectSubscriptions(
-    +params.fly_from,
-    +params.fly_to,
+  const { rows: routesMetaRows } = await dbClient.executeQuery(
+    `
+    SELECT DISTINCT
+      routes.id,
+      routes.booking_token,
+      routes.price
+    FROM routes
+    LEFT JOIN routes_flights ON routes_flights.route_id = routes.id
+    LEFT JOIN flights ON routes_flights.flight_id = flights.id
+    LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
+    LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
+    WHERE
+        flights.dtime >= $3::date AND
+        flights.atime <= $4::date AND
+        routes.price <= $5 AND
+        fetches.id = (
+          SELECT fetches.id
+          FROM subscriptions_fetches
+          LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
+          LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.subscription_id
+          WHERE
+            subscriptions.airport_from_id = $1 AND
+            subscriptions.airport_to_id = $2 AND
+            fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
+        )
+    `,
+    [flyFrom, flyTo, dateFrom, dateTo, priceTo], // 100 - cents into dollars
   );
 
-  // subs.length can be equal to 0 if we haven't yet fetched flights for it.
-  if (subs.length === 0) {
-    result.status_code = '1002';
-    result.routes = [];
-
-    return result;
-  }
-
-  assertApp(
-    subs.length === 1 &&
-    isObject(subs[0]) &&
-    Number.isInteger(subs[0].fetchId) &&
-    typeof subs[0].timestamp === 'string',
-    'Invalid subscription data.',
+  const { rows: routesAndFlights } = await dbClient.executeQuery(
+    `
+    SELECT
+      routes.id AS route_id,
+      airlines.name AS airline_name,
+      airlines.logo_url AS airline_logo,
+      afrom.name::text AS airport_from,
+      ato.name::text AS airport_to,
+      afrom.id AS airport_from_id,
+      ato.id AS airport_to_id,
+      to_char(flights.dtime::timestamp, 'YYYY-MM-DD"T"HH24:MI:SSZ') dtime,
+      to_char(flights.atime::timestamp, 'YYYY-MM-DD"T"HH24:MI:SSZ') atime,
+      flights.flight_number AS flight_number,
+      routes_flights.is_return AS return
+    FROM routes
+    LEFT JOIN routes_flights ON routes_flights.route_id = routes.id
+    LEFT JOIN flights ON routes_flights.flight_id = flights.id
+    LEFT JOIN airports as afrom ON afrom.id = flights.airport_from_id
+    LEFT JOIN airports as ato ON ato.id = flights.airport_to_id
+    LEFT JOIN airlines ON airlines.id = flights.airline_id
+    LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
+    LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
+    WHERE
+        flights.dtime >= $3::date AND
+        flights.atime <= $4::date AND
+        routes.price <= $5 AND
+        fetches.id IN (
+          SELECT fetches.id
+          FROM subscriptions_fetches
+          LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
+          LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.subscription_id
+          WHERE
+            subscriptions.airport_from_id = $1 AND
+            subscriptions.airport_to_id = $2 AND
+            fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
+        )
+    `,
+    [flyFrom, flyTo, dateFrom, dateTo, priceTo], // 100 - cents into dollars
   );
 
-  const fetchId = subs[0].fetchId;
-  const routesAndFlights = await dbClient.selectRoutesFlights(fetchId, params);
+  assertApp(Array.isArray(routesAndFlights), 'Invalid database response for search');
 
-  assertApp(
-    Array.isArray(routesAndFlights),
-    'Invalid database routes and flights response.',
-  );
+  const routesMeta = {};
+  const flightsPerRoute = {};
 
-  const routesHash = {};
+  for (const routeFlight of routesAndFlights) {
+    assertApp(isObject(routeFlight));
+    assertApp(Number.isInteger(+routeFlight.route_id));
 
-  each(routesAndFlights, (routeFlight) => {
-    assertApp(
-      isObject(routeFlight) &&
-      Number.isInteger(routeFlight.routeId) &&
-      typeof routeFlight.bookingToken === 'string' &&
-      Number.isInteger(routeFlight.price),
-      'Invalid database route response.',
-    );
-
-    routesHash[routeFlight.routeId] = routesHash[routeFlight.routeId] || {
-      booking_token: routeFlight.bookingToken,
-      price: fromSmallestCurrencyUnit(routeFlight.price),
-      route: [],
+    routesMeta[routeFlight.route_id] = {
+      booking_token: routeFlight.booking_token,
+      price: routeFlight.price / 100, // price is for the total route that the flight is part of
     };
 
-    assertApp(Array.isArray(routesHash[routeFlight.routeId].route));
+    if (!flightsPerRoute[routeFlight.route_id]) {
+      flightsPerRoute[routeFlight.route_id] = [];
+    }
 
-    routesHash[routeFlight.routeId].route.push(routeFlight);
-  });
+    flightsPerRoute[routeFlight.route_id].push(routeFlight);
+  }
+
+  for (const routeMeta of routesMetaRows) {
+    assertApp(typeof routeMeta.booking_token === 'string');
+    assertApp(Number.isInteger(+routeMeta.price));
+    routesMeta[routeMeta.id] = {
+      booking_token: routeMeta.booking_token,
+      price: routeMeta.price / 100, // price is for the total route that the flight is part of
+    };
+  }
 
   const routes = [];
 
-  forOwn(routesHash, (routeData, routeId) => {
-    assertApp(
-      typeof routeId === 'string' &&
-      isObject(routeData),
-      'Invalid database route response',
+  // eslint-disable-next-line camelcase
+  for (const route_id of Object.keys(flightsPerRoute)) {
+    const totalDurationMS = flightsPerRoute[route_id].reduce(
+      (total, flight) => total + (flight.atime - flight.atime),
+      0,
     );
-
-    const route = routeData.route;
-
-    assertApp(
-      route.every(flight => {
-        return Number.isInteger(flight.afromId) &&
-               Number.isInteger(flight.atoId) &&
-               typeof flight.airlineName === 'string' &&
-               typeof flight.logoURL === 'string' &&
-               typeof flight.afromName === 'string' &&
-               typeof flight.atoName === 'string' &&
-               // typeof flight.dtime === 'string' &&
-               // typeof flight.atime === 'string' &&
-               typeof flight.flightNumber === 'string' &&
-               (flight.isReturn === true || flight.isReturn === false);
-      }),
-      'Invalid database flight response.',
-    );
-
-    if (areEndpointsCorrect(route)) {
-      const routeAPIFormat = route.map((flight) => {
-        return dbToAPIRouteFlight(flight);
-      });
-      routes.push({
-        ...routeData,
-        route: routeAPIFormat,
-      });
+    if (totalDurationMS / 1000 / 60 / 60 > maxFlightDuration) {
+      continue;
     }
+
+    flightsPerRoute[route_id].sort((flightA, flightB) => {
+      return flightA.dtime - flightB.dtime;
+    });
+
+    const flightCount = flightsPerRoute[route_id].length;
+    const first = flightsPerRoute[route_id][0];
+    const last = flightsPerRoute[route_id][flightCount - 1];
+    const departureAirport = first.airport_from_id;
+    const arrivalAirport = last.airport_to_id;
+
+    if (departureAirport !== flyFrom || arrivalAirport !== flyTo) {
+      continue;
+    }
+
+    routes.push({ ...routesMeta[route_id], route: flightsPerRoute[route_id] });
+  }
+
+  routes.sort((routeA, routeB) => {
+    return routeA.price - routeB.price;
   });
 
-  result.routes = routes
-    .map(flyDurationIncluder)
-    .filter(flyDurationFilter)
-    .map(flyDurationExcluder)
-    .sort(cmpPrices)
-    .map(flightsInRouteSorter);
-  result.status_code = '1000';
-
-  return result;
+  return {
+    status_code: '1000',
+    routes,
+    currency,
+  };
 }
 
 async function subscribe (params, dbClient) {

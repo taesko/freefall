@@ -102,7 +102,6 @@ function validateAPIRequest (method, params) {
 
 function validateAPIResponse (apiResult, method) {
   log.info('Validating response for method', method);
-  log.debug('apiResult is: ', apiResult);
 
   const schemaId = getSchemaId('response', method);
 
