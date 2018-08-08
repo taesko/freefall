@@ -127,7 +127,6 @@ async function api (ctx, next) {
   ctx.type = 'application/json';
 
   log.info('Response validated. Setting ctx body.');
-  log.debug('Set ctx.body to', ctx.body);
   await next();
 }
 

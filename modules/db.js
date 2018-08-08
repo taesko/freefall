@@ -417,7 +417,6 @@ const update = (client) => async (table, setHash, whereHash) => {
     whereClause = where.whereClause;
     whereValues = where.values;
   }
-  log.debug('whereValues are: ', whereValues);
   const values = [...setValues, ...whereValues];
   const query = `UPDATE ${table} ${setClause} ${whereClause} RETURNING *`;
   const { rows } = await executeQuery(client)(query, values);
