@@ -2,3 +2,4 @@
 node_modules
 freefall.db
 logs
+*.swp
