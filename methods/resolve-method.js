@@ -76,39 +76,12 @@ async function search (params, dbClient) {
     };
   }
 
-  const { rows: routesMetaRows } = await dbClient.executeQuery(
-    `
-    SELECT DISTINCT
-      routes.id,
-      routes.booking_token,
-      routes.price
-    FROM routes
-    LEFT JOIN routes_flights ON routes_flights.route_id = routes.id
-    LEFT JOIN flights ON routes_flights.flight_id = flights.id
-    LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
-    LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
-    WHERE
-        flights.dtime >= $3::date AND
-        flights.atime <= $4::date AND
-        routes.price <= $5 AND
-        fetches.id = (
-          SELECT fetches.id
-          FROM subscriptions_fetches
-          LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
-          LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.subscription_id
-          WHERE
-            subscriptions.airport_from_id = $1 AND
-            subscriptions.airport_to_id = $2 AND
-            fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
-        )
-    `,
-    [flyFrom, flyTo, dateFrom, dateTo, priceTo], // 100 - cents into dollars
-  );
-
   const { rows: routesAndFlights } = await dbClient.executeQuery(
     `
     SELECT
       routes.id AS route_id,
+      routes.booking_token,
+      routes.price,
       airlines.name AS airline_name,
       airlines.logo_url AS airline_logo,
       afrom.name::text AS airport_from,
@@ -141,6 +114,8 @@ async function search (params, dbClient) {
             subscriptions.airport_to_id = $2 AND
             fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
         )
+     ORDER BY route_id
+     LIMIT 50
     `,
     [flyFrom, flyTo, dateFrom, dateTo, priceTo], // 100 - cents into dollars
   );
@@ -153,6 +128,8 @@ async function search (params, dbClient) {
   for (const routeFlight of routesAndFlights) {
     assertApp(isObject(routeFlight));
     assertApp(Number.isInteger(+routeFlight.route_id));
+    assertApp(typeof routeFlight.booking_token === 'string');
+    assertApp(Number.isInteger(+routeFlight.price));
 
     routesMeta[routeFlight.route_id] = {
       booking_token: routeFlight.booking_token,
@@ -166,14 +143,12 @@ async function search (params, dbClient) {
     flightsPerRoute[routeFlight.route_id].push(routeFlight);
   }
 
-  for (const routeMeta of routesMetaRows) {
-    assertApp(typeof routeMeta.booking_token === 'string');
-    assertApp(Number.isInteger(+routeMeta.price));
-    routesMeta[routeMeta.id] = {
-      booking_token: routeMeta.booking_token,
-      price: routeMeta.price / 100, // price is for the total route that the flight is part of
-    };
-  }
+  // for (const routeMeta of routesMetaRows) {
+  //   routesMeta[routeMeta.id] = {
+  //     booking_token: routeMeta.booking_token,
+  //     price: routeMeta.price / 100, // price is for the total route that the flight is part of
+  //   };
+  // }
 
   const routes = [];
 
@@ -444,7 +419,6 @@ async function listSubscriptions (params, dbClient) {
   const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
   const subRows = await subscriptions.listUserSubscriptions(dbClient, user.id);
 
-  log.debug('sub rows is', subRows);
   for (const sr of subRows) {
     sr.id = `${sr.id}`;
     sr.fly_from = `${sr.fly_from}`;
