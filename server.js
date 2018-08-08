@@ -20,9 +20,14 @@ const router = new Router();
 
 app.keys = ['freefall is love freefall is life'];
 
+app.use(logger());
+
 app.use(async (ctx, next) => {
   log.request(ctx);
+  const start = new Date();
   await next();
+  const end = new Date();
+  log.debug('BENCHMARK RESPONSE TOOK', end - start, 'ms');
   log.response(ctx);
 });
 
@@ -52,8 +57,6 @@ const SESSION_CONFIG = {
 };
 
 app.use(session(SESSION_CONFIG, app));
-
-app.use(logger());
 
 app.use(cors({
   origin: '*',
