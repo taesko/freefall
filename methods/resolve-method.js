@@ -153,8 +153,6 @@ async function search (params, dbClient) {
   for (const routeFlight of routesAndFlights) {
     assertApp(isObject(routeFlight));
     assertApp(Number.isInteger(+routeFlight.route_id));
-    assertApp(typeof routeFlight.booking_token === 'string');
-    assertApp(Number.isInteger(+routeFlight.price));
 
     routesMeta[routeFlight.route_id] = {
       booking_token: routeFlight.booking_token,
@@ -169,6 +167,8 @@ async function search (params, dbClient) {
   }
 
   for (const routeMeta of routesMetaRows) {
+    assertApp(typeof routeMeta.booking_token === 'string');
+    assertApp(Number.isInteger(+routeMeta.price));
     routesMeta[routeMeta.id] = {
       booking_token: routeMeta.booking_token,
       price: routeMeta.price / 100, // price is for the total route that the flight is part of
