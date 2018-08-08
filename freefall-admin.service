@@ -3,7 +3,7 @@ Description=Freefall admin portal
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/node /opt/freefall/admin.js &> /opt/freefall/logs
+ExecStart=/usr/bin/node /opt/freefall/admin.js &> /opt/freefall/admin-logs
 Restart=always
 RestartSec=3
 EnvironmentFile=/opt/freefall/freefall-admin.env
