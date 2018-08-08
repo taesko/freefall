@@ -21,10 +21,15 @@ const router = new Router();
 app.keys = ['freefall is love freefall is life'];
 
 app.use(async (ctx, next) => {
+  log.request(ctx);
+  await next();
+  log.response(ctx);
+});
+
+app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
-    log.critical('Unhandled error reached the top layer -', err);
     ctx.status = 500;
     ctx.body = 'Our servers our currently experiencing problems. Please try again later.';
     ctx.app.emit('error', err, ctx);
@@ -90,12 +95,6 @@ app.use(views(path.join(__dirname, 'templates/'), {
 }));
 
 app.use(db.session);
-
-app.use(async (ctx, next) => {
-  log.debug('GOT REQUEST', ctx.request);
-  await next();
-  log.debug('SENDING BACK RESPONSE', ctx.response);
-});
 
 router.get('/', async (ctx, next) => {
   const airports = await ctx.state.dbClient.select('airports');

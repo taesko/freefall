@@ -14,33 +14,43 @@ function shouldPrintLevel (level) {
   return ORDER.indexOf(level) >= ORDER.indexOf(logLevel());
 }
 
+/* Request and response are logged to stdout. While all other logs go to stderr. */
+
+function request (ctx) {
+  console.info('GOT REQUEST', ctx.request);
+}
+
+function response (ctx) {
+  console.info('GOT RESPONSE', ctx.response);
+}
+
 function debug (...messages) {
   if (shouldPrintLevel(DEBUG)) {
-    console.info('DEBUG: ', ...messages);
+    console.error('DEBUG: ', ...messages);
   }
 }
 
 function info (...messages) {
   if (shouldPrintLevel(INFO)) {
-    console.info('INFO', ...messages);
+    console.error('INFO', ...messages);
   }
 }
 
 function warn (...messages) {
   if (shouldPrintLevel(WARNING)) {
-    console.info('WARNING: ', ...messages);
+    console.error('WARNING: ', ...messages);
   }
 }
 
 function critical (...messages) {
   if (shouldPrintLevel(CRITICAL)) {
-    console.info('CRITICAL: ', ...messages);
+    console.error('CRITICAL: ', ...messages);
   }
 }
 
 function error (...messages) {
   if (shouldPrintLevel(ERROR)) {
-    console.info('Exception occurred:', ...messages);
+    console.error('Exception occurred:', ...messages);
   }
 }
 
@@ -50,4 +60,6 @@ module.exports = {
   warn,
   critical,
   error,
+  request,
+  response,
 };
