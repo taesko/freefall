@@ -79,12 +79,12 @@ function start () {
     return null;
   }
 
-  function showSubscriptionsTable ($subscriptionsTable) {
+  function showSubscriptionsTable () {
     $('#subscriptions-table').removeAttr('hidden');
     $('#no-subscriptions-msg').attr('hidden', 'true');
   }
 
-  function hideSubscriptionTable ($subscriptionsTable) {
+  function hideSubscriptionTable () {
     $('#subscriptions-table').attr('hidden', 'true');
     $('#no-subscriptions-msg').removeAttr('hidden');
   }
@@ -93,9 +93,9 @@ function start () {
     mainUtils.trace('renderSubscriptions');
 
     if (subscriptions.length > 0) {
-      showSubscriptionsTable($('#subscriptions-table'));
+      showSubscriptionsTable();
     } else {
-      hideSubscriptionTable($('#subscriptions-table'));
+      hideSubscriptionTable();
     }
 
     assertApp($subscriptionsTable instanceof jQuery, {
@@ -111,58 +111,24 @@ function start () {
       msg: 'Expected subscriptions to be instance of array, but was ' + typeof subscriptions, // eslint-disable-line prefer-template
     });
 
-    $subscriptionsTable.find('tbody').remove();
-    const $tableBody = $('<tbody></tbody>').appendTo($subscriptionsTable);
     rowIdSubscriptionMap = {};
 
     _.each(subscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
-      assertApp(_.isObject(subscription), {
-        msg: 'Expected subscription to be an object, but was ' + typeof subscription, // eslint-disable-line prefer-template
-      });
-
-      const subscriptionProps = ['id', 'fly_from', 'fly_to', 'date_from', 'date_to'];
-
-      _.each(subscriptionProps, function (prop) { // eslint-disable-line prefer-arrow-callback
-        assertApp(typeof subscription[prop] === 'string', {
-          msg: 'Expected subscription ' + prop + ' to be a string, but was ' + typeof subscription[prop], // eslint-disable-line prefer-template
-        });
-      });
-
-      const airportFromName = getAirportName(airports, subscription.fly_from);
-      const airportToName = getAirportName(airports, subscription.fly_to);
-
-      const newRow = $tableBody[0].insertRow();
-      const rowId = String(mainUtils.getUniqueId());
-      const rowValues = [
-        airportFromName,
-        airportToName,
-        subscription.date_from,
-        subscription.date_to,
-        'options',
-      ];
-
-      rowIdSubscriptionMap[rowId] = subscription;
-
-      $(newRow).attr('id', 'row-' + rowId); // eslint-disable-line prefer-template
-      renderRowViewMode(newRow, rowValues);
+      renderSubscriptionRow('view', subscription);
     });
   }
 
   const onEditClick = function (event) {
     mainUtils.trace('edit button click');
 
-    const rowId = mainUtils.getElementUniqueId(event.target, 'edit-btn-');
-    const rowValues = rowIdSubscriptionMap[rowId];
-    const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
+    const rowId = mainUtils.getElementUniqueId(event.target, 'subscription-view-mode-edit-btn-');
+    const subscription = rowIdSubscriptionMap[rowId];
 
-    // TODO - change to hidden row and clone
-    renderRowEditMode(rowElement, [
-      '<input id="airport-from-' + rowId + '" class="form-control airport-select" name="from" type="text" placeholder="Airport from" list="from-airports-' + rowId + '" value="' + getAirportName(airports, rowValues.fly_from) + '" required>', // eslint-disable-line prefer-template
-      '<input id="airport-to-' + rowId + '" name="to" class="form-control airport-select" type="text" placeholder="Airport to" list="to-airports-' + rowId + '" value="' + getAirportName(airports, rowValues.fly_to) + '" required>', // eslint-disable-line prefer-template
-      '<input id="date-from-' + rowId + '" class="form-control date-select" name="date-from" type="text" placeholder="Date from" value="' + rowValues.date_from + '" required>', // eslint-disable-line prefer-template
-      '<input id="date-to-' + rowId + '" name="date-to" class="form-control date-select" type="text" placeholder="Date to" value="' + rowValues.date_to + '" required>', // eslint-disable-line prefer-template
-      'options',
-    ]);
+    renderSubscriptionRow(
+      'edit',
+      subscription,
+      $('#subscription-' + rowId) // eslint-disable-line prefer-template
+    );
   };
 
   const onSaveClick = function (event) {
@@ -170,13 +136,13 @@ function start () {
 
     const saveButton = event.target;
 
-    const rowId = mainUtils.getElementUniqueId(event.target, 'save-btn-');
-    const rowValues = rowIdSubscriptionMap[rowId];
+    const rowId = mainUtils.getElementUniqueId(event.target, 'subscription-edit-mode-save-btn-');
+    const oldSubscription = rowIdSubscriptionMap[rowId];
 
-    const airportFrom = $('#airport-from-' + rowId).val(); // eslint-disable-line prefer-template
-    const airportTo = $('#airport-to-' + rowId).val(); // eslint-disable-line prefer-template
-    const dateFrom = $('#date-from-' + rowId).val(); // eslint-disable-line prefer-template
-    const dateTo = $('#date-to-' + rowId).val(); // eslint-disable-line prefer-template
+    const airportFrom = $('#subscription-edit-mode-airport-from-' + rowId).val(); // eslint-disable-line prefer-template
+    const airportTo = $('#subscription-edit-mode-airport-to-' + rowId).val(); // eslint-disable-line prefer-template
+    const dateFrom = $('#subscription-edit-mode-date-from-' + rowId).val(); // eslint-disable-line prefer-template
+    const dateTo = $('#subscription-edit-mode-date-to-' + rowId).val(); // eslint-disable-line prefer-template
 
     const airportFromId = getAirportId(airports, airportFrom);
     const airportToId = getAirportId(airports, airportTo);
@@ -196,7 +162,7 @@ function start () {
     api.editSubscription({
       v: '2.0',
       api_key: APIKeyRef.APIKey,
-      user_subscription_id: rowValues.id,
+      user_subscription_id: oldSubscription.id,
       fly_from: airportFromId,
       fly_to: airportToId,
       date_from: dateFrom,
@@ -225,34 +191,28 @@ function start () {
 
       mainUtils.trace('edit subscription success');
 
+      const editedSubscription = {
+        id: oldSubscription.id,
+        fly_from: airportFromId,
+        fly_to: airportToId,
+        date_from: dateFrom,
+        date_to: dateTo,
+      };
+
+      rowIdSubscriptionMap[rowId] = editedSubscription;
       subscriptions = subscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
-        if (subscription.id !== rowValues.id) {
+        if (subscription.id !== editedSubscription.id) {
           return subscription;
         }
 
-        const newSubscription = {
-          id: result.subscription_id,
-          fly_from: airportFromId,
-          fly_to: airportToId,
-          date_from: dateFrom,
-          date_to: dateTo,
-        };
-
-        rowIdSubscriptionMap[rowId] = newSubscription;
-
-        return newSubscription;
+        return editedSubscription;
       });
 
-      const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
-
-      renderRowViewMode(rowElement, [
-        airportFrom,
-        airportTo,
-        dateFrom,
-        dateTo,
-        'options',
-      ]);
-
+      renderSubscriptionRow(
+        'view',
+        editedSubscription,
+        $('#subscription-' + rowId) // eslint-disable-line prefer-template
+      );
       mainUtils.displayUserMessage('Successfully edited subscription!', 'success');
     });
   };
@@ -260,25 +220,22 @@ function start () {
   const onCancelClick = function (event) {
     mainUtils.trace('cancel button click');
 
-    const rowId = mainUtils.getElementUniqueId(event.target, 'cancel-btn-');
-    const rowValues = rowIdSubscriptionMap[rowId];
-    const rowElement = $('#row-' + rowId)[0]; // eslint-disable-line prefer-template
+    const rowId = mainUtils.getElementUniqueId(event.target, 'subscription-edit-mode-cancel-btn-');
+    const subscription = rowIdSubscriptionMap[rowId];
 
-    renderRowViewMode(rowElement, [
-      getAirportName(airports, rowValues.fly_from),
-      getAirportName(airports, rowValues.fly_to),
-      rowValues.date_from,
-      rowValues.date_to,
-      'options',
-    ]);
+    renderSubscriptionRow(
+      'view',
+      subscription,
+      $('#subscription-' + rowId) // eslint-disable-line prefer-template
+    );
   };
 
   const onRemoveClick = function (event) {
     mainUtils.trace('remove button click');
 
     const removeButton = event.target;
-    const rowId = mainUtils.getElementUniqueId(event.target, 'remove-btn-');
-    const rowValues = rowIdSubscriptionMap[rowId];
+    const rowId = mainUtils.getElementUniqueId(removeButton, 'subscription-edit-mode-remove-btn-');
+    const oldSubscription = rowIdSubscriptionMap[rowId];
 
     // TODO asserts
 
@@ -286,7 +243,7 @@ function start () {
 
     api.unsubscribe({
       v: '2.0',
-      user_subscription_id: rowValues.id,
+      user_subscription_id: oldSubscription.id,
       api_key: APIKeyRef.APIKey,
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       removeButton.disabled = false;
@@ -311,17 +268,17 @@ function start () {
       mainUtils.trace('unsubscribe method success');
 
       subscriptions = subscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
-        return subscription.id !== rowValues.id;
+        return subscription.id !== oldSubscription.id;
       });
 
       delete rowIdSubscriptionMap[rowId];
 
-      $('#row-' + rowId).remove(); // eslint-disable-line prefer-template
+      $('#subscription-' + rowId).remove(); // eslint-disable-line prefer-template
 
       if (subscriptions.length > 0) {
-        showSubscriptionsTable($('#subscriptions-table'));
+        showSubscriptionsTable();
       } else {
-        hideSubscriptionTable($('#subscriptions-table'));
+        hideSubscriptionTable();
       }
 
       mainUtils.displayUserMessage('Successfully unsubscribed!', 'success');
@@ -402,65 +359,52 @@ function start () {
       };
 
       subscriptions = subscriptions.concat([newSubscription]);
-
-      // TODO check if table empty
-
-      const newRow = $('#subscriptions-table tbody')[0].insertRow();
       const rowId = String(mainUtils.getUniqueId());
-      const rowValues = [
-        airportFrom,
-        airportTo,
-        dateFrom,
-        dateTo,
-        'options',
-      ];
 
       rowIdSubscriptionMap[rowId] = newSubscription;
-      $(newRow).attr('id', 'row-' + rowId); // eslint-disable-line prefer-template
-
-      renderRowViewMode(newRow, rowValues);
+      renderSubscriptionRow('view', newSubscription);
       mainUtils.displayUserMessage('Successfully subscribed!', 'success');
     });
   };
 
-  function renderRowEditMode (rowElement, rowValues) {
-    mainUtils.trace('renderRowEditMode');
+  function renderSubscriptionRow (mode, subscription, $row) {
+    mainUtils.trace('renderSubscriptionRow');
 
-    assertApp(rowElement instanceof window.HTMLTableRowElement, {
-      msg: 'Expected rowElement to be HTMLTableRowElement, but got ' + typeof rowElement, // eslint-disable-line prefer-template
+    assertApp(_.isObject(subscription), {
+      msg: 'Expected subscription to be an object, but was ' + typeof subscription, // eslint-disable-line prefer-template
     });
 
-    assertApp(rowValues instanceof Array, {
-      msg: 'Expected rowValues to be an array, but got ' + typeof rowValues, // eslint-disable-line prefer-template
+    const subscriptionStringProps = ['id', 'fly_from', 'fly_to', 'date_from', 'date_to'];
+
+    _.each(subscriptionStringProps, function (prop) { // eslint-disable-line prefer-arrow-callback
+      assertApp(typeof subscription[prop] === 'string', {
+        msg: 'Expected subscription ' + prop + ' to be a string, but was ' + typeof subscription[prop], // eslint-disable-line prefer-template
+      });
     });
 
-    $(rowElement).find('td').remove();
-
-    const rowId = mainUtils.getElementUniqueId(rowElement, 'row-');
-
-    var i; // eslint-disable-line no-var
-
-    for (i = 0; i < rowValues.length; i++) {
-      const newCol = rowElement.insertCell(i);
-
-      if (rowValues[i] === 'options') {
-        $('<button id="save-btn-' + rowId + '" type="button" class="btn btn-primary">Save</button>') // eslint-disable-line prefer-template
-          .appendTo(newCol)
-          .click(onSaveClick);
-
-        $('<button id="cancel-btn-' + rowId + '" type="button" class="btn btn-default">Cancel</button>') // eslint-disable-line prefer-template
-          .appendTo(newCol)
-          .click(onCancelClick);
-
-        $('<button id="remove-btn-' + rowId + '" type="button" class="btn btn-danger">Remove</button>') // eslint-disable-line prefer-template
-          .appendTo(newCol)
-          .click(onRemoveClick);
-
-        continue;
+    assertApp(
+      $row == null ||
+      $row instanceof jQuery, {
+        msg: 'Unexpected type of $row ' + typeof $row, // eslint-disable-line prefer-template
       }
+    );
 
-      $(newCol).append(rowValues[i]);
-    }
+    var rowId = // eslint-disable-line no-var
+      ($row == null) ? String(mainUtils.getUniqueId())
+        : mainUtils.getElementUniqueId($row[0], 'subscription-');
+
+    rowIdSubscriptionMap[rowId] = subscription;
+
+    const modes = {
+      'view': renderSubscriptionRowViewMode,
+      'edit': renderSubscriptionRowEditMode,
+    };
+
+    assertApp(typeof modes[mode] === 'function', {
+      msg: 'Expected mode to be allowed mode, but was ' + mode, // eslint-disable-line prefer-template
+    });
+
+    modes[mode](subscription, rowId, $row);
 
     applyDatePicker();
     applyAutocomplete(airports.map(function (airport) { // eslint-disable-line prefer-arrow-callback
@@ -468,42 +412,86 @@ function start () {
     }));
   }
 
-  function renderRowViewMode (rowElement, rowValues) {
-    mainUtils.trace('renderRowViewMode');
+  function renderSubscriptionRowViewMode (subscription, rowId, $row) {
+    mainUtils.trace('renderSubscriptionRowViewMode');
 
-    if (subscriptions.length > 0) {
-      showSubscriptionsTable($('#subscriptions-table'));
+    const $subscriptionViewModeClone = $('#subscription-view-mode').clone()
+      .removeAttr('hidden')
+      .attr('id', 'subscription-' + rowId); // eslint-disable-line prefer-template
+
+    $subscriptionViewModeClone.find('#subscription-view-mode-airport-from')
+      .attr('id', 'subscription-view-mode-airport-from-' + rowId) // eslint-disable-line prefer-template
+      .text(getAirportName(airports, subscription.fly_from));
+
+    $subscriptionViewModeClone.find('#subscription-view-mode-airport-to')
+      .attr('id', 'subscription-view-mode-airport-to-' + rowId) // eslint-disable-line prefer-template
+      .text(getAirportName(airports, subscription.fly_to));
+
+    $subscriptionViewModeClone.find('#subscription-view-mode-date-from')
+      .attr('id', 'subscription-view-mode-date-from-' + rowId) // eslint-disable-line prefer-template
+      .text(subscription.date_from);
+
+    $subscriptionViewModeClone.find('#subscription-view-mode-date-to')
+      .attr('id', 'subscription-view-mode-date-to-' + rowId) // eslint-disable-line prefer-template
+      .text(subscription.date_to);
+
+    $subscriptionViewModeClone.find('#subscription-view-mode-edit-btn')
+      .attr('id', 'subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
+      .click(onEditClick);
+
+    if ($row == null) {
+      $subscriptionViewModeClone.appendTo(
+        $('#subscriptions-table tbody')
+      );
     } else {
-      hideSubscriptionTable($('#subscriptions-table'));
+      $row.replaceWith($subscriptionViewModeClone);
     }
+  }
 
-    assertApp(rowElement instanceof window.HTMLTableRowElement, {
-      msg: 'Expected rowElement to be HTMLTableRowElement, but got ' + typeof rowElement, // eslint-disable-line prefer-template
-    });
+  function renderSubscriptionRowEditMode (subscription, rowId, $row) {
+    mainUtils.trace('renderSubscriptionRowEditMode');
 
-    assertApp(rowValues instanceof Array, {
-      msg: 'Expected rowValues to be an array, but got ' + typeof rowValues, // eslint-disable-line prefer-template
-    });
+    const $subscriptionEditModeClone = $('#subscription-edit-mode').clone()
+      .removeAttr('hidden')
+      .attr('id', 'subscription-' + rowId); // eslint-disable-line prefer-template
 
-    $(rowElement).find('td').remove();
+    $subscriptionEditModeClone.find('#subscription-edit-mode-airport-from')
+      .addClass('airport-select')
+      .attr('id', 'subscription-edit-mode-airport-from-' + rowId) // eslint-disable-line prefer-template
+      .attr('list', 'subscription-airport-from-' + rowId) // eslint-disable-line prefer-template
+      .attr('value', getAirportName(airports, subscription.fly_from));
 
-    const rowId = mainUtils.getElementUniqueId(rowElement, 'row-');
+    $subscriptionEditModeClone.find('#subscription-edit-mode-airport-to')
+      .addClass('airport-select')
+      .attr('id', 'subscription-edit-mode-airport-to-' + rowId) // eslint-disable-line prefer-template
+      .attr('list', 'user-subscription-airport-to-' + rowId) // eslint-disable-line prefer-template
+      .attr('value', getAirportName(airports, subscription.fly_to));
 
-    var i; // eslint-disable-line no-var
+    $subscriptionEditModeClone.find('#subscription-edit-mode-date-from')
+      .addClass('date-select') // Necessary!! items with date-select class will be used with jQuery datepicker (see function applyDatePicker).
+      // datepicker won't work with the new clone element if the original cloned element has date-select class (datepicker adds hasDatepicker class and ignores elements with this class)
+      .attr('id', 'subscription-edit-mode-date-from-' + rowId) // eslint-disable-line prefer-template
+      .attr('value', subscription.date_from);
 
-    for (i = 0; i < rowValues.length; i++) {
-      const newCol = rowElement.insertCell(i);
+    $subscriptionEditModeClone.find('#subscription-edit-mode-date-to')
+      .addClass('date-select') // Necessary!! items with date-select class will be used with jQuery datepicker (see function applyDatePicker).
+      // datepicker won't work with the new clone element if the original cloned element has date-select class (datepicker adds hasDatepicker class and ignores elements with this class)
+      .attr('id', 'subscription-edit-mode-date-to-' + rowId) // eslint-disable-line prefer-template
+      .attr('value', subscription.date_to);
 
-      if (rowValues[i] === 'options') {
-        $('<button id="edit-btn-' + rowId + '" type="button" class="btn btn-primary btn-block">Edit</button>') // eslint-disable-line prefer-template
-          .appendTo(newCol)
-          .click(onEditClick);
+    $subscriptionEditModeClone.find('#subscription-edit-mode-save-btn')
+      .attr('id', 'subscription-edit-mode-save-btn-' + rowId) // eslint-disable-line prefer-template
+      .click(onSaveClick);
 
-        continue;
-      }
+    $subscriptionEditModeClone.find('#subscription-edit-mode-cancel-btn')
+      .attr('id', 'subscription-edit-mode-cancel-btn-' + rowId) // eslint-disable-line prefer-template
+      .click(onCancelClick);
 
-      $(newCol).text(rowValues[i]);
-    }
+    $subscriptionEditModeClone.find('#subscription-edit-mode-remove-btn')
+      .attr('id', 'subscription-edit-mode-remove-btn-' + rowId) // eslint-disable-line prefer-template
+      .click(onRemoveClick);
+
+    $row.replaceWith($subscriptionEditModeClone);
   }
 
   function applyDatePicker () {
