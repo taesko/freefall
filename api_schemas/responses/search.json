@@ -3,6 +3,7 @@
   "$id": "response/search",
   "title": "API response of search method",
   "type": "object",
+  "required": ["status_code", "currency", "routes"],
   "properties": {
     "status_code": {
       "type": "string",
@@ -19,6 +20,7 @@
       "type": "array",
       "items": {
         "type": "object",
+        "required": ["booking_token", "price", "route"],
         "properties": {
           "booking_token": {
             "type": "string"
@@ -30,6 +32,7 @@
             "type": "array",
             "items": {
               "type": "object",
+              "required": ["airport_from", "airport_to", "return", "dtime", "atime", "airline_logo", "airline_name", "flight_number"],
               "properties": {
                 "airport_from": {
                   "type": "string"
