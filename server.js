@@ -24,10 +24,7 @@ app.use(logger());
 
 app.use(async (ctx, next) => {
   log.request(ctx);
-  const start = new Date();
   await next();
-  const end = new Date();
-  log.debug('BENCHMARK RESPONSE TOOK', end - start, 'ms');
   log.response(ctx);
 });
 
