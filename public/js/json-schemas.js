@@ -193,6 +193,17 @@ const validators = { // eslint-disable-line no-unused-vars
           'type': 'number',
           'minimum': 0,
         },
+        'limit': {
+          'title': 'Results limit',
+          'type': 'number',
+          'minimum': 1,
+          'maximum': 20,
+        },
+        'offset': {
+          'title': 'Results offset',
+          'type': 'number',
+          'minimum': 0,
+        },
       },
       'required': ['v', 'fly_from', 'fly_to', 'currency', 'sort'],
     };

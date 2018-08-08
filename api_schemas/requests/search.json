@@ -29,6 +29,15 @@
     },
     "max_fly_duration": {
       "type": "integer"
+    },
+    "limit": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 20
+    },
+    "offset": {
+      "type": "integer",
+      "minimum": 0
     }
   }
 }
