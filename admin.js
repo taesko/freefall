@@ -25,10 +25,12 @@ const SESSION_CONFIG = {
 
 app.keys = ['freefall is love freefall is life'];
 
+app.use(logger());
+
 app.use(async (ctx, next) => {
-  log.debug('GOT REQUEST', ctx.request);
+  log.request(ctx);
   await next();
-  log.debug('SENDING BACK RESPONSE', ctx.response);
+  log.response(ctx);
 });
 
 app.use(async (ctx, next) => {
@@ -45,8 +47,6 @@ app.use(async (ctx, next) => {
 app.context.db = db;
 
 app.use(session(SESSION_CONFIG, app));
-
-app.use(logger());
 
 app.use(cors({
   origin: '*',
