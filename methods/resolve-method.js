@@ -76,12 +76,39 @@ async function search (params, dbClient) {
     };
   }
 
+  const { rows: routesMetaRows } = await dbClient.executeQuery(
+    `
+    SELECT DISTINCT
+      routes.id,
+      routes.booking_token,
+      routes.price
+    FROM routes
+    LEFT JOIN routes_flights ON routes_flights.route_id = routes.id
+    LEFT JOIN flights ON routes_flights.flight_id = flights.id
+    LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
+    LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
+    WHERE
+        flights.dtime >= $3::date AND
+        flights.atime <= $4::date AND
+        routes.price <= $5 AND
+        fetches.id = (
+          SELECT fetches.id
+          FROM subscriptions_fetches
+          LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
+          LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.subscription_id
+          WHERE
+            subscriptions.airport_from_id = $1 AND
+            subscriptions.airport_to_id = $2 AND
+            fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
+        )
+    `,
+    [flyFrom, flyTo, dateFrom, dateTo, priceTo], // 100 - cents into dollars
+  );
+
   const { rows: routesAndFlights } = await dbClient.executeQuery(
     `
     SELECT
       routes.id AS route_id,
-      routes.booking_token AS booking_token,
-      routes.price,
       airlines.name AS airline_name,
       airlines.logo_url AS airline_logo,
       afrom.name::text AS airport_from,
@@ -141,6 +168,13 @@ async function search (params, dbClient) {
     flightsPerRoute[routeFlight.route_id].push(routeFlight);
   }
 
+  for (const routeMeta of routesMetaRows) {
+    routesMeta[routeMeta.id] = {
+      booking_token: routeMeta.booking_token,
+      price: routeMeta.price / 100, // price is for the total route that the flight is part of
+    };
+  }
+
   const routes = [];
 
   // eslint-disable-next-line camelcase
@@ -167,12 +201,9 @@ async function search (params, dbClient) {
       continue;
     }
 
-    log.debug('length of flights per route is', route_id, flightsPerRoute[route_id].length);
-    log.debug('flightPerRoute with id is', route_id, flightsPerRoute[route_id]);
     routes.push({ ...routesMeta[route_id], route: flightsPerRoute[route_id] });
   }
 
-  log.debug('list of routes is', routes);
   routes.sort((routeA, routeB) => {
     return routeA.price - routeB.price;
   });
