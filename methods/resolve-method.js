@@ -53,6 +53,17 @@ async function search (params, dbClient) {
     dateTo = moment().add(SEARCH_MONTHS_AHEAD, 'months').format(SERVER_TIME_FORMAT);
   }
 
+  if (
+    params.price_to &&
+    (params.price_to > MAX_PRICE_TO || params.price_to <= 0)
+  ) {
+    return {
+      status_code: '2000',
+      currency: params.currency,
+      routes: [],
+    };
+  }
+
   const priceTo = toSmallestCurrencyUnit(params.price_to || DEFAULT_PRICE_TO);
   const currency = params.currency;
   const maxFlightDuration = params.max_fly_duration;
