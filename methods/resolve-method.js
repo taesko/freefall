@@ -1,6 +1,7 @@
 const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
 const SEARCH_MONTHS_AHEAD = 1;
-const DEFAULT_PRICE_TO = 100000;
+const MAX_PRICE_TO = Math.pow(10, 6); // 10k in cents
+const DEFAULT_PRICE_TO = MAX_PRICE_TO;
 const { assertPeer, assertApp, PeerError, errorCodes } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject } = require('lodash');
@@ -63,11 +64,24 @@ async function search (params, dbClient) {
   );
 
   if (!subscribed) {
-    await subscriptions.subscribeGlobally(
-      dbClient,
-      +params.fly_from,
-      +params.fly_to,
-    );
+    try {
+      await subscriptions.subscribeGlobally(
+        dbClient,
+        +params.fly_from,
+        +params.fly_to,
+      );
+    } catch (e) {
+      if (e.code === 'FF_INVALID_AIRPORT_ID') {
+        log.debug('Caught FF_INVALID_AIRPORT_ID');
+        return {
+          status_code: '2000',
+          routes: [],
+          currency,
+        };
+      } else {
+        throw e;
+      }
+    }
 
     return {
       status_code: '1001',
@@ -117,7 +131,7 @@ async function search (params, dbClient) {
      ORDER BY route_id
      LIMIT 50
     `,
-    [flyFrom, flyTo, dateFrom, dateTo, priceTo], // 100 - cents into dollars
+    [flyFrom, flyTo, dateFrom, dateTo, priceTo],
   );
 
   assertApp(Array.isArray(routesAndFlights), 'Invalid database response for search');
@@ -142,13 +156,6 @@ async function search (params, dbClient) {
 
     flightsPerRoute[routeFlight.route_id].push(routeFlight);
   }
-
-  // for (const routeMeta of routesMetaRows) {
-  //   routesMeta[routeMeta.id] = {
-  //     booking_token: routeMeta.booking_token,
-  //     price: routeMeta.price / 100, // price is for the total route that the flight is part of
-  //   };
-  // }
 
   const routes = [];
 

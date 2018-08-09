@@ -4,6 +4,13 @@
   "title": "Search API method request ",
   "description": "Body of the search API method sent from the client.",
   "type": "object",
+  "required": [
+    "v",
+    "fly_from",
+    "fly_to",
+    "currency",
+    "sort"
+  ],
   "properties": {
     "v": {
       "type": "string"

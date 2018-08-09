@@ -107,7 +107,8 @@ function validateAPIResponse (apiResult, method) {
 
   assertApp(
     ajv.validate(schemaId, apiResult),
-    `invalid error response for method ${method}. Error: ${ajv.errorsText()}`,
+    `invalid error response for method ${method}. Error: ${ajv.errorsText()}. Response: ${JSON.stringify(
+      apiResult)}`,
   );
 }
 

@@ -364,13 +364,26 @@ async function subscribeGlobally (dbClient, airportFromId, airportToId) {
   );
 
   // TODO raises error when airport doesn't exist
-  const sub = await dbClient.insert(
-    'subscriptions',
-    {
-      airport_from_id: airportFromId,
-      airport_to_id: airportToId,
-    },
-  );
+  let sub;
+
+  try {
+    sub = await dbClient.insert(
+      'subscriptions',
+      {
+        airport_from_id: airportFromId,
+        airport_to_id: airportToId,
+      },
+    );
+  } catch (e) {
+    if (e.code === '23503') {
+      throw new errors.PeerError(
+        'cannot subscribe globally because airport ids do not exist',
+        'FF_INVALID_AIRPORT_ID',
+      );
+    } else {
+      throw e;
+    }
+  }
 
   log.info('Subscribed globally to airports with an id of', sub.id);
 
