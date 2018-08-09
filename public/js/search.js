@@ -1,6 +1,4 @@
 function start () {
-  const $routeItemTemplate = $('#flights-list-item-template');
-  const $flightItemTemplate = $('#flight-item-template');
   const $flightForm = $('#flight-form');
   const $submitBtn = $('#submit-button');
 
@@ -8,12 +6,11 @@ function start () {
   const assertApp = mainUtils.assertApp;
   const assertPeer = mainUtils.assertPeer;
   const assertUser = mainUtils.assertUser;
-  const trace = mainUtils.trace;
-  const displayUserMessage = mainUtils.displayUserMessage;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const api = getAPIMethods(mainUtils);
 
   var airports = []; // eslint-disable-line no-var
+  var routes = []; // eslint-disable-line no-var
 
   const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -43,7 +40,7 @@ function start () {
 
     assertApp($routesContainer instanceof jQuery, {
       msg: 'Expected $routesContainer to be instance of jQuery, but was ' + typeof $routesContainer, // eslint-disable-line prefer-template
-      });
+    });
     assertApp($routesContainer.length === 1, {
       msg: 'Expected only one element in jQuery object, but got ' + $routesContainer.length, // eslint-disable-line prefer-template
     });
@@ -57,24 +54,86 @@ function start () {
     if (routes.length > 0) {
       showRoutesContainer();
     } else {
+      mainUtils.displayUserMessage('There is no information about such route at the moment. Please try again later!');
       hideRoutesContainer();
     }
 
-    rowIdRouteMap = {};
+    $routesContainer.children().not('#route').remove();
 
-    _.each(routes, function (route) {
-      renderRouteTable(route);
+    _.each(routes, function (route) { // eslint-disable-line prefer-arrow-callback
+      renderRoute(route);
     });
   }
 
-  function renderRouteTable (route) {
-    mainUtils.trace('renderRouteTable');
+  function renderRoute (route) {
+    mainUtils.trace('renderRoute');
 
     assertApp(_.isObject(route), {
       msg: 'Expected route to be an object, but was ' + typeof route, // eslint-disable-line prefer-template
     });
 
-    // TODO
+    const routeId = String(mainUtils.getUniqueId());
+
+    const $routeClone = $('#route').clone()
+      .removeAttr('hidden')
+      .attr('id', 'route-' + routeId); // eslint-disable-line prefer-template
+
+    $routeClone.find('#route-price')
+      .attr('id', 'route-price-' + routeId) // eslint-disable-line prefer-template
+      .text(route.price);
+
+    $routeClone.find('#route-buy')
+      .attr('id', 'route-buy-' + routeId) // eslint-disable-line prefer-template
+      .click(function () { // eslint-disable-line prefer-arrow-callback
+        window.location.href = 'https://www.kiwi.com/us/booking?token=' + route.booking_token; // eslint-disable-line prefer-template
+      });
+
+    $routeClone.find('#routes-table')
+      .attr('id', 'routes-table-' + routeId); // eslint-disable-line prefer-template
+
+    _.each(route.route, function (flight, index) { // eslint-disable-line prefer-arrow-callback
+      const routeFlightId = String(mainUtils.getUniqueId());
+      const $routeFlightClone = $routeClone.find('#route-flight')
+        .clone()
+        .attr('id', 'route-flight-' + routeFlightId) // eslint-disable-line prefer-template
+        .removeAttr('hidden');
+
+      $routeFlightClone.find('#route-flight-step')
+        .attr('id', 'route-flight-step-' + routeFlightId) // eslint-disable-line prefer-template
+        .text(index + 1);
+
+      $routeFlightClone.find('#route-flight-airline-logo')
+        .attr('id', 'route-flight-airline-logo-' + routeFlightId) // eslint-disable-line prefer-template
+        .attr('src', flight.airline_logo);
+
+      $routeFlightClone.find('#route-flight-airline-name')
+        .attr('id', 'route-flight-airline-name-' + routeFlightId) // eslint-disable-line prefer-template
+        .text(flight.airline_name);
+
+      $routeFlightClone.find('#route-flight-departure-airport')
+        .attr('id', 'route-flight-departure-airport-' + routeFlightId) // eslint-disable-line prefer-template
+        .text(flight.airport_from);
+
+      $routeFlightClone.find('#route-flight-departure-time')
+        .attr('id', 'route-flight-departure-time-' + routeFlightId) // eslint-disable-line prefer-template
+        .text(weeklyDateString(flight.dtime) + ' ' + timeStringFromDate(flight.dtime)); // eslint-disable-line prefer-template
+
+      $routeFlightClone.find('#route-flight-arrival-airport')
+        .attr('id', 'route-flight-arrival-airport-' + routeFlightId) // eslint-disable-line prefer-template
+        .text(flight.airport_to);
+
+      $routeFlightClone.find('#route-flight-arrival-time')
+        .attr('id', 'route-flight-arrival-time-' + routeFlightId) // eslint-disable-line prefer-template
+        .text(weeklyDateString(flight.atime) + ' ' + timeStringFromDate(flight.atime)); // eslint-disable-line prefer-template
+
+      $routeFlightClone.find('#route-flight-duration')
+        .attr('id', 'route-flight-duration-' + routeFlightId) // eslint-disable-line prefer-template
+        .text(getFlightDuration(flight.dtime, flight.atime));
+
+      $routeFlightClone.appendTo($routeClone.find('tbody'));
+    });
+
+    $routeClone.appendTo($('#routes-container'));
   }
 
   function getAirport (term, airports) {
@@ -165,105 +224,24 @@ function start () {
     return '' + dayName + ' ' + date.getDate() + ' ' + monthName + ''; // eslint-disable-line prefer-template
   }
 
-  function displaySearchResult (searchResult, $routesList, templates) {
-    trace('executing displaySearchResult');
+  function getFlightDuration (departureTime, arrivalTime) {
+    assertApp(departureTime instanceof Date, {
+      msg: 'Expected departureTime to be instance of Date, but was "' + departureTime + '"', // eslint-disable-line prefer-template
+    });
 
-    const { $flightItemTemplate, $routeItemTemplate } = templates;
+    assertApp(arrivalTime instanceof Date, {
+      msg: 'Expected arrivalTime to be instance of Date, but was "' + arrivalTime + '"', // eslint-disable-line prefer-template
+    });
 
-    $routesList.find('li:not(:first)')
-      .remove();
-
-    if (
-      !_.isObject(searchResult) ||
-      (Object.keys(searchResult).length === 0 && _.isObject(searchResult))
-    ) {
-      return;
-    }
-
-    if (searchResult.routes.length === 0) {
-      $('#load-more-button').hide();
-      displayUserMessage('There are no known flights.', 'info');
-    } else {
-      $('#load-more-button').show();
-    }
-
-    var i; // eslint-disable-line no-var
-    for (i = 0; i < searchResult.routes.length; i++) {
-      const route = searchResult.routes[i];
-      const $clone = $routeItemTemplate.clone();
-      const $routeList = $clone.find('ul');
-      const $newRoute = fillList($routeList, route.route, $flightItemTemplate);
-
-      if (i < MAX_ROUTES_PER_PAGE) {
-        $clone.show();
-      }
-
-      $clone.find('.route-price')
-        .text(route.price);
-      $routesList.append($clone.append($newRoute));
-
-      const $timeElements = $clone.find('time');
-
-      $($timeElements[0])
-        .attr('datetime', route.dtime)
-        .text('' + weeklyDateString(route.dtime) + ' ' + timeStringFromDate(route.dtime) + ''); // eslint-disable-line prefer-template
-      $($timeElements[1])
-        .attr('datetime', route.dtime)
-        .text('' + weeklyDateString(route.atime) + ' ' + timeStringFromDate(route.atime) + ''); // eslint-disable-line prefer-template
-    }
-  }
-
-  function fillList ($listTemplate, route, $flightItemTemplate) {
-    $listTemplate.find('li:not(:first)')
-      .remove();
-
-    var i; // eslint-disable-line no-var
-
-    for (i = 0; i < route.length; i++) {
-      $listTemplate.append(makeFlightItem(route[i], $flightItemTemplate));
-    }
-
-    $listTemplate.show();
-
-    return $listTemplate;
-  }
-
-  function makeFlightItem (flight, $itemTemplate) {
-    const $clone = $itemTemplate.clone()
-      .removeAttr('id')
-      .removeClass('hidden');
-
-    var duration = Math.abs(flight.atime - flight.dtime); // eslint-disable-line no-var
-
+    const duration = Math.abs(arrivalTime - departureTime);
     const hours = Math.floor(duration / 1000 / 60 / 60);
     const minutes = (duration / 1000 / 60) % 60;
 
-    duration = hours + ' h, ' + minutes + ' m'; // eslint-disable-line prefer-template
-
-    $clone.find('.airline-logo')
-      .attr('src', flight.airline_logo);
-    $clone.find('.airline-name')
-      .text(flight.airline_name);
-    $clone.find('.departure-time')
-      .text(timeStringFromDate(flight.dtime));
-    $clone.find('.arrival-time')
-      .text(timeStringFromDate(flight.atime));
-    $clone.find('.flight-date')
-      .text(weeklyDateString(flight.dtime));
-    $clone.find('.timezone')
-      .text('UTC');
-    $clone.find('.duration')
-      .text(duration);
-    // TODO later change to city when server implements the field
-    $clone.find('.from-to-display')
-      .text('' + flight.airport_from + ' -----> ' + flight.airport_to + ''); // eslint-disable-line prefer-template
-
-    $clone.show();
-    return $clone;
+    return hours + ' h, ' + minutes + ' m'; // eslint-disable-line prefer-template
   }
 
   function getSearchFormParams ($searchForm) {
-    trace('executing getSearchFormParams');
+    mainUtils.trace('executing getSearchFormParams');
 
     const searchFormParams = {
       v: '1.0', // TODO move to another function, this should not be here
@@ -313,7 +291,7 @@ function start () {
       searchFormParams.date_to = formData['date-to'];
     }
 
-    trace('getSearchFormParams returning ' + JSON.stringify(searchFormParams) + ''); // eslint-disable-line prefer-template
+    mainUtils.trace('getSearchFormParams returning ' + JSON.stringify(searchFormParams) + ''); // eslint-disable-line prefer-template
     return searchFormParams;
   }
 
@@ -327,7 +305,7 @@ function start () {
     const $allRoutesList = $('#all-routes-list');
 
     $submitBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback
-      trace('Submit button clicked');
+      mainUtils.trace('Submit button clicked');
 
       event.preventDefault();
 
@@ -366,21 +344,11 @@ function start () {
         const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
         assertUser(result.status_code === '1000', {
           userMessage: userMessage,
-          msg: 'Subscribe failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+          msg: 'Search failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
         });
 
-        if (result.status_code === '1000') {
-          displaySearchResult(
-            result,
-            $allRoutesList,
-            {
-              $routeItemTemplate: $routeItemTemplate,
-              $flightItemTemplate: $flightItemTemplate,
-            }
-          );
-        } else {
-          displayUserMessage(messages[result.status_code], 'info');
-        }
+        routes = result.routes;
+        renderRoutes($('#routes-container'));
       });
     });
 

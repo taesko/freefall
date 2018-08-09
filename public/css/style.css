@@ -17,3 +17,11 @@
 li {
 	list-style-type: none;
 }
+
+td {
+  text-align: center;
+}
+
+.table > tbody > tr > td {
+  vertical-align: middle;
+}
