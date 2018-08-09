@@ -12,7 +12,9 @@ else
 fi
 
 if [ -z "$2" ]; then
+    echo "Second argument not specified for url to benchmark"
     url="http://10.20.1.110:3000/"
+    echo "Defaulting to ${url}"
 else
     url="http://${2}/"
 fi
