@@ -27,24 +27,24 @@
       <div class="col-md-6 col-md-offset-3">
         <div class="form-group">
           <div class="form-group fixed-form-height">
-            <label for="from-input" text-center">Airport from:</label>
+            <label for="from-input">Airport from:</label>
             <input id="from-input" class="form-control" name="from" type="text" placeholder="From" list="from-airports" required>
 
           </div>
           <div class="form-group fixed-form-height">
-            <label for="to-input" text-center">Airport to:</label>
+            <label for="to-input">Airport to:</label>
             <input id="to-input" name="to" class="form-control" type="text" placeholder="To" list="to-airports" required>
           </div>
           <div class="form-group fixed-form-height">
-            <label for="date-from" text-center">Departure time:</label>
+            <label for="date-from">Departure time:</label>
             <input id="date-from" class="form-control" name="date-from" type="text">
           </div>
           <div class="form-group fixed-form-height">
-            <label for="date-to" text-center">Arrival time:</label>
+            <label for="date-to">Arrival time:</label>
             <input id="date-to" name="date-to" class="form-control" type="text">
           </div>
           <div class="form-group fixed-form-height">
-            <label for="price-to" text-center">Max route price:</label>
+            <label for="price-to">Max route price:</label>
             <input id="price-to" class="form-control" name="price-to" placeholder="max-price" min="0" type="number">
           </div>
           <div class="form-group fixed-form-height text-center">
@@ -109,18 +109,49 @@
         </li>
       </ul>
     </div>
-    <div id="new-routes-container">
-      <div id="route">
+    <div id="routes-container">
+      <div id="route" hidden="true">
+        <div class="row">
+          <div class="col-md-6">
+            <p class="text-left">Price: <label id="route-price"></label></p>
+          </div>
+          <div class="col-md-6">
+            <p class="text-right">
+              <button id="route-buy" type="button" onclick="location.href='http://google.com'" class="btn">Buy <span class="glyphicon glyphicon-shopping-cart"></span></button>
+            </p>
+          </div>
+        </div>
         <table id="routes-table" class="table table-bordered">
           <thead>
+            <td></td>
             <td>Airline</td>
-            <td>Departure time</td>
-            <td>Departure airport</td>
-            <td>Arrival time</td>
-            <td>Arrival airport</td>
+            <td>Departure</td>
+            <td>Arrival</td>
             <td>Flight duration</td>
           </thead>
+          <tbody>
+            <tr id="route-flight" hidden="true">
+              <td id="route-flight-step"></td>
+              <td>
+                <img id="route-flight-airline-logo" class="airline-logo img-responsive center-block" src="">
+                <p id="route-flight-airline-name" class="text-center"></p>
+              </td>
+              <td>
+                <p><strong id="route-flight-departure-airport"></strong></p>
+                <p id="route-flight-departure-time"></p>
+              </td>
+              <td>
+                <p><strong id="route-flight-arrival-airport"></strong></p>
+                <p id="route-flight-arrival-time"></p>
+              </td>
+              <td>
+                <label id="route-flight-duration"></label>
+                <span class="glyphicon glyphicon-send"></span>
+              </td>
+            </tr>
+          </tbody>
         </table>
+        <hr>
       </div>
     </div>
     <button id="load-more-button" class="btn-primary col-xs-12 collapse">Load more</button>
