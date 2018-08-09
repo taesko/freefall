@@ -30,6 +30,53 @@ function start () {
   ];
   const MAX_ROUTES_PER_PAGE = 5;
 
+  function showRoutesContainer () {
+    $('#routes-container').removeAttr('hidden');
+  }
+
+  function hideRoutesContainer () {
+    $('#routes-container').attr('hidden', 'true');
+  }
+
+  function renderRoutes ($routesContainer) {
+    mainUtils.trace('renderRoutes');
+
+    assertApp($routesContainer instanceof jQuery, {
+      msg: 'Expected $routesContainer to be instance of jQuery, but was ' + typeof $routesContainer, // eslint-disable-line prefer-template
+      });
+    assertApp($routesContainer.length === 1, {
+      msg: 'Expected only one element in jQuery object, but got ' + $routesContainer.length, // eslint-disable-line prefer-template
+    });
+    assertApp($routesContainer[0] instanceof window.HTMLDivElement, {
+      msg: 'Expected element in jQuery object to be HTMLDivElement, but got ' + typeof $routesContainer[0], // eslint-disable-line prefer-template
+    });
+    assertApp(routes instanceof Array, {
+      msg: 'Expected routes to be instance of array, but was ' + typeof routes, // eslint-disable-line prefer-template
+    });
+
+    if (routes.length > 0) {
+      showRoutesContainer();
+    } else {
+      hideRoutesContainer();
+    }
+
+    rowIdRouteMap = {};
+
+    _.each(routes, function (route) {
+      renderRouteTable(route);
+    });
+  }
+
+  function renderRouteTable (route) {
+    mainUtils.trace('renderRouteTable');
+
+    assertApp(_.isObject(route), {
+      msg: 'Expected route to be an object, but was ' + typeof route, // eslint-disable-line prefer-template
+    });
+
+    // TODO
+  }
+
   function getAirport (term, airports) {
     assertApp(typeof term === 'string', {
       msg: 'Expected arg. term in getAirport to be a string, but got ' + typeof term, // eslint-disable-line prefer-template

@@ -689,6 +689,7 @@ function start () {
           } else {
             hideUserSubscriptionsTable();
           }
+
           mainUtils.displayUserMessage('Successfully removed user subscription!', 'success');
         } else {
           mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
