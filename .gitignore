@@ -1,3 +1,4 @@
+scripts/ab-tests/results
 .idea
 node_modules
 freefall.db
