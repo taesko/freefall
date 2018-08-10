@@ -1,7 +1,3 @@
-const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
-const SEARCH_MONTHS_AHEAD = 1;
-const MAX_PRICE_TO = Math.pow(10, 6); // 10k in cents
-const DEFAULT_PRICE_TO = MAX_PRICE_TO;
 const { assertPeer, assertApp, PeerError, errorCodes } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject } = require('lodash');
@@ -11,7 +7,15 @@ const moment = require('moment');
 const subscriptions = require('../modules/subscriptions');
 const users = require('../modules/users');
 const accounting = require('../modules/accounting');
+
 const MAX_CREDITS_DIFFERENCE = Math.pow(10, 12);
+const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
+const SEARCH_MONTHS_AHEAD = 1;
+const MAX_PRICE_TO = Math.pow(10, 6); // 10k in cents
+const DEFAULT_PRICE_TO = MAX_PRICE_TO;
+const MAX_SEARCH_PAGE_LIMIT = 20;
+const DEFAULT_SEARCH_PAGE_LIMIT = 5;
+const DEFAULT_SEARCH_PAGE_OFFSET = 0;
 
 const API_METHODS = {
   search,
@@ -64,9 +68,33 @@ async function search (params, dbClient) {
     };
   }
 
+  if (
+    params.limit &&
+    (
+      !Number.isInteger(+params.limit) ||
+      params.limit > MAX_SEARCH_PAGE_LIMIT
+    )
+  ) {
+    return {
+      status_code: '2000',
+      currency: params.currency,
+      routes: [],
+    };
+  }
+
+  if (params.offset && !Number.isInteger(+params.offset)) {
+    return {
+      status_code: '2000',
+      currency: params.currency,
+      routes: [],
+    };
+  }
+
   const priceTo = toSmallestCurrencyUnit(params.price_to || DEFAULT_PRICE_TO);
   const currency = params.currency;
   const maxFlightDuration = params.max_fly_duration;
+  const limit = params.limit || DEFAULT_SEARCH_PAGE_LIMIT;
+  const offset = params.offset || DEFAULT_SEARCH_PAGE_OFFSET;
 
   const subscribed = await subscriptions.globalSubscriptionExists(
     dbClient,
@@ -140,9 +168,10 @@ async function search (params, dbClient) {
             fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
         )
      ORDER BY route_id
-     LIMIT 50
+     LIMIT $6 * 5 -- TODO assumes a single route does not span more than 5 flights
+     OFFSET $7 * 5
     `,
-    [flyFrom, flyTo, dateFrom, dateTo, priceTo],
+    [flyFrom, flyTo, dateFrom, dateTo, priceTo, limit, offset],
   );
 
   assertApp(Array.isArray(routesAndFlights), 'Invalid database response for search');
