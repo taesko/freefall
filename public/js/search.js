@@ -11,6 +11,7 @@ function start () {
 
   var airports = []; // eslint-disable-line no-var
   var routes = []; // eslint-disable-line no-var
+  var formParams = null; // eslint-disable-line no-var
 
   const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -33,6 +34,14 @@ function start () {
 
   function hideRoutesContainer () {
     $('#routes-container').attr('hidden', 'true');
+  }
+
+  function showLoadMoreBtn () {
+    $('#load-more-btn').removeAttr('hidden');
+  }
+
+  function hideLoadMoreBtn () {
+    $('#load-more-btn').attr('hidden', 'true');
   }
 
   function renderRoutes ($routesContainer) {
@@ -174,22 +183,6 @@ function start () {
     return null;
   }
 
-  function setupLoading ($button, $routesList) {
-    const step = 5;
-
-    $button.click(function () { // eslint-disable-line prefer-arrow-callback
-      const loaded = $routesList.children()
-        .filter(':visible').length; // SUGGEST store visible and not visible in an array?
-      $routesList.children()
-        .slice(loaded, loaded + step + 1)
-        .show();
-
-      if (loaded + step >= $routesList.children().length) {
-        $button.hide();
-      }
-    });
-  }
-
   function objectifyForm (formArray) {
     return formArray.reduce(function (obj, entry) { // eslint-disable-line prefer-arrow-callback
       if (entry.value != null && entry.value !== '') { // '' check not needed
@@ -247,6 +240,8 @@ function start () {
       v: '1.0', // TODO move to another function, this should not be here
       currency: 'USD',
       sort: 'price',
+      limit: MAX_ROUTES_PER_PAGE,
+      offset: 0,
     };
     const formData = objectifyForm($searchForm.serializeArray());
 
@@ -303,13 +298,14 @@ function start () {
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $allRoutesList = $('#all-routes-list');
+    const $loadMoreBtn = $('#load-more-btn');
 
     $submitBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback
       mainUtils.trace('Submit button clicked');
 
       event.preventDefault();
 
-      const formParams = getSearchFormParams($flightForm);
+      formParams = getSearchFormParams($flightForm);
 
       const airportFrom = getAirport(formParams.fly_from, airports); // eslint-disable-line no-var
       const airportTo = getAirport(formParams.fly_to, airports); // eslint-disable-line no-var
@@ -347,7 +343,52 @@ function start () {
           msg: 'Search failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
         });
 
+        if (result.routes.length >= MAX_ROUTES_PER_PAGE) {
+          showLoadMoreBtn();
+        } else {
+          hideLoadMoreBtn();
+        }
+
         routes = result.routes;
+        renderRoutes($('#routes-container'));
+      });
+    });
+
+    $loadMoreBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback
+      mainUtils.trace('Load more button clicked');
+
+      const loadMoreBtnElement = event.target;
+
+      loadMoreBtnElement.disabled = true;
+      formParams.offset = routes.length;
+
+      api.search(formParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+        loadMoreBtnElement.disabled = false;
+
+        const messages = {
+          '1000': 'Search success, results found.',
+          '1001': 'There is no information about such routes at the moment. But we will check for you. Please come back in 15 minutes.',
+          '1002': 'There is no information about such routes at the moment.',
+          '2000': 'Search input was not correct.',
+        };
+
+        assertPeer(typeof messages[result.status_code] === 'string', {
+          msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        });
+
+        const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
+        assertUser(result.status_code === '1000', {
+          userMessage: userMessage,
+          msg: 'Search failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        });
+
+        if (result.routes.length >= MAX_ROUTES_PER_PAGE) {
+          showLoadMoreBtn();
+        } else {
+          hideLoadMoreBtn();
+        }
+
+        routes = routes.concat(result.routes);
         renderRoutes($('#routes-container'));
       });
     });
@@ -362,8 +403,6 @@ function start () {
 
     $('#date-from').datepicker(datepickerOptions);
     $('#date-to').datepicker(datepickerOptions);
-
-    setupLoading($('#load-more-button'), $allRoutesList);
 
     api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       airports = result.airports;
