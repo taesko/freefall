@@ -1,5 +1,5 @@
 {
-  "method": "admin_list_airports",
+  "method": "list_airports",
   "params": {
     "v": "2.0"
   },
