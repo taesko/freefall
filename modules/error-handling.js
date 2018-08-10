@@ -5,7 +5,7 @@ class CustomError extends Error {
     super(errMsg);
     this.code = errCode;
     log.error(
-      `ERROR occurred with code ${errCode} and message: ${errMsg}. Stack trace:\n\t`,
+      `code ${errCode} message: ${errMsg}  stack trace:\n\t`,
       this,
     );
   }

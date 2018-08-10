@@ -67,16 +67,21 @@ async function fetchForecast (bodyParams) {
 }
 
 async function retry (fetch, times = 2) {
+  let error;
+
   for (let tries = 0; tries < times; tries++) {
     try {
       return await fetch();
     } catch (e) {
       log.info('DaliPeche fetch failed. Retrying.');
+      error = e;
       if (e.code !== errors.errorCodes.serviceDown) {
         throw e;
       }
     }
   }
+
+  throw error;
 }
 
 module.exports = {
