@@ -40,10 +40,20 @@ CREATE TABLE subscriptions (
   FOREIGN KEY(airport_to_id) REFERENCES airports(id)
 );
 
+CREATE INDEX subscriptions_airport_from_id_idx
+ON subscriptions(airport_from_id);
+CREATE INDEX subscriptions_airport_to_id_idx
+ON subscriptions(airport_to_id);
+CREATE INDEX subscriptions_is_roundtrip_idx
+ON subscriptions(is_roundtrip);
+
 CREATE TABLE fetches (
   id serial PRIMARY KEY NOT NULL,
   fetch_time timestamp NOT NULL
 );
+
+CREATE INDEX fetches_fetch_time_idx
+ON fetches(fetch_time);
 
 CREATE TABLE subscriptions_fetches (
   id serial PRIMARY KEY NOT NULL,
@@ -53,6 +63,11 @@ CREATE TABLE subscriptions_fetches (
   FOREIGN KEY(fetch_id) REFERENCES fetches(id) ON DELETE RESTRICT,
   UNIQUE(subscription_id, fetch_id)
 );
+
+CREATE INDEX subscriptions_fetches_subscription_id_idx
+ON subscriptions_fetches(subscription_id);
+CREATE INDEX subscriptions_fetches_fetch_id_idx
+ON subscriptions_fetches(fetch_id);
 
 CREATE TABLE users (
   id serial PRIMARY KEY NOT NULL,
@@ -65,6 +80,15 @@ CREATE TABLE users (
   CHECK(credits >= 0),
   UNIQUE(email)
 );
+
+CREATE INDEX users_password_idx
+ON users(password);
+CREATE INDEX users_role_idx
+ON users(role);
+CREATE INDEX users_active_idx
+ON users(active);
+CREATE INDEX users_credits_idx
+ON users(credits);
 
 CREATE TABLE users_subscriptions (
   id serial PRIMARY KEY NOT NULL,
@@ -81,6 +105,19 @@ CREATE TABLE users_subscriptions (
   FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
+CREATE INDEX users_subscriptions_user_id_idx
+ON users_subscriptions(user_id);
+CREATE INDEX users_subscriptions_subscription_id_idx
+ON users_subscriptions(subscription_id);
+CREATE INDEX users_subscriptions_fetch_id_of_last_send_idx
+ON users_subscriptions(fetch_id_of_last_send);
+CREATE INDEX users_subscriptions_date_from_idx
+ON users_subscriptions(date_from);
+CREATE INDEX users_subscriptions_date_to_idx
+ON users_subscriptions(date_to);
+CREATE INDEX users_subscriptions_active_idx
+ON users_subscriptions(active);
+
 CREATE TABLE routes (
   id serial PRIMARY KEY NOT NULL,
   booking_token text NOT NULL UNIQUE,
@@ -89,6 +126,11 @@ CREATE TABLE routes (
   CHECK(price >= 0),
   FOREIGN KEY(subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE RESTRICT
 );
+
+CREATE INDEX routes_subscription_fetch_id_idx
+ON routes(subscription_fetch_id);
+CREATE INDEX routes_price_idx
+ON routes(price);
 
 CREATE TABLE flights (
   id serial PRIMARY KEY NOT NULL,
@@ -105,6 +147,19 @@ CREATE TABLE flights (
   CHECK(airport_from_id <> airport_to_id)
 );
 
+CREATE INDEX flights_airline_id_idx
+ON flights(airline_id);
+CREATE INDEX flights_flight_number_idx
+ON flights(flight_number);
+CREATE INDEX flights_airport_from_id_idx
+ON flights(airport_from_id);
+CREATE INDEX flights_airport_to_id_idx
+ON flights(airport_to_id);
+CREATE INDEX flights_dtime_idx
+ON flights(dtime);
+CREATE INDEX flights_atime_idx
+ON flights(atime);
+
 CREATE TABLE routes_flights (
   id serial PRIMARY KEY NOT NULL,
   route_id integer NOT NULL,
@@ -115,6 +170,13 @@ CREATE TABLE routes_flights (
   UNIQUE(flight_id, route_id, is_return)
 );
 
+CREATE INDEX routes_flights_route_id_idx
+ON routes_flights(route_id);
+CREATE INDEX routes_flights_flight_id_idx
+ON routes_flights(flight_id);
+CREATE INDEX routes_flights_is_return_idx
+ON routes_flights(is_return);
+
 CREATE TABLE account_transfers (
   id serial PRIMARY KEY NOT NULL,
   user_id integer NOT NULL,
@@ -122,6 +184,13 @@ CREATE TABLE account_transfers (
   transferred_at timestamp NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
 );
+
+CREATE INDEX account_transfers_user_id_idx
+ON account_transfers(user_id);
+CREATE INDEX account_transfers_transfer_amount_idx
+ON account_transfers(transfer_amount);
+CREATE INDEX account_transfers_transferred_at
+ON account_transfers(transferred_at);
 
 CREATE TABLE user_subscription_account_transfers (
   id serial PRIMARY KEY NOT NULL,
@@ -138,6 +207,9 @@ CREATE TABLE subscriptions_fetches_account_transfers (
   FOREIGN KEY (account_transfer_id) REFERENCES account_transfers(id) ON DELETE RESTRICT,
   FOREIGN KEY (subscription_fetch_id) REFERENCES subscriptions_fetches(id) ON DELETE RESTRICT
 );
+
+CREATE INDEX subscr_fetches_account_transfers_subscription_fetch_id_idx
+ON subscriptions_fetches_account_transfers(subscription_fetch_id);
 
 CREATE OR REPLACE FUNCTION is_admin (user_id integer)
   RETURNS boolean AS
@@ -166,3 +238,6 @@ CREATE TABLE account_transfers_by_admin (
   account_transfer_id integer NOT NULL UNIQUE REFERENCES account_transfers,
   admin_user_id integer NOT NULL REFERENCES users CHECK (is_admin(admin_user_id))
 );
+
+CREATE INDEX account_transfers_by_admin_admin_user_id_idx
+ON account_transfers_by_admin(admin_user_id);
