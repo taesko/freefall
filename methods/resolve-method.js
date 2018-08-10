@@ -27,7 +27,7 @@ const API_METHODS = {
   admin_edit_subscription: adminEditSubscription,
   admin_remove_user: adminRemoveUser,
   admin_edit_user: adminEditUser,
-  admin_list_fetches: adminListFetches,
+  admin_list_fetches: adminListFetches, // eslint-disable-line no-unused-vars
   admin_alter_user_credits: adminAlterUserCredits,
   get_api_key: getAPIKey,
   senderror: sendError,
@@ -129,8 +129,8 @@ async function search (params, dbClient) {
         flights.dtime >= $3::date AND
         flights.atime <= $4::date AND
         routes.price <= $5 AND
-        fetches.id IN (
-          SELECT fetches.id
+        subscriptions_fetches.id IN (
+          SELECT subscriptions_fetches.id
           FROM subscriptions_fetches
           LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
           LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.subscription_id
@@ -180,10 +180,11 @@ async function search (params, dbClient) {
       continue;
     }
 
-    flightsPerRoute[route_id].sort((flightA, flightB) => {
-      return flightA.dtime - flightB.dtime;
-    });
+    flightsPerRoute[route_id].sort(
+      (flightA, flightB) => new Date(flightA.dtime) - new Date(flightB.dtime),
+    );
 
+    log.debug('flights per route_id are', route_id, flightsPerRoute[route_id]);
     const flightCount = flightsPerRoute[route_id].length;
     const first = flightsPerRoute[route_id][0];
     const last = flightsPerRoute[route_id][flightCount - 1];
