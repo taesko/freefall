@@ -136,9 +136,8 @@ async function daliPecheErrorHandling (ctx, next) {
   } catch (e) {
     const response = {};
     if (e instanceof PeerError) {
-      // TODO fix error handling to sent an HTTP status code.
-      response.msg = "Couldn't connect to DaliPeche service. Because the service did not reply.";
-      response.code = e.code;
+      log.info('Dalipeche service is unavailable setting HTTP code 503.');
+      ctx.status = 503;
     } else {
       throw e;
     }
