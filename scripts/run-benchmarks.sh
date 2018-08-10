@@ -30,7 +30,7 @@ function run_post_benchmark {
         target_url=${url}
     fi
 
-    for concurrency in 100 500 1000; do
+    for concurrency in 5 20 50 100 500 1000; do
         output_file="${output_dir}/${1}-${concurrency}.stdout"
         echo "Benchmarking $1 with ${concurrency} concurrency on url ${target_url}."
         echo "Output file is ${output_file}"
@@ -39,7 +39,7 @@ function run_post_benchmark {
 }
 
 function run_get_benchmark {
-    for concurrency in 100 500 1000; do
+    for concurrency in 5 20 50 100 500 1000; do
         output_file="${output_dir}/$1-${concurrency}.stdout"
         echo "Benchmarking $1 with ${concurrency} concurrency";
         echo "Output file is ${output_file}"
