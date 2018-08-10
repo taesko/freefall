@@ -1,5 +1,6 @@
 from urllib import error
 from urllib.parse import urlencode
+import socket
 import urllib.request
 import json
 import psycopg2
@@ -13,6 +14,7 @@ from psycopg2.extras import RealDictCursor
 ROUTES_LIMIT = 30
 SERVER_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 KIWI_API_DATE_FORMAT = '%d/%m/%Y'
+TIMEOUT = 15
 
 class BaseError(Exception):
     def __init__(self, msg):
@@ -60,7 +62,7 @@ def log(msg):
     print(msg)
 
 
-def request(URL, params=None):
+def request(URL, params=None, max_retries=5):
     assert_app(
         isinstance(URL, str),
         'Expected url to be str, but was {0}, value "{1}"'.format(type(URL), URL))
@@ -79,10 +81,14 @@ def request(URL, params=None):
     log(uri)
 
     try:
-        response = urllib.request.urlopen(uri).read()
+        response = urllib.request.urlopen(uri, timeout=TIMEOUT).read()
         parsed = json.loads(response.decode('utf-8'))
     except (error.URLError, UnicodeError, json.JSONDecodeError) as e:
         raise PeerError(e)
+    except socket.timeout as e:
+        print('Connection timed out. Error:', e)
+        print('Retrying')
+        return request(URL, params, max_retries-1)
 
     return parsed
 
