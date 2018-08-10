@@ -213,7 +213,6 @@ async function search (params, dbClient) {
       (flightA, flightB) => new Date(flightA.dtime) - new Date(flightB.dtime),
     );
 
-    log.debug('flights per route_id are', route_id, flightsPerRoute[route_id]);
     const flightCount = flightsPerRoute[route_id].length;
     const first = flightsPerRoute[route_id][0];
     const last = flightsPerRoute[route_id][flightCount - 1];
