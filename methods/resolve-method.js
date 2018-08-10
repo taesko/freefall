@@ -875,6 +875,30 @@ async function sendError (params) {
   };
 }
 
+function defineAPIMethod ({ methodName, errors }, method) {
+  assertApp(typeof methodName === 'string');
+  assertApp(isObject(errors));
+
+  async function apiMethod (params, db, appCtx) {
+    let result;
+
+    try {
+      result = await method(params, db, appCtx);
+    } catch (e) {
+      if (e instanceof PeerError) {
+        result = errors[e.code];
+        assertApp(result != null, `Unhandled PeerError ${JSON.stringify(e)}`);
+      } else {
+        throw e;
+      }
+    }
+
+    return result;
+  }
+
+  return apiMethod;
+}
+
 async function execute ({ methodName, params, db, appCtx }) {
   assertPeer(
     typeof methodName === 'string',
