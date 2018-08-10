@@ -22,7 +22,7 @@ fi
 number_of_requests=2000
 
 function run_post_benchmark {
-    for concurrency in 100 500 1000; do
+    for concurrency in 5 20 50 100 500 1000; do
         output_file="${output_dir}/${1}-${concurrency}.stdout"
         echo "Benchmarking $1 with ${concurrency} concurrency."
         echo "Output file is ${output_file}"
@@ -31,7 +31,7 @@ function run_post_benchmark {
 }
 
 function run_get_benchmark {
-    for concurrency in 100 500 1000; do
+    for concurrency in 5 20 50 100 500 1000; do
         output_file="${output_dir}/$1-${concurrency}.stdout"
         echo "Benchmarking $1 with ${concurrency} concurrency";
         echo "Output file is ${output_file}"
@@ -42,4 +42,6 @@ function run_get_benchmark {
 run_post_benchmark "search"
 run_post_benchmark "subscribe"
 run_post_benchmark "unsubscribe"
+run_post_benchmark "list_airports"
+run_post_benchmark "list_subscriptions"
 run_get_benchmark "get-homepage"
