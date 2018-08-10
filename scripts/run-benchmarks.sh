@@ -13,7 +13,7 @@ fi
 
 if [ -z "$2" ]; then
     echo "Second argument not specified for url to benchmark"
-    url="http://10.20.1.128:3000/"
+    url="http://10.20.1.128:3000"
     admin_url="http://10.20.1.128:3001"
     echo "Defaulting to ${url} on port 3000 (server) and 3001 (admin)"
 else
@@ -27,7 +27,7 @@ function run_post_benchmark {
     if [ "$2" = "admin" ]; then
         target_url="${admin_url}/api"
     else
-        target_url=${url}
+        target_url="${url}/"
     fi
 
     for concurrency in 5 20 50 100 500 1000; do
@@ -51,6 +51,7 @@ run_post_benchmark "search"
 run_post_benchmark "subscribe"
 run_post_benchmark "unsubscribe"
 run_post_benchmark "edit_subscription"
-run_post_benchmark "admin_list_airports" admin
+run_post_benchmark "list_airports"
+run_post_benchmark "list_subscriptions"
 run_post_benchmark "admin_list_subscriptions" admin
 run_get_benchmark "get-homepage"
