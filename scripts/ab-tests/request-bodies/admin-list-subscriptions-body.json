@@ -1,0 +1,10 @@
+{
+  "method": "list_subscriptions",
+  "params": {
+    "v": "2.0",
+    "api_key": "3b488149d9f06b362ad86b5b88785ed7",
+    "user_id": "2"
+  },
+  "jsonrpc": "2.0",
+  "id": 2
+}
