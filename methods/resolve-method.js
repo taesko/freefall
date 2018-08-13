@@ -9,6 +9,7 @@ const users = require('../modules/users');
 const accounting = require('../modules/accounting');
 
 const MAX_CREDITS_DIFFERENCE = Math.pow(10, 12);
+const SERVER_DATE_FORMAT = 'Y-MM-DD';
 const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
 const SEARCH_MONTHS_AHEAD = 1;
 const MAX_PRICE_TO = Math.pow(10, 6); // 10k in cents
@@ -22,6 +23,8 @@ const DEFAULT_MAX_FLY_DURATION = 24;
 async function airportIDExists (dbClient, airportID) {
   assertApp(isObject(dbClient), `got ${dbClient}`);
   assertApp(Number.isInteger(airportID), `got ${airportID}`);
+
+  log.debug(`Checking if airport id=${airportID} exists.`);
 
   const { rows } = await dbClient.executeQuery(
     `
@@ -382,70 +385,87 @@ const unsubscribe = defineAPIMethod(
   },
 );
 
-async function editSubscription (params, dbClient) {
-  const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
-  const userSubscr = await dbClient.selectWhere(
-    'users_subscriptions',
-    '*',
+const editSubscription = defineAPIMethod(
+  {
+    [errorCodes.subscriptionExists]: { status_code: '2000' },
+    'EDIT_SUBSCR_BAD_FROM_ID': { status_code: '2100' },
+    'EDIT_SUBSCR_BAD_TO_ID': { status_code: '2100' },
+    'EDIT_SUBSCR_BAD_SUBSCR_ID': { status_code: '2100' },
+    'EDIT_SUBSCR_INVALID_FROM_ID': { status_code: '2101' },
+    'EDIT_SUBSCR_INVALID_TO_ID': { status_code: '2101' },
+    'EDIT_SUBSCR_BAD_DATE_RANGE': { status_code: '2102' },
+    'EDIT_SUBSCR_INVALID_DATE_FROM': { status_code: '2102' },
+    'EDIT_SUBSCR_INVALID_DATE_TO': { status_code: '2102' },
+    'EDIT_SUBSCR_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+    'EDIT_SUBSCR_BAD_API_KEY': { status_code: '2200' },
+  },
+  async (params, dbClient) => {
     {
-      user_id: user.id,
-    },
-  );
-  const subscriptionId = +params.user_subscription_id;
-  const airportFromId = +params.fly_from;
-  const airportToId = +params.fly_to;
-  const dateFrom = params.date_from;
-  const dateTo = params.date_to;
+      const apiKey = params.api_key;
+      const user = await users.fetchUser(dbClient, { apiKey });
 
-  if (!userSubscr.find(subscr => subscr.id === subscriptionId)) {
-    log.info(`Peer with api_key ${params.api_key} cannot modify user subscription ${subscriptionId}.`);
-    return { status_code: '2200' };
-  }
-  if (
-    !Number.isInteger(airportFromId) ||
-    !Number.isInteger(airportToId) ||
-    !Number.isInteger(subscriptionId)
-  ) {
-    log.info('Peer entered non-integer ids');
-    return { status_code: '2100' };
-  }
-  if (moment(dateFrom) > moment(dateTo)) {
-    log.info('Peer entered invalid dates.');
-    return { status_code: '2102' };
-  }
+      assertPeer(user != null, `got ${user}`, 'EDIT_SUBSCR_BAD_API_KEY');
 
-  const pgResult = await dbClient.executeQuery(
-    `
-      SELECT *
-      FROM airports
-      WHERE id IN ($1, $2)
-    `,
-    [airportFromId, airportToId],
-  );
-  assertApp(Array.isArray(pgResult.rows), `db returned ${pgResult.rows} for rows`);
-  if (pgResult.rows.length !== 2) {
-    log.info('Peer sent airport ids that did not exist.');
-    return { status_code: '2101' };
-  }
+      const userSubscr = await dbClient.selectWhere(
+        'users_subscriptions',
+        '*',
+        {
+          user_id: user.id,
+        },
+      );
+      const subscriptionId = +params.user_subscription_id;
+      const flyFrom = +params.fly_from;
+      const flyTo = +params.fly_to;
 
-  try {
-    await subscriptions.updateUserSubscription(dbClient, subscriptionId, {
-      airportFromId,
-      airportToId,
-      dateFrom,
-      dateTo,
-    });
-  } catch (e) {
-    if (e.code === '23505') { // unique constraint failed
-      log.info(`Peer tried to update user subscription ${subscriptionId} to another already existing one.`);
-      return { status_code: '2000' };
-    } else {
-      throw e;
+      assertPeer(Number.isInteger(flyFrom),
+        `got ${flyFrom}`,
+        'EDIT_SUBSCR_BAD_FROM_ID',
+      );
+      assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_BAD_TO_ID');
+      assertPeer(
+        Number.isInteger(subscriptionId), `got ${subscriptionId}`, 'EDIT_SUBSCR_BAD_SUBSCR_ID',
+      );
+
+      const dateFrom = moment(params.date_from, SERVER_DATE_FORMAT);
+      const dateTo = moment(params.date_to, SERVER_DATE_FORMAT);
+
+      assertPeer(dateFrom.isValid(), `got ${dateFrom}`, 'EDIT_SUBSCR_INVALID_DATE_FROM');
+      assertPeer(dateTo.isValid(), `got ${dateTo}`, 'EDIT_SUBSCR_INVALID_DATE_TO');
+      assertPeer(dateFrom < dateTo, `got ${dateFrom} and ${dateTo}`, 'EDIT_SUBSCR_BAD_DATE_RANGE');
+
+      const apiKeyHasPermissions = userSubscr.find(
+        subscr => subscr.id === subscriptionId,
+      );
+
+      // TODO apiKeyHasPermissions also checks if the user exists
+      assertPeer(apiKeyHasPermissions, `apiKey=${apiKey}`, 'EDIT_SUBSCR_NOT_ENOUGH_PERMISSIONS');
+      assertPeer(
+        await airportIDExists(dbClient, flyFrom), `got ${flyFrom}`, 'EDIT_SUBSCR_INVALID_FROM_ID',
+      );
+      assertPeer(
+        await airportIDExists(dbClient, flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_INVALID_TO_ID',
+      );
+
+      try {
+        await subscriptions.updateUserSubscription(dbClient, subscriptionId, {
+          airportFromId: flyFrom,
+          airportToId: flyTo,
+          dateFrom: dateFrom.format(SERVER_TIME_FORMAT),
+          dateTo: dateTo.format(SERVER_TIME_FORMAT),
+        });
+      } catch (e) {
+        assertPeer(
+          e.code !== '23505',
+          `Peer tried to update user subscription ${subscriptionId} to another already existing one.`,
+          errorCodes.subscriptionExists,
+        );
+        throw e;
+      }
+
+      return { status_code: '1000' };
     }
-  }
-
-  return { status_code: '1000' };
-}
+  },
+);
 
 async function listAirports (params, dbClient) {
   const airports = await dbClient.select('airports');
