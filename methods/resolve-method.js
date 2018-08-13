@@ -12,10 +12,12 @@ const MAX_CREDITS_DIFFERENCE = Math.pow(10, 12);
 const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
 const SEARCH_MONTHS_AHEAD = 1;
 const MAX_PRICE_TO = Math.pow(10, 6); // 10k in cents
-const DEFAULT_PRICE_TO = MAX_PRICE_TO;
+const DEFAULT_PRICE_TO = MAX_PRICE_TO - 100;
 const MAX_SEARCH_PAGE_LIMIT = 20;
 const DEFAULT_SEARCH_PAGE_LIMIT = 5;
 const DEFAULT_SEARCH_PAGE_OFFSET = 0;
+const MAX_FLY_DURATION = 48;
+const DEFAULT_MAX_FLY_DURATION = 24;
 
 async function airportIDExists (dbClient, airportID) {
   assertApp(isObject(dbClient), `got ${dbClient}`);
@@ -35,100 +37,105 @@ async function airportIDExists (dbClient, airportID) {
   return rows.length === 1;
 }
 
-async function search (params, dbClient) {
-  const flyFrom = +params.fly_from;
-  const flyTo = +params.fly_to;
+const search = defineAPIMethod(
+  {
+    'SEARCH_BAD_FLY_FROM': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_FLY_TO': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_FLY_FROM': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_FLY_TO': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_DATE_RANGE': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_EARLY_DATE_FROM': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_PRICE_TO': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_PRICE_TO': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_LIMIT': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_LIMIT': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_OFFSET': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_OFFSET': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_MAX_FLY_DURATION': { status_code: '2000', currency: 'USD', routes: [] },
+  },
+  async (params, dbClient) => {
+    assertApp(isObject(params), `got ${params}`);
+    assertApp(isObject(dbClient), `got ${dbClient}`);
 
-  let dateFrom;
+    const flyFrom = +params.fly_from;
+    const flyTo = +params.fly_to;
 
-  if (params.date_from) {
-    dateFrom = moment(params.date_from).format(SERVER_TIME_FORMAT);
-  } else {
-    dateFrom = moment().format(SERVER_TIME_FORMAT);
-  }
+    assertPeer(Number.isInteger(flyFrom), `got ${flyFrom}`, 'SEARCH_BAD_FLY_FROM');
+    assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'SEARCH_BAD_FLY_TO');
 
-  let dateTo;
+    const flyFromExists = await airportIDExists(dbClient, flyFrom);
+    const flyToExists = await airportIDExists(dbClient, flyTo);
 
-  if (params.date_to) {
-    dateTo = moment(params.date_to).format(SERVER_TIME_FORMAT);
-  } else {
-    dateTo = moment().add(SEARCH_MONTHS_AHEAD, 'months').format(SERVER_TIME_FORMAT);
-  }
+    assertPeer(flyFromExists, `got ${flyFrom}`, 'SEARCH_INVALID_FLY_FROM');
+    assertPeer(flyToExists, `got ${flyTo}`, 'SEARCH_INVALID_FLY_TO');
 
-  if (
-    params.price_to &&
-    (params.price_to > MAX_PRICE_TO || params.price_to <= 0)
-  ) {
-    return {
-      status_code: '2000',
-      currency: params.currency,
-      routes: [],
-    };
-  }
+    const dateFrom = moment(params.date_from);
+    let dateTo;
 
-  if (
-    params.limit &&
-    (
-      !Number.isInteger(+params.limit) ||
-      params.limit > MAX_SEARCH_PAGE_LIMIT
-    )
-  ) {
-    return {
-      status_code: '2000',
-      currency: params.currency,
-      routes: [],
-    };
-  }
+    if (params.date_to) {
+      dateTo = moment(params.date_to);
+    } else {
+      dateTo = moment().add(SEARCH_MONTHS_AHEAD, 'months');
+    }
 
-  if (params.offset && !Number.isInteger(+params.offset)) {
-    return {
-      status_code: '2000',
-      currency: params.currency,
-      routes: [],
-    };
-  }
+    assertPeer(dateFrom < dateTo, `dateFrom=${dateFrom}, dateTo=${dateTo}`,
+      'SEARCH_INVALID_DATE_RANGE',
+    );
+    assertPeer(moment().add(-1, 'days') < dateFrom, `dateFrom=${dateFrom}`,
+      'SEARCH_EARLY_DATE_FROM',
+    );
 
-  const priceTo = toSmallestCurrencyUnit(params.price_to || DEFAULT_PRICE_TO);
-  const currency = params.currency;
-  const maxFlightDuration = params.max_fly_duration;
-  const limit = params.limit || DEFAULT_SEARCH_PAGE_LIMIT;
-  const offset = params.offset || DEFAULT_SEARCH_PAGE_OFFSET;
+    const priceTo = params.price_to || DEFAULT_PRICE_TO;
 
-  const subscribed = await subscriptions.globalSubscriptionExists(
-    dbClient,
-    +params.fly_from,
-    +params.fly_to,
-  );
+    assertPeer(Number.isInteger(priceTo), `got ${priceTo}`, 'SEARCH_BAD_PRICE_TO');
+    assertPeer(priceTo > 0 && priceTo <= MAX_PRICE_TO, `got ${priceTo}`, 'SEARCH_INVALID_PRICE_TO');
 
-  if (!subscribed) {
-    try {
+    const limit = params.limit || DEFAULT_SEARCH_PAGE_LIMIT;
+    const offset = params.offset || DEFAULT_SEARCH_PAGE_OFFSET;
+
+    assertPeer(Number.isInteger(limit), `got ${limit}`, 'SEARCH_BAD_LIMIT');
+    assertPeer(limit > 0 && limit <= MAX_SEARCH_PAGE_LIMIT, `got ${limit}`, 'SEARCH_INVALID_LIMIT');
+    assertPeer(Number.isInteger(offset), `got ${offset}`, 'SEARCH_BAD_OFFSET');
+    assertPeer(offset >= 0, `got ${offset}`, 'SEARCH_INVALID_OFFSET');
+
+    const currency = params.currency;
+    // eslint-disable-next-line max-len
+    const maxFlightDuration = params.max_fly_duration || DEFAULT_MAX_FLY_DURATION;
+
+    assertPeer(
+      maxFlightDuration < MAX_FLY_DURATION,
+      `got ${maxFlightDuration}`,
+      'SEARCH_INVALID_FLY_DURATION',
+    );
+
+    assertPeer(
+      maxFlightDuration > 0,
+      `got ${maxFlightDuration}`,
+      `SEARCH_INVALID_MAX_FLY_DURATION`,
+    );
+
+    const subscribed = await subscriptions.globalSubscriptionExists(
+      dbClient,
+      +params.fly_from,
+      +params.fly_to,
+    );
+
+    if (!subscribed) {
       await subscriptions.subscribeGlobally(
         dbClient,
         +params.fly_from,
         +params.fly_to,
       );
-    } catch (e) {
-      if (e.code === 'FF_INVALID_AIRPORT_ID') {
-        log.debug('Caught FF_INVALID_AIRPORT_ID');
-        return {
-          status_code: '2000',
-          routes: [],
-          currency,
-        };
-      } else {
-        throw e;
-      }
+
+      return {
+        status_code: '1001',
+        routes: [],
+        currency,
+      };
     }
 
-    return {
-      status_code: '1001',
-      routes: [],
-      currency,
-    };
-  }
-
-  const { rows: routesAndFlights } = await dbClient.executeQuery(
-    `
+    const { rows: routesAndFlights } = await dbClient.executeQuery(
+      `
     SELECT
       routes.id AS route_id,
       routes.booking_token,
@@ -169,71 +176,89 @@ async function search (params, dbClient) {
      LIMIT $6 * 5 -- TODO assumes a single route does not span more than 5 flights
      OFFSET $7 * 5
     `,
-    [flyFrom, flyTo, dateFrom, dateTo, priceTo, limit, offset],
-  );
+      [
+        flyFrom,
+        flyTo,
+        dateFrom.format(SERVER_TIME_FORMAT),
+        dateTo.format(SERVER_TIME_FORMAT),
+        priceTo,
+        limit,
+        offset,
+      ],
+    );
 
-  assertApp(Array.isArray(routesAndFlights), 'Invalid database response for search');
+    if (routesAndFlights.length === 0) {
+      return {
+        status_code: '1002',
+        currency,
+        routes: [],
+      };
+    }
 
-  const routesMeta = {};
-  const flightsPerRoute = {};
+    const routesMeta = {};
+    const flightsPerRoute = {};
 
-  for (const routeFlight of routesAndFlights) {
-    assertApp(isObject(routeFlight));
-    assertApp(Number.isInteger(+routeFlight.route_id));
-    assertApp(typeof routeFlight.booking_token === 'string');
-    assertApp(Number.isInteger(+routeFlight.price));
+    for (const routeFlight of routesAndFlights) {
+      assertApp(isObject(routeFlight));
+      assertApp(Number.isInteger(+routeFlight.route_id));
+      assertApp(typeof routeFlight.booking_token === 'string');
+      assertApp(Number.isInteger(+routeFlight.price));
 
-    routesMeta[routeFlight.route_id] = {
-      booking_token: routeFlight.booking_token,
-      price: routeFlight.price / 100, // price is for the total route that the flight is part of
+      routesMeta[routeFlight.route_id] = {
+        booking_token: routeFlight.booking_token,
+        price: routeFlight.price / 100, // price is for the total route that the flight is part of
+      };
+
+      if (!flightsPerRoute[routeFlight.route_id]) {
+        flightsPerRoute[routeFlight.route_id] = [];
+      }
+
+      flightsPerRoute[routeFlight.route_id].push(routeFlight);
+    }
+
+    const routes = [];
+
+    // eslint-disable-next-line camelcase
+    for (const route_id of Object.keys(flightsPerRoute)) {
+      const totalDurationMS = flightsPerRoute[route_id].reduce(
+        (total, flight) => total + (flight.atime - flight.atime),
+        0,
+      );
+      if (totalDurationMS / 1000 / 60 / 60 > maxFlightDuration) {
+        continue;
+      }
+
+      flightsPerRoute[route_id].sort(
+        (flightA, flightB) => new Date(flightA.dtime) - new Date(flightB.dtime),
+      );
+
+      const flightCount = flightsPerRoute[route_id].length;
+      const first = flightsPerRoute[route_id][0];
+      const last = flightsPerRoute[route_id][flightCount - 1];
+      const departureAirport = first.airport_from_id;
+      const arrivalAirport = last.airport_to_id;
+
+      if (departureAirport !== flyFrom || arrivalAirport !== flyTo) {
+        continue;
+      }
+
+      routes.push({
+        ...routesMeta[route_id],
+        route: flightsPerRoute[route_id],
+      });
+    }
+
+    routes.sort((routeA, routeB) => {
+      return routeA.price - routeB.price;
+    });
+
+    return {
+      status_code: '1000',
+      routes,
+      currency,
     };
-
-    if (!flightsPerRoute[routeFlight.route_id]) {
-      flightsPerRoute[routeFlight.route_id] = [];
-    }
-
-    flightsPerRoute[routeFlight.route_id].push(routeFlight);
-  }
-
-  const routes = [];
-
-  // eslint-disable-next-line camelcase
-  for (const route_id of Object.keys(flightsPerRoute)) {
-    const totalDurationMS = flightsPerRoute[route_id].reduce(
-      (total, flight) => total + (flight.atime - flight.atime),
-      0,
-    );
-    if (totalDurationMS / 1000 / 60 / 60 > maxFlightDuration) {
-      continue;
-    }
-
-    flightsPerRoute[route_id].sort(
-      (flightA, flightB) => new Date(flightA.dtime) - new Date(flightB.dtime),
-    );
-
-    const flightCount = flightsPerRoute[route_id].length;
-    const first = flightsPerRoute[route_id][0];
-    const last = flightsPerRoute[route_id][flightCount - 1];
-    const departureAirport = first.airport_from_id;
-    const arrivalAirport = last.airport_to_id;
-
-    if (departureAirport !== flyFrom || arrivalAirport !== flyTo) {
-      continue;
-    }
-
-    routes.push({ ...routesMeta[route_id], route: flightsPerRoute[route_id] });
-  }
-
-  routes.sort((routeA, routeB) => {
-    return routeA.price - routeB.price;
-  });
-
-  return {
-    status_code: '1000',
-    routes,
-    currency,
-  };
-}
+  },
+);
 
 const subscribe = defineAPIMethod(
   {
@@ -320,7 +345,7 @@ const subscribe = defineAPIMethod(
       subscription_id: `${subscriptionId}`,
       status_code: '1000',
     };
-  }
+  },
 );
 
 async function unsubscribe (params, dbClient) {
