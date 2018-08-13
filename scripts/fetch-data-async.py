@@ -1,8 +1,9 @@
 from urllib import error
 from urllib.parse import urlencode
 import asyncio
+import aiohttp
+import asyncpg
 import socket
-import urllib.request
 import json
 import psycopg2
 import sqlite3
@@ -16,6 +17,8 @@ ROUTES_LIMIT = 30
 SERVER_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 KIWI_API_DATE_FORMAT = '%d/%m/%Y'
 TIMEOUT = 15
+
+loop = None
 
 class BaseError(Exception):
     def __init__(self, msg):
@@ -63,7 +66,7 @@ def log(msg):
     print(msg)
 
 
-def request(URL, params=None, max_retries=5):
+async def request(http_client, URL, params=None, max_retries=5):
     assert_app(
         isinstance(URL, str),
         'Expected url to be str, but was {0}, value "{1}"'.format(type(URL), URL))
@@ -82,18 +85,27 @@ def request(URL, params=None, max_retries=5):
     log(uri)
 
     try:
-        response = urllib.request.urlopen(uri, timeout=TIMEOUT).read()
-        parsed = json.loads(response.decode('utf-8'))
-    except (error.URLError, UnicodeError, json.JSONDecodeError) as e:
+        async with http_client.get(uri) as response:
+            parsed = await response.json()
+    except aiohttp.ClientError as e:
         raise PeerError(e)
-    except socket.timeout as e:
-        print('Connection timed out. Error:', e)
-        print('Retrying')
-        return request(URL, params, max_retries-1)
+#    finally:
+#        response.release()
+        
+
+#    try:
+#        response = urllib.request.urlopen(uri, timeout=TIMEOUT).read()
+#        parsed = json.loads(response.decode('utf-8'))
+#    except (error.URLError, UnicodeError, json.JSONDecodeError) as e:
+#        raise PeerError(e)
+#    except socket.timeout as e:
+#        print('Connection timed out. Error:', e)
+#        print('Retrying')
+#        return request(http_client, URL, params, max_retries-1)
 
     return parsed
 
-def assert_db(conn, msg):
+def is_db_connection(conn, msg):
     assert_app(isinstance(conn, psycopg2.extensions.connection), msg)
     assert_app(conn.closed == 0, msg)
 
@@ -108,7 +120,7 @@ def to_smallest_currency_unit(quantity):
     return quantity * 100
 
 
-def select(conn, table, columns):
+async def select(conn, table, columns):
     assert_app(isinstance(table, str), 'Expected argument "table" in select function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(columns, list), 'Expected argument "columns" in select function to be list, but was {0}'.format(type(columns)))
     assert_db(conn, 'select function called without connection to db.')
@@ -123,7 +135,7 @@ def select(conn, table, columns):
     return result
 
 
-def select_where(conn, table, columns, where):
+async def select_where(conn, table, columns, where):
     assert_app(isinstance(table, str), 'Expected argument "table" in select_where function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(columns, list), 'Expected argument "columns" in select_where function to be list, but was {0}'.format(type(columns)))
     assert_app(isinstance(where, dict), 'Expected argument "where" in select_where function to be a dict, but was {0}'.format(type(where)))
@@ -144,7 +156,7 @@ def select_where(conn, table, columns, where):
     return result
 
 
-def insert(conn, table, data):
+async def insert(conn, table, data):
     assert_app(isinstance(table, str), 'Expected argument "table" in insert function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(data, dict), 'Expected argument "data" in insert function to be dict, but was {0}'.format(type(data)))
     assert_db(conn, 'insert function called without connection to db.')
@@ -174,7 +186,8 @@ def insert(conn, table, data):
     return inserted_item
 
 
-def insert_data_fetch(conn):
+async def insert_data_fetch(conn):
+    # TODO assert not in transaction
     assert_db(conn, 'insert_data_fetch function called without connection to db.')
 
     c = conn.cursor()
@@ -197,13 +210,14 @@ def insert_data_fetch(conn):
     return inserted_item['id']
 
 
-def insert_if_not_exists(conn, table, data, exists_check):
+async def insert_if_not_exists(conn, table, data, exists_check):
+    # TODO assert connection in transaction
     assert_db(conn, 'insert_if_not_exists function called without connection to db.')
     assert_app(isinstance(table, str), 'Expected argument "table" in insert_if_not_exists function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(data, dict), 'Expected argument "data" in insert_if_not_exists function to be dict, but was {0}'.format(type(data)))
     assert_app(isinstance(exists_check, dict), 'Expected argument "exists_check" in insert_if_not_exists function to be dict, but was {0}'.format(type(exists_check)))
 
-    found = select_where(conn, table, list(data.keys()), exists_check)
+    found = await select_where(conn, table, list(data.keys()), exists_check)
 
     assert_app(isinstance(found, list), 'Expected result after exist check in insert_if_not_exists function to be list, but was {0}'.format(type(found)))
 
@@ -212,41 +226,129 @@ def insert_if_not_exists(conn, table, data, exists_check):
 
         return False
 
-    inserted = insert(conn, table, data)
+    inserted = await insert(conn, table, data)
 
     assert_app(isinstance(inserted, dict), 'Expected inserted to be an dict, but was {0}'.format(type(inserted)))
 
     return True
 
 
-def insert_if_not_exists_sub(conn, airport_from_id , airport_to_id):
-    assert_db(conn, 'insert_if_not_exists_sub function called without connection to db.')
-    assert_app(isinstance(airport_from_id , int), 'Expected argument "airport_from_id " in insert_if_not_exists_sub function to be int, but was {0}'.format(type(airport_from_id)))
-    assert_app(isinstance(fly_to, int), 'Expected argument "airport_to_id" in insert_if_not_exists_sub function to be int, but was {0}'.format(type(airport_to_id)))
+async def get_airport_id(pool, iata_code):
+    try:
+        conn = await pool.acquire()
+        select_result = await select_where(conn, 'airports', ['id'], {
+            'iata_code': iata_code
+        })
 
-    c = conn.cursor()
+        assert_app(isinstance(select_result, list), 'Expected airports select result to be a list, but was {0}'.format(type(select_result)))
+        assert_app(len(select_result) == 1, 'Expected only one airports select result, but got {0}'.format(len(select_result)))
+        assert_app(isinstance(select_result[0], psycopg2.extras.RealDictRow), 'Expected element in airport select result to be psycopg2.extras.RealDictRow, but was {0}'.format(select_result[0]))
+        assert_app('id' in select_result[0].keys(), 'Key "id" not found in airport select result.')
+        assert_app(isinstance(select_result[0]['id'], int), 'Expected id in airport select result element to be int, but was {0}'.format(select_result[0]['id']))
 
-    c.execute('SELECT id FROM subscriptions WHERE airport_from_id = %s AND airport_to_id = %s;', (airport_from_id , airport_to_id))
-
-    found = c.fetchall()
-    c.close()
-
-    assert_app(isinstance(found, list), 'Expected result of exist check in insert_if_not_exists function to be a list, but was {0}'.format(type(result)))
-
-    if len(found) > 0:
-        assert_app(len(found) == 1, 'Expected length of found in insert_if_not_exists_check to be 1, but was {0}'.format(len(found)))
-
-        return False
-
-    insert(conn, 'subscriptions', {
-        'airport_from_id': airport_from_id,
-        'airport_to_id': airport_to_id
-    })
-
-    return True
+        return select_result[0]['id']
+    finally:
+        await pool.release(conn)
 
 
-def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
+async def get_flight(pool, flight):
+    airport_codes = [
+        flight['flyFrom'],
+        flight['flyTo']
+    ]
+
+    airport_id_tasks = [loop.create_task(get_airport_id(pool, iata_code)) for iata_code in airport_codes]
+    # TODO assert list not empty
+    await asyncio.wait(airport_id_tasks)
+
+    airport_ids = [task.result() for task in airport_id_tasks]
+
+    try:
+        conn = await pool.acquire()
+        airline_id_result = await select_where(conn, 'airlines', ['id'], {
+            'code': flight['airline']
+        })
+
+        assert_app(isinstance(airline_id_result, list), 'Expected airline select result to be a list, but was {0}'.format(type(airline_id_result)))
+        assert_app(len(airline_id_result) == 1, 'Expected only one airline select result, but got {0}'.format(len(airline_id_result)))
+        assert_app(isinstance(airline_id_result[0], psycopg2.extras.RealDictRow), 'Expected element in airline select result to be psycopg2.extras.RealDictRow, but was {0}'.format(airline_id_result[0]))
+        assert_app('id' in airline_id_result[0].keys(), 'Key "id" not found in airline id result.')
+        assert_app(isinstance(airline_id_result[0]['id'], int), 'Expected id in airline select result element to be int, but was {0}'.format(airline_id_result[0]['id']))
+
+        log('Inserting if not exists flight {0} {1} from {2} to {3} departure time {4} ...'.format(
+            flight['airline'],
+            flight['flight_no'],
+            flight['flyFrom'],
+            flight['flyTo'],
+            datetime.fromtimestamp(flight['dTimeUTC']).strftime(SERVER_TIME_FORMAT)))
+
+        # TODO ask if transaction needed
+        await insert_if_not_exists(conn, 'flights', {
+            'airline_id': airline_id_result[0]['id'],
+            'airport_from_id': airport_ids[0],
+            'airport_to_id': airport_ids[1],
+            'dtime': datetime.fromtimestamp(flight['dTimeUTC']).strftime(SERVER_TIME_FORMAT),
+            'atime': datetime.fromtimestamp(flight['aTimeUTC']).strftime(SERVER_TIME_FORMAT),
+            'flight_number': flight['flight_no'],
+            'remote_id': flight['id']
+        }, {
+            'remote_id': flight['id']
+        })
+    #except: # TODO
+    finally:
+        await pool.release(conn)
+
+
+async def insert_flight(pool, flight):
+    # TODO asserts
+    log('Inserting route {0} flight {1} {2} from {3} to {4} departure time {5} ...'.format(
+        inserted_route['id'],
+        flight['airline'],
+        flight['flight_no'],
+        flight['flyFrom'],
+        flight['flyTo'],
+        datetime.fromtimestamp(flight['dTimeUTC']).strftime(SERVER_TIME_FORMAT)))
+
+    try:
+        conn = await pool.acquire()
+
+        flight_id_results = await select_where(conn, 'flights', ['id'], {
+            'remote_id': flight['id']
+        })
+
+        assert_app(isinstance(flight_id_results, list), 'Expected flight_id_results to be a list, but was {0}'.format(type(flight_id_results)))
+        assert_app(len(flight_id_results) == 1, 'Expected only one flight_id_result, but got {0}'.format(len(flight_id_results)))
+        assert_app(isinstance(flight_id_results[0], psycopg2.extras.RealDictRow), 'Expected element in flight_id_results to be psycopg2.extras.RealDictRow, but was {0}'.format(type(flight_id_results[0])))
+        assert_app('id' in flight_id_results[0].keys(), 'Key "id" not found in flight_id_results element')
+        assert_app(isinstance(flight_id_results[0]['id'], int), 'Flight id is not an int, but a {0}'.format(flight_id_results[0]['id']))
+
+        await insert(conn, 'routes_flights', {
+            'flight_id': flight_id_results[0]['id'],
+            'route_id': inserted_route['id'],
+            'is_return': bool(flight['return'])
+        })
+    #except: # TODO
+    finally:
+        await pool.release(conn)
+
+
+async def insert_route(pool, route):
+    try:
+        conn = await pool.acquire()
+        inserted_route = await insert(conn, 'routes', {
+            'booking_token': route['booking_token'],
+            'price': to_smallest_currency_unit(route['price']),
+            'subscription_fetch_id': subscription_fetch_id
+        })
+
+        await asyncio.wait([loop.create_task(insert_flight(pool, flight)) for flight in route['route']])
+    #except: # TODO
+    finally:
+        await pool.release(conn)
+
+
+async def get_subscription_data(pool, http_client, airport_end_points, subscription_fetch_id):
+    # TODO here should get pool instead of a connection
     for label, end_point in airport_end_points.items():
         assert_app(
             isinstance(end_point, str),
@@ -261,7 +363,7 @@ def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
         flights_dict = {}
         airports_set = set()
 
-        response = request('https://api.skypicker.com/flights', {
+        response = await request(http_client, 'https://api.skypicker.com/flights', {
             'flyFrom': airport_end_points['airport_from'],
             'to': airport_end_points['airport_to'],
             'dateFrom': date.today().strftime(KIWI_API_DATE_FORMAT),
@@ -327,8 +429,7 @@ def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
             offset,
             len(airports_set)))
 
-        for airport_iata_code in airports_set:
-            get_airport_if_not_exists(conn, airport_iata_code)
+        await asyncio.wait([loop.create_task(get_airport_if_not_exists(pool, http_client, airport_iata_code)) for airport_iata_code in airports_set])
 
         log('Finished getting data for airports.')
         log('From {0} to {1} (offset: {2}): data for {3} flights. Getting data...'.format(
@@ -337,55 +438,7 @@ def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
             offset,
             len(flights_dict)))
 
-        for flight_id, flight in flights_dict.items():
-            airport_codes = [
-                flight['flyFrom'],
-                flight['flyTo']
-            ]
-
-            airport_ids = []
-
-            for iata_code in airport_codes:
-                select_result = select_where(conn, 'airports', ['id'], {
-                    'iata_code': iata_code
-                })
-
-                assert_app(isinstance(select_result, list), 'Expected airports select result to be a list, but was {0}'.format(type(select_result)))
-                assert_app(len(select_result) == 1, 'Expected only one airports select result, but got {0}'.format(len(select_result)))
-                assert_app(isinstance(select_result[0], psycopg2.extras.RealDictRow), 'Expected element in airport select result to be psycopg2.extras.RealDictRow, but was {0}'.format(select_result[0]))
-                assert_app('id' in select_result[0].keys(), 'Key "id" not found in airport select result.')
-                assert_app(isinstance(select_result[0]['id'], int), 'Expected id in airport select result element to be int, but was {0}'.format(select_result[0]['id']))
-
-                airport_ids.append(select_result[0]['id'])
-
-            airline_id_result = select_where(conn, 'airlines', ['id'], {
-                'code': flight['airline']
-            })
-
-            assert_app(isinstance(airline_id_result, list), 'Expected airline select result to be a list, but was {0}'.format(type(airline_id_result)))
-            assert_app(len(airline_id_result) == 1, 'Expected only one airline select result, but got {0}'.format(len(airline_id_result)))
-            assert_app(isinstance(airline_id_result[0], psycopg2.extras.RealDictRow), 'Expected element in airline select result to be psycopg2.extras.RealDictRow, but was {0}'.format(airline_id_result[0]))
-            assert_app('id' in airline_id_result[0].keys(), 'Key "id" not found in airline id result.')
-            assert_app(isinstance(airline_id_result[0]['id'], int), 'Expected id in airline select result element to be int, but was {0}'.format(airline_id_result[0]['id']))
-
-            log('Inserting if not exists flight {0} {1} from {2} to {3} departure time {4} ...'.format(
-                flight['airline'],
-                flight['flight_no'],
-                flight['flyFrom'],
-                flight['flyTo'],
-                datetime.fromtimestamp(flight['dTimeUTC']).strftime(SERVER_TIME_FORMAT)))
-
-            insert_if_not_exists(conn, 'flights', {
-                'airline_id': airline_id_result[0]['id'],
-                'airport_from_id': airport_ids[0],
-                'airport_to_id': airport_ids[1],
-                'dtime': datetime.fromtimestamp(flight['dTimeUTC']).strftime(SERVER_TIME_FORMAT),
-                'atime': datetime.fromtimestamp(flight['aTimeUTC']).strftime(SERVER_TIME_FORMAT),
-                'flight_number': flight['flight_no'],
-                'remote_id': flight['id']
-            }, {
-                'remote_id': flight['id']
-            })
+        await asyncio.wait([loop.create_task(get_flight(pool, flight)) for flight in list(flights_dict.values())])
 
         log('Finished getting data for flights')
         log('From {0} to {1} (offset: {2}): data for {3} routes. Getting data...'.format(
@@ -394,90 +447,69 @@ def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
             offset,
             len(response['data'])))
 
-        for route in response['data']:
-            inserted_route = insert(conn, 'routes', {
-                'booking_token': route['booking_token'],
-                'price': to_smallest_currency_unit(route['price']),
-                'subscription_fetch_id': subscription_fetch_id
-            })
-
-            for flight in route['route']:
-                log('Inserting route {0} flight {1} {2} from {3} to {4} departure time {5} ...'.format(
-                    inserted_route['id'],
-                    flight['airline'],
-                    flight['flight_no'],
-                    flight['flyFrom'],
-                    flight['flyTo'],
-                    datetime.fromtimestamp(flight['dTimeUTC']).strftime(SERVER_TIME_FORMAT)))
-
-                flight_id_results = select_where(conn, 'flights', ['id'], {
-                    'remote_id': flight['id']
-                })
-
-                assert_app(isinstance(flight_id_results, list), 'Expected flight_id_results to be a list, but was {0}'.format(type(flight_id_results)))
-                assert_app(len(flight_id_results) == 1, 'Expected only one flight_id_result, but got {0}'.format(len(flight_id_results)))
-                assert_app(isinstance(flight_id_results[0], psycopg2.extras.RealDictRow), 'Expected element in flight_id_results to be psycopg2.extras.RealDictRow, but was {0}'.format(type(flight_id_results[0])))
-                assert_app('id' in flight_id_results[0].keys(), 'Key "id" not found in flight_id_results element')
-                assert_app(isinstance(flight_id_results[0]['id'], int), 'Flight id is not an int, but a {0}'.format(flight_id_results[0]['id']))
-
-                insert(conn, 'routes_flights', {
-                    'flight_id': flight_id_results[0]['id'],
-                    'route_id': inserted_route['id'],
-                    'is_return': bool(flight['return'])
-                })
+        await asyncio.wait([loop.create_task(insert_route(pool, route)) for route in response['data']])
 
         if isinstance(response['_next'], str):
             next_page_available = True
             offset += ROUTES_LIMIT
 
 
-def get_airport_if_not_exists(conn, iata_code):
-    airports = select_where(conn, 'airports', ['id'], {
-        'iata_code': iata_code
-    })
+async def get_airport_if_not_exists(pool, http_client, iata_code):
+    # TODO assert pool
+    # TODO ask if transaction here is necessary
+    try:
+        conn = await pool.acquire()
+        airports = await select_where(conn, 'airports', ['id'], {
+            'iata_code': iata_code
+        })
 
-    assert_app(isinstance(airports, list), 'Expected array of airports from database but got {0}'.format(type(airports)))
+        assert_app(isinstance(airports, list), 'Expected array of airports from database but got {0}'.format(type(airports)))
 
-    if len(airports) > 0:
-        assert_app(len(airports) == 1, 'Expected one airport, but got {0}'.format(len(airports)))
-        assert_app(isinstance(airports[0], psycopg2.extras.RealDictRow), 'Expected airport data to be psycopg2.extras.RealDictRow, but got {0}'.format(type(airports[0])))
-        assert_app('id' in airports[0].keys(), 'Key "id" not found in dict airports[0]')
-        assert_app(
-            isinstance(airports[0]['id'], int),
-            'Expected id of airport data to be int, but got {0}'.format(type(airports[0]['id'])))
+        if len(airports) > 0:
+            assert_app(len(airports) == 1, 'Expected one airport, but got {0}'.format(len(airports)))
+            assert_app(isinstance(airports[0], psycopg2.extras.RealDictRow), 'Expected airport data to be psycopg2.extras.RealDictRow, but got {0}'.format(type(airports[0])))
+            assert_app('id' in airports[0].keys(), 'Key "id" not found in dict airports[0]')
+            assert_app(
+                isinstance(airports[0]['id'], int),
+                'Expected id of airport data to be int, but got {0}'.format(type(airports[0]['id'])))
 
-        return airports[0]['id']
+            return airports[0]['id']
 
-    response = request('https://api.skypicker.com/locations', {
-        'term': iata_code,
-        'locale': 'en-US',
-        'location_types': 'airport',
-        'limit': 1
-    })
+        response = await request(http_client, 'https://api.skypicker.com/locations', {
+            'term': iata_code,
+            'locale': 'en-US',
+            'location_types': 'airport',
+            'limit': 1
+        })
 
-    assert_peer(isinstance(response, dict), 'Expected airports response to be dict, but was {0}'.format(type(response)))
-    assert_peer('locations' in response, 'Key "locations" not found in dict airports response')
-    assert_peer(isinstance(response['locations'], list), 'Expected airports["locations"] to be list, but was {0}'.format(type(response['locations'])))
-    assert_peer(len(response['locations']) == 1, 'Expected only one location found for airport search but got {0}'.format(len(response['locations'])))
-    assert_peer(isinstance(response['locations'][0], dict), 'Expected location to be a dict, but was {0}'.format(type(response['locations'][0])))
+        assert_peer(isinstance(response, dict), 'Expected airports response to be dict, but was {0}'.format(type(response)))
+        assert_peer('locations' in response, 'Key "locations" not found in dict airports response')
+        assert_peer(isinstance(response['locations'], list), 'Expected airports["locations"] to be list, but was {0}'.format(type(response['locations'])))
+        assert_peer(len(response['locations']) == 1, 'Expected only one location found for airport search but got {0}'.format(len(response['locations'])))
+        assert_peer(isinstance(response['locations'][0], dict), 'Expected location to be a dict, but was {0}'.format(type(response['locations'][0])))
 
-    location = response['locations'][0]
+        location = response['locations'][0]
 
-    expect_location_keys = ['code', 'name']
+        expect_location_keys = ['code', 'name']
 
-    for key in expect_location_keys:
-        assert_peer(key in location, 'Key {0} not found in location')
-        assert_peer(isinstance(location[key], str), 'Expected location["{0}"] to be str, but was {1}'.format(key, type(location[key])))
+        for key in expect_location_keys:
+            assert_peer(key in location, 'Key {0} not found in location')
+            assert_peer(isinstance(location[key], str), 'Expected location["{0}"] to be str, but was {1}'.format(key, type(location[key])))
 
-    inserted_airport = insert(conn, 'airports', {
-        'iata_code': location['code'],
-        'name': '{0}, {1}'.format(location['name'], location['code'])
-    })
+        inserted_airport = await insert(conn, 'airports', {
+            'iata_code': location['code'],
+            'name': '{0}, {1}'.format(location['name'], location['code'])
+        })
 
-    return inserted_airport
+        return inserted_airport
+    #except: # TODO
+    finally:
+        await pool.release(conn)
 
 
-def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
+async def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
+    # TODO assert client in transaction
+    # TODO only use one connection for whole function
     assert_db(conn, 'charge_fetch_tax called without connection to db')
     assert_app(
         isinstance(subscription_fetch, psycopg2.extras.RealDictRow),
@@ -583,20 +615,11 @@ def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
 
     c.close()
 
-
-def start():
-    fetch_tax = 500 # cents
-
-    conn = psycopg2.connect(dbname='freefall', user='freefall',
-            password='freefall', cursor_factory=RealDictCursor)
-
-    airlines = request('https://api.skypicker.com/airlines')
-
-    assert_peer(
-        isinstance(airlines, list),
-        'Expected airlines to be a list, but was "{0}"'.format(type(airlines)))
-
-    for airline in airlines:
+async def insert_airline(pool, airline):
+    # TODO assert pool
+    # TODO ask if transaction is necessary
+    try:
+        conn = await pool.acquire()
         assert_peer(
             isinstance(airline, dict),
             'Expected airline to be a dict, but was "{0}"'.format(type(airline)))
@@ -611,7 +634,7 @@ def start():
 
         # check for FakeAirline:
         if airline['id'] == '__':
-            continue
+            return;
 
         iata_code_pattern = re.compile('^[A-Z0-9]+$')
 
@@ -619,68 +642,106 @@ def start():
 
         log('Inserting if not exists airline {0} ({1})...'.format(airline['name'], airline['id']))
 
-        insert_if_not_exists(conn, 'airlines', {
+        # TODO start transaction
+        await insert_if_not_exists(conn, 'airlines', {
             'name': '{0} {1}'.format(airline['name'], airline['id']),
             'code': airline['id'],
             'logo_url': 'https://images.kiwi.com/airlines/64/{0}.png'.format(airline['id'])
         }, {
             'code': airline['id']
         })
+    #except: # TODO
+    finally:
+        await pool.release(conn)
 
-    subscriptions = select(conn, 'subscriptions', ['id', 'airport_from_id', 'airport_to_id'])
 
-    assert_app(
-        isinstance(subscriptions, list),
-        'Expected subscriptions to be a list, but was "{0}"'.format(type(subscriptions)))
+async def start():
+    fetch_tax = 500 # cents
 
-    fetch_id = insert_data_fetch(conn)
+    try:
+        pool = await asyncpg.create_pool(database='freefall', user='freefall', password='freefall')
 
-    for sub in subscriptions:
-        assert_app(
-            isinstance(sub, psycopg2.extras.RealDictRow),
-            'Expected subscription to be psycopg2.extras.RealDictRow, but was "{0}"'.format(type(sub)))
+        async with aiohttp.ClientSession() as http_client:
+            airlines = await request(http_client, 'https://api.skypicker.com/airlines')
 
-        expect_subscription_keys = ['id', 'airport_from_id', 'airport_to_id']
+            assert_peer(
+                isinstance(airlines, list),
+                'Expected airlines to be a list, but was "{0}"'.format(type(airlines)))
 
-        for key in expect_subscription_keys:
-            assert_app(key in sub.keys(), 'Key "{0}" not found in subscription'.format(key))
-            assert_app(
-                isinstance(sub[key], int),
-                'Expected sub[{0}] "{1}" to be int, but was "{2}"'.format(key, sub[key], type(sub[key])))
+            await asyncio.wait([loop.create_task(insert_airline(pool, airline)) for airline in airlines])
 
-        subscription_fetch = insert(conn, 'subscriptions_fetches', {
-            'subscription_id': sub['id'],
-            'fetch_id': fetch_id
-        });
+            try:
+                conn = await pool.acquire()
+                subscriptions = await select(conn, 'subscriptions', ['id', 'airport_from_id', 'airport_to_id'])
 
-        assert_app(isinstance(subscription_fetch, psycopg2.extras.RealDictRow), 'Expected subscription_fetch to be a psycopg2.extras.RealDictRow, but was {0}'.format(type(subscription_fetch)))
+                assert_app(
+                    isinstance(subscriptions, list),
+                    'Expected subscriptions to be a list, but was "{0}"'.format(type(subscriptions)))
 
-        charge_fetch_tax(conn, subscription_fetch, fetch_tax)
+                fetch_id = await insert_data_fetch(conn)
 
-        airport_from = select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
-            'id': sub['airport_from_id']
-        })
-        airport_to = select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
-            'id': sub['airport_to_id']
-        })
+                for sub in subscriptions:
+                    assert_app(
+                        isinstance(sub, psycopg2.extras.RealDictRow),
+                        'Expected subscription to be psycopg2.extras.RealDictRow, but was "{0}"'.format(type(sub)))
 
-        assert_app(isinstance(airport_from, list), 'Expected airport_from to be a list, but was {0}'.format(type(airport_from)))
-        assert_app(len(airport_from) == 1, 'Expected the length of airport_from list to be 1, but was {0}'.format(len(airport_from)))
-        assert_app('iata_code' in airport_from[0], 'Key "iata_code" not found in airport_from[0]')
-        assert_app(isinstance(airport_from[0]['iata_code'], str), 'Expected airport_from[0]["iata_code"] to be str, but was {0}'.format(type(airport_from[0]['iata_code'])))
-        assert_app(isinstance(airport_to, list), 'Expected airport_to to be a list, but was {0}'.format(type(airport_to)))
-        assert_app(len(airport_to) == 1, 'Expected the length of airport_to list to be 1, but was {0}'.format(len(airport_to)))
-        assert_app('iata_code' in airport_to[0], 'Key "iata_code" not found in airport_to[0]')
-        assert_app(isinstance(airport_to[0]['iata_code'], str), 'Expected airport_to[0]["iata_code"] to be str, but was {0}'.format(type(airport_to[0]['iata_code'])))
+                    expect_subscription_keys = ['id', 'airport_from_id', 'airport_to_id']
 
-        get_subscription_data(
-            conn,
-            {
-                'airport_from': airport_from[0]['iata_code'],
-                'airport_to': airport_to[0]['iata_code']
-            },
-            subscription_fetch['id']
-        )
-    log('Done.')
+                    for key in expect_subscription_keys:
+                        assert_app(key in sub.keys(), 'Key "{0}" not found in subscription'.format(key))
+                        assert_app(
+                            isinstance(sub[key], int),
+                            'Expected sub[{0}] "{1}" to be int, but was "{2}"'.format(key, sub[key], type(sub[key])))
 
-start()
+                    subscription_fetch = await insert(conn, 'subscriptions_fetches', {
+                        'subscription_id': sub['id'],
+                        'fetch_id': fetch_id
+                    });
+
+                    assert_app(isinstance(subscription_fetch, psycopg2.extras.RealDictRow), 'Expected subscription_fetch to be a psycopg2.extras.RealDictRow, but was {0}'.format(type(subscription_fetch)))
+                    #try:
+                    async with conn.transaction():
+                        await charge_fetch_tax(conn, subscription_fetch, fetch_tax)
+                    #except: # TODO
+
+                    # TODO take airport_from and airport_to in paralel
+                    airport_from = await select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
+                        'id': sub['airport_from_id']
+                    })
+                    airport_to = await select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
+                        'id': sub['airport_to_id']
+                    })
+
+                    assert_app(isinstance(airport_from, list), 'Expected airport_from to be a list, but was {0}'.format(type(airport_from)))
+                    assert_app(len(airport_from) == 1, 'Expected the length of airport_from list to be 1, but was {0}'.format(len(airport_from)))
+                    assert_app('iata_code' in airport_from[0], 'Key "iata_code" not found in airport_from[0]')
+                    assert_app(isinstance(airport_from[0]['iata_code'], str), 'Expected airport_from[0]["iata_code"] to be str, but was {0}'.format(type(airport_from[0]['iata_code'])))
+                    assert_app(isinstance(airport_to, list), 'Expected airport_to to be a list, but was {0}'.format(type(airport_to)))
+                    assert_app(len(airport_to) == 1, 'Expected the length of airport_to list to be 1, but was {0}'.format(len(airport_to)))
+                    assert_app('iata_code' in airport_to[0], 'Key "iata_code" not found in airport_to[0]')
+                    assert_app(isinstance(airport_to[0]['iata_code'], str), 'Expected airport_to[0]["iata_code"] to be str, but was {0}'.format(type(airport_to[0]['iata_code'])))
+
+                    await get_subscription_data(
+                        conn,
+                        http_client,
+                        {
+                            'airport_from': airport_from[0]['iata_code'],
+                            'airport_to': airport_to[0]['iata_code']
+                        },
+                        subscription_fetch['id']
+                    )
+
+            #except: # TODO
+            finally:
+                await pool.release(conn)
+
+            log('Done.')
+    finally:
+        await pool.close()
+
+
+try:
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(start())
+finally:
+    loop.close()
