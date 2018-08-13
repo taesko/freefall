@@ -292,7 +292,7 @@ function start () {
       searchFormParams.price_to = priceToValue;
     }
 
-    const datePattern = /^\d{4}-\d{2}-\d{2}$/g;
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
     const wrongDateFormatMsg = 'Expected format YYYY-MM-DD for date!';
 
     if (formData['date-from']) {
