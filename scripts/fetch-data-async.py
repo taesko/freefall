@@ -1,17 +1,11 @@
-from urllib import error
 from urllib.parse import urlencode
 import asyncio
 import aiohttp
 import asyncpg
-import socket
-import json
-import psycopg2
-import sqlite3
 import sys
 import re
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
-from psycopg2.extras import RealDictCursor
 
 ROUTES_LIMIT = 30
 SERVER_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
@@ -89,19 +83,6 @@ async def request(http_client, URL, params=None, max_retries=5):
             parsed = await response.json()
     except aiohttp.ClientError as e:
         raise PeerError(e)
-#    finally:
-#        response.release()
-        
-
-#    try:
-#        response = urllib.request.urlopen(uri, timeout=TIMEOUT).read()
-#        parsed = json.loads(response.decode('utf-8'))
-#    except (error.URLError, UnicodeError, json.JSONDecodeError) as e:
-#        raise PeerError(e)
-#    except socket.timeout as e:
-#        print('Connection timed out. Error:', e)
-#        print('Retrying')
-#        return request(http_client, URL, params, max_retries-1)
 
     return parsed
 
@@ -245,8 +226,9 @@ async def get_flight(pool, flight):
     ]
 
     airport_id_tasks = [loop.create_task(get_airport_id(pool, iata_code)) for iata_code in airport_codes]
-    # TODO assert list not empty
-    await asyncio.wait(airport_id_tasks)
+    
+    if len(airport_id_tasks) > 0:
+        await asyncio.wait(airport_id_tasks)
 
     airport_ids = [task.result() for task in airport_id_tasks]
 
@@ -305,7 +287,7 @@ async def insert_flight(pool, inserted_route, flight):
 
         assert_app(isinstance(flight_id_results, list), 'Expected flight_id_results to be a list, but was {0}'.format(type(flight_id_results)))
         assert_app(len(flight_id_results) == 1, 'Expected only one flight_id_result, but got {0}'.format(len(flight_id_results)))
-        assert_app(isinstance(flight_id_results[0], psycopg2.extras.RealDictRow), 'Expected element in flight_id_results to be psycopg2.extras.RealDictRow, but was {0}'.format(type(flight_id_results[0])))
+        assert_app(isinstance(flight_id_results[0], asyncpg.Record), 'Expected element in flight_id_results to be asyncpg.Record, but was {0}'.format(type(flight_id_results[0])))
         assert_app('id' in flight_id_results[0].keys(), 'Key "id" not found in flight_id_results element')
         assert_app(isinstance(flight_id_results[0]['id'], int), 'Flight id is not an int, but a {0}'.format(flight_id_results[0]['id']))
 
@@ -328,10 +310,14 @@ async def insert_route(pool, route, subscription_fetch_id):
             'subscription_fetch_id': subscription_fetch_id
         })
 
-        await asyncio.wait([loop.create_task(insert_flight(pool, inserted_route, flight)) for flight in route['route']])
     #except: # TODO
     finally:
         await pool.release(conn)
+
+    insert_flight_tasks = [loop.create_task(insert_flight(pool, inserted_route, flight)) for flight in route['route']]
+
+    if len(insert_flight_tasks) > 0:
+        await asyncio.wait(insert_flight_tasks)
 
 
 async def get_subscription_data(pool, http_client, airport_end_points, subscription_fetch_id):
@@ -344,25 +330,32 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
     offset = 0
     next_page_available = True
 
+    query_params = {
+        'flyFrom': airport_end_points['airport_from'],
+        'to': airport_end_points['airport_to'],
+        'dateFrom': date.today().strftime(KIWI_API_DATE_FORMAT),
+        'dateTo': (date.today() + relativedelta(months=+1)).strftime(KIWI_API_DATE_FORMAT),
+        'typeFlight': 'oneway',
+        'partner': 'picky',
+        'v': '2',
+        'xml': '0',
+        'locale': 'en',
+        'offset': offset,
+        'limit': ROUTES_LIMIT,
+    }
+
+    next_request = request(http_client, 'https://api.skypicker.com/flights', query_params)
+
     while next_page_available:
         next_page_available = False
 
         flights_dict = {}
         airports_set = set()
 
-        response = await request(http_client, 'https://api.skypicker.com/flights', {
-            'flyFrom': airport_end_points['airport_from'],
-            'to': airport_end_points['airport_to'],
-            'dateFrom': date.today().strftime(KIWI_API_DATE_FORMAT),
-            'dateTo': (date.today() + relativedelta(months=+1)).strftime(KIWI_API_DATE_FORMAT),
-            'typeFlight': 'oneway',
-            'partner': 'picky',
-            'v': '2',
-            'xml': '0',
-            'locale': 'en',
-            'offset': offset,
-            'limit': ROUTES_LIMIT,
-        })
+        response = await next_request
+
+        query_params['offset'] += ROUTES_LIMIT
+        next_request = request(http_client, 'https://api.skypicker.com/flights', query_params)
 
         assert_peer(
             isinstance(response, dict),
@@ -416,7 +409,10 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
             offset,
             len(airports_set)))
 
-        await asyncio.wait([loop.create_task(get_airport_if_not_exists(pool, http_client, airport_iata_code)) for airport_iata_code in airports_set])
+        get_airport_if_not_exists_tasks = [loop.create_task(get_airport_if_not_exists(pool, http_client, airport_iata_code)) for airport_iata_code in airports_set]
+
+        if len(get_airport_if_not_exists_tasks) > 0:
+            await asyncio.wait(get_airport_if_not_exists_tasks)
 
         log('Finished getting data for airports.')
         log('From {0} to {1} (offset: {2}): data for {3} flights. Getting data...'.format(
@@ -425,7 +421,10 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
             offset,
             len(flights_dict)))
 
-        await asyncio.wait([loop.create_task(get_flight(pool, flight)) for flight in flights_dict.values()])
+        get_flight_tasks = [loop.create_task(get_flight(pool, flight)) for flight in flights_dict.values()]
+
+        if len(get_flight_tasks) > 0:
+            await asyncio.wait(get_flight_tasks)
 
         log('Finished getting data for flights')
         log('From {0} to {1} (offset: {2}): data for {3} routes. Getting data...'.format(
@@ -434,11 +433,13 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
             offset,
             len(response['data'])))
 
-        await asyncio.wait([loop.create_task(insert_route(pool, route, subscription_fetch_id)) for route in response['data']])
+        insert_route_tasks = [loop.create_task(insert_route(pool, route, subscription_fetch_id)) for route in response['data']]
+
+        if len(insert_route_tasks) > 0:
+            await asyncio.wait(insert_route_tasks)
 
         if isinstance(response['_next'], str):
             next_page_available = True
-            offset += ROUTES_LIMIT
 
 
 async def get_airport_if_not_exists(pool, http_client, iata_code):
@@ -639,14 +640,17 @@ async def start():
     try:
         pool = await asyncpg.create_pool(database='freefall', user='freefall', password='freefall')
 
-        async with aiohttp.ClientSession() as http_client:
+        async with aiohttp.ClientSession(conn_timeout=15) as http_client:
             airlines = await request(http_client, 'https://api.skypicker.com/airlines')
 
             assert_peer(
                 isinstance(airlines, list),
                 'Expected airlines to be a list, but was "{0}"'.format(type(airlines)))
 
-            await asyncio.wait([loop.create_task(insert_airline(pool, airline)) for airline in airlines])
+            insert_airline_tasks = [loop.create_task(insert_airline(pool, airline)) for airline in airlines]
+
+            if len(insert_airline_tasks) > 0:
+                await asyncio.wait(insert_airline_tasks)
 
             try:
                 conn = await pool.acquire()
