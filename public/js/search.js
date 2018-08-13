@@ -274,8 +274,22 @@ function start () {
     searchFormParams.fly_from = airportFrom.id;
     searchFormParams.fly_to = airportTo.id;
 
+    const wrongPriceToFormatMsg = 'Expected "price to" to be a positve integer, e.g. 1, 2, 3, ... 100.. etc!';
+
     if (formData['price-to']) {
-      searchFormParams.price_to = parseInt(formData['price-to']);
+      assertUser(Number.isInteger(Number(formData['price-to'])), {
+        userMessage: wrongPriceToFormatMsg,
+        msg: 'User did not enter an integer',
+      });
+
+      const priceToValue = parseInt(formData['price-to']);
+
+      assertUser(priceToValue > 0, {
+        userMessage: wrongPriceToFormatMsg,
+        msg: 'User entered a negative integer',
+      });
+
+      searchFormParams.price_to = priceToValue;
     }
 
     const datePattern = /^\d{4}-\d{2}-\d{2}$/g;
@@ -295,6 +309,10 @@ function start () {
         msg: wrongDateFormatMsg,
       });
       searchFormParams.date_to = formData['date-to'];
+    }
+
+    if (Number(formData['price-to'])) {
+      
     }
 
     mainUtils.trace('getSearchFormParams returning ' + JSON.stringify(searchFormParams) + ''); // eslint-disable-line prefer-template
