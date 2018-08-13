@@ -278,11 +278,22 @@ function start () {
       searchFormParams.price_to = parseInt(formData['price-to']);
     }
 
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/g;
+    const wrongDateFormatMsg = 'Expected format YYYY-MM-DD for date!';
+
     if (formData['date-from']) {
+      assertUser(datePattern.test(formData['date-from']), {
+        userMessage: wrongDateFormatMsg,
+        msg: wrongDateFormatMsg,
+      });
       searchFormParams.date_from = formData['date-from'];
     }
 
     if (formData['date-to']) {
+      assertUser(datePattern.test(formData['date-to']), {
+        userMessage: wrongDateFormatMsg,
+        msg: wrongDateFormatMsg,
+      });
       searchFormParams.date_to = formData['date-to'];
     }
 

@@ -603,6 +603,19 @@ function start () {
       msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
     });
 
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/g;
+    const wrongDateFormatMsg = 'Expected format YYYY-MM-DD for date!';
+
+    assertUser(datePattern.test(dateFrom), {
+      userMessage: wrongDateFormatMsg,
+      msg: wrongDateFormatMsg,
+    });
+
+    assertUser(datePattern.test(dateTo), {
+      userMessage: wrongDateFormatMsg,
+      msg: wrongDateFormatMsg,
+    });
+
     saveButton.disabled = true;
 
     const editSubscriptionParams = {

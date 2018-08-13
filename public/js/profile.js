@@ -318,6 +318,19 @@ function start () {
       msg: 'User entered an invalid date in dateTo field',
     });
 
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/g;
+    const wrongDateFormatMsg = 'Expected format YYYY-MM-DD for date!';
+
+    assertUser(datePattern.test(dateFrom), {
+      userMessage: wrongDateFormatMsg,
+      msg: wrongDateFormatMsg,
+    });
+
+    assertUser(datePattern.test(dateTo), {
+      userMessage: wrongDateFormatMsg,
+      msg: wrongDateFormatMsg,
+    });
+
     subscribeBtn.disabled = true;
 
     api.subscribe({
