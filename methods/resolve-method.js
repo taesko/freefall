@@ -479,22 +479,31 @@ async function listAirports (params, dbClient) {
   };
 }
 
-async function listSubscriptions (params, dbClient) {
-  const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
-  const subRows = await subscriptions.listUserSubscriptions(dbClient, user.id);
+const listSubscriptions = defineAPIMethod(
+  {
+    'LIST_SUBSCR_INVALID_USER_ID': { subscriptions: [] }, // TODO add status codes ?
+  },
+  async (params, dbClient) => {
+    const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
+    assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_USER_ID');
+    const subRows = await subscriptions.listUserSubscriptions(
+      dbClient,
+      user.id,
+    );
 
-  for (const sr of subRows) {
-    sr.id = `${sr.id}`;
-    sr.fly_from = `${sr.fly_from}`;
-    sr.fly_to = `${sr.fly_to}`;
-    sr.date_from = moment(sr.date_from).format('Y-MM-DD');
-    sr.date_to = moment(sr.date_to).format('Y-MM-DD');
-  }
+    for (const sr of subRows) {
+      sr.id = `${sr.id}`;
+      sr.fly_from = `${sr.fly_from}`;
+      sr.fly_to = `${sr.fly_to}`;
+      sr.date_from = moment(sr.date_from).format('Y-MM-DD');
+      sr.date_to = moment(sr.date_to).format('Y-MM-DD');
+    }
 
-  return {
-    subscriptions: subRows,
-  };
-}
+    return {
+      subscriptions: subRows,
+    };
+  },
+);
 
 async function adminListUsers (params, dbClient) {
   assertPeer(
