@@ -348,49 +348,39 @@ const subscribe = defineAPIMethod(
   },
 );
 
-async function unsubscribe (params, dbClient) {
-  if (!Number.isInteger(+params.user_subscription_id)) {
-    return { status_code: '2100' };
-  }
+const unsubscribe = defineAPIMethod(
+  {
+    'UNSUBSCR_BAD_USER_SUBSCR_ID': { status_code: '2100' },
+    'UNSUBSCR_INVALID_API_KEY': { status_code: '2200' },
+    'UNSUBSCR_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+    'RUS_BAD_ID': { status_code: '2000' },
+  },
+  async (params, dbClient) => {
+    const userSubId = +params.user_subscription_id;
+    const apiKey = params.api_key;
+    const user = await users.fetchUser(dbClient, { apiKey });
 
-  const userSubId = +params.user_subscription_id;
-  const apiKey = params.api_key;
+    assertPeer(Number.isInteger(userSubId), `got ${userSubId}`, 'UNSUBSCR_BAD_USER_SUBSCR_ID');
+    assertPeer(user != null, `got ${user}`, 'UNSUBSCR_INVALID_API_KEY');
 
-  const user = await users.fetchUser(dbClient, { apiKey });
+    const userSubscriptions = await subscriptions.listUserSubscriptions(
+      dbClient,
+      user.id,
+    );
+    const apiKeyHasPermissions = userSubscriptions.some(
+      sub => +sub.id === +userSubId,
+    );
 
-  if (user == null) {
-    return { status_code: '2200' };
-  }
+    assertPeer(apiKeyHasPermissions,
+      `apiKey=${apiKey} subscr=${userSubId}`,
+      'UNSUBSCR_NOT_ENOUGH_PERMISSIONS',
+    );
 
-  const userSubscriptions = await subscriptions.listUserSubscriptions(
-    dbClient,
-    user.id,
-  );
-
-  if (!userSubscriptions.some(sub => +sub.id === +userSubId)) {
-    return {
-      status_code: '2200',
-    };
-  }
-
-  let statusCode;
-
-  try {
     await subscriptions.removeUserSubscription(dbClient, userSubId);
-    statusCode = 1000;
-  } catch (e) {
-    if (e instanceof PeerError) {
-      log.warn('Peer error occurred while removing subscription: ', userSubId);
-      if (e.code === 'RUS_BAD_ID') {
-        statusCode = '2000';
-      }
-    } else {
-      throw e;
-    }
-  }
 
-  return { status_code: `${statusCode}` };
-}
+    return { status_code: `1000` };
+  },
+);
 
 async function editSubscription (params, dbClient) {
   const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
