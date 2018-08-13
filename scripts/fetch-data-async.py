@@ -106,8 +106,13 @@ async def request(http_client, URL, params=None, max_retries=5):
     return parsed
 
 def is_db_connection(conn, msg):
-    assert_app(isinstance(conn, psycopg2.extensions.connection), msg)
-    assert_app(conn.closed == 0, msg)
+    assert_app(isinstance(conn, asyncpg.Connection), msg)
+    assert_app(not conn.is_closed(), msg)
+
+
+def is_db_pool(pool, msg):
+    assert_app(isinstance(pool, Pool), msg)
+
 
 def stringify_columns(columns):
     assert_app(isinstance(columns, list), 'Expected argument "columns" in stringify_columns function to be list, but was {0}'.format(type(columns)))
@@ -123,14 +128,9 @@ def to_smallest_currency_unit(quantity):
 async def select(conn, table, columns):
     assert_app(isinstance(table, str), 'Expected argument "table" in select function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(columns, list), 'Expected argument "columns" in select function to be list, but was {0}'.format(type(columns)))
-    assert_db(conn, 'select function called without connection to db.')
+    is_db_connection(conn, 'select function called without connection to db.')
 
-    c = conn.cursor()
-
-    c.execute('SELECT {0} FROM {1};'.format(stringify_columns(columns), table))
-
-    result = c.fetchall()
-    c.close()
+    result = await conn.fetch('SELECT {0} FROM {1};'.format(stringify_columns(columns), table))
 
     return result
 
@@ -140,16 +140,11 @@ async def select_where(conn, table, columns, where):
     assert_app(isinstance(columns, list), 'Expected argument "columns" in select_where function to be list, but was {0}'.format(type(columns)))
     assert_app(isinstance(where, dict), 'Expected argument "where" in select_where function to be a dict, but was {0}'.format(type(where)))
     assert_app(len(where) == 1, 'Expected argument "where" in select_where function to be a dict of length=1, but length={0}'.format(len(where)))
-    assert_db(conn, 'select_where function called without connection to db.')
-
-    c = conn.cursor()
+    is_db_connection(conn, 'select_where function called without connection to db.')
 
     whereCol = list(where.keys())[0]
 
-    c.execute('SELECT {0} FROM {1} WHERE {2} = %s;'.format(stringify_columns(columns), table, whereCol), [where[whereCol]])
-
-    result = c.fetchall()
-    c.close()
+    result = await conn.fetch('SELECT {0} FROM {1} WHERE {2} = $1;'.format(stringify_columns(columns), table, whereCol), where[whereCol])
 
     assert_app(isinstance(result, list), 'Expected result in select_where function to be a list, but was {0}'.format(type(result)))
 
@@ -159,60 +154,52 @@ async def select_where(conn, table, columns, where):
 async def insert(conn, table, data):
     assert_app(isinstance(table, str), 'Expected argument "table" in insert function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(data, dict), 'Expected argument "data" in insert function to be dict, but was {0}'.format(type(data)))
-    assert_db(conn, 'insert function called without connection to db.')
+    is_db_connection(conn, 'insert function called without connection to db.')
 
-    columns = list(data.keys())
-    values = tuple(data.values())
+    columns = []
+    values = []
 
-    rowStringified = ', '.join(['%s'] * len(columns))
+    for col, val in data.items():
+        columns.append(col)
+        values.append(val)
 
-    c = conn.cursor()
-    c.execute('INSERT INTO {0} ({1}) VALUES ({2}) RETURNING *;'.format(table, stringify_columns(columns), rowStringified), values)
-    conn.commit()
+    rowStringified = ', '.join(['${0}'.format(i) for i in range(1, len(columns) + 1)])
 
-    insert_result = c.fetchall()
+    insert_result = await conn.fetch('INSERT INTO {0} ({1}) VALUES ({2}) RETURNING *;'.format(table, stringify_columns(columns), rowStringified), *values)
 
     assert_app(isinstance(insert_result, list), 'Expected insert_result to be list, but was {0}'.format(type(insert_result)))
     assert_app(len(insert_result) == 1, 'Expected insert_result to have length=1, but got length={0}'.format(len(insert_result)))
 
     inserted_item = insert_result[0]
 
-    assert_app(isinstance(inserted_item, dict), 'Expected inserted_item to be a dict, but was {0}'.format(type(inserted_item)))
+    assert_app(isinstance(inserted_item, asyncpg.Record), 'Expected inserted_item to be a asyncpg.Record, but was {0}'.format(type(inserted_item)))
     assert_app('id' in inserted_item, 'inserted_item does not have a key "id"')
     assert_app(isinstance(inserted_item['id'], int), 'Expected inserted_item["id"] to be an int, but was {0}'.format(type(inserted_item['id'])))
-
-    c.close()
 
     return inserted_item
 
 
 async def insert_data_fetch(conn):
     # TODO assert not in transaction
-    assert_db(conn, 'insert_data_fetch function called without connection to db.')
+    is_db_connection(conn, 'insert_data_fetch function called without connection to db.')
 
-    c = conn.cursor()
-    c.execute('INSERT INTO fetches(fetch_time) VALUES (now()) RETURNING id;');
-    conn.commit()
-
-    insert_result = c.fetchall()
+    insert_result = await conn.fetch('INSERT INTO fetches(fetch_time) VALUES (now()) RETURNING id;');
 
     assert_app(isinstance(insert_result, list), 'Expected insert_result to be list, but was {0}'.format(type(insert_result)))
     assert_app(len(insert_result) == 1, 'Expected insert_result to have length=1, but got length={0}'.format(len(insert_result)))
 
     inserted_item = insert_result[0]
 
-    assert_app(isinstance(inserted_item, dict), 'Expected inserted_item to be a dict, but was {0}'.format(type(inserted_item)))
+    assert_app(isinstance(inserted_item, asyncpg.Record), 'Expected inserted_item to be a asyncpg.Record, but was {0}'.format(type(inserted_item)))
     assert_app('id' in inserted_item, 'inserted_item does not have a key "id"')
     assert_app(isinstance(inserted_item['id'], int), 'Expected inserted_item["id"] to be an int, but was {0}'.format(type(inserted_item['id'])))
-
-    c.close()
 
     return inserted_item['id']
 
 
 async def insert_if_not_exists(conn, table, data, exists_check):
     # TODO assert connection in transaction
-    assert_db(conn, 'insert_if_not_exists function called without connection to db.')
+    is_db_connection(conn, 'insert_if_not_exists function called without connection to db.')
     assert_app(isinstance(table, str), 'Expected argument "table" in insert_if_not_exists function to be str, but was {0}'.format(type(table)))
     assert_app(isinstance(data, dict), 'Expected argument "data" in insert_if_not_exists function to be dict, but was {0}'.format(type(data)))
     assert_app(isinstance(exists_check, dict), 'Expected argument "exists_check" in insert_if_not_exists function to be dict, but was {0}'.format(type(exists_check)))
@@ -228,7 +215,7 @@ async def insert_if_not_exists(conn, table, data, exists_check):
 
     inserted = await insert(conn, table, data)
 
-    assert_app(isinstance(inserted, dict), 'Expected inserted to be an dict, but was {0}'.format(type(inserted)))
+    assert_app(isinstance(inserted, asyncpg.Record), 'Expected inserted to be an asyncpg.Record, but was {0}'.format(type(inserted)))
 
     return True
 
@@ -242,7 +229,7 @@ async def get_airport_id(pool, iata_code):
 
         assert_app(isinstance(select_result, list), 'Expected airports select result to be a list, but was {0}'.format(type(select_result)))
         assert_app(len(select_result) == 1, 'Expected only one airports select result, but got {0}'.format(len(select_result)))
-        assert_app(isinstance(select_result[0], psycopg2.extras.RealDictRow), 'Expected element in airport select result to be psycopg2.extras.RealDictRow, but was {0}'.format(select_result[0]))
+        assert_app(isinstance(select_result[0], asyncpg.Record), 'Expected element in airport select result to be asyncpg.Record, but was {0}'.format(select_result[0]))
         assert_app('id' in select_result[0].keys(), 'Key "id" not found in airport select result.')
         assert_app(isinstance(select_result[0]['id'], int), 'Expected id in airport select result element to be int, but was {0}'.format(select_result[0]['id']))
 
@@ -271,7 +258,7 @@ async def get_flight(pool, flight):
 
         assert_app(isinstance(airline_id_result, list), 'Expected airline select result to be a list, but was {0}'.format(type(airline_id_result)))
         assert_app(len(airline_id_result) == 1, 'Expected only one airline select result, but got {0}'.format(len(airline_id_result)))
-        assert_app(isinstance(airline_id_result[0], psycopg2.extras.RealDictRow), 'Expected element in airline select result to be psycopg2.extras.RealDictRow, but was {0}'.format(airline_id_result[0]))
+        assert_app(isinstance(airline_id_result[0], asyncpg.Record), 'Expected element in airline select result to be asyncpg.Record, but was {0}'.format(airline_id_result[0]))
         assert_app('id' in airline_id_result[0].keys(), 'Key "id" not found in airline id result.')
         assert_app(isinstance(airline_id_result[0]['id'], int), 'Expected id in airline select result element to be int, but was {0}'.format(airline_id_result[0]['id']))
 
@@ -280,16 +267,16 @@ async def get_flight(pool, flight):
             flight['flight_no'],
             flight['flyFrom'],
             flight['flyTo'],
-            datetime.fromtimestamp(flight['dTimeUTC']).strftime(SERVER_TIME_FORMAT)))
+            datetime.fromtimestamp(flight['dTimeUTC'])))
 
         # TODO ask if transaction needed
         await insert_if_not_exists(conn, 'flights', {
             'airline_id': airline_id_result[0]['id'],
             'airport_from_id': airport_ids[0],
             'airport_to_id': airport_ids[1],
-            'dtime': datetime.fromtimestamp(flight['dTimeUTC']).strftime(SERVER_TIME_FORMAT),
-            'atime': datetime.fromtimestamp(flight['aTimeUTC']).strftime(SERVER_TIME_FORMAT),
-            'flight_number': flight['flight_no'],
+            'dtime': datetime.fromtimestamp(flight['dTimeUTC']),
+            'atime': datetime.fromtimestamp(flight['aTimeUTC']),
+            'flight_number': str(flight['flight_no']),
             'remote_id': flight['id']
         }, {
             'remote_id': flight['id']
@@ -299,7 +286,7 @@ async def get_flight(pool, flight):
         await pool.release(conn)
 
 
-async def insert_flight(pool, flight):
+async def insert_flight(pool, inserted_route, flight):
     # TODO asserts
     log('Inserting route {0} flight {1} {2} from {3} to {4} departure time {5} ...'.format(
         inserted_route['id'],
@@ -332,7 +319,7 @@ async def insert_flight(pool, flight):
         await pool.release(conn)
 
 
-async def insert_route(pool, route):
+async def insert_route(pool, route, subscription_fetch_id):
     try:
         conn = await pool.acquire()
         inserted_route = await insert(conn, 'routes', {
@@ -341,7 +328,7 @@ async def insert_route(pool, route):
             'subscription_fetch_id': subscription_fetch_id
         })
 
-        await asyncio.wait([loop.create_task(insert_flight(pool, flight)) for flight in route['route']])
+        await asyncio.wait([loop.create_task(insert_flight(pool, inserted_route, flight)) for flight in route['route']])
     #except: # TODO
     finally:
         await pool.release(conn)
@@ -438,7 +425,7 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
             offset,
             len(flights_dict)))
 
-        await asyncio.wait([loop.create_task(get_flight(pool, flight)) for flight in list(flights_dict.values())])
+        await asyncio.wait([loop.create_task(get_flight(pool, flight)) for flight in flights_dict.values()])
 
         log('Finished getting data for flights')
         log('From {0} to {1} (offset: {2}): data for {3} routes. Getting data...'.format(
@@ -447,7 +434,7 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
             offset,
             len(response['data'])))
 
-        await asyncio.wait([loop.create_task(insert_route(pool, route)) for route in response['data']])
+        await asyncio.wait([loop.create_task(insert_route(pool, route, subscription_fetch_id)) for route in response['data']])
 
         if isinstance(response['_next'], str):
             next_page_available = True
@@ -467,7 +454,7 @@ async def get_airport_if_not_exists(pool, http_client, iata_code):
 
         if len(airports) > 0:
             assert_app(len(airports) == 1, 'Expected one airport, but got {0}'.format(len(airports)))
-            assert_app(isinstance(airports[0], psycopg2.extras.RealDictRow), 'Expected airport data to be psycopg2.extras.RealDictRow, but got {0}'.format(type(airports[0])))
+            assert_app(isinstance(airports[0], asyncpg.Record), 'Expected airport data to be asyncpg.Record, but got {0}'.format(type(airports[0])))
             assert_app('id' in airports[0].keys(), 'Key "id" not found in dict airports[0]')
             assert_app(
                 isinstance(airports[0]['id'], int),
@@ -510,10 +497,10 @@ async def get_airport_if_not_exists(pool, http_client, iata_code):
 async def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
     # TODO assert client in transaction
     # TODO only use one connection for whole function
-    assert_db(conn, 'charge_fetch_tax called without connection to db')
+    is_db_connection(conn, 'charge_fetch_tax called without connection to db')
     assert_app(
-        isinstance(subscription_fetch, psycopg2.extras.RealDictRow),
-        'Expected subscription_fetch to be psycopg2.extras.RealDictRow, but was "{0}"'.format(type(subscription_fetch)))
+        isinstance(subscription_fetch, asyncpg.Record),
+        'Expected subscription_fetch to be asyncpg.Record, but was "{0}"'.format(type(subscription_fetch)))
 
     expect_subscription_fetch_keys = ['id', 'subscription_id']
 
@@ -523,11 +510,9 @@ async def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
             isinstance(subscription_fetch[key], int),
             'Expected subscription_fetch[{0}] "{1}" to be int, but was "{2}"'.format(key, subscription_fetch[key], type(subscription_fetch[key])))
 
-    c = conn.cursor()
-
     log('Beginning transaction. Charging fetch_tax {0} for subscription_id {1}'.format(fetch_tax, subscription_fetch['subscription_id']))
 
-    c.execute('''
+    await conn.execute('''
 
         UPDATE users_subscriptions
         SET active = FALSE
@@ -536,36 +521,34 @@ async def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
             user_id IN (
                 SELECT id
                 FROM users
-                WHERE credits < %s
+                WHERE credits < $1
             ) OR
             date_to < now()
         );
 
-    ''', [fetch_tax])
+    ''', fetch_tax)
 
-    c.execute('''
+    users = await conn.fetch('''
 
         UPDATE users
-        SET credits = credits - %s
+        SET credits = credits - $1
         WHERE id IN (
             SELECT user_id
             FROM users_subscriptions
             WHERE
                 active = TRUE AND
-                subscription_id = %s
+                subscription_id = $2
         )
         RETURNING *;
 
-    ''', [fetch_tax, subscription_fetch['subscription_id']])
-
-    users = c.fetchall()
+    ''', fetch_tax, subscription_fetch['subscription_id'])
 
     assert_app(isinstance(users, list), 'Expected users to be list, but was {0}'.format(type(users)))
 
     log('Charged {0} users with fetch_tax {1} for subscription_id {2}'.format(len(users), fetch_tax, subscription_fetch['subscription_id']))
 
     for user in users:
-        assert_app(isinstance(user, psycopg2.extras.RealDictRow), 'Expected user to be psycopg2.extras.RealDictRow, but was {0}'.format(type(user)))
+        assert_app(isinstance(user, asyncpg.Record), 'Expected user to be asyncpg.Record, but was {0}'.format(type(user)))
 
         expect_user_keys = ['id']
 
@@ -574,24 +557,22 @@ async def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
 
         log('Saving account transfer transfer_amount={0} for user_id={1}'.format(fetch_tax * -1, user['id']))
 
-        c.execute('''
+        insert_result = await conn.fetch('''
 
             INSERT INTO account_transfers
                 (user_id, transfer_amount, transferred_at)
             VALUES
-                (%s, %s, now())
+                ($1, $2, now())
             RETURNING *;
 
-        ''', [user['id'], fetch_tax * -1])
-
-        insert_result = c.fetchall()
+        ''', user['id'], fetch_tax * -1)
 
         assert_app(isinstance(insert_result, list), 'Expected insert_result to be a list, but was {0}'.format(type(insert_result)))
         assert_app(len(insert_result) == 1, 'Expected insert_result to have length=1, but got length={0}'.format(len(insert_result)))
 
         inserted_account_transfer = insert_result[0]
 
-        assert_app(isinstance(inserted_account_transfer, psycopg2.extras.RealDictRow), 'Expected inserted_account_transfer to be psycopg2.extras.RealDictRow, but was {0}'.format(type(inserted_account_transfer)))
+        assert_app(isinstance(inserted_account_transfer, asyncpg.Record), 'Expected inserted_account_transfer to be asyncpg.Record, but was {0}'.format(type(inserted_account_transfer)))
 
         expect_inserted_account_transfer_keys = ['id']
 
@@ -600,20 +581,17 @@ async def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
 
         log('Saving account transfer with id={0} as subscription-related fetch')
 
-        c.execute('''
+        await conn.execute('''
 
             INSERT INTO subscriptions_fetches_account_transfers
                 (account_transfer_id, subscription_fetch_id)
             VALUES
-                (%s, %s);
+                ($1, $2);
 
-        ''', [inserted_account_transfer['id'], subscription_fetch['id']])
-
-    conn.commit()
+        ''', inserted_account_transfer['id'], subscription_fetch['id'])
 
     log('End of transaction. Charged fetch taxes for subscription_id {0}'.format(subscription_fetch['subscription_id']))
 
-    c.close()
 
 async def insert_airline(pool, airline):
     # TODO assert pool
@@ -682,8 +660,8 @@ async def start():
 
                 for sub in subscriptions:
                     assert_app(
-                        isinstance(sub, psycopg2.extras.RealDictRow),
-                        'Expected subscription to be psycopg2.extras.RealDictRow, but was "{0}"'.format(type(sub)))
+                        isinstance(sub, asyncpg.Record),
+                        'Expected subscription to be asyncpg.Record, but was "{0}"'.format(type(sub)))
 
                     expect_subscription_keys = ['id', 'airport_from_id', 'airport_to_id']
 
@@ -698,7 +676,7 @@ async def start():
                         'fetch_id': fetch_id
                     });
 
-                    assert_app(isinstance(subscription_fetch, psycopg2.extras.RealDictRow), 'Expected subscription_fetch to be a psycopg2.extras.RealDictRow, but was {0}'.format(type(subscription_fetch)))
+                    assert_app(isinstance(subscription_fetch, asyncpg.Record), 'Expected subscription_fetch to be a asyncpg.Record, but was {0}'.format(type(subscription_fetch)))
                     #try:
                     async with conn.transaction():
                         await charge_fetch_tax(conn, subscription_fetch, fetch_tax)
@@ -722,7 +700,7 @@ async def start():
                     assert_app(isinstance(airport_to[0]['iata_code'], str), 'Expected airport_to[0]["iata_code"] to be str, but was {0}'.format(type(airport_to[0]['iata_code'])))
 
                     await get_subscription_data(
-                        conn,
+                        pool,
                         http_client,
                         {
                             'airport_from': airport_from[0]['iata_code'],
