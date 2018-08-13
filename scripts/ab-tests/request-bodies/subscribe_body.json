@@ -3,10 +3,10 @@
   "params": {
     "v": "2.0",
     "api_key": "3b488149d9f06b362ad86b5b88785ed7",
-    "fly_from": "3",
-    "fly_to": "4",
-    "date_from": "2018-08-03",
-    "date_to": "2018-08-17"
+    "fly_from": "38",
+    "fly_to": "29",
+    "date_from": "2018-09-03",
+    "date_to": "2018-09-17"
   },
   "jsonrpc": "2.0",
   "id": 2
