@@ -85,7 +85,7 @@ const search = defineAPIMethod(
       'SEARCH_EARLY_DATE_FROM',
     );
 
-    const priceTo = params.price_to || DEFAULT_PRICE_TO;
+    const priceTo = toSmallestCurrencyUnit(params.price_to) || DEFAULT_PRICE_TO;
 
     assertPeer(Number.isInteger(priceTo), `got ${priceTo}`, 'SEARCH_BAD_PRICE_TO');
     assertPeer(priceTo > 0 && priceTo <= MAX_PRICE_TO, `got ${priceTo}`, 'SEARCH_INVALID_PRICE_TO');
