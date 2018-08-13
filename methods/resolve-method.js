@@ -1,6 +1,6 @@
 const { assertPeer, assertApp, PeerError, errorCodes } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit } = require('../modules/utils');
-const { isObject } = require('lodash');
+const { isObject, isFunction } = require('lodash');
 const log = require('../modules/log');
 const auth = require('../modules/auth');
 const moment = require('moment');
@@ -9,128 +9,136 @@ const users = require('../modules/users');
 const accounting = require('../modules/accounting');
 
 const MAX_CREDITS_DIFFERENCE = Math.pow(10, 12);
+const SERVER_DATE_FORMAT = 'Y-MM-DD';
 const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
 const SEARCH_MONTHS_AHEAD = 1;
 const MAX_PRICE_TO = Math.pow(10, 6); // 10k in cents
-const DEFAULT_PRICE_TO = MAX_PRICE_TO;
+const DEFAULT_PRICE_TO = MAX_PRICE_TO - 100;
 const MAX_SEARCH_PAGE_LIMIT = 20;
 const DEFAULT_SEARCH_PAGE_LIMIT = 5;
 const DEFAULT_SEARCH_PAGE_OFFSET = 0;
+const MAX_FLY_DURATION = 48;
+const DEFAULT_MAX_FLY_DURATION = 24;
 
-const API_METHODS = {
-  search,
-  subscribe,
-  unsubscribe,
-  edit_subscription: editSubscription,
-  list_airports: listAirports,
-  list_subscriptions: listSubscriptions,
-  admin_list_subscriptions: adminListSubscriptions,
-  admin_list_users: adminListUsers,
-  admin_subscribe: adminSubscribe,
-  admin_unsubscribe: adminUnsubscribe,
-  admin_edit_subscription: adminEditSubscription,
-  admin_remove_user: adminRemoveUser,
-  admin_edit_user: adminEditUser,
-  admin_list_fetches: adminListFetches, // eslint-disable-line no-unused-vars
-  admin_alter_user_credits: adminAlterUserCredits,
-  get_api_key: getAPIKey,
-  senderror: sendError,
-};
+async function airportIDExists (dbClient, airportID) {
+  assertApp(isObject(dbClient), `got ${dbClient}`);
+  assertApp(Number.isInteger(airportID), `got ${airportID}`);
 
-async function search (params, dbClient) {
-  const flyFrom = +params.fly_from;
-  const flyTo = +params.fly_to;
+  log.debug(`Checking if airport id=${airportID} exists.`);
 
-  let dateFrom;
-
-  if (params.date_from) {
-    dateFrom = moment(params.date_from).format(SERVER_TIME_FORMAT);
-  } else {
-    dateFrom = moment().format(SERVER_TIME_FORMAT);
-  }
-
-  let dateTo;
-
-  if (params.date_to) {
-    dateTo = moment(params.date_to).format(SERVER_TIME_FORMAT);
-  } else {
-    dateTo = moment().add(SEARCH_MONTHS_AHEAD, 'months').format(SERVER_TIME_FORMAT);
-  }
-
-  if (
-    params.price_to &&
-    (params.price_to > MAX_PRICE_TO || params.price_to <= 0)
-  ) {
-    return {
-      status_code: '2000',
-      currency: params.currency,
-      routes: [],
-    };
-  }
-
-  if (
-    params.limit &&
-    (
-      !Number.isInteger(+params.limit) ||
-      params.limit > MAX_SEARCH_PAGE_LIMIT
-    )
-  ) {
-    return {
-      status_code: '2000',
-      currency: params.currency,
-      routes: [],
-    };
-  }
-
-  if (params.offset && !Number.isInteger(+params.offset)) {
-    return {
-      status_code: '2000',
-      currency: params.currency,
-      routes: [],
-    };
-  }
-
-  const priceTo = toSmallestCurrencyUnit(params.price_to || DEFAULT_PRICE_TO);
-  const currency = params.currency;
-  const maxFlightDuration = params.max_fly_duration;
-  const limit = params.limit || DEFAULT_SEARCH_PAGE_LIMIT;
-  const offset = params.offset || DEFAULT_SEARCH_PAGE_OFFSET;
-
-  const subscribed = await subscriptions.globalSubscriptionExists(
-    dbClient,
-    +params.fly_from,
-    +params.fly_to,
+  const { rows } = await dbClient.executeQuery(
+    `
+      SELECT 1
+      FROM airports
+      WHERE airports.id=$1
+    `,
+    [airportID],
   );
 
-  if (!subscribed) {
-    try {
+  assertApp(rows.length < 2);
+
+  return rows.length === 1;
+}
+
+const search = defineAPIMethod(
+  {
+    'SEARCH_BAD_FLY_FROM': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_FLY_TO': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_FLY_FROM': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_FLY_TO': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_DATE_RANGE': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_EARLY_DATE_FROM': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_PRICE_TO': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_PRICE_TO': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_LIMIT': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_LIMIT': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_OFFSET': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_INVALID_OFFSET': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_MAX_FLY_DURATION': { status_code: '2000', currency: 'USD', routes: [] },
+  },
+  async (params, dbClient) => {
+    assertApp(isObject(params), `got ${params}`);
+    assertApp(isObject(dbClient), `got ${dbClient}`);
+
+    const flyFrom = +params.fly_from;
+    const flyTo = +params.fly_to;
+
+    assertPeer(Number.isInteger(flyFrom), `got ${flyFrom}`, 'SEARCH_BAD_FLY_FROM');
+    assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'SEARCH_BAD_FLY_TO');
+
+    const flyFromExists = await airportIDExists(dbClient, flyFrom);
+    const flyToExists = await airportIDExists(dbClient, flyTo);
+
+    assertPeer(flyFromExists, `got ${flyFrom}`, 'SEARCH_INVALID_FLY_FROM');
+    assertPeer(flyToExists, `got ${flyTo}`, 'SEARCH_INVALID_FLY_TO');
+
+    const dateFrom = moment(params.date_from);
+    let dateTo;
+
+    if (params.date_to) {
+      dateTo = moment(params.date_to);
+    } else {
+      dateTo = moment().add(SEARCH_MONTHS_AHEAD, 'months');
+    }
+
+    assertPeer(dateFrom < dateTo, `dateFrom=${dateFrom}, dateTo=${dateTo}`,
+      'SEARCH_INVALID_DATE_RANGE',
+    );
+    assertPeer(moment().add(-1, 'days') < dateFrom, `dateFrom=${dateFrom}`,
+      'SEARCH_EARLY_DATE_FROM',
+    );
+
+    const priceTo = toSmallestCurrencyUnit(params.price_to) || DEFAULT_PRICE_TO;
+
+    assertPeer(Number.isInteger(priceTo), `got ${priceTo}`, 'SEARCH_BAD_PRICE_TO');
+    assertPeer(priceTo > 0 && priceTo <= MAX_PRICE_TO, `got ${priceTo}`, 'SEARCH_INVALID_PRICE_TO');
+
+    const limit = params.limit || DEFAULT_SEARCH_PAGE_LIMIT;
+    const offset = params.offset || DEFAULT_SEARCH_PAGE_OFFSET;
+
+    assertPeer(Number.isInteger(limit), `got ${limit}`, 'SEARCH_BAD_LIMIT');
+    assertPeer(limit > 0 && limit <= MAX_SEARCH_PAGE_LIMIT, `got ${limit}`, 'SEARCH_INVALID_LIMIT');
+    assertPeer(Number.isInteger(offset), `got ${offset}`, 'SEARCH_BAD_OFFSET');
+    assertPeer(offset >= 0, `got ${offset}`, 'SEARCH_INVALID_OFFSET');
+
+    const currency = params.currency;
+    // eslint-disable-next-line max-len
+    const maxFlightDuration = params.max_fly_duration || DEFAULT_MAX_FLY_DURATION;
+
+    assertPeer(
+      maxFlightDuration < MAX_FLY_DURATION,
+      `got ${maxFlightDuration}`,
+      'SEARCH_INVALID_FLY_DURATION',
+    );
+
+    assertPeer(
+      maxFlightDuration > 0,
+      `got ${maxFlightDuration}`,
+      `SEARCH_INVALID_MAX_FLY_DURATION`,
+    );
+
+    const subscribed = await subscriptions.globalSubscriptionExists(
+      dbClient,
+      +params.fly_from,
+      +params.fly_to,
+    );
+
+    if (!subscribed) {
       await subscriptions.subscribeGlobally(
         dbClient,
         +params.fly_from,
         +params.fly_to,
       );
-    } catch (e) {
-      if (e.code === 'FF_INVALID_AIRPORT_ID') {
-        log.debug('Caught FF_INVALID_AIRPORT_ID');
-        return {
-          status_code: '2000',
-          routes: [],
-          currency,
-        };
-      } else {
-        throw e;
-      }
+
+      return {
+        status_code: '1001',
+        routes: [],
+        currency,
+      };
     }
 
-    return {
-      status_code: '1001',
-      routes: [],
-      currency,
-    };
-  }
-
-  const { rows: routesAndFlights } = await dbClient.executeQuery(
-    `
+    const { rows: routesAndFlights } = await dbClient.executeQuery(
+      `
     SELECT
       routes.id AS route_id,
       routes.booking_token,
@@ -171,284 +179,293 @@ async function search (params, dbClient) {
      LIMIT $6 * 5 -- TODO assumes a single route does not span more than 5 flights
      OFFSET $7 * 5
     `,
-    [flyFrom, flyTo, dateFrom, dateTo, priceTo, limit, offset],
-  );
-
-  assertApp(Array.isArray(routesAndFlights), 'Invalid database response for search');
-
-  const routesMeta = {};
-  const flightsPerRoute = {};
-
-  for (const routeFlight of routesAndFlights) {
-    assertApp(isObject(routeFlight));
-    assertApp(Number.isInteger(+routeFlight.route_id));
-    assertApp(typeof routeFlight.booking_token === 'string');
-    assertApp(Number.isInteger(+routeFlight.price));
-
-    routesMeta[routeFlight.route_id] = {
-      booking_token: routeFlight.booking_token,
-      price: routeFlight.price / 100, // price is for the total route that the flight is part of
-    };
-
-    if (!flightsPerRoute[routeFlight.route_id]) {
-      flightsPerRoute[routeFlight.route_id] = [];
-    }
-
-    flightsPerRoute[routeFlight.route_id].push(routeFlight);
-  }
-
-  const routes = [];
-
-  // eslint-disable-next-line camelcase
-  for (const route_id of Object.keys(flightsPerRoute)) {
-    const totalDurationMS = flightsPerRoute[route_id].reduce(
-      (total, flight) => total + (flight.atime - flight.atime),
-      0,
-    );
-    if (totalDurationMS / 1000 / 60 / 60 > maxFlightDuration) {
-      continue;
-    }
-
-    flightsPerRoute[route_id].sort(
-      (flightA, flightB) => new Date(flightA.dtime) - new Date(flightB.dtime),
+      [
+        flyFrom,
+        flyTo,
+        dateFrom.format(SERVER_TIME_FORMAT),
+        dateTo.format(SERVER_TIME_FORMAT),
+        priceTo,
+        limit,
+        offset,
+      ],
     );
 
-    const flightCount = flightsPerRoute[route_id].length;
-    const first = flightsPerRoute[route_id][0];
-    const last = flightsPerRoute[route_id][flightCount - 1];
-    const departureAirport = first.airport_from_id;
-    const arrivalAirport = last.airport_to_id;
-
-    if (departureAirport !== flyFrom || arrivalAirport !== flyTo) {
-      continue;
+    if (routesAndFlights.length === 0) {
+      return {
+        status_code: '1002',
+        currency,
+        routes: [],
+      };
     }
 
-    routes.push({ ...routesMeta[route_id], route: flightsPerRoute[route_id] });
-  }
+    const routesMeta = {};
+    const flightsPerRoute = {};
 
-  routes.sort((routeA, routeB) => {
-    return routeA.price - routeB.price;
-  });
+    for (const routeFlight of routesAndFlights) {
+      assertApp(isObject(routeFlight));
+      assertApp(Number.isInteger(+routeFlight.route_id));
+      assertApp(typeof routeFlight.booking_token === 'string');
+      assertApp(Number.isInteger(+routeFlight.price));
 
-  return {
-    status_code: '1000',
-    routes,
-    currency,
-  };
-}
+      routesMeta[routeFlight.route_id] = {
+        booking_token: routeFlight.booking_token,
+        price: routeFlight.price / 100, // price is for the total route that the flight is part of
+      };
 
-async function subscribe (params, dbClient) {
-  if (
-    !(Number.isInteger(+params.fly_from) && Number.isInteger(+params.fly_to))
-  ) {
+      if (!flightsPerRoute[routeFlight.route_id]) {
+        flightsPerRoute[routeFlight.route_id] = [];
+      }
+
+      flightsPerRoute[routeFlight.route_id].push(routeFlight);
+    }
+
+    const routes = [];
+
+    // eslint-disable-next-line camelcase
+    for (const route_id of Object.keys(flightsPerRoute)) {
+      const totalDurationMS = flightsPerRoute[route_id].reduce(
+        (total, flight) => total + (flight.atime - flight.atime),
+        0,
+      );
+      if (totalDurationMS / 1000 / 60 / 60 > maxFlightDuration) {
+        continue;
+      }
+
+      flightsPerRoute[route_id].sort(
+        (flightA, flightB) => new Date(flightA.dtime) - new Date(flightB.dtime),
+      );
+
+      const flightCount = flightsPerRoute[route_id].length;
+      const first = flightsPerRoute[route_id][0];
+      const last = flightsPerRoute[route_id][flightCount - 1];
+      const departureAirport = first.airport_from_id;
+      const arrivalAirport = last.airport_to_id;
+
+      if (departureAirport !== flyFrom || arrivalAirport !== flyTo) {
+        continue;
+      }
+
+      routes.push({
+        ...routesMeta[route_id],
+        route: flightsPerRoute[route_id],
+      });
+    }
+
+    routes.sort((routeA, routeB) => {
+      return routeA.price - routeB.price;
+    });
+
     return {
-      status_code: '2100',
-      subscription_id: null,
+      status_code: '1000',
+      routes,
+      currency,
     };
-  }
+  },
+);
 
-  const flyFrom = +params.fly_from;
-  const flyTo = +params.fly_to;
-  const dateFrom = params.date_from;
-  const dateTo = params.date_to;
+const subscribe = defineAPIMethod(
+  {
+    [errorCodes.subscriptionExists]: { status_code: '2000', subscription_id: null },
+    [errorCodes.notEnoughCredits]: { status_code: '2001', subscription_id: null },
+    'SUBSCR_BAD_FLY_FROM': { status_code: '2100', subscription_id: null },
+    'SUBSCR_BAD_FLY_TO': { status_code: '2100', subscription_id: null },
+    'SUBSCR_BAD_API_KEY': { status_code: '2200', subscription_id: null },
+    'SUBSCRIBE_USER_BAD_DATE': { status_code: '2100', subscription_id: null },
+    'SUBSCR_EARLY_DATE_FROM': { status_code: '2100', subscription_id: null },
+    'SUBSCR_INVALID_FLY_FROM_ID': { status_code: '2100', subscription_id: null },
+    'SUBSCR_INVALID_FLY_TO_ID': { status_code: '2100', subscription_id: null },
+  },
+  async (params, dbClient) => {
+    assertApp(isObject(params));
+    const flyFrom = +params.fly_from;
+    const flyTo = +params.fly_to;
+    const dateFrom = params.date_from;
+    const dateTo = params.date_to;
+    const apiKey = params.api_key;
+    const userExists = await users.userExists(dbClient, { apiKey });
+    const flyFromExists = await airportIDExists(dbClient, flyFrom);
+    const flyToExists = await airportIDExists(dbClient, flyTo);
 
-  // TODO maybe this should be part of the transaction ?
-  const userId = await users.fetchUser(dbClient, { apiKey: params.api_key })
-    .then(user => { return user == null ? null : user.id; });
+    assertPeer(Number.isInteger(flyFrom), `got ${flyFrom}`, 'SUBSCR_BAD_FLY_FROM');
+    assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'SUBSCR_BAD_FLY_TO');
+    assertPeer(userExists, `got ${apiKey}`, 'SUBSCR_BAD_API_KEY');
+    assertPeer(moment() < moment(dateFrom), `dateFrom=${dateFrom}`, 'SUBSCR_EARLY_DATE_FROM');
+    assertPeer(flyFromExists, `got ${flyFrom}`, 'SUBSCR_INVALID_FLY_FROM_ID');
+    assertPeer(flyToExists, `got ${flyTo}`, 'SUBSCR_INVALID_FLY_TO_ID');
 
-  if (userId == null) {
-    return {
-      status_code: '2200',
-      subscriptionId: null,
-    };
-  }
+    // TODO maybe this should be part of the transaction ?
+    const userId = await users.fetchUser(dbClient, { apiKey: params.api_key })
+      .then(user => { return user == null ? null : user.id; });
 
-  const subscribeAndTax = async (
-    userId,
-    {
-      flyFrom,
-      flyTo,
-      dateFrom,
-      dateTo,
-    }) => {
-    const { id: subId } = await subscriptions.subscribeUser(
-      dbClient,
+    const subscribeAndTax = async (
       userId,
       {
-        airportFromId: flyFrom,
-        airportToId: flyTo,
+        flyFrom,
+        flyTo,
         dateFrom,
         dateTo,
-      },
-    );
-    // reactivating and old user subscription shouldn't be taxed
-    // if subscription has been taxed pass silently.
-    // NOTE in concurrent requests the subscription might be taxed after this query
-    // unique constraints will fail in that case.
-    if (await accounting.subscriptionIsTaxed(dbClient, subId)) {
-      log.info('Subscription is already taxed. Skipping taxing');
-      return subId;
-    }
-
-    try {
-      await accounting.taxSubscribe(dbClient, userId, subId);
-    } catch (e) {
-      if (e.code === '23505') { // unique constraint failed
-        throw PeerError('subscription already exists.', errorCodes.subscriptionExists);
-      } else {
-        throw e;
+      }) => {
+      const { id: subId } = await subscriptions.subscribeUser(
+        dbClient,
+        userId,
+        {
+          airportFromId: flyFrom,
+          airportToId: flyTo,
+          dateFrom,
+          dateTo,
+        },
+      );
+      // reactivating an old user subscription shouldn't be taxed
+      // if subscription has been taxed pass silently.
+      // NOTE in concurrent requests the subscription might be taxed after this query
+      // unique constraints will fail in that case.
+      if (await accounting.subscriptionIsTaxed(dbClient, subId)) {
+        log.info('Subscription is already taxed. Skipping taxing');
+        return subId;
       }
-    }
 
-    return subId;
-  };
+      try {
+        await accounting.taxSubscribe(dbClient, userId, subId);
+      } catch (e) {
+        if (e.code === '23505') { // unique constraint failed
+          throw PeerError('subscription already exists.', errorCodes.subscriptionExists);
+        } else {
+          throw e;
+        }
+      }
 
-  let statusCode;
-  let subscriptionId;
-  const statusCodeHash = {};
+      return subId;
+    };
 
-  statusCodeHash[errorCodes.notEnoughCredits] = '2001';
-  statusCodeHash[errorCodes.subscriptionExists] = '2000';
-
-  try {
-    subscriptionId = await subscribeAndTax(userId, {
+    const subscriptionId = await subscribeAndTax(userId, {
       flyFrom,
       flyTo,
       dateFrom,
       dateTo,
     });
-    statusCode = '1000';
-    subscriptionId = `${subscriptionId}`;
-  } catch (e) {
-    if (e instanceof PeerError) {
-      log.info('Peer error occurred while subscribing user.');
-      statusCode = statusCodeHash[e.code];
-      if (e.code === 'SUBSCRIBE_USER_BAD_DATE') {
-        statusCode = '2100';
-      } else if (!statusCode) {
-        log.warn(`Error has an unknown code. Setting statusCode to '2999'`);
-        statusCode = '2999';
-      }
-      subscriptionId = null;
-    } else {
-      throw e;
-    }
-  }
 
-  return {
-    subscription_id: subscriptionId,
-    status_code: `${statusCode}`,
-  };
-}
-
-async function unsubscribe (params, dbClient) {
-  if (!Number.isInteger(+params.user_subscription_id)) {
-    return { status_code: '2100' };
-  }
-
-  const userSubId = +params.user_subscription_id;
-  const apiKey = params.api_key;
-
-  const user = await users.fetchUser(dbClient, { apiKey });
-
-  if (user == null) {
-    return { status_code: '2200' };
-  }
-
-  const userSubscriptions = await subscriptions.listUserSubscriptions(
-    dbClient,
-    user.id,
-  );
-
-  if (!userSubscriptions.some(sub => +sub.id === +userSubId)) {
     return {
-      status_code: '2200',
+      subscription_id: `${subscriptionId}`,
+      status_code: '1000',
     };
-  }
+  },
+);
 
-  let statusCode;
+const unsubscribe = defineAPIMethod(
+  {
+    'UNSUBSCR_BAD_USER_SUBSCR_ID': { status_code: '2100' },
+    'UNSUBSCR_INVALID_API_KEY': { status_code: '2200' },
+    'UNSUBSCR_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+    'RUS_BAD_ID': { status_code: '2000' },
+  },
+  async (params, dbClient) => {
+    const userSubId = +params.user_subscription_id;
+    const apiKey = params.api_key;
+    const user = await users.fetchUser(dbClient, { apiKey });
 
-  try {
+    assertPeer(Number.isInteger(userSubId), `got ${userSubId}`, 'UNSUBSCR_BAD_USER_SUBSCR_ID');
+    assertPeer(user != null, `got ${user}`, 'UNSUBSCR_INVALID_API_KEY');
+
+    const userSubscriptions = await subscriptions.listUserSubscriptions(
+      dbClient,
+      user.id,
+    );
+    const apiKeyHasPermissions = userSubscriptions.some(
+      sub => +sub.id === +userSubId,
+    );
+
+    assertPeer(apiKeyHasPermissions,
+      `apiKey=${apiKey} subscr=${userSubId}`,
+      'UNSUBSCR_NOT_ENOUGH_PERMISSIONS',
+    );
+
     await subscriptions.removeUserSubscription(dbClient, userSubId);
-    statusCode = 1000;
-  } catch (e) {
-    if (e instanceof PeerError) {
-      log.warn('Peer error occurred while removing subscription: ', userSubId);
-      if (e.code === 'RUS_BAD_ID') {
-        statusCode = '2000';
-      }
-    } else {
-      throw e;
-    }
-  }
 
-  return { status_code: `${statusCode}` };
-}
+    return { status_code: `1000` };
+  },
+);
 
-async function editSubscription (params, dbClient) {
-  const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
-  const userSubscr = await dbClient.selectWhere(
-    'users_subscriptions',
-    '*',
+const editSubscription = defineAPIMethod(
+  {
+    [errorCodes.subscriptionExists]: { status_code: '2000' },
+    'EDIT_SUBSCR_BAD_FROM_ID': { status_code: '2100' },
+    'EDIT_SUBSCR_BAD_TO_ID': { status_code: '2100' },
+    'EDIT_SUBSCR_BAD_SUBSCR_ID': { status_code: '2100' },
+    'EDIT_SUBSCR_INVALID_FROM_ID': { status_code: '2101' },
+    'EDIT_SUBSCR_INVALID_TO_ID': { status_code: '2101' },
+    'EDIT_SUBSCR_BAD_DATE_RANGE': { status_code: '2102' },
+    'EDIT_SUBSCR_INVALID_DATE_FROM': { status_code: '2102' },
+    'EDIT_SUBSCR_INVALID_DATE_TO': { status_code: '2102' },
+    'EDIT_SUBSCR_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+    'EDIT_SUBSCR_BAD_API_KEY': { status_code: '2200' },
+  },
+  async (params, dbClient) => {
     {
-      user_id: user.id,
-    },
-  );
-  const subscriptionId = +params.user_subscription_id;
-  const airportFromId = +params.fly_from;
-  const airportToId = +params.fly_to;
-  const dateFrom = params.date_from;
-  const dateTo = params.date_to;
+      const apiKey = params.api_key;
+      const user = await users.fetchUser(dbClient, { apiKey });
 
-  if (!userSubscr.find(subscr => subscr.id === subscriptionId)) {
-    log.info(`Peer with api_key ${params.api_key} cannot modify user subscription ${subscriptionId}.`);
-    return { status_code: '2200' };
-  }
-  if (
-    !Number.isInteger(airportFromId) ||
-    !Number.isInteger(airportToId) ||
-    !Number.isInteger(subscriptionId)
-  ) {
-    log.info('Peer entered non-integer ids');
-    return { status_code: '2100' };
-  }
-  if (moment(dateFrom) > moment(dateTo)) {
-    log.info('Peer entered invalid dates.');
-    return { status_code: '2102' };
-  }
+      assertPeer(user != null, `got ${user}`, 'EDIT_SUBSCR_BAD_API_KEY');
 
-  const pgResult = await dbClient.executeQuery(
-    `
-      SELECT *
-      FROM airports
-      WHERE id IN ($1, $2)
-    `,
-    [airportFromId, airportToId],
-  );
-  assertApp(Array.isArray(pgResult.rows), `db returned ${pgResult.rows} for rows`);
-  if (pgResult.rows.length !== 2) {
-    log.info('Peer sent airport ids that did not exist.');
-    return { status_code: '2101' };
-  }
+      const userSubscr = await dbClient.selectWhere(
+        'users_subscriptions',
+        '*',
+        {
+          user_id: user.id,
+        },
+      );
+      const subscriptionId = +params.user_subscription_id;
+      const flyFrom = +params.fly_from;
+      const flyTo = +params.fly_to;
 
-  try {
-    await subscriptions.updateUserSubscription(dbClient, subscriptionId, {
-      airportFromId,
-      airportToId,
-      dateFrom,
-      dateTo,
-    });
-  } catch (e) {
-    if (e.code === '23505') { // unique constraint failed
-      log.info(`Peer tried to update user subscription ${subscriptionId} to another already existing one.`);
-      return { status_code: '2000' };
-    } else {
-      throw e;
+      assertPeer(Number.isInteger(flyFrom),
+        `got ${flyFrom}`,
+        'EDIT_SUBSCR_BAD_FROM_ID',
+      );
+      assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_BAD_TO_ID');
+      assertPeer(
+        Number.isInteger(subscriptionId), `got ${subscriptionId}`, 'EDIT_SUBSCR_BAD_SUBSCR_ID',
+      );
+
+      const dateFrom = moment(params.date_from, SERVER_DATE_FORMAT);
+      const dateTo = moment(params.date_to, SERVER_DATE_FORMAT);
+
+      assertPeer(dateFrom.isValid(), `got ${dateFrom}`, 'EDIT_SUBSCR_INVALID_DATE_FROM');
+      assertPeer(dateTo.isValid(), `got ${dateTo}`, 'EDIT_SUBSCR_INVALID_DATE_TO');
+      assertPeer(dateFrom < dateTo, `got ${dateFrom} and ${dateTo}`, 'EDIT_SUBSCR_BAD_DATE_RANGE');
+
+      const apiKeyHasPermissions = userSubscr.find(
+        subscr => subscr.id === subscriptionId,
+      );
+
+      // TODO apiKeyHasPermissions also checks if the user exists
+      assertPeer(apiKeyHasPermissions, `apiKey=${apiKey}`, 'EDIT_SUBSCR_NOT_ENOUGH_PERMISSIONS');
+      assertPeer(
+        await airportIDExists(dbClient, flyFrom), `got ${flyFrom}`, 'EDIT_SUBSCR_INVALID_FROM_ID',
+      );
+      assertPeer(
+        await airportIDExists(dbClient, flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_INVALID_TO_ID',
+      );
+
+      try {
+        await subscriptions.updateUserSubscription(dbClient, subscriptionId, {
+          airportFromId: flyFrom,
+          airportToId: flyTo,
+          dateFrom: dateFrom.format(SERVER_TIME_FORMAT),
+          dateTo: dateTo.format(SERVER_TIME_FORMAT),
+        });
+      } catch (e) {
+        assertPeer(
+          e.code !== '23505',
+          `Peer tried to update user subscription ${subscriptionId} to another already existing one.`,
+          errorCodes.subscriptionExists,
+        );
+        throw e;
+      }
+
+      return { status_code: '1000' };
     }
-  }
-
-  return { status_code: '1000' };
-}
+  },
+);
 
 async function listAirports (params, dbClient) {
   const airports = await dbClient.select('airports');
@@ -462,22 +479,31 @@ async function listAirports (params, dbClient) {
   };
 }
 
-async function listSubscriptions (params, dbClient) {
-  const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
-  const subRows = await subscriptions.listUserSubscriptions(dbClient, user.id);
+const listSubscriptions = defineAPIMethod(
+  {
+    'LIST_SUBSCR_INVALID_USER_ID': { subscriptions: [] }, // TODO add status codes ?
+  },
+  async (params, dbClient) => {
+    const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
+    assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_USER_ID');
+    const subRows = await subscriptions.listUserSubscriptions(
+      dbClient,
+      user.id,
+    );
 
-  for (const sr of subRows) {
-    sr.id = `${sr.id}`;
-    sr.fly_from = `${sr.fly_from}`;
-    sr.fly_to = `${sr.fly_to}`;
-    sr.date_from = moment(sr.date_from).format('Y-MM-DD');
-    sr.date_to = moment(sr.date_to).format('Y-MM-DD');
-  }
+    for (const sr of subRows) {
+      sr.id = `${sr.id}`;
+      sr.fly_from = `${sr.fly_from}`;
+      sr.fly_to = `${sr.fly_to}`;
+      sr.date_from = moment(sr.date_from).format('Y-MM-DD');
+      sr.date_to = moment(sr.date_to).format('Y-MM-DD');
+    }
 
-  return {
-    subscriptions: subRows,
-  };
-}
+    return {
+      subscriptions: subRows,
+    };
+  },
+);
 
 async function adminListUsers (params, dbClient) {
   assertPeer(
@@ -875,6 +901,30 @@ async function sendError (params) {
   };
 }
 
+function defineAPIMethod (errors, method) {
+  assertApp(isObject(errors));
+  assertApp(isFunction(method));
+
+  async function apiMethod (params, db, appCtx) {
+    let result;
+
+    try {
+      result = await method(params, db, appCtx);
+    } catch (e) {
+      if (e instanceof PeerError) {
+        result = errors[e.code];
+        assertApp(result != null, `Unhandled PeerError ${JSON.stringify(e)}`);
+      } else {
+        throw e;
+      }
+    }
+
+    return result;
+  }
+
+  return apiMethod;
+}
+
 async function execute ({ methodName, params, db, appCtx }) {
   assertPeer(
     typeof methodName === 'string',
@@ -898,6 +948,26 @@ async function execute ({ methodName, params, db, appCtx }) {
   }
   throw new PeerError(`Unknown method '${methodName}'`);
 }
+
+const API_METHODS = {
+  search,
+  subscribe,
+  unsubscribe,
+  edit_subscription: editSubscription,
+  list_airports: listAirports,
+  list_subscriptions: listSubscriptions,
+  admin_list_subscriptions: adminListSubscriptions,
+  admin_list_users: adminListUsers,
+  admin_subscribe: adminSubscribe,
+  admin_unsubscribe: adminUnsubscribe,
+  admin_edit_subscription: adminEditSubscription,
+  admin_remove_user: adminRemoveUser,
+  admin_edit_user: adminEditUser,
+  admin_list_fetches: adminListFetches, // eslint-disable-line no-unused-vars
+  admin_alter_user_credits: adminAlterUserCredits,
+  get_api_key: getAPIKey,
+  senderror: sendError,
+};
 
 module.exports = {
   execute,
