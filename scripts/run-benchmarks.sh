@@ -47,11 +47,11 @@ function run_get_benchmark {
     done
 }
 
-run_post_benchmark "search"
+#run_post_benchmark "search"
 run_post_benchmark "subscribe"
-run_post_benchmark "unsubscribe"
-run_post_benchmark "edit_subscription"
-run_post_benchmark "list_airports"
-run_post_benchmark "list_subscriptions"
-run_post_benchmark "admin_list_subscriptions" admin
-run_get_benchmark "get-homepage"
+#run_post_benchmark "unsubscribe"
+#run_post_benchmark "edit_subscription"
+#run_post_benchmark "list_airports"
+#run_post_benchmark "list_subscriptions"
+#run_post_benchmark "admin_list_subscriptions" admin
+#run_get_benchmark "get-homepage"
