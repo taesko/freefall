@@ -344,18 +344,14 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
         'limit': ROUTES_LIMIT,
     }
 
-    next_request = request(http_client, 'https://api.skypicker.com/flights', query_params)
-
     while next_page_available:
         next_page_available = False
 
         flights_dict = {}
         airports_set = set()
 
-        response = await next_request
-
+        response = await request(http_client, 'https://api.skypicker.com/flights', query_params)
         query_params['offset'] += ROUTES_LIMIT
-        next_request = request(http_client, 'https://api.skypicker.com/flights', query_params)
 
         assert_peer(
             isinstance(response, dict),
