@@ -268,7 +268,7 @@ function start () {
     });
     assertUser(_.isObject(airportTo), {
       msg: 'Could not find airport "' + formData.to + '"', // eslint-disable-line prefer-template
-      userMessage: 'Could not find airport "' + formData.from + '"', // eslint-disable-line prefer-template
+      userMessage: 'Could not find airport "' + formData.to + '"', // eslint-disable-line prefer-template
     });
 
     searchFormParams.fly_from = airportFrom.id;
