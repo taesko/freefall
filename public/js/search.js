@@ -268,7 +268,7 @@ function start () {
     });
     assertUser(_.isObject(airportTo), {
       msg: 'Could not find airport "' + formData.to + '"', // eslint-disable-line prefer-template
-      userMessage: 'Could not find airport "' + formData.from + '"', // eslint-disable-line prefer-template
+      userMessage: 'Could not find airport "' + formData.to + '"', // eslint-disable-line prefer-template
     });
 
     searchFormParams.fly_from = airportFrom.id;
@@ -294,12 +294,19 @@ function start () {
 
     const datePattern = /^\d{4}-\d{2}-\d{2}$/;
     const wrongDateFormatMsg = 'Expected format YYYY-MM-DD for date!';
+    const invalidDateMsg = 'Invalid date!';
 
     if (formData['date-from']) {
       assertUser(datePattern.test(formData['date-from']), {
         userMessage: wrongDateFormatMsg,
         msg: wrongDateFormatMsg,
       });
+
+      assertUser(Number.isInteger(Date.parse(formData['date-from'])), {
+        userMessage: invalidDateMsg,
+        msg: 'User entered invalid date in dateFrom',
+      });
+
       searchFormParams.date_from = formData['date-from'];
     }
 
@@ -308,11 +315,13 @@ function start () {
         userMessage: wrongDateFormatMsg,
         msg: wrongDateFormatMsg,
       });
-      searchFormParams.date_to = formData['date-to'];
-    }
 
-    if (Number(formData['price-to'])) {
-      
+      assertUser(Number.isInteger(Date.parse(formData['date-to'])), {
+        userMessage: invalidDateMsg,
+        msg: 'User entered invalid date in dateTo field',
+      });
+
+      searchFormParams.date_to = formData['date-to'];
     }
 
     mainUtils.trace('getSearchFormParams returning ' + JSON.stringify(searchFormParams) + ''); // eslint-disable-line prefer-template
@@ -326,7 +335,6 @@ function start () {
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    const $allRoutesList = $('#all-routes-list');
     const $loadMoreBtn = $('#load-more-btn');
 
     $submitBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback

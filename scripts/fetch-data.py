@@ -270,6 +270,7 @@ def get_subscription_data(conn, airport_end_points, subscription_fetch_id):
             'v': '2',
             'xml': '0',
             'locale': 'en',
+            'curr': 'USD',
             'offset': offset,
             'limit': ROUTES_LIMIT,
         })
