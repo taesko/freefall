@@ -172,15 +172,21 @@ const search = defineAPIMethod(
     );
 
     const routeIDs = routeIDRows.map(row => row.route_id);
-    let whereClause = '';
-    if (routeIDs.length > 0) {
-      let placeholders = Array(routeIDs.length)
-        .fill('')
-        .map((element, index) => `$${index + 1}`)
-        .join(',');
-      placeholders = `(${placeholders})`;
-      whereClause = `WHERE route_id in ${placeholders}`;
+
+    if (routeIDs.length === 0) {
+      return {
+        status_code: '1002',
+        currency,
+        routes: [],
+      };
     }
+
+    let placeholders = Array(routeIDs.length)
+      .fill('')
+      .map((element, index) => `$${index + 1}`)
+      .join(',');
+    placeholders = `(${placeholders})`;
+    const whereClause = `WHERE route_id in ${placeholders}`;
 
     log.debug('unique route ids are', routeIDs);
 
@@ -192,14 +198,6 @@ const search = defineAPIMethod(
       `,
       routeIDs,
     );
-
-    if (routesAndFlights.length === 0) {
-      return {
-        status_code: '1002',
-        currency,
-        routes: [],
-      };
-    }
 
     const routesMeta = {};
     const flightsPerRoute = {};
@@ -220,6 +218,9 @@ const search = defineAPIMethod(
       }
 
       flightsPerRoute[routeFlight.route_id].push(routeFlight);
+      delete routeFlight.booking_token;
+      delete routeFlight.price;
+      delete routeFlight.route_id;
     }
 
     const routes = [];
