@@ -137,35 +137,15 @@ const search = defineAPIMethod(
       };
     }
 
-    const { rows: routesAndFlights } = await dbClient.executeQuery(
+    const { rows: routeIDRows } = await dbClient.executeQuery(
       `
-    SELECT
-      routes.id AS route_id,
-      routes.booking_token,
-      routes.price,
-      airlines.name AS airline_name,
-      airlines.logo_url AS airline_logo,
-      afrom.name::text AS airport_from,
-      ato.name::text AS airport_to,
-      afrom.id AS airport_from_id,
-      ato.id AS airport_to_id,
-      to_char(flights.dtime::timestamp, 'YYYY-MM-DD"T"HH24:MI:SSZ') dtime,
-      to_char(flights.atime::timestamp, 'YYYY-MM-DD"T"HH24:MI:SSZ') atime,
-      flights.flight_number AS flight_number,
-      routes_flights.is_return AS return
-    FROM routes
-    LEFT JOIN routes_flights ON routes_flights.route_id = routes.id
-    LEFT JOIN flights ON routes_flights.flight_id = flights.id
-    LEFT JOIN airports as afrom ON afrom.id = flights.airport_from_id
-    LEFT JOIN airports as ato ON ato.id = flights.airport_to_id
-    LEFT JOIN airlines ON airlines.id = flights.airline_id
-    LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
-    LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
-    WHERE
-        flights.dtime >= $3::date AND
-        flights.atime <= $4::date AND
-        routes.price <= $5 AND
-        subscriptions_fetches.id IN (
+      SELECT route_id, price, booking_token
+      FROM search_view
+      WHERE
+        dtime::date >= $3::date AND
+        atime::date <= $4::date AND
+        price <= $5 AND
+        subscription_fetch_id IN (
           SELECT subscriptions_fetches.id
           FROM subscriptions_fetches
           LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
@@ -175,10 +155,11 @@ const search = defineAPIMethod(
             subscriptions.airport_to_id = $2 AND
             fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
         )
-     ORDER BY route_id
-     LIMIT $6 * 5 -- TODO assumes a single route does not span more than 5 flights
-     OFFSET $7 * 5
-    `,
+      GROUP BY route_id, price, booking_token
+      ORDER BY price, route_id
+      LIMIT $6
+      OFFSET $7
+      `,
       [
         flyFrom,
         flyTo,
@@ -188,6 +169,28 @@ const search = defineAPIMethod(
         limit,
         offset,
       ],
+    );
+
+    const routeIDs = routeIDRows.map(row => row.route_id);
+    let whereClause = '';
+    if (routeIDs.length > 0) {
+      let placeholders = Array(routeIDs.length)
+        .fill('')
+        .map((element, index) => `$${index + 1}`)
+        .join(',');
+      placeholders = `(${placeholders})`;
+      whereClause = `WHERE route_id in ${placeholders}`;
+    }
+
+    log.debug('unique route ids are', routeIDs);
+
+    const { rows: routesAndFlights } = await dbClient.executeQuery(
+      `
+      SELECT *
+      FROM search_view
+      ${whereClause}
+      `,
+      routeIDs,
     );
 
     if (routesAndFlights.length === 0) {

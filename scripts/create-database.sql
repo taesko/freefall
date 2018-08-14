@@ -241,3 +241,28 @@ CREATE TABLE account_transfers_by_admin (
 
 CREATE INDEX account_transfers_by_admin_admin_user_id_idx
 ON account_transfers_by_admin(admin_user_id);
+
+CREATE OR REPLACE VIEW search_view AS
+    SELECT
+      routes.id AS route_id,
+      routes.booking_token,
+      routes.price,
+      routes.subscription_fetch_id AS subscription_fetch_id,
+      airlines.name AS airline_name,
+      airlines.logo_url AS airline_logo,
+      afrom.name::text AS airport_from,
+      ato.name::text AS airport_to,
+      afrom.id AS airport_from_id,
+      ato.id AS airport_to_id,
+      to_char(flights.dtime::timestamp, 'YYYY-MM-DD"T"HH24:MI:SSZ') dtime,
+      to_char(flights.atime::timestamp, 'YYYY-MM-DD"T"HH24:MI:SSZ') atime,
+      flights.flight_number AS flight_number,
+      routes_flights.is_return AS return
+    FROM routes
+    LEFT JOIN routes_flights ON routes_flights.route_id = routes.id
+    LEFT JOIN flights ON routes_flights.flight_id = flights.id
+    LEFT JOIN airports as afrom ON afrom.id = flights.airport_from_id
+    LEFT JOIN airports as ato ON ato.id = flights.airport_to_id
+    LEFT JOIN airlines ON airlines.id = flights.airline_id
+    LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
+    LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
