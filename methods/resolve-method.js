@@ -137,32 +137,46 @@ const search = defineAPIMethod(
       };
     }
 
+    const { rows: subscrIDRows } = await dbClient.executeQuery(
+      `
+      SELECT subscriptions_fetches.id
+      FROM subscriptions_fetches
+      LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
+      LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.subscription_id
+      WHERE
+        subscriptions.airport_from_id = $1 AND
+        subscriptions.airport_to_id = $2 AND
+        fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
+      `,
+      [flyFrom, flyTo],
+    );
+
+    if (subscrIDRows.length === 0) {
+      return {
+        status_code: '1002',
+        routes: [],
+        currency,
+      };
+    }
+
+    const { id: subscrID } = subscrIDRows[0];
+
     const { rows: routeIDRows } = await dbClient.executeQuery(
       `
       SELECT route_id, price, booking_token
       FROM search_view
       WHERE
-        dtime::date >= $3::date AND
-        atime::date <= $4::date AND
-        price <= $5 AND
-        subscription_fetch_id IN (
-          SELECT subscriptions_fetches.id
-          FROM subscriptions_fetches
-          LEFT JOIN fetches ON fetches.id = subscriptions_fetches.fetch_id
-          LEFT JOIN subscriptions ON subscriptions.id = subscriptions_fetches.subscription_id
-          WHERE
-            subscriptions.airport_from_id = $1 AND
-            subscriptions.airport_to_id = $2 AND
-            fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches)
-        )
+        dtime::date >= $2::date AND
+        atime::date <= $3::date AND
+        price <= $4 AND
+        subscription_fetch_id = $1
       GROUP BY route_id, price, booking_token
       ORDER BY price, route_id
-      LIMIT $6
-      OFFSET $7
+      LIMIT $5
+      OFFSET $6
       `,
       [
-        flyFrom,
-        flyTo,
+        subscrID,
         dateFrom.format(SERVER_TIME_FORMAT),
         dateTo.format(SERVER_TIME_FORMAT),
         priceTo,
