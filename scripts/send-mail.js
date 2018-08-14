@@ -5,10 +5,13 @@ const log = require('../modules/log');
 const db = require('../modules/db');
 const { assertApp } = require('../modules/error-handling');
 
+const DEFAULT_EMAIL = 'freefall.subscriptions';
+const DEFAULT_PASSWORD = 'onetosix';
+
 const [FREEFALL_MAIL, mailTransporter] = (function init () {
   // TODO get another environment variable for service
-  const username = process.env.FREEFALL_EMAIL; // TODO rename to username
-  const password = process.env.FREEFALL_PASSWORD;
+  const username = process.env.FREEFALL_EMAIL || DEFAULT_EMAIL; // TODO rename to username
+  const password = process.env.FREEFALL_PASSWORD || DEFAULT_PASSWORD;
   assertApp(
     username && password,
     `Cannot send email if the FREEFALL_EMAIL and FREEFALL_PASSWORD variables are not set.`,
