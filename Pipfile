@@ -7,6 +7,8 @@ name = "pypi"
 "psycopg2" = "*"
 python-dateutil = "*"
 requests = "*"
+aiohttp = "*"
+asyncpg = "*"
 
 [dev-packages]
 
