@@ -425,6 +425,7 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
         'v': '2',
         'xml': '0',
         'locale': 'en',
+        'curr': 'USD',
         'offset': offset,
         'limit': ROUTES_LIMIT,
     }
