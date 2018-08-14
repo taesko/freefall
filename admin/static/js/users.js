@@ -307,6 +307,7 @@ function start () {
       if (result.status_code === '1000') {
         const newUser = {
           id: user.id,
+          credits: user.credits,
           email: (newEmail.length > 0) ? newEmail : user.email,
         };
 
