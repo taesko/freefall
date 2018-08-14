@@ -505,124 +505,154 @@ const listSubscriptions = defineAPIMethod(
   },
 );
 
-async function adminListUsers (params, dbClient) {
-  assertPeer(
-    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
-    'You do not have sufficient permission to call admin_list_users method.',
-  );
-  const userList = await users.listUsers(dbClient, false);
+const adminListUsers = defineAPIMethod(
+  {
+    'ALU_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+  },
+  async (params, dbClient) => {
+    assertPeer(
+      await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
+      'You do not have sufficient permission to call admin_list_users method.',
+      'ALU_NOT_ENOUGH_PERMISSIONS',
+    );
+    const userList = await users.listUsers(dbClient, false);
 
-  // TODO use a helper function ?
-  for (const user of userList) {
-    user.id = `${user.id}`;
-  }
+    for (const user of userList) {
+      user.id = `${user.id}`;
+    }
 
-  return {
-    users: userList,
-  };
-}
+    return {
+      users: userList,
+    };
+  },
+);
 
-async function adminListSubscriptions (params, dbClient) {
-  // TODO handle errors how ?
-  assertPeer(
-    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
-    'You do not have sufficient permission to call admin_list_subscriptions method.',
-  );
-  let userSubscriptions;
-  let guestSubscriptions;
+const adminListSubscriptions = defineAPIMethod(
+  {
+    'ALS_INVALID_USER_ID': { status_code: '2000' },
+    'ALS_BAD_USER_ID': { status_code: '2100' },
+    'ALS_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+  },
+  async (params, dbClient) => {
+    assertPeer(
+      await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
+      'You do not have sufficient permission to call admin_list_subscriptions method.',
+      'ALS_NOT_ENOUGH_PERMISSIONS',
+    );
 
-  if (!params.user_id) {
-    userSubscriptions = await subscriptions.listAllUserSubscriptions(dbClient);
-    guestSubscriptions = await subscriptions.listGlobalSubscriptions(dbClient);
-    guestSubscriptions = guestSubscriptions.map(sub => {
+    let userId;
+
+    if (params.user_id) {
+      userId = +params.user_id;
+      assertPeer(Number.isInteger(userId), `got ${userId}`, 'ALS_BAD_USER_ID');
+      const exists = await users.userExists(dbClient, { userId });
+      assertPeer(exists, `got ${userId}`, 'ALS_INVALID_USER_ID');
+    }
+
+    let userSubscr;
+    let guestSubscr;
+
+    if (userId) {
+      userSubscr = await subscriptions.listUserSubscriptions(
+        dbClient,
+        userId,
+      );
+      // TODO ask ivan if guestSubscr should be null or empty array
+      guestSubscr = [];
+    } else {
+      userSubscr = await subscriptions.listAllUserSubscriptions(dbClient);
+      guestSubscr = await subscriptions.listGlobalSubscriptions(dbClient);
+      guestSubscr = guestSubscr.map(sub => {
+        return {
+          id: `${sub.id}`,
+          fly_from: `${sub.airport_from_id}`,
+          fly_to: `${sub.airport_to_id}`,
+        };
+      });
+    }
+
+    userSubscr = userSubscr.map(sub => {
       return {
         id: `${sub.id}`,
-        fly_from: `${sub.airport_from_id}`,
-        fly_to: `${sub.airport_to_id}`,
+        user: {
+          id: `${sub.user_id}`,
+          email: `${sub.user_email}`,
+        },
+        date_from: moment(sub.date_from).format('Y-MM-DD'),
+        date_to: moment(sub.date_to).format('Y-MM-DD'),
+        fly_from: `${sub.fly_from}`,
+        fly_to: `${sub.fly_to}`,
       };
     });
-  } else {
-    userSubscriptions = await subscriptions.listUserSubscriptions(
-      dbClient,
-      +params.user_id,
-    );
-    // TODO ask ivan if guestSubscriptions should be null or empty array
-    guestSubscriptions = [];
-  }
 
-  userSubscriptions = userSubscriptions.map(sub => {
     return {
-      id: `${sub.id}`,
-      user: {
-        id: `${sub.user_id}`,
-        email: `${sub.user_email}`,
-      },
-      date_from: moment(sub.date_from).format('Y-MM-DD'),
-      date_to: moment(sub.date_to).format('Y-MM-DD'),
-      fly_from: `${sub.fly_from}`,
-      fly_to: `${sub.fly_to}`,
+      status_code: '1000',
+      user_subscriptions: userSubscr,
+      guest_subscriptions: guestSubscr,
     };
-  });
+  },
+);
 
-  return {
-    status_code: '1000',
-    user_subscriptions: userSubscriptions,
-    guest_subscriptions: guestSubscriptions,
-  };
-}
-
-async function adminSubscribe (params, dbClient) {
-  assertPeer(
-    await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
-    'You do not have sufficient permission to call admin_list_subscriptions method.',
-  );
-
-  const flyFrom = +params.fly_from;
-  const flyTo = +params.fly_to;
-  const dateFrom = params.date_from;
-  const dateTo = params.date_to;
-  const userId = +params.user_id;
-
-  assertPeer(
-    Number.isInteger(flyFrom) &&
-    Number.isInteger(flyTo) &&
-    Number.isInteger(userId),
-    'subscribe params fly_from, fly_to and user_id must be an integer wrapped in a string',
-  );
-
-  let subscriptionId;
-  let statusCode;
-
-  try {
-    subscriptionId = await subscriptions.subscribeUser(
-      dbClient,
-      userId,
-      {
-        airportFromId: flyFrom,
-        airportToId: flyTo,
-        dateFrom,
-        dateTo,
-      },
+const adminSubscribe = defineAPIMethod(
+  {
+    'ASUBSCR_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+    'ASUBSCR_BAD_FLY_FROM': { status_code: '2100' },
+    'ASUBSCR_BAD_FLY_TO': { status_code: '2100' },
+    'ASUBSCR_BAD_USER_ID': { status_code: '2100' },
+    [errorCodes.subscriptionExists]: { status_code: '2000' },
+    [errorCodes.subscriptionDoesNotExist]: { status_code: '2000' },
+  },
+  async (params, dbClient) => {
+    assertPeer(
+      await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
+      'You do not have sufficient permission to call admin_list_subscriptions method.',
+      'ASUBSCR_NOT_ENOUGH_PERMISSIONS',
     );
-    statusCode = 1000;
-  } catch (e) {
-    if (e instanceof PeerError) {
-      log.warn(
-        'An error occurred while executing method admin_subscribe with params',
-        params,
-      );
-      subscriptionId = null;
-      statusCode = 2000;
-    } else {
-      throw e;
-    }
-  }
 
-  return {
-    subscription_id: `${subscriptionId}`,
-    status_code: `${statusCode}`,
-  };
-}
+    const flyFrom = +params.fly_from;
+    const flyTo = +params.fly_to;
+    const dateFrom = params.date_from;
+    const dateTo = params.date_to;
+    const userId = +params.user_id;
+
+    assertPeer(Number.isInteger(flyFrom), `got ${flyFrom}`, 'ASUBSCR_BAD_FLY_FROM');
+    assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'ASUBSCR_BAD_FLY_TO');
+    assertPeer(Number.isInteger(userId), `got ${userId}`, 'ASUBSCR_BAD_USER_ID');
+
+    let subscriptionId;
+    let statusCode;
+
+    try {
+      subscriptionId = await subscriptions.subscribeUser(
+        dbClient,
+        userId,
+        {
+          airportFromId: flyFrom,
+          airportToId: flyTo,
+          dateFrom,
+          dateTo,
+        },
+      );
+      statusCode = 1000;
+    } catch (e) {
+      if (e instanceof PeerError) {
+        log.warn(
+          'An error occurred while executing method admin_subscribe with params',
+          params,
+        );
+        subscriptionId = null;
+        statusCode = 2000;
+      } else {
+        throw e;
+      }
+    }
+
+    return {
+      subscription_id: `${subscriptionId}`,
+      status_code: `${statusCode}`,
+    };
+  },
+);
 
 async function adminUnsubscribe (params, dbClient) {
   assertPeer(
