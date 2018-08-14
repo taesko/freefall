@@ -405,7 +405,7 @@ function start () {
         const messages = {
           '1000': 'Search success, results found.',
           '1001': 'There is no information about such routes at the moment. But we will check for you. Please come back in 15 minutes.',
-          '1002': 'There is no information about such routes at the moment.',
+          '1002': 'End of results.',
           '2000': 'Search input was not correct.',
         };
 
@@ -414,12 +414,12 @@ function start () {
         });
 
         const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
-        assertUser(result.status_code === '1000', {
+        assertUser(result.status_code === '1000' || result.status_code === '1002', {
           userMessage: userMessage,
           msg: 'Search failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
         });
 
-        if (result.routes.length >= MAX_ROUTES_PER_PAGE) {
+        if (result.routes.length >= MAX_ROUTES_PER_PAGE && result.status_code === '1000') {
           showLoadMoreBtn();
         } else {
           hideLoadMoreBtn();
