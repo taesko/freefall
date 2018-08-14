@@ -524,9 +524,19 @@ function start () {
       msg: wrongDateFormatMsg,
     });
 
+    assertUser(Number.isInteger(Date.parse(dateFrom)), {
+      userMessage: 'Invalid date!',
+      msg: 'User entered invalid date in dateFrom',
+    });
+
     assertUser(datePattern.test(dateTo), {
       userMessage: wrongDateFormatMsg,
       msg: wrongDateFormatMsg,
+    });
+
+    assertUser(Number.isInteger(Date.parse(dateTo)), {
+      userMessage: 'Invalid date!',
+      msg: 'User entered invalid date in dateTo',
     });
 
     saveButton.disabled = true;
