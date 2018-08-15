@@ -196,8 +196,8 @@ router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
 router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   const dbClient = ctx.state.dbClient;
   const defaultContext = await getAdminContext(ctx, 'get', '/transfers');
-  const rows = await dbClient.selectAccountTransfersUsers();
-  const accountTransfers = rows.map(row => {
+  const accountTransfersUsersRows = await dbClient.selectAccountTransfersUsers();
+  const accountTransfers = accountTransfersUsersRows.map(row => {
     const expectRequiredRowProps = [
       {
         name: 'account_transfer_id',
@@ -331,9 +331,56 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
     return accountTransfer;
   });
 
+  const usersTotalSpentCredits = await dbClient.executeQuery(`
+
+    SELECT COALESCE(sum(transfer_amount) * -1, 0)::integer AS user_spent_credits
+    FROM account_transfers
+    WHERE
+      transfer_amount < 0;
+
+  `);
+
+  assertApp(isObject(usersTotalSpentCredits), `got ${usersTotalSpentCredits}`);
+  assertApp(Array.isArray(usersTotalSpentCredits.rows), `got ${usersTotalSpentCredits.rows}`);
+  assertApp(usersTotalSpentCredits.rows.length === 1, `got ${usersTotalSpentCredits.rows}`);
+  assertApp(isObject(usersTotalSpentCredits.rows[0]), `got ${usersTotalSpentCredits.rows[0]}`)
+  assertApp(typeof usersTotalSpentCredits.rows[0].user_spent_credits, `got ${usersTotalSpentCredits.rows[0].user_spent_credits}`)
+
+  const usersTotalCredits = await dbClient.executeQuery(`
+
+    SELECT COALESCE(sum(credits), 0)::integer AS users_credits
+    FROM users;
+
+  `);
+
+  assertApp(isObject(usersTotalCredits), `got ${usersTotalCredits}`);
+  assertApp(Array.isArray(usersTotalCredits.rows), `got ${usersTotalCredits.rows}`);
+  assertApp(usersTotalCredits.rows.length === 1, `got ${usersTotalCredits.rows}`);
+  assertApp(isObject(usersTotalCredits.rows[0]), `got ${usersTotalCredits.rows[0]}`)
+  assertApp(typeof usersTotalCredits.rows[0].user_spent_credits, `got ${usersTotalCredits.rows[0].user_spent_credits}`)
+
+  const totalCreditsLoaded = await dbClient.executeQuery(`
+
+    SELECT COALESCE(sum(transfer_amount), 0)::integer AS users_given_credits
+    FROM account_transfers_by_admin
+    LEFT JOIN account_transfers
+    ON account_transfers_by_admin.account_transfer_id = account_transfers.id
+    WHERE transfer_amount > 0;
+
+  `);
+
+  assertApp(isObject(totalCreditsLoaded), `got ${totalCreditsLoaded}`);
+  assertApp(Array.isArray(totalCreditsLoaded.rows), `got ${totalCreditsLoaded.rows}`);
+  assertApp(totalCreditsLoaded.rows.length === 1, `got ${totalCreditsLoaded.rows}`);
+  assertApp(isObject(totalCreditsLoaded.rows[0]), `got ${totalCreditsLoaded.rows[0]}`)
+  assertApp(typeof totalCreditsLoaded.rows[0].user_spent_credits, `got ${totalCreditsLoaded.rows[0].user_spent_credits}`)
+
   return ctx.render('account-transfers.html', {
     ...defaultContext,
     account_transfers: accountTransfers,
+    users_total_spent_credits: usersTotalSpentCredits.rows[0].user_spent_credits,
+    users_total_credits: usersTotalCredits.rows[0].users_credits,
+    total_credits_loaded: totalCreditsLoaded.rows[0].users_given_credits,
   });
 });
 
