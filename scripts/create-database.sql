@@ -59,6 +59,7 @@ CREATE TABLE subscriptions_fetches (
   id serial PRIMARY KEY NOT NULL,
   subscription_id integer NOT NULL,
   fetch_id integer NOT NULL,
+  api_fetches_count integer NOT NULL DEFAULT 0 CHECK(api_fetches_count >= 0),
   FOREIGN KEY(subscription_id) REFERENCES subscriptions(id) ON DELETE RESTRICT,
   FOREIGN KEY(fetch_id) REFERENCES fetches(id) ON DELETE RESTRICT,
   UNIQUE(subscription_id, fetch_id)
@@ -68,6 +69,8 @@ CREATE INDEX subscriptions_fetches_subscription_id_idx
 ON subscriptions_fetches(subscription_id);
 CREATE INDEX subscriptions_fetches_fetch_id_idx
 ON subscriptions_fetches(fetch_id);
+CREATE INDEX subscriptions_fetches_api_fetches_count_idx
+ON subscriptions_fetches(api_fetches_count);
 
 CREATE TABLE users (
   id serial PRIMARY KEY NOT NULL,
