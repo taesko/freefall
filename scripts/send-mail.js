@@ -60,11 +60,12 @@ async function notifyEmails (client) {
       JOIN users ON users_subscriptions.user_id = users.id
       JOIN subscriptions ON users_subscriptions.subscription_id = subscriptions.id
       JOIN subscriptions_fetches ON  subscriptions.id = subscriptions_fetches.subscription_id
+      JOIN fetches ON subscriptions_fetches.fetch_id = fetches.id
       JOIN airports airports_from ON subscriptions.airport_from_id = airports_from.id
       JOIN airports airports_to ON subscriptions.airport_to_id = airports_to.id
       WHERE 
         fetch_id_of_last_send IS NULL OR
-        fetch_id_of_last_send < subscriptions_fetches.fetch_id
+        fetch_id_of_last_send < fetches.id
       ;
   `);
 
@@ -72,10 +73,11 @@ async function notifyEmails (client) {
     `
       SELECT id
       FROM fetches
-      ORDER BY fetch_time
+      ORDER BY fetch_time DESC
       LIMIT 1
     `,
   );
+
   assertApp(fetchIdRows.length === 1);
   const currentFetchId = fetchIdRows[0].id;
   log.info('Most recent fetch id is: ', currentFetchId);
@@ -96,7 +98,12 @@ async function notifyEmails (client) {
     await client.executeQuery('BEGIN');
     try {
       await sendEmail(email, { text: content });
-      log.info('Updating fetch_id_of_last_send of subscriptions of user with email', email);
+      log.info(
+        'Updating fetch_id_of_last_send of subscriptions of user with email',
+        email,
+        'to',
+        currentFetchId,
+      );
       await client.executeQuery(
         `
           UPDATE users_subscriptions
