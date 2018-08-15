@@ -39,11 +39,17 @@ function run_post_benchmark {
 }
 
 function run_get_benchmark {
+    if [ "$2" = "admin" ]; then
+        target_url="${admin_url}/"
+    else
+        target_url="${url}/"
+    fi
+
     for concurrency in 5 20 50 100 500 1000; do
         output_file="${output_dir}/$1-${concurrency}.stdout"
         echo "Benchmarking $1 with ${concurrency} concurrency";
         echo "Output file is ${output_file}"
-        ab -n ${number_of_requests} -c ${concurrency} ${url} > ${output_file}
+        ab -n ${number_of_requests} -c ${concurrency} ${target_url} > ${output_file}
     done
 }
 

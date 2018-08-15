@@ -16,7 +16,7 @@ fs.readFile(fileName, 'utf-8', (err, data) => {
   const removedHeader = removeHeader(parsed);
   const ttimeSum = getColumnSum(removedHeader, 4);
   console.log(ttimeSum); // eslint-disable-line no-console
-  console.log(ttimeSum / removedHeader.length);
+  console.log(ttimeSum / removedHeader.length); // eslint-disable-line no-console
 });
 
 function parseData (data) {
