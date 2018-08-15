@@ -196,7 +196,8 @@ router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
 router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   const dbClient = ctx.state.dbClient;
   const defaultContext = await getAdminContext(ctx, 'get', '/transfers');
-  const accountTransfersUsersRows = await dbClient.selectAccountTransfersUsers();
+  const accountTransfersUsersRows =
+    await dbClient.selectAccountTransfersUsers();
   const accountTransfers = accountTransfersUsersRows.map(row => {
     const expectRequiredRowProps = [
       {
@@ -343,8 +344,8 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   assertApp(isObject(usersTotalSpentCredits), `got ${usersTotalSpentCredits}`);
   assertApp(Array.isArray(usersTotalSpentCredits.rows), `got ${usersTotalSpentCredits.rows}`);
   assertApp(usersTotalSpentCredits.rows.length === 1, `got ${usersTotalSpentCredits.rows}`);
-  assertApp(isObject(usersTotalSpentCredits.rows[0]), `got ${usersTotalSpentCredits.rows[0]}`)
-  assertApp(typeof usersTotalSpentCredits.rows[0].user_spent_credits, `got ${usersTotalSpentCredits.rows[0].user_spent_credits}`)
+  assertApp(isObject(usersTotalSpentCredits.rows[0]), `got ${usersTotalSpentCredits.rows[0]}`);
+  assertApp(typeof usersTotalSpentCredits.rows[0].user_spent_credits === 'number', `got ${usersTotalSpentCredits.rows[0].user_spent_credits}`);
 
   const usersTotalCredits = await dbClient.executeQuery(`
 
@@ -356,8 +357,8 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   assertApp(isObject(usersTotalCredits), `got ${usersTotalCredits}`);
   assertApp(Array.isArray(usersTotalCredits.rows), `got ${usersTotalCredits.rows}`);
   assertApp(usersTotalCredits.rows.length === 1, `got ${usersTotalCredits.rows}`);
-  assertApp(isObject(usersTotalCredits.rows[0]), `got ${usersTotalCredits.rows[0]}`)
-  assertApp(typeof usersTotalCredits.rows[0].user_spent_credits, `got ${usersTotalCredits.rows[0].user_spent_credits}`)
+  assertApp(isObject(usersTotalCredits.rows[0]), `got ${usersTotalCredits.rows[0]}`);
+  assertApp(typeof usersTotalCredits.rows[0].users_credits === 'number', `got ${usersTotalCredits.rows[0].users_credits}`);
 
   const totalCreditsLoaded = await dbClient.executeQuery(`
 
@@ -372,15 +373,31 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   assertApp(isObject(totalCreditsLoaded), `got ${totalCreditsLoaded}`);
   assertApp(Array.isArray(totalCreditsLoaded.rows), `got ${totalCreditsLoaded.rows}`);
   assertApp(totalCreditsLoaded.rows.length === 1, `got ${totalCreditsLoaded.rows}`);
-  assertApp(isObject(totalCreditsLoaded.rows[0]), `got ${totalCreditsLoaded.rows[0]}`)
-  assertApp(typeof totalCreditsLoaded.rows[0].user_spent_credits, `got ${totalCreditsLoaded.rows[0].user_spent_credits}`)
+  assertApp(isObject(totalCreditsLoaded.rows[0]), `got ${totalCreditsLoaded.rows[0]}`);
+  assertApp(typeof totalCreditsLoaded.rows[0].users_given_credits === 'number', `got ${totalCreditsLoaded.rows[0].users_given_credits}`);
+
+  const dalipecheAPITotalRequests = await dbClient.executeQuery(`
+
+    SELECT count(*)::integer AS dalipeche_api_requests
+    FROM dalipeche_fetches;
+
+  `);
+
+  assertApp(isObject(dalipecheAPITotalRequests), `got ${dalipecheAPITotalRequests}`);
+  assertApp(Array.isArray(dalipecheAPITotalRequests.rows), `got ${dalipecheAPITotalRequests.rows}`);
+  assertApp(dalipecheAPITotalRequests.rows.length === 1, `got ${dalipecheAPITotalRequests.rows}`);
+  assertApp(isObject(dalipecheAPITotalRequests.rows[0]), `got ${dalipecheAPITotalRequests.rows[0]}`);
+  assertApp(typeof dalipecheAPITotalRequests.rows[0].dalipeche_api_requests === 'number', `got ${dalipecheAPITotalRequests.rows[0].dalipeche_api_requests}`);
 
   return ctx.render('account-transfers.html', {
     ...defaultContext,
     account_transfers: accountTransfers,
-    users_total_spent_credits: usersTotalSpentCredits.rows[0].user_spent_credits,
+    users_total_spent_credits:
+      usersTotalSpentCredits.rows[0].user_spent_credits,
     users_total_credits: usersTotalCredits.rows[0].users_credits,
     total_credits_loaded: totalCreditsLoaded.rows[0].users_given_credits,
+    dalipeche_api_total_requests:
+      dalipecheAPITotalRequests.rows[0].dalipeche_api_requests,
   });
 });
 
