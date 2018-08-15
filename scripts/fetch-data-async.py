@@ -451,8 +451,6 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
         finally:
             await pool.release(conn)
 
-
-
         response = await request(http_client, 'https://api.skypicker.com/flights', query_params)
         query_params['offset'] += ROUTES_LIMIT
 
