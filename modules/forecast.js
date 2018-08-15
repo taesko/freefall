@@ -6,7 +6,7 @@ const log = require('./log');
 const { defineParsers, jsonParser, yamlParser } = require('./normalize');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
-const API_KEY = process.env.DALIPECHE_API_KEY || 'I292zV60xqRltH3c';
+const API_KEY = process.env.DALIPECHE_API_KEY;
 const DALIPECHE_ADDRESS = process.env.DALIPECHE_ADDRESS;
 const DALIPECHE_PORT = process.env.DALIPECHE_PORT;
 errors.assertApp(
