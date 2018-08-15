@@ -436,6 +436,23 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
         flights_dict = {}
         airports_set = set()
 
+        try:
+            conn = await pool.acquire()
+
+            log('Incrementing api_fetches_count for subscription_fetch {0}'.format(subscription_fetch_id))
+
+            await conn.execute('''
+
+                UPDATE subscriptions_fetches
+                SET api_fetches_count = api_fetches_count + 1
+                WHERE id = $1;
+
+            ''', subscription_fetch_id)
+        finally:
+            await pool.release(conn)
+
+
+
         response = await request(http_client, 'https://api.skypicker.com/flights', query_params)
         query_params['offset'] += ROUTES_LIMIT
 
