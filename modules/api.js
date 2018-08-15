@@ -147,6 +147,7 @@ async function daliPecheErrorHandling (ctx, next) {
 }
 
 async function daliPecheAPI (ctx) {
+  // TODO move this functionality on a separate koa instance and assert API KEY integrity here
   const { key, city, iataCode } = ctx.request.body;
   assertPeer(
     (city == null && typeof iataCode === 'string') ||
@@ -165,11 +166,7 @@ async function daliPecheAPI (ctx) {
   }
 
   const dbClient = ctx.state.dbClient;
-  const forecastResponse = await forecast.fetchForecast(dbClient, bodyParams);
-  const forecastParsed = multiParser.parse(forecastResponse, 'json');
-
-  // TODO move this functionality on a separate koa instance and assert API KEY integrity here
-  ctx.body = multiParser.stringify(forecastParsed, 'json');
+  ctx.body = await forecast.fetchForecast(dbClient, bodyParams);
   ctx.state.commitDB = true;
 }
 
