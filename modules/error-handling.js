@@ -35,7 +35,6 @@ const errorCodes = {
   emailTaken: '2201',
   apiKeyTaken: '2202',
   notEnoughPermissions: '2210',
-  serviceDown: '2800',
   unknownAirport: '2900',
   databaseError: '4000',
   badFunctionArgs: '4100',

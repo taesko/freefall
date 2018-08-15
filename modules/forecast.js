@@ -1,8 +1,11 @@
 const { Buffer } = require('buffer');
 const http = require('http');
+const _ = require('lodash');
 const errors = require('./error-handling');
 const log = require('./log');
+const { defineParsers, jsonParser, yamlParser } = require('./normalize');
 
+const multiParser = defineParsers(jsonParser, yamlParser);
 const API_KEY = process.env.DALIPECHE_API_KEY || 'I292zV60xqRltH3c';
 const DALIPECHE_ADDRESS = process.env.DALIPECHE_ADDRESS;
 const DALIPECHE_PORT = process.env.DALIPECHE_PORT;
@@ -18,6 +21,8 @@ errors.assertApp(
 );
 
 function buildPostRequestOptions (body) {
+  errors.assertApp(typeof body === 'string', `got ${body}`);
+
   return {
     hostname: DALIPECHE_ADDRESS,
     port: DALIPECHE_PORT,
@@ -30,7 +35,10 @@ function buildPostRequestOptions (body) {
   };
 }
 
-async function fetchForecast (bodyParams) {
+async function fetchForecast (dbClient, bodyParams) {
+  errors.assertApp(_.isObject(dbClient), `got ${dbClient}`);
+  errors.assertApp(_.isObject(bodyParams), `got ${bodyParams}`);
+
   log.info('Fetching forecast with bodyParams =', bodyParams);
 
   async function fetch (bodyParams) {
@@ -52,9 +60,11 @@ async function fetchForecast (bodyParams) {
       });
 
       req.on('error', e => {
-        reject(new errors.PeerError(
-          `Couldn't connect to DaliPeche API. ${e}`,
-          errors.errorCodes.serviceDown)
+        reject(
+          new errors.PeerError(
+            `Couldn't connect to DaliPeche API. ${e}`,
+            'DALIPECHE_SERVICE_DOWN',
+          ),
         );
       });
 
@@ -63,7 +73,46 @@ async function fetchForecast (bodyParams) {
     });
   }
 
-  return retry(() => fetch(bodyParams));
+  const response = await retry(() => fetch(bodyParams));
+  let forecast;
+  try {
+    forecast = multiParser.parse(response, 'json');
+  } catch (e) {
+    await insertFetch(dbClient, 'bad_response');
+    return response;
+  }
+
+  if (forecast.statusCode != null) {
+    const statusCode = +forecast.statusCode;
+    if (!Number.isInteger(statusCode)) {
+      await insertFetch(dbClient, 'bad_response');
+      return response;
+    }
+    if (forecast.statusCode === 31 || forecast.statusCode === 33) {
+      await insertFetch(dbClient, 'bad_request');
+      return response;
+    }
+    await insertFetch(dbClient, 'failed_request');
+    return response;
+  }
+
+  await insertFetch(dbClient, 'successful_request');
+  return response;
+}
+
+async function insertFetch (dbClient, reason) {
+  errors.assertApp(_.isObject(dbClient), `got ${dbClient}`);
+  errors.assertApp(typeof reason === 'string', `got ${reason}`);
+
+  return dbClient.executeQuery(
+    `
+        INSERT INTO dalipeche_fetches
+          (fetch_time, api_key, tax_reason)
+        VALUES
+          (current_timestamp, $1, $2)
+      `,
+    [API_KEY, reason],
+  );
 }
 
 async function retry (fetch, times = 2) {
@@ -75,7 +124,7 @@ async function retry (fetch, times = 2) {
     } catch (e) {
       log.info('DaliPeche fetch failed. Retrying.');
       error = e;
-      if (e.code !== errors.errorCodes.serviceDown) {
+      if (e.code !== 'DALIPECHE_SERVICE_DOWN') {
         throw e;
       }
     }

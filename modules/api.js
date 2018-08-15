@@ -5,7 +5,7 @@ const {
   validateAPIRequest,
   validateAPIResponse,
 } = require('./validate');
-const { PeerError, UserError, assertPeer, assertApp } = require('./error-handling');
+const { PeerError, UserError, assertPeer } = require('./error-handling');
 const compose = require('koa-compose');
 const methods = require('../methods/resolve-method');
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./protocol');
@@ -135,7 +135,7 @@ async function daliPecheErrorHandling (ctx, next) {
     await next();
   } catch (e) {
     const response = {};
-    if (e instanceof PeerError) {
+    if (e.code === 'DALIPECHE_SERVICE_DOWN') {
       log.info('Dalipeche service is unavailable setting HTTP code 503.');
       ctx.status = 503;
     } else {
@@ -164,15 +164,13 @@ async function daliPecheAPI (ctx) {
     bodyParams.iataCode = iataCode;
   }
 
-  const forecastResponse = await forecast.fetchForecast(bodyParams);
+  const dbClient = ctx.state.dbClient;
+  const forecastResponse = await forecast.fetchForecast(dbClient, bodyParams);
   const forecastParsed = multiParser.parse(forecastResponse, 'json');
 
-  assertApp(
-    forecastParsed.statusCode !== 33,
-    `API key - ${forecast.API_KEY} for DaliPeche service is invalid.`
-  );
-
+  // TODO move this functionality on a separate koa instance and assert API KEY integrity here
   ctx.body = multiParser.stringify(forecastParsed, 'json');
+  ctx.state.commitDB = true;
 }
 
 module.exports = {
