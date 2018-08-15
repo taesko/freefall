@@ -15,6 +15,7 @@
         <tr>
           <th>Id</th>
           <th>Timestamp</th>
+          <th>KIWI API requests</th>
         </tr>
       </thead>
       <tbody>
@@ -26,8 +27,18 @@
           <td>
             {{this.timestamp}}
           </td>
+          <td>
+            {{this.api_requests}}
+          </td>
         </tr>
         {{/each}}
+        <tr>
+          <td></td>
+          <td></td>
+          <td>
+            <label>Total:</label> {{totalAPIRequests}}
+          </td>
+        </tr>
       </tbody>
     </table>
 <!--     <p id="no-fetches-msg" class="text-center" hidden="true">No fetches found</p> -->
