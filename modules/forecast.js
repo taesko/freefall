@@ -41,8 +41,9 @@ async function fetchForecast (dbClient, bodyParams) {
 
   log.info('Fetching forecast with bodyParams =', bodyParams);
 
+  bodyParams.key = API_KEY;
+
   async function fetch (bodyParams) {
-    bodyParams.key = API_KEY;
     const body = JSON.stringify(bodyParams);
     const options = buildPostRequestOptions(body);
 
@@ -75,28 +76,60 @@ async function fetchForecast (dbClient, bodyParams) {
 
   const response = await retry(() => fetch(bodyParams));
   let forecast;
+
   try {
     forecast = multiParser.parse(response, 'json');
   } catch (e) {
+    log.critical(
+      'Send a request to DaliPeche but service returned a bad response.',
+      'Params:', bodyParams,
+      'response: ', response,
+    );
+
     await insertFetch(dbClient, 'bad_response');
+
     return response;
   }
 
   if (forecast.statusCode != null) {
     const statusCode = +forecast.statusCode;
     if (!Number.isInteger(statusCode)) {
+      log.critical(
+        'Send a request to DaliPeche but service returned a bad response.',
+        'Params:', bodyParams,
+        'response: ', response,
+      );
       await insertFetch(dbClient, 'bad_response');
+
       return response;
     }
-    if (forecast.statusCode === 31 || forecast.statusCode === 33) {
+
+    if (
+      forecast.statusCode === 31 || // no api key
+      forecast.statusCode === 33 || // invalid api key
+      forecast.statusCode === 300 // not enough credits
+    ) {
+      log.critical(
+        'Send a bad request to DaliPeche: ',
+        'params:', bodyParams,
+        'response:', response,
+      );
       await insertFetch(dbClient, 'bad_request');
+
       return response;
     }
+    log.info(
+      'Send a request to DaliPeche but it failed: ',
+      'params', bodyParams,
+      'response', response,
+    );
     await insertFetch(dbClient, 'failed_request');
+
     return response;
   }
 
   await insertFetch(dbClient, 'successful_request');
+
   return response;
 }
 
