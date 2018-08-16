@@ -4,11 +4,14 @@ const { Client } = require('pg');
 const mailer = require('nodemailer');
 const log = require('../modules/log');
 const db = require('../modules/db');
+const moment = require('moment');
 const { assertApp } = require('../modules/error-handling');
 
 const DEFAULT_EMAIL = 'freefall.subscriptions';
 const DEFAULT_PASSWORD = 'onetosix';
-const FREEFALL_ADDRESS = 'http://10.20.1.128:3000';
+const FREEFALL_ADDRESS = '10.20.1.128:3000';
+const TODAY = moment();
+const NOTIFY_UNTIL_DATE = moment().add(7, 'days');
 
 const [FREEFALL_MAIL, mailTransporter] = (function init () {
   // TODO get another environment variable for service
@@ -57,7 +60,8 @@ async function notifyEmails (client) {
   const { rows: emailRows } = await client.executeQuery(`
       SELECT DISTINCT 
         users.id, users.email,
-        airports_from.name airport_from, airports_to.name airport_to
+        airports_from.name airport_from, airports_to.name airport_to,
+        users_subscriptions.date_from
       FROM users_subscriptions
       JOIN users ON users_subscriptions.user_id = users.id
       JOIN subscriptions ON users_subscriptions.subscription_id = subscriptions.id
@@ -86,9 +90,14 @@ async function notifyEmails (client) {
 
   const emailsToSend = {};
 
-  for (const { id, email, airport_from, airport_to } of emailRows) {
-    emailsToSend[id] = emailsToSend[id] || [];
-    emailsToSend[id].push({ id, email, airport_from, airport_to });
+  for (const { id, email, airport_from, airport_to, date_from } of emailRows) {
+    if (
+      moment(date_from).format('YYYY-MM-DD') >= TODAY.format('YYYY-MM-DD') &&
+      moment(date_from).format('YYYY-MM-DD') <= NOTIFY_UNTIL_DATE.format('YYYY-MM-DD')
+    ) {
+      emailsToSend[id] = emailsToSend[id] || [];
+      emailsToSend[id].push({ id, email, airport_from, airport_to });
+    }
   }
 
   log.info('Emails to send are: ', emailsToSend);
@@ -132,10 +141,9 @@ function generateMailContent (subscriptions) {
 
       return `${from} -----> ${to}`;
     })
-    .join('\n');
+    .join('\n\t');
 
-  return `We have new information about the following flights:
-  ${mainContent}`;
+  return `Come visit our site at ${FREEFALL_ADDRESS} to see new information about the following flights:\n\t${mainContent}`;
 }
 
 async function sendVerificationTokens (client) {
@@ -144,7 +152,7 @@ async function sendVerificationTokens (client) {
       SELECT email, verification_token
       FROM users
       WHERE verified=false
-    `
+    `,
   );
 
   return Promise.all(rows.map(({ email, verification_token }) => {
