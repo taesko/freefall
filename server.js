@@ -196,7 +196,8 @@ router.get('/register/verify', async (ctx) => {
   }
 
   ctx.state.commitDB = true;
-  ctx.body = 'Successfully activated your account';
+  ctx.state.login_error_message = 'Successfully activated your account.';
+  return ctx.render('login.html', await getContextForRoute(ctx, 'get', '/login'));
 });
 
 router.get('/profile', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
