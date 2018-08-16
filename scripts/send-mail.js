@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+const path = require('path');
 const { Client } = require('pg');
 const mailer = require('nodemailer');
 const log = require('../modules/log');
@@ -7,6 +8,7 @@ const { assertApp } = require('../modules/error-handling');
 
 const DEFAULT_EMAIL = 'freefall.subscriptions';
 const DEFAULT_PASSWORD = 'onetosix';
+const FREEFALL_ADDRESS = 'http://10.20.1.128:3000';
 
 const [FREEFALL_MAIL, mailTransporter] = (function init () {
   // TODO get another environment variable for service
@@ -136,11 +138,34 @@ function generateMailContent (subscriptions) {
   ${mainContent}`;
 }
 
+async function sendVerificationTokens (client) {
+  const { rows } = await client.executeQuery(
+    `
+      SELECT email, verification_token
+      FROM users
+      WHERE verified=false
+    `
+  );
+
+  return Promise.all(rows.map(({ email, verification_token }) => {
+    const subject = 'Freefall account activation';
+    const route = path.join(FREEFALL_ADDRESS, 'register', 'verify');
+    const query = `?token=${verification_token}`;
+    const link = route + query;
+    const text = `Visit this link here to activate your account:\n${link}.`;
+
+    log.info('Send email for verification of account to', email);
+    return sendEmail(email, { subject, text });
+  }));
+}
+
 async function main () {
   const client = new Client();
   await client.connect();
+  const dbClient = db.wrapPgClient(client);
   try {
-    await notifyEmails(db.wrapPgClient(client));
+    await sendVerificationTokens(dbClient);
+    await notifyEmails(dbClient);
   } finally {
     client.end();
   }

@@ -171,23 +171,34 @@ router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
     errors.push('Password is too short.');
   }
 
-  if (errors.length === 0) {
-    await auth.register(ctx, email, password);
-    log.info('Registered user with email and password: ', email, password);
-    try {
-      await auth.login(ctx, email, password);
-    } catch (e) {
-      if (!(e instanceof auth.AlreadyLoggedIn)) {
-        throw e;
-      }
+  if (errors.length > 0) {
+    ctx.state.register_errors = errors;
+    return ctx.render('register.html', await getContextForRoute(ctx, 'post', '/register'));
+  }
+  await auth.register(ctx, email, password);
+  log.info('Registered user with email and password: ', email, password);
+  ctx.state.commitDB = true;
+  ctx.state.login_error_message = 'Please visit your email and validate your account.';
+
+  return ctx.render('login.html', await getContextForRoute(ctx, 'get', '/login'));
+});
+
+router.get('/register/verify', async (ctx, next) => {
+  const { token } = ctx.request.query;
+  const { dbClient } = ctx.state;
+
+  try {
+    await users.emailActivateUserAccount(dbClient, token);
+  } catch (e) {
+    if (e.code === 'INVALID_VERIFICATION_TOKEN') {
+      ctx.body = 'Invalid or expired verfication token';
+      return;
     }
-    ctx.state.commitDB = true;
-    ctx.redirect('/');
-    return;
+    throw e;
   }
 
-  ctx.state.register_errors = errors;
-  await ctx.render('register.html', await getContextForRoute(ctx, 'post', '/register'));
+  ctx.state.commitDB = true;
+  ctx.body = 'Successfully activated your account';
 });
 
 router.get('/profile', auth.redirectWhenLoggedOut('/login'), async (ctx) => {

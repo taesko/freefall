@@ -28,23 +28,6 @@ async function addUser (dbClient, { email, password, role = 'customer' }) {
     errors.errorCodes.emailTaken,
   );
 
-  const [user] = await dbClient.selectWhere(
-    'users',
-    '*',
-    { email },
-  );
-
-  if (user) {
-    log.info(`User with email=${email} was previously registered. Updating his credentials and activating account.`);
-    await dbClient.updateWhere(
-      'users',
-      { password, role, active: true },
-      { id: user.id },
-    );
-
-    return user.id;
-  }
-
   return dbClient.insert(
     'users',
     {
@@ -52,8 +35,23 @@ async function addUser (dbClient, { email, password, role = 'customer' }) {
       password,
       role,
       api_key: generateAPIKey(email, password),
+      active: false,
+      verified: false,
+      verification_token: generateVerificationToken(email, password),
     },
   );
+}
+
+async function reactivateUser (dbClient, userId) {
+  const { rowCount } = await dbClient.executeQuery(
+    `
+      UPDATE users
+      SET active=true
+      WHERE id=$1 AND verified=true
+    `,
+    [userId],
+  );
+  errors.assertPeer(rowCount === 1, `got ${rowCount}`, 'USER_WAS_NOT_DEACTIVATED');
 }
 
 async function removeUser (dbClient, userId) {
@@ -134,6 +132,19 @@ async function editUser (dbClient, userId, { email, password, apiKey }) {
   );
 }
 
+async function emailActivateUserAccount (dbClient, verificationToken) {
+  const { rowCount } = await dbClient.executeQuery(
+    `
+      UPDATE users
+      SET verified=true, active=true
+      WHERE verification_token=$1 AND verified=false AND active=false -- do not reactivate deleted user accounts through the token
+    `,
+    [verificationToken],
+  );
+
+  errors.assertApp(rowCount <= 1, `got ${rowCount}`);
+  errors.assertPeer(rowCount === 1, `got ${rowCount}`, 'INVALID_VERIFICATION_TOKEN');
+}
 /*
   Fetch the unique user from database that has the specified columns.
 
@@ -252,11 +263,28 @@ async function anyUserExists (dbClient, { userId, email, password, apiKey }) {
   return active || inactive;
 }
 
+async function emailIsTaken (dbClient, email) {
+  const pgResult = await dbClient.executeQuery(
+    `
+      SELECT 1
+      FROM users
+      WHERE email=$1
+    `,
+    [email],
+  );
+
+  return pgResult.rowCount === 1;
+}
+
 function generateAPIKey (email, password) {
   // TODO ask ivan for filtering logs and trimming passwords
   log.info(`Generating API key for email=${email} and password`);
 
   return hashToken(`${email}:${password}`);
+}
+
+function generateVerificationToken (email, password) {
+  return hashToken(`${email}:${password}:verification_token`);
 }
 
 function hashToken (token) {
@@ -274,5 +302,7 @@ module.exports = {
   removeUser,
   listUsers,
   userExists,
+  emailIsTaken,
+  emailActivateUserAccount,
   hashPassword,
 };

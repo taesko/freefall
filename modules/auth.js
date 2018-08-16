@@ -64,11 +64,11 @@ async function register (ctx, email, password) {
   // TODO handle empty string email;
   password = users.hashPassword(password);
 
-  if (await users.userExists(dbClient, { email })) {
+  if (await users.emailIsTaken(dbClient, { email })) {
     throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`);
   }
 
-  await users.addUser(dbClient, { email, password, role: 'customer' }); // TODO magic value
+  return users.addUser(dbClient, { email, password, role: 'customer' });
 }
 
 async function isLoggedIn (ctx) {

@@ -103,6 +103,8 @@ CREATE TABLE users (
   api_key text UNIQUE NOT NULL,
   role user_role NOT NULL,
   active boolean NOT NULL DEFAULT TRUE,
+  verified boolean NOT NULL DEFAULT FALSE,
+  verification_token text NOT NULL UNIQUE,
   credits integer NOT NULL DEFAULT 0,
   CHECK(credits >= 0),
   UNIQUE(email)
