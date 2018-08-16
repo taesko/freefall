@@ -110,6 +110,30 @@ function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     });
   };
 
+  const taxHistory = function (params, protocolName, callback) {
+    mainUtils.trace('taxHistory(' + JSON.stringify(params) + '), typeof arg=' + typeof params + ''); // eslint-disable-line prefer-template
+    // TODO json schema validation
+    mainUtils.sendRequest({
+      url: mainUtils.SERVER_URL,
+      data: {
+        method: 'tax_history',
+        params: params,
+      },
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in tax_history:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+      // TODO validate response of result with json schema
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
+
   const unsubscribe = function (params, protocolName, callback) {
     mainUtils.trace('unsubscribe(' + JSON.stringify(params) + '), typeof arg=' + typeof params + ''); // eslint-disable-line prefer-template
 

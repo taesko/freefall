@@ -485,6 +485,75 @@ const editSubscription = defineAPIMethod(
   },
 );
 
+const taxHistory = defineAPIMethod(
+  {
+    'TH_BAD_USER_ID': { status_code: '2100' },
+    'TH_INVALID_USER_ID': { status_code: '2100' },
+    'TH_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+  },
+  async (params, dbClient) => {
+    const userId = +params.user_id;
+    const apiKey = params.api_key;
+
+    assertPeer(Number.isInteger(userId), `got ${userId}`, 'TH_BAD_USER_ID');
+
+    const user = await users.fetchUser(dbClient, { userId });
+
+    assertPeer(user, `got ${user}`, 'TH_INVALID_USER_ID');
+    assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
+
+    const subscrs = await subscriptions.listUserSubscriptions(dbClient, userId);
+    const subscrPlaceholders = subscrs.map((s, index) => `$${index + 1}`)
+      .join(',');
+    const { rows: subscrTransfers } = await dbClient.executeQuery(
+      `
+        SELECT users_subscriptions.subscription_id, transferred_at, transfer_amount, 'initial tax' AS reason
+        FROM account_transfers
+        JOIN user_subscription_account_transfers usat ON account_transfers.id=usat.account_transfer_id
+        JOIN users_subscriptions ON account_transfers.user_id = users_subscriptions.user_id
+        WHERE users_subscriptions.subscription_id IN (${subscrPlaceholders})
+        UNION
+        SELECT users_subscriptions.subscription_id, transferred_at, transfer_amount, 'fetch tax' AS reason
+        FROM account_transfers
+        JOIN subscriptions_fetches_account_transfers sfat ON account_transfers.id=sfat.account_transfer_id
+        JOIN subscriptions_fetches ON sfat.subscription_fetch_id=subscriptions_fetches.id
+        JOIN subscriptions ON subscriptions_fetches.subscription_id=subscriptions.id
+        JOIN users_subscriptions ON subscriptions.id=users_subscriptions.subscription_id
+        WHERE users_subscriptions.id IN (${subscrPlaceholders})
+      `,
+      subscrs,
+    );
+    const result = {};
+
+    for (const row of subscrs) {
+      // eslint-disable-next-line camelcase
+      const { subscription_id: subscrID } = row;
+
+      if (result[subscrID] == null) {
+        result[subscrID] = {};
+      }
+
+      const subscr = subscrs.find(s => s.id === subscrID);
+      result[subscrID]['fly_from'] = subscr.fly_from;
+      result[subscrID]['fly_to'] = subscr.fly_from;
+      result[subscrID]['date_from'] = moment(subscr.date_from).format('YYYY-MM-DD');
+      result[subscrID]['date_to'] = moment(subscr.date_to).format('YYYY-MM-DD');
+    }
+
+    for (const row of subscrTransfers) {
+      // eslint-disable-next-line camelcase
+      const { subscription_id: subscrID } = row;
+
+      result[subscrID] = { ...result[subscrID], ...row };
+    }
+
+    return {
+      status_code: '1000',
+      result,
+    };
+  }
+);
+
 async function listAirports (params, dbClient) {
   const airports = await dbClient.select('airports');
 

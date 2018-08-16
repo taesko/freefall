@@ -1,3 +1,4 @@
+/* eslint-disable prefer-template */
 'use strict';
 
 function start () {
@@ -517,6 +518,38 @@ function start () {
 
   function applyAutocomplete (values) {
     $('.airport-select').autocomplete(values);
+  }
+
+  function renderTaxHistory ($table, history) {
+    $table.find('tr:not(:first)').remove();
+    const $tableRowTemplate = $table.find('#tax-history-template-row');
+
+    for (const historyHash of history) {
+      const $tableRow = $tableRowTemplate.clone()
+        .removeAttr('id')
+        .removeAttr('hidden');
+      renderRow($tableRow, historyHash);
+      $table.find('tr:last').after($tableRow);
+    }
+
+    function renderRow ($tableRow, historyHash) {
+      const requiredProperties = [
+        'airport_from',
+        'airport_to',
+        'date_from',
+        'date_to',
+        'taxed_on',
+        'amount',
+        'reason',
+      ];
+      for (const prop of requiredProperties) {
+        assertApp(_.has(historyHash, prop), 'missing property' + prop);
+
+        const id = '#tax-' + prop.replace('_', '-');
+
+        $tableRow.find(id).text(historyHash[prop]);
+      }
+    }
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback

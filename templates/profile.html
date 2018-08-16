@@ -34,6 +34,12 @@
     <hr>
     {{> messages }}
     <div>
+      <ul class="list-unstyled">
+        <li><button id="display-subscriptions-btn" class="btn btn-primary btn-block">Subscriptions</button></li>
+        <li><button id="display-taxes-btn" class="btn btn-primary btn-block">Tax History</button></li>
+      </ul>
+    </div>
+    <div>
       <h3>Your subscriptions:</h3>
       <table id="subscriptions-table" class="table table-bordered" hidden="true">
         <thead>
@@ -81,6 +87,30 @@
             <td>
               <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
             </td>
+          </tr>
+        </tbody>
+      </table>
+      <table id="tax-history-table" class="table table-bordered" hidden="true">
+        <thead>
+          <tr>
+            <th> Airport from </th>
+            <th> Airport to </th>
+            <th> Date from </th>
+            <th> Date to </th>
+            <th> Taxed on </th>
+            <th> Amount </th>
+            <th> Reason </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="tax-history-template-row" hidden="true">
+            <td id="tax-airport-from"></td>
+            <td id="tax-airport-to"></td>
+            <td id="tax-date-from"></td>
+            <td id="tax-date-to"></td>
+            <td id="tax-taxed-on"></td>
+            <td id="tax-amount"></td>
+            <td id="tax-reason"></td>
           </tr>
         </tbody>
       </table>
