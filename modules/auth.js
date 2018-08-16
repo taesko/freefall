@@ -61,12 +61,20 @@ function logout (ctx) {
 async function register (ctx, email, password) {
   const dbClient = ctx.state.dbClient;
 
+  log.info('Attempting to register user with email:', email);
+
   // TODO handle empty string email;
   password = users.hashPassword(password);
 
-  if (await users.emailIsTaken(dbClient, { email })) {
-    throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`);
+  log.info(`Checking if email ${email} is taken.`);
+
+  if (await users.emailIsTaken(dbClient, email)) {
+    throw new UserExists(`Cannot register a user with the email ${email}, because the email is already in use.`,
+      'REGISTER_EMAIL_TAKEN',
+    );
   }
+
+  log.info('Registering user with email and password: ', email, password);
 
   return users.addUser(dbClient, { email, password, role: 'customer' });
 }

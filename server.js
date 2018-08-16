@@ -155,13 +155,12 @@ router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
     password,
     confirm_password: confirmPassword,
   } = ctx.request.body;
-  log.info('Attempting to register user with email:', email);
 
   if (password !== confirmPassword) {
     errors.push('Passwords are not the same.');
   }
 
-  if (await users.userExists(ctx.state.dbClient, { email })) {
+  if (await users.emailIsTaken(ctx.state.dbClient, email)) {
     errors.push('Email is already taken');
   }
   if (email.length < 3) {
@@ -176,14 +175,13 @@ router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
     return ctx.render('register.html', await getContextForRoute(ctx, 'post', '/register'));
   }
   await auth.register(ctx, email, password);
-  log.info('Registered user with email and password: ', email, password);
   ctx.state.commitDB = true;
   ctx.state.login_error_message = 'Please visit your email and validate your account.';
 
   return ctx.render('login.html', await getContextForRoute(ctx, 'get', '/login'));
 });
 
-router.get('/register/verify', async (ctx, next) => {
+router.get('/register/verify', async (ctx) => {
   const { token } = ctx.request.query;
   const { dbClient } = ctx.state;
 

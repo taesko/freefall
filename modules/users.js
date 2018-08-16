@@ -264,6 +264,9 @@ async function anyUserExists (dbClient, { userId, email, password, apiKey }) {
 }
 
 async function emailIsTaken (dbClient, email) {
+  errors.assertApp(_.isObject(dbClient), `got ${dbClient}`);
+  errors.assertApp(typeof email === 'string', `got ${email}`);
+
   const pgResult = await dbClient.executeQuery(
     `
       SELECT 1
@@ -273,6 +276,7 @@ async function emailIsTaken (dbClient, email) {
     [email],
   );
 
+  log.debug('emailIsTaken query result is: ', pgResult.rowCount, pgResult.rows);
   return pgResult.rowCount === 1;
 }
 
