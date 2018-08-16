@@ -35,6 +35,8 @@ CREATE TABLE subscriptions (
   airport_from_id integer NOT NULL,
   airport_to_id integer NOT NULL,
   is_roundtrip boolean NOT NULL DEFAULT FALSE,
+  created_at timestamp DEFAULT now(), -- timestamps were added additionally and there are already records without timestamps, so they should be null
+  updated_at timestamp DEFAULT now(),
   UNIQUE(airport_from_id, airport_to_id, is_roundtrip),
   CHECK(airport_from_id <> airport_to_id),
   FOREIGN KEY(airport_from_id) REFERENCES airports(id),
@@ -47,6 +49,10 @@ CREATE INDEX subscriptions_airport_to_id_idx
 ON subscriptions(airport_to_id);
 CREATE INDEX subscriptions_is_roundtrip_idx
 ON subscriptions(is_roundtrip);
+CREATE INDEX subscriptions_created_at_idx
+ON subscriptions(created_at);
+CREATE INDEX subscriptions_updated_at_idx
+ON subscriptions(updated_at);
 
 CREATE TABLE fetches (
   id serial PRIMARY KEY NOT NULL,
@@ -119,6 +125,8 @@ CREATE TABLE users_subscriptions (
   date_from date NOT NULL,
   date_to date NOT NULL,
   active boolean NOT NULL DEFAULT TRUE,
+  created_at timestamp DEFAULT now(), -- timestamps were added additionally and there are already records without timestamps, so they should be null
+  updated_at timestamp DEFAULT now(),
   UNIQUE(user_id, subscription_id, date_from, date_to),
   CHECK(date_from < date_to),
   FOREIGN KEY(subscription_id) REFERENCES subscriptions(id),
@@ -138,6 +146,10 @@ CREATE INDEX users_subscriptions_date_to_idx
 ON users_subscriptions(date_to);
 CREATE INDEX users_subscriptions_active_idx
 ON users_subscriptions(active);
+CREATE INDEX users_subscriptions_created_at_idx
+ON users_subscriptions(created_at);
+CREATE INDEX users_subscriptions_updated_at_idx
+ON users_subscriptions(updated_at);
 
 CREATE TABLE routes (
   id serial PRIMARY KEY NOT NULL,
