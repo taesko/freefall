@@ -47,9 +47,26 @@
             "type": "string",
             "title": "Latest arrival time",
             "format": "date"
+          },
+          "created_at": {
+            "title": "Created at",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated at",
+            "type": "string"
           }
         },
-        "required": ["id", "user", "fly_from", "fly_to", "date_from", "date_to"]
+        "required": [
+          "id",
+          "user",
+          "fly_from",
+          "fly_to",
+          "date_from",
+          "date_to",
+          "created_at",
+          "updated_at"
+        ]
       }
     },
     "guest_subscriptions": {
@@ -69,9 +86,23 @@
           "fly_to": {
             "type": "string",
             "title": "Arrival airport id"
+          },
+          "created_at": {
+            "title": "Created at",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated at",
+            "type": "string"
           }
         },
-        "required": ["id", "fly_from", "fly_to"]
+        "required": [
+          "id",
+          "fly_from",
+          "fly_to",
+          "created_at",
+          "updated_at"
+        ]
       }
     }
   },

@@ -140,25 +140,35 @@ async function updateUserSubscription (
     airportFromId,
     airportToId,
   );
+  
+  const result = await dbClient.executeQuery(`
 
-  const result = await dbClient.updateWhere(
-    'users_subscriptions',
-    {
-      subscription_id: globalSubscriptionId,
-      date_from: dateFrom,
-      date_to: dateTo,
-      active: 1,
-    },
-    {
-      id: userSubscriptionId,
-    },
-  );
+    UPDATE users_subscriptions
+    SET
+      subscription_id = $1,
+      date_from = $2,
+      date_to = $3,
+      updated_at = now()
+    WHERE id = $4
+    RETURNING *;
 
-  errors.assertPeer(
-    result.length === 1,
+  `, [
+    globalSubscriptionId,
+    dateFrom,
+    dateTo,
+    userSubscriptionId,
+  ]);
+
+  errors.assertApp(_.isObject(result), `got ${result}`);
+  errors.assertApp(Array.isArray(result.rows), `got ${result.rows}`);
+
+  errors.assertPeer( // TODO this is not peer error
+    result.rows.length === 1,
     `User subscription with id ${userSubscriptionId} does not exist.`,
     errors.errorCodes.subscriptionDoesNotExist,
   );
+
+  return result.rows[0];
 }
 
 async function removeUserSubscription (dbClient, userSubscriptionId) {
@@ -219,9 +229,16 @@ async function listUserSubscriptionsHelper (dbClient, userId) {
 
   const { rows } = await dbClient.executeQuery(
     `
-    SELECT user_sub.id, user_sub.date_from, user_sub.date_to, 
-      ap_from.id fly_from, ap_to.id fly_to,
-      users.id user_id, users.email user_email
+    SELECT
+      user_sub.id,
+      user_sub.date_from,
+      user_sub.date_to,
+      ap_from.id fly_from,
+      ap_to.id fly_to,
+      users.id user_id,
+      users.email user_email,
+      user_sub.created_at created_at,
+      user_sub.updated_at updated_at
     FROM users_subscriptions user_sub
     JOIN users ON user_sub.user_id=users.id
     JOIN subscriptions sub ON user_sub.subscription_id=sub.id

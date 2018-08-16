@@ -303,6 +303,14 @@ function start () {
       .attr('id', 'user-subscription-view-mode-date-to-' + rowId) // eslint-disable-line prefer-template
       .text(subscription.date_to);
 
+    $userSubscriptionViewModeClone.find('#user-subscription-view-mode-created-at')
+      .attr('id', 'user-subscription-view-mode-created-at' + rowId) // eslint-disable-line prefer-template
+      .text(subscription.created_at);
+
+    $userSubscriptionViewModeClone.find('#user-subscription-view-mode-updated-at')
+      .attr('id', 'user-subscription-view-mode-updated-at' + rowId) // eslint-disable-line prefer-template
+      .text(subscription.updated_at);
+
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-edit-btn')
       .attr('id', 'user-subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditUserSubscriptionClick);
@@ -346,6 +354,14 @@ function start () {
       // datepicker won't work with the new clone element if the original cloned element has date-select class (datepicker adds hasDatepicker class and ignores elements with this class)
       .attr('id', 'user-subscription-edit-mode-date-to-' + rowId) // eslint-disable-line prefer-template
       .attr('value', subscription.date_to);
+
+    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-created-at')
+      .attr('id', 'user-subscription-edit-mode-created-at-' + rowId)
+      .text(subscription.created_at);
+
+    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-updated-at')
+      .attr('id', 'user-subscription-edit-mode-updated-at-' + rowId)
+      .text(subscription.updated_at);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-save-btn')
       .attr('id', 'user-subscription-edit-mode-save-btn-' + rowId) // eslint-disable-line prefer-template
@@ -565,6 +581,8 @@ function start () {
             fly_to: airportToId,
             date_from: dateFrom,
             date_to: dateTo,
+            created_at: oldSubscription.created_at,
+            updated_at: result.updated_at,
           };
 
           rowIdUserSubscriptionMap[rowId] = newSubscription;

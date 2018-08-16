@@ -585,6 +585,12 @@ const adminListSubscriptions = defineAPIMethod(
           id: `${sub.id}`,
           fly_from: `${sub.airport_from_id}`,
           fly_to: `${sub.airport_to_id}`,
+          created_at:
+            sub.created_at == null ?
+              'No information' : sub.created_at.toISOString(),
+          updated_at:
+            sub.updated_at == null ?
+              'No information' : sub.updated_at.toISOString(),
         };
       });
     }
@@ -600,6 +606,12 @@ const adminListSubscriptions = defineAPIMethod(
         date_to: moment(sub.date_to).format('Y-MM-DD'),
         fly_from: `${sub.fly_from}`,
         fly_to: `${sub.fly_to}`,
+        created_at:
+          sub.created_at == null ?
+            'No information' : sub.created_at.toISOString(),
+        updated_at:
+          sub.updated_at == null ?
+            'No information' : sub.updated_at.toISOString(),
       };
     });
 
@@ -744,7 +756,7 @@ async function adminEditSubscription (params, dbClient) {
   const dateTo = params.date_to;
 
   try {
-    await subscriptions.updateUserSubscription(
+    const updatedSubscription = await subscriptions.updateUserSubscription(
       dbClient,
       userSubId,
       {
@@ -754,7 +766,17 @@ async function adminEditSubscription (params, dbClient) {
         dateTo,
       },
     );
-    return { status_code: '1000' };
+
+    assertApp(isObject(updatedSubscription), `got ${updatedSubscription}`);
+
+    assertApp(updatedSubscription.updated_at instanceof Date, `got ${updatedSubscription.updated_at}`);
+
+    const updatedAt = updatedSubscription.updated_at.toISOString();
+
+    return {
+      updated_at: updatedAt,
+      status_code: '1000',
+    };
   } catch (e) {
     if (e instanceof PeerError) {
       // TODO somehow make this a decorator ?

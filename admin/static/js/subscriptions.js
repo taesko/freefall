@@ -146,7 +146,7 @@ function start () {
       msg: 'Expected subscription to be an object, but was ' + typeof subscription, // eslint-disable-line prefer-template
     });
 
-    const subscriptionStringProps = ['id', 'fly_from', 'fly_to'];
+    const subscriptionStringProps = ['id', 'fly_from', 'fly_to', 'created_at', 'updated_at'];
 
     _.each(subscriptionStringProps, function (prop) { // eslint-disable-line prefer-arrow-callback
       assertApp(typeof subscription[prop] === 'string', {
@@ -199,6 +199,14 @@ function start () {
       .attr('id', 'guest-subscription-view-mode-airport-to-' + rowId) // eslint-disable-line prefer-template
       .text(getAirportName(airports, subscription.fly_to));
 
+    $guestSubscriptionViewModeClone.find('#guest-subscription-view-mode-created-at')
+      .attr('id', 'guest-subscription-view-mode-created-at-' + rowId) // eslint-disable-line prefer-template
+      .text(subscription.created_at);
+
+    $guestSubscriptionViewModeClone.find('#guest-subscription-view-mode-updated-at')
+      .attr('id', 'guest-subscription-view-mode-updated-at' + rowId) // eslint-disable-line prefer-template
+      .text(subscription.updated_at);
+
     $guestSubscriptionViewModeClone.find('#guest-subscription-view-mode-edit-btn')
       .attr('id', 'guest-subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditGuestSubscriptionClick);
@@ -230,6 +238,14 @@ function start () {
       .attr('id', 'guest-subscription-edit-mode-airport-to-' + rowId) // eslint-disable-line prefer-template
       .attr('list', 'guest-subscription-airport-to-' + rowId) // eslint-disable-line prefer-template
       .attr('value', getAirportName(airports, subscription.fly_to));
+
+    $guestSubscriptionEditModeClone.find('#guest-subscription-edit-mode-created-at')
+      .attr('id', 'guest-subscription-edit-mode-created-at-' + rowId) // eslint-disable-line prefer-template
+      .text(subscription.created_at);
+
+    $guestSubscriptionEditModeClone.find('#guest-subscription-edit-mode-updated-at')
+      .attr('id', 'guest-subscription-edit-mode-updated-at-' + rowId) // eslint-disable-line prefer-template
+      .text(subscription.updated_at);
 
     $guestSubscriptionEditModeClone.find('#guest-subscription-edit-mode-save-btn')
       .attr('id', 'guest-subscription-edit-mode-save-btn-' + rowId) // eslint-disable-line prefer-template
@@ -313,6 +329,8 @@ function start () {
       id: oldSubscription.id, // result.subscription_id,
       fly_from: airportFromId,
       fly_to: airportToId,
+      created_at: oldSubscription.created_at,
+      updated_at: oldSubscription.updated_at, // result.updated_at
     };
 
     rowIdGuestSubscriptionMap[rowId] = newSubscription;
@@ -430,6 +448,14 @@ function start () {
       .attr('id', 'user-subscription-view-mode-date-to-' + rowId) // eslint-disable-line prefer-template
       .text(subscription.date_to);
 
+    $userSubscriptionViewModeClone.find('#user-subscription-view-mode-created-at')
+      .attr('id', 'user-subscription-view-mode-created-at-' + rowId) // eslint-disable-line-prefer-template
+      .text(subscription.created_at);
+
+    $userSubscriptionViewModeClone.find('#user-subscription-view-mode-updated-at')
+      .attr('id', 'user-subscription-view-mode-updated-at-' + rowId) // eslint-disable-line-prefer-template
+      .text(subscription.updated_at);
+
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-edit-btn')
       .attr('id', 'user-subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditUserSubscriptionClick);
@@ -479,6 +505,14 @@ function start () {
       .attr('id', 'user-subscription-edit-mode-date-to-' + rowId) // eslint-disable-line prefer-template
       .attr('value', subscription.date_to);
 
+    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-created-at')
+      .attr('id', 'user-subscription-edit-mode-created-at-' + rowId) // eslint-disable-line-prefer-template
+      .text(subscription.created_at);
+
+    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-updated-at')
+      .attr('id', 'user-subscription-edit-mode-updated-at-' + rowId) // eslint-disable-line-prefer-template
+      .text(subscription.updated_at);
+
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-save-btn')
       .attr('id', 'user-subscription-edit-mode-save-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onSaveUserSubscriptionClick);
@@ -501,7 +535,7 @@ function start () {
       msg: 'Expected subscription to be an object, but was ' + typeof subscription, // eslint-disable-line prefer-template
     });
 
-    const subscriptionStringProps = ['id', 'fly_from', 'fly_to', 'date_from', 'date_to'];
+    const subscriptionStringProps = ['id', 'fly_from', 'fly_to', 'date_from', 'date_to', 'created_at', 'updated_at'];
 
     _.each(subscriptionStringProps, function (prop) { // eslint-disable-line prefer-arrow-callback
       assertApp(typeof subscription[prop] === 'string', {
@@ -652,6 +686,8 @@ function start () {
             fly_to: airportToId,
             date_from: dateFrom,
             date_to: dateTo,
+            created_at: oldSubscription.created_at,
+            updated_at: result.updated_at,
           };
 
           rowIdUserSubscriptionMap[rowId] = newSubscription;

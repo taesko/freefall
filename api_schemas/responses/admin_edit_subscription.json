@@ -4,6 +4,11 @@
   "title": "admin_edit_subscription response",
   "type": "object",
   "properties": {
+    "updated_at": {
+      "title": "Updated at",
+      "type": "string",
+      "format": "date-time"
+    },
     "status_code": {
       "title": "Status code",
       "type": "string"

@@ -15,8 +15,8 @@ const FORMATS = {
 const REQUESTS_SCHEMAS_DIR = path.join(SCHEMAS_DIR, 'requests');
 const RESPONSE_SCHEMAS_DIR = path.join(SCHEMAS_DIR, 'responses');
 
-(function registerSchemas () {
-  const schemas = discoverSchemaPaths()
+(function registerSchemas () { // TODO check if read file is .json
+  const schemas = discoverSchemaPaths() // TODO log what schema is being parsed
     .map(path => [path, JSON.parse(fs.readFileSync(path))])
     .reduce(
       (hash, entry) => {

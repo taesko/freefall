@@ -131,8 +131,25 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                 'title': 'Latest arrival time',
                 'format': 'date',
               },
+              'created_at': {
+                'title': 'Created at',
+                'type': 'string',
+              },
+              'updated_at': {
+                'title': 'Updated at',
+                'type': 'string',
+              },
             },
-            'required': ['id', 'user', 'fly_from', 'fly_to', 'date_from', 'date_to'],
+            'required': [
+              'id',
+              'user',
+              'fly_from',
+              'fly_to',
+              'date_from',
+              'date_to',
+              'created_at',
+              'updated_at',
+            ],
           },
         },
         'guest_subscriptions': {
@@ -153,8 +170,22 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                 'type': 'string',
                 'title': 'Arrival airport id',
               },
+              'created_at': {
+                'title': 'Created at',
+                'type': 'string',
+              },
+              'updated_at': {
+                'title': 'Updated at',
+                'type': 'string',
+              },
             },
-            'required': ['id', 'fly_from', 'fly_to'],
+            'required': [
+              'id',
+              'fly_from',
+              'fly_to',
+              'created_at',
+              'updated_at',
+            ],
           },
         },
       },
@@ -574,6 +605,11 @@ const adminValidators = { // eslint-disable-line no-unused-vars
       'title': 'admin_edit_subscription response',
       'type': 'object',
       'properties': {
+        'updated_at': {
+          'title': 'Updated at',
+          'type': 'string',
+          'format': 'date-time',
+        },
         'status_code': {
           'title': 'Status code',
           'type': 'string',
