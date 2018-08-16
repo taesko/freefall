@@ -53,11 +53,24 @@ function run_get_benchmark {
     done
 }
 
-run_post_benchmark "search"
-run_post_benchmark "subscribe"
-run_post_benchmark "unsubscribe"
-run_post_benchmark "edit_subscription"
-run_post_benchmark "list_airports"
-run_post_benchmark "list_subscriptions"
-run_post_benchmark "admin_list_subscriptions" admin
-run_get_benchmark "get-homepage"
+function run_dalipeche_benchmark {
+    target_url="${url}/api/dalipeche/"
+    post_body="./scripts/ab-tests/request-bodies/dalipeche-SOF-body.json"
+    for concurrency in 10 100 500 1000; do
+        output_file="${output_dir}/dalipeche-${concurrency}.stdout"
+        echo "Benchmarking dalipeche with ${concurrency} concurrency";
+        echo "Output file is ${output_file}"
+        ab -n ${number_of_requests} -c ${concurrency} -T 'application/json' -p ${post_body} ${target_url} > ${output_file}
+    done
+        
+}
+
+run_dalipeche_benchmark
+#run_post_benchmark "search"
+#run_post_benchmark "subscribe"
+#run_post_benchmark "unsubscribe"
+#run_post_benchmark "edit_subscription"
+#run_post_benchmark "list_airports"
+#run_post_benchmark "list_subscriptions"
+#run_post_benchmark "admin_list_subscriptions" admin
+#run_get_benchmark "get-homepage"

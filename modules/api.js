@@ -134,14 +134,18 @@ async function daliPecheErrorHandling (ctx, next) {
   try {
     await next();
   } catch (e) {
-    const response = {};
+    let response = {};
+
     if (e.code === 'DALIPECHE_SERVICE_DOWN') {
       log.info('Dalipeche service is unavailable setting HTTP code 503.');
-      ctx.status = 503;
+      response = { statusCode: '2000' };
+    } else if (e.code === 'DALIPECHE_BAD_API_PARAMS') {
+      response = { statusCode: '30' };
     } else {
       throw e;
     }
 
+    ctx.status = 200;
     ctx.body = response;
   }
 }
@@ -149,19 +153,19 @@ async function daliPecheErrorHandling (ctx, next) {
 async function daliPecheAPI (ctx) {
   // TODO move this functionality on a separate koa instance and assert API KEY integrity here
   const { key, city, iataCode } = ctx.request.body;
+  log.debug('body is: ', ctx.request.body);
   assertPeer(
     (city == null && typeof iataCode === 'string') ||
     (typeof city === 'string' && iataCode == null),
-    'Need to specify only one of city or iataCode params.'
+    'Need to specify only one of city or iataCode params.',
+    'DALIPECHE_BAD_API_PARAMS',
   );
 
   const bodyParams = { key };
 
   if (city) {
-    assertPeer(typeof city === 'string', 'city param must be a string.');
     bodyParams.city = city;
   } else {
-    assertPeer(typeof iataCode === 'string', 'iataCode param must be a string.');
     bodyParams.iataCode = iataCode;
   }
 
