@@ -1,13 +1,16 @@
 function start () {
   const mainUtils = main();
   const assertApp = mainUtils.assertApp;
+  const assertUser = mainUtils.assertUser;
   const getUniqueId = mainUtils.getUniqueId;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
+  const RESULTS_LIMIT = 20;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
   const api = getAPIMethods(mainUtils);
 
   var users = []; // eslint-disable-line no-var
+  var offset = 0; // eslint-disable-line no-var
   var rowIdUserMap = {}; // eslint-disable-line no-var
   var APIKey; // eslint-disable-line no-var
 
@@ -318,12 +321,89 @@ function start () {
         );
         mainUtils.displayUserMessage(message, 'success');
       } else {
-        mainUtils.displayUserMessage(message, 'error'); // eslint-disable-line prefer-template
+        mainUtils.displayUserMessage(message, 'error');
       }
     });
   };
 
+  const onPreviousPageClick = function () { // eslint-disable-line prefer-arrow-callback
+    mainUtils.trace('onPreviousPageClick');
+
+    assertApp(typeof offset === 'number', {
+      msg: 'Expected offset to be a number but was =' + offset, // eslint-disable-line prefer-template
+    });
+
+    if (offset === 0) {
+      mainUtils.displayUserMessage('You are already on first page', 'info');
+      return;
+    } else {
+      offset = offset - RESULTS_LIMIT;
+    }
+
+    assertApp(offset >= 0, {
+      msg: 'Expected offset to be >= 0 but was =' + offset, // eslint-disable-line prefer-tempate
+    });
+
+    assertUser(Number.isSafeInteger(offset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected offset to be a safe integer, but was =' + offset, // eslint-disable-line prefere-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKey,
+      offset: offset,
+      limit: RESULTS_LIMIT,
+    };
+
+    adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      users = result.users;
+
+      renderUsers($('#users-table'));
+    });
+  }
+
+  const onNextPageClick = function () { // eslint-disable-line prefer-arrow-callback
+    mainUtils.trace('onNextPageClick');
+
+    assertApp(typeof offset === 'number', {
+      msg: 'Expected offset to be a number but was =' + offset, // eslint-disable-line prefer-template
+    });
+
+    newOffset = offset + RESULTS_LIMIT;
+
+    assertApp(newOffset >= 0, {
+      msg: 'Expected newOffset to be >= 0 but was =' + newOffset, // eslint-disable-line prefer-tempate
+    });
+
+    assertUser(Number.isSafeInteger(newOffset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefere-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKey,
+      offset: newOffset,
+      limit: RESULTS_LIMIT,
+    };
+
+    adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      if (result.users.length === 0) {
+        mainUtils.displayUserMessage('You are already on last page!', 'info')
+        return;
+      }
+
+      offset = newOffset;
+      users = result.users;
+      renderUsers($('#users-table'));
+    });
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
+    $('#prev-page-btn').click(onPreviousPageClick);
+    $('#next-page-btn').click(onNextPageClick);
+
     api.getAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
@@ -333,6 +413,8 @@ function start () {
         const params = {
           v: '2.0',
           api_key: APIKey,
+          offset: 0,
+          limit: RESULTS_LIMIT,
         };
 
         adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback

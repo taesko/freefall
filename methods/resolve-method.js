@@ -533,7 +533,7 @@ const adminListUsers = defineAPIMethod(
       'You do not have sufficient permission to call admin_list_users method.',
       'ALU_NOT_ENOUGH_PERMISSIONS',
     );
-    const userList = await users.listUsers(dbClient, false);
+    const userList = await users.listUsers(dbClient, params.limit, params.offset, false);
 
     for (const user of userList) {
       user.id = `${user.id}`;

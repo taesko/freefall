@@ -193,18 +193,34 @@ async function fetchUser (
   return user;
 }
 
-async function listUsers (dbClient, hidePassword = false) {
+async function listUsers (dbClient, limit, offset, hidePassword = false) {
   errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
-  let rows = await dbClient.selectWhere('users', '*', { active: true });
+
+  errors.assertApp(typeof limit === 'number', `got ${limit}`);
+  errors.assertApp(typeof offset === 'number', `got ${offset}`);
+
+  let result = await dbClient.executeQuery(`
+
+    SELECT *
+    FROM users
+    WHERE active = true
+    ORDER BY id
+    LIMIT $1
+    OFFSET $2;
+
+  `, [limit, offset]);
+
+  errors.assertApp(_.isObject(result), `got ${result}`);
+  errors.assertApp(Array.isArray(result.rows), `got ${result.rows}`);
 
   if (hidePassword) {
-    rows = rows.map(row => {
+    result.rows = result.rows.map(row => {
       delete row.password;
       return row;
     });
   }
 
-  return rows;
+  return result.rows;
 }
 
 async function userExists (
