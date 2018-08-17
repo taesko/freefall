@@ -14,7 +14,10 @@ const db = require('./modules/db');
 const users = require('./modules/users');
 const { getAdminContext } = require('./modules/render-contexts');
 const { rpcAPILayer } = require('./modules/api');
-const { assertApp } = require('./modules/error-handling.js');
+const {
+  assertApp,
+  assertUser,
+} = require('./modules/error-handling.js');
 
 const app = new Koa();
 const router = new Router();
@@ -22,6 +25,7 @@ const SESSION_CONFIG = {
   key: 'koa:sess:admin',
   maxAge: 1000 * 60 * 60 * 24, // 24 hours in miliseconds
 };
+const RESULTS_LIMIT = 5;
 
 app.keys = ['freefall is love freefall is life'];
 
@@ -156,7 +160,20 @@ router.get('/users/:user_id', auth.redirectWhenLoggedOut('/login'), async (ctx) 
 router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   const dbClient = ctx.state.dbClient;
   const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
-  const dbResponse = await dbClient.executeQuery(`
+
+  let page;
+
+  if (!ctx.query.page) {
+    page = 1;
+  } else {
+    page = Number(ctx.query.page);
+  }
+
+  assertUser(Number.isInteger(page), 'Expected integer for page number!');
+  assertUser(page >= 1, 'Expected positive integer for page number!');
+
+  const offset = (page - 1) * RESULTS_LIMIT;
+  const fetchesResponse = await dbClient.executeQuery(`
 
     SELECT
       fetches.id AS id,
@@ -166,30 +183,41 @@ router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
     LEFT JOIN fetches
     ON subscriptions_fetches.fetch_id = fetches.id
     GROUP BY (fetches.id, fetches.fetch_time)
-    ORDER BY fetches.id ASC;
+    ORDER BY fetches.id ASC
+    LIMIT $1
+    OFFSET $2;
 
-  `);
+  `, [RESULTS_LIMIT, offset]);
 
-  assertApp(isObject(dbResponse), `got ${dbResponse}`);
-  assertApp(Array.isArray(dbResponse.rows), `got ${dbResponse.rows}`);
+  assertApp(isObject(fetchesResponse), `got ${fetchesResponse}`);
+  assertApp(Array.isArray(fetchesResponse.rows), `got ${fetchesResponse.rows}`);
 
   let totalAPIRequests = 0;
 
-  for (let i = 0; i < dbResponse.rows.length; i++) {
-    assertApp(isObject(dbResponse.rows[i]), `got ${dbResponse.rows[i]}`);
-    assertApp(typeof dbResponse.rows[i].api_requests === 'number', `got ${dbResponse.rows[i].api_requests}`);
+  const totalFetchesResponse = await dbClient.executeQuery(`
 
-    totalAPIRequests += dbResponse.rows[i].api_requests;
-  }
+    SELECT COALESCE(sum(api_fetches_count)::integer, 0) AS total_api_requests
+    FROM subscriptions_fetches;
 
-  const fetches = dbResponse.rows.map(row => {
+  `);
+
+  assertApp(isObject(totalFetchesResponse), `got ${totalFetchesResponse}`);
+  assertApp(Array.isArray(totalFetchesResponse.rows), `got ${totalFetchesResponse.rows}`);
+  assertApp(totalFetchesResponse.rows.length === 1, `got ${totalFetchesResponse.rows.length}`);
+  assertApp(isObject(totalFetchesResponse.rows[0]), `got ${totalFetchesResponse.rows[0]}`);
+  assertApp(Number.isInteger(totalFetchesResponse.rows[0].total_api_requests), `got ${totalFetchesResponse.rows[0].total_api_requests}`);
+
+  const fetches = fetchesResponse.rows.map(row => {
     row.timestamp = row.fetch_time.toISOString();
     return row;
   });
 
   return ctx.render('fetches.html', Object.assign(defaultContext, {
     fetches,
-    totalAPIRequests,
+    totalAPIRequests: totalFetchesResponse.rows[0].total_api_requests,
+    page,
+    next_page: fetches.length === RESULTS_LIMIT ? page + 1 : null,
+    prev_page: page > 1 ? page - 1 : null,
   }));
 });
 
