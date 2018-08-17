@@ -52,6 +52,9 @@ function start () {
     clearUsersTable($usersTable);
     rowIdUserMap = {};
 
+    const currentPage = offset / RESULTS_LIMIT + 1;
+    $('#current-page-label').text(currentPage);
+
     _.each(users, function (user) { // eslint-disable-line prefer-arrow-callback
       renderUserRow('view', user);
     });
@@ -421,6 +424,7 @@ function start () {
 
       offset = newOffset;
       users = result.users;
+
       renderUsers($('#users-table'));
     });
   };

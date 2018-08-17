@@ -293,6 +293,9 @@ function start () {
     clearUserSubscriptionsTable($subscriptionsTable);
     rowIdUserSubscriptionMap = {};
 
+    const currentPage = userSubscriptionsOffset / RESULTS_LIMIT + 1;
+    $('#current-page-label').text(currentPage);
+
     _.each(subscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
       renderUserSubscriptionRow('view', subscription);
     });

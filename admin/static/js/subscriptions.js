@@ -151,6 +151,9 @@ function start () {
     clearGuestSubscriptionsTable($guestSubscriptionsTable);
     rowIdGuestSubscriptionMap = {};
 
+    const currentPage = guestSubscriptionsOffset / RESULTS_LIMIT + 1;
+    $('#guest-subscriptions-current-page-label').text(currentPage);
+
     _.each(guestSubscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
       renderGuestSubscriptionRow('view', subscription);
     });
@@ -445,6 +448,9 @@ function start () {
 
     clearUserSubscriptionsTable($userSubscriptionsTable);
     rowIdUserSubscriptionMap = {};
+
+    const currentPage = userSubscriptionsOffset / RESULTS_LIMIT + 1;
+    $('#user-subscriptions-current-page-label').text(currentPage);
 
     _.each(userSubscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
       renderUserSubscriptionRow('view', subscription);
