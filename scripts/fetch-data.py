@@ -683,4 +683,7 @@ def start():
         )
     log('Done.')
 
-start()
+try:
+    start()
+except Exception as e:
+    raise AppError(e)

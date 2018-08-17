@@ -738,7 +738,6 @@ async def insert_airline(pool, airline):
 
 async def start():
     fetch_tax = 500 # cents
-
     try:
         pool = await asyncpg.create_pool(database='freefall', user='freefall', password='freefall')
 
@@ -825,5 +824,7 @@ async def start():
 try:
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start())
+except Exception as e:
+    raise AppError(e)
 finally:
     loop.close()
