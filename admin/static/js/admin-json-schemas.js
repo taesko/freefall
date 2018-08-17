@@ -194,6 +194,217 @@ const adminValidators = { // eslint-disable-line no-unused-vars
     return ajv.compile(adminListSubscriptionsResponseSchema);
   },
 
+  getValidateAdminListUserSubscriptionsReq: function () {
+    const adminListUserSubscriptionsRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_list_user_subscriptions',
+      'title': 'Admin list user subscriptions request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+        'user_id': {
+          'title': 'User id',
+          'type': 'string',
+        },
+        'limit': {
+          'title': 'Limit',
+          'type': 'integer',
+          'minimum': 1,
+          'maximum': 100,
+        },
+        'offset': {
+          'title': 'Offset',
+          'type': 'integer',
+          'minimum': 0,
+        },
+        'api_key': {
+          'title': 'API key',
+          'type': 'string',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'limit',
+        'offset',
+      ],
+    };
+
+    return ajv.compile(adminListUserSubscriptionsRequestSchema);
+  },
+
+  getValidateAdminListUserSubscriptionsRes: function () {
+    const adminListUserSubscriptionsResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_list_user_subscriptions',
+      'title': 'Admin list user subscriptions response',
+      'type': 'object',
+      'properties': {
+        'user_subscriptions': {
+          'type': 'array',
+          'title': 'List of subscriptions',
+          'items': {
+            'type': 'object',
+            'properties': {
+              'id': {
+                'type': 'string',
+                'title': 'Subscription database id',
+              },
+              'user': {
+                'type': 'object',
+                'title': 'User data',
+                'properties': {
+                  'id': {
+                    'type': 'string',
+                    'title': 'User id',
+                  },
+                  'email': {
+                    'type': 'string',
+                    'title': 'User email',
+                    'format': 'email',
+                  },
+                },
+                'required': ['id', 'email'],
+              },
+              'fly_from': {
+                'type': 'string',
+                'title': 'Departure airport id',
+              },
+              'fly_to': {
+                'type': 'string',
+                'title': 'Arrival airport id',
+              },
+              'date_from': {
+                'type': 'string',
+                'title': 'Earliest departure time',
+                'format': 'date',
+              },
+              'date_to': {
+                'type': 'string',
+                'title': 'Latest arrival time',
+                'format': 'date',
+              },
+              'created_at': {
+                'title': 'Created at',
+                'type': 'string',
+              },
+              'updated_at': {
+                'title': 'Updated at',
+                'type': 'string',
+              },
+            },
+            'required': [
+              'id',
+              'user',
+              'fly_from',
+              'fly_to',
+              'date_from',
+              'date_to',
+              'created_at',
+              'updated_at',
+            ],
+          },
+        },
+      },
+      'required': [
+        'user_subscriptions',
+      ],
+    };
+
+    return ajv.compile(adminListUserSubscriptionsResponseSchema);
+  },
+
+  getValidateAdminListGuestSubscriptionsReq: function () {
+    const adminListGuestSubscriptionsRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_list_guest_subscriptions',
+      'title': 'Admin list guest subscriptions request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+        'limit': {
+          'title': 'Limit',
+          'type': 'integer',
+          'minimum': 1,
+          'maximum': 100,
+        },
+        'offset': {
+          'title': 'Offset',
+          'type': 'integer',
+          'minimum': 0,
+        },
+        'api_key': {
+          'title': 'API key',
+          'type': 'string',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'limit',
+        'offset',
+      ],
+    };
+    return ajv.compile(adminListGuestSubscriptionsRequestSchema);
+  },
+
+  getValidateAdminListGuestSubscriptionsRes: function () {
+    const adminListGuestSubscriptionsResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_list_guest_subscriptions',
+      'title': 'Admin list guest subscriptions response',
+      'type': 'object',
+      'properties': {
+        'guest_subscriptions': {
+          'type': 'array',
+          'title': 'List of subscriptions, not linked to users',
+          'items': {
+            'type': 'object',
+            'properties': {
+              'id': {
+                'type': 'string',
+                'title': 'Subscription database id',
+              },
+              'fly_from': {
+                'type': 'string',
+                'title': 'Departure airport id',
+              },
+              'fly_to': {
+                'type': 'string',
+                'title': 'Arrival airport id',
+              },
+              'created_at': {
+                'title': 'Created at',
+                'type': 'string',
+              },
+              'updated_at': {
+                'title': 'Updated at',
+                'type': 'string',
+              },
+            },
+            'required': [
+              'id',
+              'fly_from',
+              'fly_to',
+              'created_at',
+              'updated_at',
+            ],
+          },
+        },
+      },
+      'required': [
+        'guest_subscriptions',
+      ],
+    };
+    return ajv.compile(adminListGuestSubscriptionsResponseSchema);
+  },
+
   getValidateAdminListUsersReq: function () {
     const adminListUsersRequestSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',
@@ -209,12 +420,12 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'type': 'integer',
           'title': 'Limit',
           'minimum': 1,
-          'maximum': 20
+          'maximum': 20,
         },
         'offset': {
           'type': 'integer',
           'title': 'Offset',
-          'minimum': 0
+          'minimum': 0,
         },
         'api_key': {
           'type': 'string',

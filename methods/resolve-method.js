@@ -533,7 +533,11 @@ const adminListUsers = defineAPIMethod(
       'You do not have sufficient permission to call admin_list_users method.',
       'ALU_NOT_ENOUGH_PERMISSIONS',
     );
-    const userList = await users.listUsers(dbClient, params.limit, params.offset, false);
+    const userList = await users.listUsers(dbClient, {
+      limit: params.limit,
+      offset: params.offset,
+      hidePassword: false,
+    });
 
     for (const user of userList) {
       user.id = `${user.id}`;
@@ -545,7 +549,54 @@ const adminListUsers = defineAPIMethod(
   },
 );
 
-const adminListSubscriptions = defineAPIMethod(
+const adminListGuestSubscriptions = defineAPIMethod(
+  {
+    'ALS_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+  },
+  async (params, dbClient) => {
+    assertPeer(
+      await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
+      'You do not have sufficient permission to call admin_list_subscriptions method.',
+      'ALS_NOT_ENOUGH_PERMISSIONS',
+    );
+
+    const result = await dbClient.executeQuery(`
+
+      SELECT *
+      FROM subscriptions
+      ORDER BY id
+      LIMIT $1
+      OFFSET $2;
+
+    `, [
+      params.limit,
+      params.offset,
+    ]);
+
+    assertApp(isObject(result), `got ${result}`);
+    assertApp(Array.isArray(result.rows), `got ${result.rows}`);
+
+    const guestSubscr = result.rows.map(sub => {
+      const createdAt = sub.created_at == null ? 'No information' : sub.created_at.toISOString();
+      const updatedAt = sub.updated_at == null ? 'No information' : sub.updated_at.toISOString();
+
+      return {
+        id: `${sub.id}`,
+        fly_from: `${sub.airport_from_id}`,
+        fly_to: `${sub.airport_to_id}`,
+        created_at: createdAt,
+        updated_at: updatedAt,
+      };
+    });
+
+    return {
+      status_code: '1000',
+      guest_subscriptions: guestSubscr,
+    };
+  },
+);
+
+const adminListUserSubscriptions = defineAPIMethod(
   {
     'ALS_INVALID_USER_ID': { status_code: '2000' },
     'ALS_BAD_USER_ID': { status_code: '2100' },
@@ -567,35 +618,86 @@ const adminListSubscriptions = defineAPIMethod(
       assertPeer(exists, `got ${userId}`, 'ALS_INVALID_USER_ID');
     }
 
+    // TODO set MAX limit from config
+    assertPeer(Number.isSafeInteger(params.offset), `got ${params.offset}`, 'ALS_BAD_OFFSET');
+    assertPeer(Number.isSafeInteger(params.limit), `got ${params.limit}`, 'ALS_BAD_LIMIT');
+
     let userSubscr;
-    let guestSubscr;
 
     if (userId) {
-      userSubscr = await subscriptions.listUserSubscriptions(
-        dbClient,
+      const result = await dbClient.executeQuery(`
+
+        SELECT
+          user_sub.id,
+          user_sub.date_from,
+          user_sub.date_to,
+          ap_from.id fly_from,
+          ap_to.id fly_to,
+          users.id user_id,
+          users.email user_email,
+          user_sub.created_at created_at,
+          user_sub.updated_at updated_at
+        FROM users_subscriptions user_sub
+        JOIN users ON user_sub.user_id=users.id
+        JOIN subscriptions sub ON user_sub.subscription_id=sub.id
+        JOIN airports ap_from ON sub.airport_from_id=ap_from.id
+        JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+        WHERE
+          user_sub.active=true AND
+          users.id = $1
+        ORDER BY user_sub.id
+        LIMIT $2
+        OFFSET $3;
+
+      `, [
         userId,
-      );
-      // TODO ask ivan if guestSubscr should be null or empty array
-      guestSubscr = [];
+        params.limit,
+        params.offset,
+      ]);
+
+      assertApp(isObject(result), `got ${result}`);
+      assertApp(Array.isArray(result.rows), `got ${result.rows}`);
+
+      userSubscr = result.rows;
     } else {
-      userSubscr = await subscriptions.listAllUserSubscriptions(dbClient);
-      guestSubscr = await subscriptions.listGlobalSubscriptions(dbClient);
-      guestSubscr = guestSubscr.map(sub => {
-        return {
-          id: `${sub.id}`,
-          fly_from: `${sub.airport_from_id}`,
-          fly_to: `${sub.airport_to_id}`,
-          created_at:
-            sub.created_at == null ?
-              'No information' : sub.created_at.toISOString(),
-          updated_at:
-            sub.updated_at == null ?
-              'No information' : sub.updated_at.toISOString(),
-        };
-      });
+      const result = await dbClient.executeQuery(`
+
+        SELECT
+          user_sub.id,
+          user_sub.date_from,
+          user_sub.date_to,
+          ap_from.id fly_from,
+          ap_to.id fly_to,
+          users.id user_id,
+          users.email user_email,
+          user_sub.created_at created_at,
+          user_sub.updated_at updated_at
+        FROM users_subscriptions user_sub
+        JOIN users ON user_sub.user_id=users.id
+        JOIN subscriptions sub ON user_sub.subscription_id=sub.id
+        JOIN airports ap_from ON sub.airport_from_id=ap_from.id
+        JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+        WHERE
+          user_sub.active=true
+        ORDER BY user_sub.id
+        LIMIT $1
+        OFFSET $2;
+
+      `, [
+        params.limit,
+        params.offset,
+      ]);
+
+      assertApp(isObject(result), `got ${result}`);
+      assertApp(Array.isArray(result.rows), `got ${result.rows}`);
+
+      userSubscr = result.rows;
     }
 
     userSubscr = userSubscr.map(sub => {
+      const createdAt = sub.created_at == null ? 'No information' : sub.created_at.toISOString();
+      const updatedAt = sub.updated_at == null ? 'No information' : sub.updated_at.toISOString();
+
       return {
         id: `${sub.id}`,
         user: {
@@ -606,22 +708,94 @@ const adminListSubscriptions = defineAPIMethod(
         date_to: moment(sub.date_to).format('Y-MM-DD'),
         fly_from: `${sub.fly_from}`,
         fly_to: `${sub.fly_to}`,
-        created_at:
-          sub.created_at == null ?
-            'No information' : sub.created_at.toISOString(),
-        updated_at:
-          sub.updated_at == null ?
-            'No information' : sub.updated_at.toISOString(),
+        created_at: createdAt,
+        updated_at: updatedAt,
       };
     });
 
     return {
       status_code: '1000',
       user_subscriptions: userSubscr,
-      guest_subscriptions: guestSubscr,
     };
-  },
+  }
 );
+
+// const adminListSubscriptions = defineAPIMethod(
+//   {
+//     'ALS_INVALID_USER_ID': { status_code: '2000' },
+//     'ALS_BAD_USER_ID': { status_code: '2100' },
+//     'ALS_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
+//   },
+//   async (params, dbClient) => {
+//     assertPeer(
+//       await auth.tokenHasRole(dbClient, params.api_key, 'admin'),
+//       'You do not have sufficient permission to call admin_list_subscriptions method.',
+//       'ALS_NOT_ENOUGH_PERMISSIONS',
+//     );
+//
+//     let userId;
+//
+//     if (params.user_id) {
+//       userId = +params.user_id;
+//       assertPeer(Number.isInteger(userId), `got ${userId}`, 'ALS_BAD_USER_ID');
+//       const exists = await users.userExists(dbClient, { userId });
+//       assertPeer(exists, `got ${userId}`, 'ALS_INVALID_USER_ID');
+//     }
+//
+//     let userSubscr;
+//     let guestSubscr;
+//
+//     if (userId) {
+//       userSubscr = await subscriptions.listUserSubscriptions(
+//         dbClient,
+//         userId,
+//       );
+//       // TODO ask ivan if guestSubscr should be null or empty array
+//       guestSubscr = [];
+//     } else {
+//       userSubscr = await subscriptions.listAllUserSubscriptions(dbClient);
+//       guestSubscr = await subscriptions.listGlobalSubscriptions(dbClient);
+//       guestSubscr = guestSubscr.map(sub => {
+//         return {
+//           id: `${sub.id}`,
+//           fly_from: `${sub.airport_from_id}`,
+//           fly_to: `${sub.airport_to_id}`,
+//           created_at:
+//             sub.created_at == null ?
+//               'No information' : sub.created_at.toISOString(),
+//           updated_at:
+//             sub.updated_at == null ?
+//               'No information' : sub.updated_at.toISOString(),
+//         };
+//       });
+//     }
+//
+//     userSubscr = userSubscr.map(sub => {
+//       const createdAt = sub.created_at == null ? 'No information' : sub.created_at.toISOString();
+//       const updatedAt = sub.updated_at == null ? 'No information' : sub.updated_at.toISOString();
+//
+//       return {
+//         id: `${sub.id}`,
+//         user: {
+//           id: `${sub.user_id}`,
+//           email: `${sub.user_email}`,
+//         },
+//         date_from: moment(sub.date_from).format('Y-MM-DD'),
+//         date_to: moment(sub.date_to).format('Y-MM-DD'),
+//         fly_from: `${sub.fly_from}`,
+//         fly_to: `${sub.fly_to}`,
+//         created_at: createdAt,
+//         updated_at: updatedAt,
+//       };
+//     });
+//
+//     return {
+//       status_code: '1000',
+//       user_subscriptions: userSubscr,
+//       guest_subscriptions: guestSubscr,
+//     };
+//   },
+// );
 
 const adminSubscribe = defineAPIMethod(
   {
@@ -1026,7 +1200,9 @@ const API_METHODS = {
   edit_subscription: editSubscription,
   list_airports: listAirports,
   list_subscriptions: listSubscriptions,
-  admin_list_subscriptions: adminListSubscriptions,
+  // admin_list_subscriptions: adminListSubscriptions,
+  admin_list_user_subscriptions: adminListUserSubscriptions,
+  admin_list_guest_subscriptions: adminListGuestSubscriptions,
   admin_list_users: adminListUsers,
   admin_subscribe: adminSubscribe,
   admin_unsubscribe: adminUnsubscribe,

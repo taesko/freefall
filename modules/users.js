@@ -193,13 +193,17 @@ async function fetchUser (
   return user;
 }
 
-async function listUsers (dbClient, limit, offset, hidePassword = false) {
+async function listUsers (dbClient, params) {
   errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
+  errors.assertApp(_.isObject(params), `got ${params}`);
+
+  const { limit, offset, hidePassword = true } = params;
 
   errors.assertApp(typeof limit === 'number', `got ${limit}`);
   errors.assertApp(typeof offset === 'number', `got ${offset}`);
+  errors.assertApp(typeof hidePassword === 'boolean', `got ${hidePassword}`);
 
-  let result = await dbClient.executeQuery(`
+  const result = await dbClient.executeQuery(`
 
     SELECT *
     FROM users

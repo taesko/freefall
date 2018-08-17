@@ -14,6 +14,19 @@ function start () {
   var rowIdUserMap = {}; // eslint-disable-line no-var
   var APIKey; // eslint-disable-line no-var
 
+  function clearUsersTable ($usersTable) {
+    mainUtils.trace('clearUsersTable');
+
+    assertApp($usersTable instanceof jQuery, {
+      msg: 'Expected $usersTable to be instance of jQuery, but was ' + typeof $usersTable, // eslint-disable-line prefer-template
+    });
+
+    $usersTable.find('tbody tr')
+      .not('#user-edit-mode')
+      .not('#user-view-mode')
+      .remove();
+  }
+
   function renderUsers ($usersTable) {
     mainUtils.trace('renderUsers');
 
@@ -36,6 +49,7 @@ function start () {
       msg: 'Expected users to be instance of array, but was ' + typeof users, // eslint-disable-line prefer-template
     });
 
+    clearUsersTable($usersTable);
     rowIdUserMap = {};
 
     _.each(users, function (user) { // eslint-disable-line prefer-arrow-callback
@@ -326,8 +340,10 @@ function start () {
     });
   };
 
-  const onPreviousPageClick = function () { // eslint-disable-line prefer-arrow-callback
+  const onPreviousPageClick = function (event) { // eslint-disable-line prefer-arrow-callback
     mainUtils.trace('onPreviousPageClick');
+
+    const button = event.target;
 
     assertApp(typeof offset === 'number', {
       msg: 'Expected offset to be a number but was =' + offset, // eslint-disable-line prefer-template
@@ -341,12 +357,12 @@ function start () {
     }
 
     assertApp(offset >= 0, {
-      msg: 'Expected offset to be >= 0 but was =' + offset, // eslint-disable-line prefer-tempate
+      msg: 'Expected offset to be >= 0 but was =' + offset, // eslint-disable-line prefer-template
     });
 
     assertUser(Number.isSafeInteger(offset), {
       userMessage: 'Invalid results page!',
-      msg: 'Expected offset to be a safe integer, but was =' + offset, // eslint-disable-line prefere-template
+      msg: 'Expected offset to be a safe integer, but was =' + offset, // eslint-disable-line prefer-template
     });
 
     const params = {
@@ -356,29 +372,34 @@ function start () {
       limit: RESULTS_LIMIT,
     };
 
+    button.disabled = true;
+
     adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      button.disabled = false;
       users = result.users;
 
       renderUsers($('#users-table'));
     });
-  }
+  };
 
-  const onNextPageClick = function () { // eslint-disable-line prefer-arrow-callback
+  const onNextPageClick = function (event) { // eslint-disable-line prefer-arrow-callback
     mainUtils.trace('onNextPageClick');
+
+    const button = event.target;
 
     assertApp(typeof offset === 'number', {
       msg: 'Expected offset to be a number but was =' + offset, // eslint-disable-line prefer-template
     });
 
-    newOffset = offset + RESULTS_LIMIT;
+    const newOffset = offset + RESULTS_LIMIT;
 
     assertApp(newOffset >= 0, {
-      msg: 'Expected newOffset to be >= 0 but was =' + newOffset, // eslint-disable-line prefer-tempate
+      msg: 'Expected newOffset to be >= 0 but was =' + newOffset, // eslint-disable-line prefer-template
     });
 
     assertUser(Number.isSafeInteger(newOffset), {
       userMessage: 'Invalid results page!',
-      msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefere-template
+      msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefer-template
     });
 
     const params = {
@@ -388,9 +409,13 @@ function start () {
       limit: RESULTS_LIMIT,
     };
 
+    button.disabled = true;
+
     adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      button.disabled = false;
+
       if (result.users.length === 0) {
-        mainUtils.displayUserMessage('You are already on last page!', 'info')
+        mainUtils.displayUserMessage('You are already on last page!', 'info');
         return;
       }
 
@@ -398,7 +423,7 @@ function start () {
       users = result.users;
       renderUsers($('#users-table'));
     });
-  }
+  };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $('#prev-page-btn').click(onPreviousPageClick);

@@ -1,3 +1,5 @@
+'use strict';
+
 function start () {
   const mainUtils = main();
   const assertApp = mainUtils.assertApp;
@@ -5,12 +7,14 @@ function start () {
   const assertUser = mainUtils.assertUser;
   const UserError = mainUtils.UserError;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
+  const RESULTS_LIMIT = 20;
   const APIKeyRef = mainUtils.APIKeyRef;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
   const api = getAPIMethods(mainUtils);
 
   var subscriptions = []; // eslint-disable-line no-var
+  var userSubscriptionsOffset = 0; // eslint-disable-line no-var
   var rowIdUserSubscriptionMap = {}; // eslint-disable-line no-var
   var airports = []; // eslint-disable-line no-var
 
@@ -251,6 +255,19 @@ function start () {
     $('#user-subscriptions-table').attr('hidden', 'true');
   }
 
+  function clearUserSubscriptionsTable ($subscriptionsTable) {
+    mainUtils.trace('clearUserSubscriptionsTable');
+
+    assertApp($subscriptionsTable instanceof jQuery, {
+      msg: 'Expected $subscriptionsTable to be instance of jQuery, but was ' + typeof $subscriptionsTable, // eslint-disable-line prefer-template
+    });
+
+    $subscriptionsTable.find('tbody tr')
+      .not('#user-subscription-edit-mode')
+      .not('#user-subscription-view-mode')
+      .remove();
+  }
+
   function renderUserSubscriptions ($subscriptionsTable) {
     mainUtils.trace('renderUserSubscriptions');
 
@@ -273,6 +290,7 @@ function start () {
       msg: 'Expected subscriptions to be instance of array, but was ' + typeof subscriptions, // eslint-disable-line prefer-template
     });
 
+    clearUserSubscriptionsTable($subscriptionsTable);
     rowIdUserSubscriptionMap = {};
 
     _.each(subscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
@@ -356,11 +374,11 @@ function start () {
       .attr('value', subscription.date_to);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-created-at')
-      .attr('id', 'user-subscription-edit-mode-created-at-' + rowId)
+      .attr('id', 'user-subscription-edit-mode-created-at-' + rowId) // eslint-disable-line prefer-template
       .text(subscription.created_at);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-updated-at')
-      .attr('id', 'user-subscription-edit-mode-updated-at-' + rowId)
+      .attr('id', 'user-subscription-edit-mode-updated-at-' + rowId) // eslint-disable-line prefer-template
       .text(subscription.updated_at);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-save-btn')
@@ -664,6 +682,102 @@ function start () {
     );
   };
 
+  const onPreviousPageClick = function (event) {
+    mainUtils.trace('onPreviousPageClick');
+
+    const button = event.target;
+
+    assertApp(typeof userSubscriptionsOffset === 'number', {
+      msg: 'Expected userSubscriptionsOffset to be a number but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    if (userSubscriptionsOffset === 0) {
+      mainUtils.displayUserMessage('You are already on first page', 'info');
+      return;
+    } else {
+      userSubscriptionsOffset = userSubscriptionsOffset - RESULTS_LIMIT;
+    }
+
+    assertApp(userSubscriptionsOffset >= 0, {
+      msg: 'Expected userSubscriptionsOffset to be >= 0 but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isSafeInteger(userSubscriptionsOffset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected userSubscriptionsOffset to be a safe integer, but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKeyRef.APIKey,
+      user_id: userGlobal.id,
+      offset: userSubscriptionsOffset,
+      limit: RESULTS_LIMIT,
+    };
+
+    button.disabled = true;
+
+    adminAPI.adminListUserSubscriptions(
+      params,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        button.disabled = false;
+        subscriptions = result.user_subscriptions;
+
+        renderUserSubscriptions($('#user-subscriptions-table'));
+      }
+    );
+  };
+
+  const onNextPageClick = function (event) {
+    mainUtils.trace('onNextPageClick');
+
+    const button = event.target;
+
+    assertApp(typeof userSubscriptionsOffset === 'number', {
+      msg: 'Expected userSubscriptionsOffset to be a number but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    const newOffset = userSubscriptionsOffset + RESULTS_LIMIT;
+
+    assertApp(userSubscriptionsOffset >= 0, {
+      msg: 'Expected userSubscriptionsOffset to be >= 0 but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isSafeInteger(newOffset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefer-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKeyRef.APIKey,
+      user_id: userGlobal.id,
+      offset: newOffset,
+      limit: RESULTS_LIMIT,
+    };
+
+    button.disabled = true;
+
+    adminAPI.adminListUserSubscriptions(
+      params,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        button.disabled = false;
+
+        if (result.user_subscriptions.length === 0) {
+          mainUtils.displayUserMessage('You are already on last page!', 'info');
+          return;
+        }
+
+        userSubscriptionsOffset = newOffset;
+        subscriptions = result.user_subscriptions;
+
+        renderUserSubscriptions($('#user-subscriptions-table'));
+      }
+    );
+  };
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     api.getAPIKey({
       v: '2.0',
@@ -675,21 +789,23 @@ function start () {
           v: '2.0',
           user_id: userGlobal.id,
           api_key: APIKeyRef.APIKey,
+          offset: 0,
+          limit: RESULTS_LIMIT,
         };
 
         api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
           airports = result.airports;
 
-          const adminListSubscriptionsCallback = function (result) {
+          const adminListUserSubscriptionsCallback = function (result) {
             subscriptions = result.user_subscriptions;
 
             renderUserSubscriptions($('#user-subscriptions-table'));
           };
 
-          adminAPI.adminListSubscriptions(
+          adminAPI.adminListUserSubscriptions(
             params,
             PROTOCOL_NAME,
-            adminListSubscriptionsCallback
+            adminListUserSubscriptionsCallback
           );
         });
       } else {
@@ -704,6 +820,8 @@ function start () {
     $('#user-edit-mode-cancel-btn').click(onCancelEditUserClick);
     $('#user-edit-mode-remove-btn').click(onRemoveUserClick);
     $('#user-credits-submit-btn').click(onUserCreditsSubmitClick);
+    $('#prev-page-btn').click(onPreviousPageClick);
+    $('#next-page-btn').click(onNextPageClick);
   });
 }
 

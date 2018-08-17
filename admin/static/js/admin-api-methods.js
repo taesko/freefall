@@ -3,10 +3,18 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   const assertPeer = mainUtils.assertPeer;
   const assertApp = mainUtils.assertApp;
 
-  const validateAdminListSubscriptionsReq =
-    adminValidators.getValidateAdminListSubscriptionsReq();
-  const validateAdminListSubscriptionsRes =
-    adminValidators.getValidateAdminListSubscriptionsRes();
+  // const validateAdminListSubscriptionsReq =
+  //   adminValidators.getValidateAdminListSubscriptionsReq();
+  // const validateAdminListSubscriptionsRes =
+  //   adminValidators.getValidateAdminListSubscriptionsRes();
+  const validateAdminListUserSubscriptionsReq =
+    adminValidators.getValidateAdminListUserSubscriptionsReq();
+  const validateAdminListUserSubscriptionsRes =
+    adminValidators.getValidateAdminListUserSubscriptionsRes();
+  const validateAdminListGuestSubscriptionsReq =
+    adminValidators.getValidateAdminListGuestSubscriptionsReq();
+  const validateAdminListGuestSubscriptionsRes =
+    adminValidators.getValidateAdminListGuestSubscriptionsRes();
   const validateAdminRemoveUserReq =
     adminValidators.getValidateAdminRemoveUserReq();
   const validateAdminRemoveUserRes =
@@ -132,30 +140,62 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     });
   };
 
-  const adminListSubscriptions = function (params, protocolName, callback) {
-    mainUtils.trace('adminListSubscriptions');
+  //  const adminListSubscriptions = function (params, protocolName, callback) {
+  //    mainUtils.trace('adminListSubscriptions');
+  //
+  //    assertApp(validateAdminListSubscriptionsReq(params), {
+  //      msg: 'Params do not adhere to adminListSubscriptionsRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminListSubscriptionsReq), // eslint-disable-line prefer-template
+  //    });
+  //
+  //    mainUtils.sendRequest({
+  //      url: mainUtils.SERVER_URL,
+  //      data: {
+  //        method: 'admin_list_subscriptions',
+  //        params: params,
+  //      },
+  //      protocolName: protocolName,
+  //    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+  //      if (error) {
+  //        mainUtils.trace('Error in adminListSubscriptions:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+  //        throw new PeerError({
+  //          msg: error.message,
+  //        });
+  //      }
+  //
+  //      assertPeer(validateAdminListSubscriptionsRes(result), {
+  //        msg: 'Params do not adhere to adminListSubscriptionsResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminListSubscriptionsRes), // eslint-disable-line prefer-template
+  //      });
+  //
+  //      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+  //        callback(result);
+  //      }, 0);
+  //    });
+  //  };
 
-    assertApp(validateAdminListSubscriptionsReq(params), {
-      msg: 'Params do not adhere to adminListSubscriptionsRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminListSubscriptionsReq), // eslint-disable-line prefer-template
+  const adminListUserSubscriptions = function (params, protocolName, callback) {
+    mainUtils.trace('adminListUserSubscriptions');
+
+    assertApp(validateAdminListUserSubscriptionsReq(params), {
+      msg: 'Params do not adhere to adminListUserSubscriptionsRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminListUserSubscriptionsReq), // eslint-disable-line prefer-template
     });
 
     mainUtils.sendRequest({
       url: mainUtils.SERVER_URL,
       data: {
-        method: 'admin_list_subscriptions',
+        method: 'admin_list_user_subscriptions',
         params: params,
       },
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback
       if (error) {
-        mainUtils.trace('Error in adminListSubscriptions:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        mainUtils.trace('Error in adminListUserSubscriptions:' + JSON.stringify(error)); // eslint-disable-line prefer-template
         throw new PeerError({
           msg: error.message,
         });
       }
 
-      assertPeer(validateAdminListSubscriptionsRes(result), {
-        msg: 'Params do not adhere to adminListSubscriptionsResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminListSubscriptionsRes), // eslint-disable-line prefer-template
+      assertPeer(validateAdminListUserSubscriptionsRes(result), {
+        msg: 'Params do not adhere to adminListUserSubscriptionsResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminListUserSubscriptionsRes), // eslint-disable-line prefer-template
       });
 
       setTimeout(function () { // eslint-disable-line prefer-arrow-callback
@@ -163,6 +203,39 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
       }, 0);
     });
   };
+
+  const adminListGuestSubscriptions =
+    function (params, protocolName, callback) {
+      mainUtils.trace('adminListGuestSubscriptions');
+
+      assertApp(validateAdminListGuestSubscriptionsReq(params), {
+        msg: 'Params do not adhere to adminListGuestSubscriptionsRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminListGuestSubscriptionsReq), // eslint-disable-line prefer-template
+      });
+
+      mainUtils.sendRequest({
+        url: mainUtils.SERVER_URL,
+        data: {
+          method: 'admin_list_guest_subscriptions',
+          params: params,
+        },
+        protocolName: protocolName,
+      }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+        if (error) {
+          mainUtils.trace('Error in adminListGuestSubscriptions:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+          throw new PeerError({
+            msg: error.message,
+          });
+        }
+
+        assertPeer(validateAdminListGuestSubscriptionsRes(result), {
+          msg: 'Params do not adhere to adminListGuestSubscriptionsResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminListGuestSubscriptionsRes), // eslint-disable-line prefer-template
+        });
+
+        setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+          callback(result);
+        }, 0);
+      });
+    };
 
   const adminSubscribe = function (params, protocolName, callback) {
     mainUtils.trace('adminSubscrbe');
@@ -294,7 +367,9 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     adminListUsers: adminListUsers,
     adminEditUser: adminEditUser,
     adminRemoveUser: adminRemoveUser,
-    adminListSubscriptions: adminListSubscriptions,
+    // adminListSubscriptions: adminListSubscriptions,
+    adminListUserSubscriptions: adminListUserSubscriptions,
+    adminListGuestSubscriptions: adminListGuestSubscriptions,
     adminSubscribe: adminSubscribe,
     adminUnsubscribe: adminUnsubscribe,
     adminEditSubscription: adminEditSubscription,

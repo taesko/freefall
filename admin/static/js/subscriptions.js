@@ -5,6 +5,7 @@ function start () {
   const UserError = mainUtils.UserError;
   const APIKeyRef = mainUtils.APIKeyRef;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
+  const RESULTS_LIMIT = 20;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
   const api = getAPIMethods(mainUtils);
@@ -12,8 +13,10 @@ function start () {
   var airports = []; // eslint-disable-line no-var
   var userSubscriptions = []; // eslint-disable-line no-var
   var rowIdUserSubscriptionMap = {}; // eslint-disable-line no-var
+  var userSubscriptionsOffset = 0; // eslint-disable-line no-var
   var guestSubscriptions = []; // eslint-disable-line no-var
   var rowIdGuestSubscriptionMap = {}; // eslint-disable-line no-var
+  var guestSubscriptionsOffset = 0; // eslint-disable-line no-var
 
   function getAirportName (airports, id) {
     mainUtils.trace('getAirportName(airports, ' + id + '), typeof arg=' + typeof id + ''); // eslint-disable-line prefer-template
@@ -110,6 +113,19 @@ function start () {
     $('#guest-subscriptions-table').attr('hidden', 'true');
   }
 
+  function clearGuestSubscriptionsTable ($guestSubscriptionsTable) {
+    mainUtils.trace('clearGuestSubscriptionsTable');
+
+    assertApp($guestSubscriptionsTable instanceof jQuery, {
+      msg: 'Expected $guestSubscriptionsTable to be instance of jQuery, but was ' + typeof $guestSubscriptionsTable, // eslint-disable-line prefer-template
+    });
+
+    $guestSubscriptionsTable.find('tbody tr')
+      .not('#guest-subscription-edit-mode')
+      .not('#guest-subscription-view-mode')
+      .remove();
+  }
+
   function renderGuestSubscriptions ($guestSubscriptionsTable) {
     mainUtils.trace('renderGuestSubscriptions');
 
@@ -132,6 +148,7 @@ function start () {
       msg: 'Expected userSubscriptions to be instance of array, but was ' + typeof userSubscriptions, // eslint-disable-line prefer-template
     });
 
+    clearGuestSubscriptionsTable($guestSubscriptionsTable);
     rowIdGuestSubscriptionMap = {};
 
     _.each(guestSubscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
@@ -391,6 +408,19 @@ function start () {
     });
   };
 
+  function clearUserSubscriptionsTable ($userSubscriptionsTable) {
+    mainUtils.trace('clearUserSubscriptionsTable');
+
+    assertApp($userSubscriptionsTable instanceof jQuery, {
+      msg: 'Expected $userSubscriptionsTable to be instance of jQuery, but was ' + typeof $userSubscriptionsTable, // eslint-disable-line prefer-template
+    });
+
+    $userSubscriptionsTable.find('tbody tr')
+      .not('#user-subscription-edit-mode')
+      .not('#user-subscription-view-mode')
+      .remove();
+  }
+
   function renderUserSubscriptions ($userSubscriptionsTable) {
     mainUtils.trace('renderUserSubscriptions');
 
@@ -413,6 +443,7 @@ function start () {
       msg: 'Expected userSubscriptions to be instance of array, but was ' + typeof userSubscriptions, // eslint-disable-line prefer-template
     });
 
+    clearUserSubscriptionsTable($userSubscriptionsTable);
     rowIdUserSubscriptionMap = {};
 
     _.each(userSubscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
@@ -449,11 +480,11 @@ function start () {
       .text(subscription.date_to);
 
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-created-at')
-      .attr('id', 'user-subscription-view-mode-created-at-' + rowId) // eslint-disable-line-prefer-template
+      .attr('id', 'user-subscription-view-mode-created-at-' + rowId) // eslint-disable-line prefer-template
       .text(subscription.created_at);
 
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-updated-at')
-      .attr('id', 'user-subscription-view-mode-updated-at-' + rowId) // eslint-disable-line-prefer-template
+      .attr('id', 'user-subscription-view-mode-updated-at-' + rowId) // eslint-disable-line prefer-template
       .text(subscription.updated_at);
 
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-edit-btn')
@@ -506,11 +537,11 @@ function start () {
       .attr('value', subscription.date_to);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-created-at')
-      .attr('id', 'user-subscription-edit-mode-created-at-' + rowId) // eslint-disable-line-prefer-template
+      .attr('id', 'user-subscription-edit-mode-created-at-' + rowId) // eslint-disable-line prefer-template
       .text(subscription.created_at);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-updated-at')
-      .attr('id', 'user-subscription-edit-mode-updated-at-' + rowId) // eslint-disable-line-prefer-template
+      .attr('id', 'user-subscription-edit-mode-updated-at-' + rowId) // eslint-disable-line prefer-template
       .text(subscription.updated_at);
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-save-btn')
@@ -789,10 +820,203 @@ function start () {
     $('#user-subscriptions-tab').parent().removeClass('active');
   };
 
+  const onUserSubscriptionsPreviousPageClick = function (event) { // eslint-disable-line prefer-arrow-callback
+    mainUtils.trace('onUserSubscriptionsPreviousPageClick');
+
+    const button = event.target;
+
+    assertApp(typeof userSubscriptionsOffset === 'number', {
+      msg: 'Expected userSubscriptionsOffset to be a number but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    if (userSubscriptionsOffset === 0) {
+      mainUtils.displayUserMessage('You are already on first page', 'info');
+      return;
+    } else {
+      userSubscriptionsOffset = userSubscriptionsOffset - RESULTS_LIMIT;
+    }
+
+    assertApp(userSubscriptionsOffset >= 0, {
+      msg: 'Expected userSubscriptionsOffset to be >= 0 but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isSafeInteger(userSubscriptionsOffset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected userSubscriptionsOffset to be a safe integer, but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKeyRef.APIKey,
+      offset: userSubscriptionsOffset,
+      limit: RESULTS_LIMIT,
+    };
+
+    button.disabled = true;
+
+    adminAPI.adminListUserSubscriptions(
+      params,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        button.disabled = false;
+        userSubscriptions = result.user_subscriptions;
+
+        renderUserSubscriptions($('#user-subscriptions-table'));
+      }
+    );
+  };
+
+  const onUserSubscriptionsNextPageClick = function (event) { // eslint-disable-line prefer-arrow-callback
+    mainUtils.trace('onUserSubscriptionsNextPageClick');
+
+    const button = event.target;
+
+    assertApp(typeof userSubscriptionsOffset === 'number', {
+      msg: 'Expected userSubscriptionsOffset to be a number but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    const newOffset = userSubscriptionsOffset + RESULTS_LIMIT;
+
+    assertApp(userSubscriptionsOffset >= 0, {
+      msg: 'Expected userSubscriptionsOffset to be >= 0 but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isSafeInteger(newOffset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefer-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKeyRef.APIKey,
+      offset: newOffset,
+      limit: RESULTS_LIMIT,
+    };
+
+    button.disabled = true;
+
+    adminAPI.adminListUserSubscriptions(
+      params,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        button.disabled = false;
+
+        if (result.user_subscriptions.length === 0) {
+          mainUtils.displayUserMessage('You are already on last page!', 'info');
+          return;
+        }
+
+        userSubscriptionsOffset = newOffset;
+        userSubscriptions = result.user_subscriptions;
+
+        renderUserSubscriptions($('#user-subscriptions-table'));
+      }
+    );
+  };
+
+  const onGuestSubscriptionsPreviousPageClick = function (event) { // eslint-disable-line prefer-arrow-callback
+    mainUtils.trace('onGuestSubscriptionsPreviousPageClick');
+
+    const button = event.target;
+
+    assertApp(typeof guestSubscriptionsOffset === 'number', {
+      msg: 'Expected offset to be a number but was =' + guestSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    if (guestSubscriptionsOffset === 0) {
+      mainUtils.displayUserMessage('You are already on first page', 'info');
+      return;
+    } else {
+      guestSubscriptionsOffset = guestSubscriptionsOffset - RESULTS_LIMIT;
+    }
+
+    assertApp(guestSubscriptionsOffset >= 0, {
+      msg: 'Expected guestSubscriptionsOffset to be >= 0 but was =' + guestSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isSafeInteger(guestSubscriptionsOffset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected guestSubscriptionsOffset to be a safe integer, but was =' + guestSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKeyRef.APIKey,
+      offset: guestSubscriptionsOffset,
+      limit: RESULTS_LIMIT,
+    };
+
+    button.disabled = true;
+
+    adminAPI.adminListGuestSubscriptions(
+      params,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        button.disabled = false;
+        guestSubscriptions = result.guest_subscriptions;
+
+        renderGuestSubscriptions($('#guest-subscriptions-table'));
+      }
+    );
+  };
+
+  const onGuestSubscriptionsNextPageClick = function (event) { // eslint-disable-line prefer-arrow-callback
+    mainUtils.trace('onGuestSubscriptionsNextPageClick');
+
+    const button = event.target;
+
+    assertApp(typeof guestSubscriptionsOffset === 'number', {
+      msg: 'Expected guestSubscriptionsOffset to be a number but was =' + guestSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    const newOffset = guestSubscriptionsOffset + RESULTS_LIMIT;
+
+    assertApp(guestSubscriptionsOffset >= 0, {
+      msg: 'Expected guestSubscriptionsOffset to be >= 0 but was =' + guestSubscriptionsOffset, // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isSafeInteger(newOffset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefer-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKeyRef.APIKey,
+      offset: newOffset,
+      limit: RESULTS_LIMIT,
+    };
+
+    button.disabled = true;
+
+    adminAPI.adminListGuestSubscriptions(
+      params,
+      PROTOCOL_NAME,
+      function (result) { // eslint-disable-line prefer-arrow-callback
+        button.disabled = false;
+
+        if (result.guest_subscriptions.length === 0) {
+          mainUtils.displayUserMessage('You are already on last page!', 'info');
+          return;
+        }
+
+        guestSubscriptionsOffset = newOffset;
+        guestSubscriptions = result.guest_subscriptions;
+
+        renderGuestSubscriptions($('#guest-subscriptions-table'));
+      }
+    );
+  };
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $userSubscriptionsTab = $('#user-subscriptions-tab');
     const $guestSubscriptionsTab = $('#guest-subscriptions-tab');
     const $subscribeSubmitBtn = $('#subscribe-submit-btn');
+
+    $('#user-subscriptions-next-page-btn').click(onUserSubscriptionsNextPageClick);
+    $('#user-subscriptions-prev-page-btn').click(onUserSubscriptionsPreviousPageClick);
+    $('#guest-subscriptions-next-page-btn').click(onGuestSubscriptionsNextPageClick);
+    $('#guest-subscriptions-prev-page-btn').click(onGuestSubscriptionsPreviousPageClick);
 
     api.getAPIKey({
       v: '2.0',
@@ -803,16 +1027,26 @@ function start () {
         const params = {
           v: '2.0',
           api_key: APIKeyRef.APIKey,
+          offset: 0,
+          limit: RESULTS_LIMIT,
         };
 
-        adminAPI.adminListSubscriptions(
+        adminAPI.adminListUserSubscriptions(
           params,
           PROTOCOL_NAME,
           function (result) { // eslint-disable-line prefer-arrow-callback
             userSubscriptions = result.user_subscriptions;
-            guestSubscriptions = result.guest_subscriptions;
 
             renderUserSubscriptions($('#user-subscriptions-table'));
+          }
+        );
+
+        adminAPI.adminListGuestSubscriptions(
+          params,
+          PROTOCOL_NAME,
+          function (result) { // eslint-disable-line prefer-arrow-callback
+            guestSubscriptions = result.guest_subscriptions;
+
             renderGuestSubscriptions($('#guest-subscriptions-table'));
           }
         );

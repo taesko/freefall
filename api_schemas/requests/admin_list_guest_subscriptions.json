@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/admin_list_guest_subscriptions",
+  "title": "Admin list guest subscriptions request",
+  "type": "object",
+  "properties": {
+    "v": {
+      "title": "API version",
+      "type": "string"
+    },
+    "limit": {
+      "title": "Limit",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "offset": {
+      "title": "Offset",
+      "type": "integer",
+      "minimum": 0
+    },
+    "api_key": {
+      "title": "API key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "v",
+    "api_key",
+    "limit",
+    "offset"
+  ]
+}

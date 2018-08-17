@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "response/admin_list_guest_subscriptions",
+  "title": "Admin list guest subscriptions response",
+  "type": "object",
+  "properties": {
+    "guest_subscriptions": {
+      "type": "array",
+      "title": "List of subscriptions, not linked to users",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Subscription database id"
+          },
+          "fly_from": {
+            "type": "string",
+            "title": "Departure airport id"
+          },
+          "fly_to": {
+            "type": "string",
+            "title": "Arrival airport id"
+          },
+          "created_at": {
+            "title": "Created at",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated at",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fly_from",
+          "fly_to",
+          "created_at",
+          "updated_at"
+        ]
+      }
+    }
+  },
+  "required": [
+    "guest_subscriptions"
+  ]
+}

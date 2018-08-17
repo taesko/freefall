@@ -140,7 +140,7 @@ async function updateUserSubscription (
     airportFromId,
     airportToId,
   );
-  
+
   const result = await dbClient.executeQuery(`
 
     UPDATE users_subscriptions
