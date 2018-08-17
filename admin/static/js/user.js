@@ -245,14 +245,14 @@ function start () {
     $('.airport-select').autocomplete(values);
   }
 
-  function showUserSubscriptionsTable () {
-    $('#user-subscriptions-table').removeAttr('hidden');
+  function showUserSubscriptionsResults () {
+    $('#user-subscriptions-results').removeAttr('hidden');
     $('#no-subscriptions-msg').attr('hidden', 'true');
   }
 
-  function hideUserSubscriptionsTable () {
+  function hideUserSubscriptionsResults () {
     $('#no-subscriptions-msg').removeAttr('hidden');
-    $('#user-subscriptions-table').attr('hidden', 'true');
+    $('#user-subscriptions-results').attr('hidden', 'true');
   }
 
   function clearUserSubscriptionsTable ($subscriptionsTable) {
@@ -272,9 +272,9 @@ function start () {
     mainUtils.trace('renderUserSubscriptions');
 
     if (subscriptions.length > 0) {
-      showUserSubscriptionsTable();
+      showUserSubscriptionsResults();
     } else {
-      hideUserSubscriptionsTable();
+      hideUserSubscriptionsResults();
     }
 
     assertApp($subscriptionsTable instanceof jQuery, {
@@ -294,7 +294,8 @@ function start () {
     rowIdUserSubscriptionMap = {};
 
     const currentPage = userSubscriptionsOffset / RESULTS_LIMIT + 1;
-    $('#current-page-label').text(currentPage);
+    $('#current-page-label-top').text(currentPage);
+    $('#current-page-label-bottom').text(currentPage);
 
     _.each(subscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
       renderUserSubscriptionRow('view', subscription);
@@ -514,9 +515,9 @@ function start () {
           $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
 
           if (subscriptions.length > 0) {
-            showUserSubscriptionsTable();
+            showUserSubscriptionsResults();
           } else {
-            hideUserSubscriptionsTable();
+            hideUserSubscriptionsResults();
           }
 
           mainUtils.displayUserMessage('Successfully deleted user subscription!', 'success');
@@ -823,8 +824,11 @@ function start () {
     $('#user-edit-mode-cancel-btn').click(onCancelEditUserClick);
     $('#user-edit-mode-remove-btn').click(onRemoveUserClick);
     $('#user-credits-submit-btn').click(onUserCreditsSubmitClick);
-    $('#prev-page-btn').click(onPreviousPageClick);
-    $('#next-page-btn').click(onNextPageClick);
+    $('#prev-page-btn-top').click(onPreviousPageClick);
+    $('#next-page-btn-top').click(onNextPageClick);
+    $('#prev-page-btn-bottom').click(onPreviousPageClick);
+    $('#next-page-btn-bottom').click(onNextPageClick);
+
   });
 }
 

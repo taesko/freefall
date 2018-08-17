@@ -93,24 +93,24 @@ function start () {
     $('.airport-select').autocomplete(values);
   }
 
-  function showUserSubscriptionsTable () {
-    $('#user-subscriptions-table').removeAttr('hidden');
+  function showUserSubscriptionsResults () {
+    $('#user-subscriptions-results').removeAttr('hidden');
     $('#no-subscriptions-msg').attr('hidden', 'true');
   }
 
-  function hideUserSubscriptionsTable () {
+  function hideUserSubscriptionsResults () {
     $('#no-subscriptions-msg').removeAttr('hidden');
-    $('#user-subscriptions-table').attr('hidden', 'true');
+    $('#user-subscriptions-results').attr('hidden', 'true');
   }
 
-  function showGuestSubscriptionsTable () {
-    $('#guest-subscriptions-table').removeAttr('hidden');
+  function showGuestSubscriptionsResults () {
+    $('#guest-subscriptions-results').removeAttr('hidden');
     $('#no-subscriptions-msg').attr('hidden', 'true');
   }
 
-  function hideGuestSubscriptionsTable () {
+  function hideGuestSubscriptionsResults () {
     $('#no-subscriptions-msg').removeAttr('hidden');
-    $('#guest-subscriptions-table').attr('hidden', 'true');
+    $('#guest-subscriptions-results').attr('hidden', 'true');
   }
 
   function clearGuestSubscriptionsTable ($guestSubscriptionsTable) {
@@ -130,9 +130,9 @@ function start () {
     mainUtils.trace('renderGuestSubscriptions');
 
     if (guestSubscriptions.length > 0) {
-      showGuestSubscriptionsTable();
+      showGuestSubscriptionsResults();
     } else {
-      hideGuestSubscriptionsTable();
+      hideGuestSubscriptionsResults();
     }
 
     assertApp($guestSubscriptionsTable instanceof jQuery, {
@@ -152,7 +152,8 @@ function start () {
     rowIdGuestSubscriptionMap = {};
 
     const currentPage = guestSubscriptionsOffset / RESULTS_LIMIT + 1;
-    $('#guest-subscriptions-current-page-label').text(currentPage);
+    $('#guest-subscriptions-current-page-label-top').text(currentPage);
+    $('#guest-subscriptions-current-page-label-bottom').text(currentPage);
 
     _.each(guestSubscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
       renderGuestSubscriptionRow('view', subscription);
@@ -396,9 +397,9 @@ function start () {
     $('#guest-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
 
     if (guestSubscriptions.length > 0) {
-      showGuestSubscriptionsTable();
+      showGuestSubscriptionsResults();
     } else {
-      hideGuestSubscriptionsTable();
+      hideGuestSubscriptionsResults();
     }
   };
 
@@ -428,9 +429,9 @@ function start () {
     mainUtils.trace('renderUserSubscriptions');
 
     if (userSubscriptions.length > 0) {
-      showUserSubscriptionsTable();
+      showUserSubscriptionsResults();
     } else {
-      hideUserSubscriptionsTable();
+      hideUserSubscriptionsResults();
     }
 
     assertApp($userSubscriptionsTable instanceof jQuery, {
@@ -450,7 +451,8 @@ function start () {
     rowIdUserSubscriptionMap = {};
 
     const currentPage = userSubscriptionsOffset / RESULTS_LIMIT + 1;
-    $('#user-subscriptions-current-page-label').text(currentPage);
+    $('#user-subscriptions-current-page-label-top').text(currentPage);
+    $('#user-subscriptions-current-page-label-bottom').text(currentPage);
 
     _.each(userSubscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
       renderUserSubscriptionRow('view', subscription);
@@ -781,9 +783,9 @@ function start () {
           $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
 
           if (userSubscriptions.length > 0) {
-            showUserSubscriptionsTable();
+            showUserSubscriptionsResults();
           } else {
-            hideUserSubscriptionsTable();
+            hideUserSubscriptionsResults();
           }
 
           mainUtils.displayUserMessage('Successfully removed user subscription!', 'success');
@@ -798,9 +800,9 @@ function start () {
     mainUtils.trace('clicked users tab');
 
     if (userSubscriptions.length > 0) {
-      showUserSubscriptionsTable();
+      showUserSubscriptionsResults();
     } else {
-      hideUserSubscriptionsTable();
+      hideUserSubscriptionsResults();
     }
 
     $('#user-subscriptions-section').removeAttr('hidden');
@@ -814,9 +816,9 @@ function start () {
     mainUtils.trace('clicked guest tab');
 
     if (guestSubscriptions.length > 0) {
-      showGuestSubscriptionsTable();
+      showGuestSubscriptionsResults();
     } else {
-      hideGuestSubscriptionsTable();
+      hideGuestSubscriptionsResults();
     }
 
     $('#guest-subscriptions-section').removeAttr('hidden');
@@ -1019,10 +1021,15 @@ function start () {
     const $guestSubscriptionsTab = $('#guest-subscriptions-tab');
     const $subscribeSubmitBtn = $('#subscribe-submit-btn');
 
-    $('#user-subscriptions-next-page-btn').click(onUserSubscriptionsNextPageClick);
-    $('#user-subscriptions-prev-page-btn').click(onUserSubscriptionsPreviousPageClick);
-    $('#guest-subscriptions-next-page-btn').click(onGuestSubscriptionsNextPageClick);
-    $('#guest-subscriptions-prev-page-btn').click(onGuestSubscriptionsPreviousPageClick);
+    $('#user-subscriptions-next-page-btn-top').click(onUserSubscriptionsNextPageClick);
+    $('#user-subscriptions-prev-page-btn-top').click(onUserSubscriptionsPreviousPageClick);
+    $('#guest-subscriptions-next-page-btn-top').click(onGuestSubscriptionsNextPageClick);
+    $('#guest-subscriptions-prev-page-btn-top').click(onGuestSubscriptionsPreviousPageClick);
+    $('#user-subscriptions-next-page-btn-bottom').click(onUserSubscriptionsNextPageClick);
+    $('#user-subscriptions-prev-page-btn-bottom').click(onUserSubscriptionsPreviousPageClick);
+    $('#guest-subscriptions-next-page-btn-bottom').click(onGuestSubscriptionsNextPageClick);
+    $('#guest-subscriptions-prev-page-btn-bottom').click(onGuestSubscriptionsPreviousPageClick);
+
 
     api.getAPIKey({
       v: '2.0',

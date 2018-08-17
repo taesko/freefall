@@ -31,9 +31,9 @@ function start () {
     mainUtils.trace('renderUsers');
 
     if (users.length > 0) {
-      showUsersTable();
+      showUsersResults();
     } else {
-      hideUsersTable();
+      hideUsersResults();
     }
 
     assertApp($usersTable instanceof jQuery, {
@@ -53,7 +53,8 @@ function start () {
     rowIdUserMap = {};
 
     const currentPage = offset / RESULTS_LIMIT + 1;
-    $('#current-page-label').text(currentPage);
+    $('#current-page-label-top').text(currentPage);
+    $('#current-page-label-bottom').text(currentPage);
 
     _.each(users, function (user) { // eslint-disable-line prefer-arrow-callback
       renderUserRow('view', user);
@@ -174,14 +175,14 @@ function start () {
     $row.replaceWith($userEditModeClone);
   }
 
-  function showUsersTable () {
-    $('#users-table').removeAttr('hidden');
+  function showUsersResults () {
+    $('#users-results').removeAttr('hidden');
     $('#no-users-msg').attr('hidden', 'true');
   }
 
-  function hideUsersTable () {
+  function hideUsersResults () {
     $('#no-users-msg').removeAttr('hidden');
-    $('#users-table').attr('hidden', 'true');
+    $('#users-results').attr('hidden', 'true');
   }
 
   const onRemoveUserClick = function (event) {
@@ -215,9 +216,9 @@ function start () {
           $('#user-' + rowId).remove(); // eslint-disable-line prefer-template
 
           if (users.length > 0) {
-            showUsersTable();
+            showUsersResults();
           } else {
-            hideUsersTable();
+            hideUsersResults();
           }
           mainUtils.displayUserMessage('Successfully removed user!', 'success');
         } else {
@@ -430,8 +431,10 @@ function start () {
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    $('#prev-page-btn').click(onPreviousPageClick);
-    $('#next-page-btn').click(onNextPageClick);
+    $('#prev-page-btn-top').click(onPreviousPageClick);
+    $('#next-page-btn-top').click(onNextPageClick);
+    $('#prev-page-btn-bottom').click(onPreviousPageClick);
+    $('#next-page-btn-bottom').click(onNextPageClick);
 
     api.getAPIKey({
       v: '2.0',
