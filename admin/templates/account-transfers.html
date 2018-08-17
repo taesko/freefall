@@ -10,6 +10,28 @@
   <div class="container">
     {{> heading }}
     {{> menu }}
+    <div class="row">
+      <div class="col-md-4">
+        {{#if prev_page}}
+        <p class="text-left">
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}';">Previous page</button>
+        </p>
+        {{/if}}
+      </div>
+      <div class="col-md-4">
+        <p class="text-center">
+          Page:
+          <label>{{page}}</label>
+        </p>
+      </div>
+      <div class="col-md-4">
+        {{#if next_page}}
+        <p class="text-right">
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}';">Next page</button>
+        </p>
+        {{/if}}
+      </div>
+    </div>
     <table id="account-transfers-table" class="table table-bordered">
       <thead>
         <tr>
@@ -58,6 +80,28 @@
         {{/each}}
       </tbody>
     </table>
+    <div class="row">
+      <div class="col-md-4">
+        {{#if prev_page}}
+        <p class="text-left">
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}';">Previous page</button>
+        </p>
+        {{/if}}
+      </div>
+      <div class="col-md-4">
+        <p class="text-center">
+          Page:
+          <label>{{page}}</label>
+        </p>
+      </div>
+      <div class="col-md-4">
+        {{#if next_page}}
+        <p class="text-right">
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}';">Next page</button>
+        </p>
+        {{/if}}
+      </div>
+    </div>
 <!--     <p id="no-fetches-msg" class="text-center" hidden="true">No fetches found</p> -->
     <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
     <p><label>Credits owned by all users:</label> {{users_total_credits}}</p>

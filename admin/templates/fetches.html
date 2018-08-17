@@ -14,7 +14,7 @@
       <div class="col-md-4">
         {{#if prev_page}}
         <p class="text-left">
-          <button class="btn btn-default" onclick="location.href='/fetches?page={{prev_page}};'">Previous page</button>
+          <button class="btn btn-default" onclick="location.href='/fetches?page={{prev_page}}';">Previous page</button>
         </p>
         {{/if}}
       </div>
@@ -27,7 +27,7 @@
       <div class="col-md-4">
         {{#if next_page}}
         <p class="text-right">
-          <button class="btn btn-default" onclick="location.href='/fetches?page={{next_page}};'">Next page</button>
+          <button class="btn btn-default" onclick="location.href='/fetches?page={{next_page}}';">Next page</button>
         </p>
         {{/if}}
       </div>
@@ -79,7 +79,7 @@
       </div>
     </div>
     <p>
-      <label>Total:</label> {{totalAPIRequests}}
+      <label>Total KIWI API requests:</label> {{totalAPIRequests}}
     </p>
 <!--     <p id="no-fetches-msg" class="text-center" hidden="true">No fetches found</p> -->
   </div>
