@@ -35,11 +35,15 @@
     {{> messages }}
     <div>
       <ul class="list-unstyled">
-        <li><button id="display-subscriptions-btn" class="btn btn-primary btn-block">Subscriptions</button></li>
-        <li><button id="display-taxes-btn" class="btn btn-primary btn-block">Tax History</button></li>
+        <li>
+          <button id="display-subscriptions-btn" class="btn btn-primary">Subscriptions</button>
+        </li>
+        <li>
+          <button id="display-credit-history-btn" class="btn btn-primary">Credit History</button>
+        </li>
       </ul>
     </div>
-    <div>
+      <div id="subscriptions-tab">
       <h3>Your subscriptions:</h3>
       <table id="subscriptions-table" class="table table-bordered" hidden="true">
         <thead>
@@ -90,32 +94,36 @@
           </tr>
         </tbody>
       </table>
-      <table id="tax-history-table" class="table table-bordered" hidden="true">
-        <thead>
-          <tr>
-            <th> Airport from </th>
-            <th> Airport to </th>
-            <th> Date from </th>
-            <th> Date to </th>
-            <th> Taxed on </th>
-            <th> Amount </th>
-            <th> Reason </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr id="tax-history-template-row" hidden="true">
-            <td id="tax-airport-from"></td>
-            <td id="tax-airport-to"></td>
-            <td id="tax-date-from"></td>
-            <td id="tax-date-to"></td>
-            <td id="tax-taxed-on"></td>
-            <td id="tax-amount"></td>
-            <td id="tax-reason"></td>
-          </tr>
-        </tbody>
-      </table>
       <p id="no-subscriptions-msg" class="text-center" hidden="true">No subscriptions found</p>
     </div>
+      <div id="credit-history-tab" class="container collapse" hidden="true">
+        <table id="credit-history-table" class="table table-bordered">
+          <thead>
+          <tr>
+            <th> Airport from</th>
+            <th> Airport to</th>
+            <th> Date from</th>
+            <th> Date to</th>
+            <th> Taxed on</th>
+            <th> Amount</th>
+            <th> Reason</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr id="credit-history-template-row" hidden="true">
+            <td id="credit-transferred-at"></td>
+            <td id="credit-airport-from"></td>
+            <td id="credit-airport-to"></td>
+            <td id="credit-date-from"></td>
+            <td id="credit-date-to"></td>
+            <td id="credit-transfer-amount"></td>
+            <td id="credit-reason"></td>
+          </tr>
+          </tbody>
+        </table>
+        <button id="credit-history-load-more-btn" class="btn btn-primary btn-block"> Load more</button>
+        <p id="no-credit-history-msg" class="text-center" hidden="true">No credit transactions found.</p>
+      </div>
   </div>
   <script src="js/lodash/index.min.js"></script>
   <script src="js/jquery/jquery-2.2.4.js"></script>

@@ -1,4 +1,4 @@
-/* eslint-disable prefer-template */
+/* eslint-disable prefer-template,prefer-arrow-callback,camelcase */
 'use strict';
 
 function start () {
@@ -16,6 +16,7 @@ function start () {
   var subscriptions = []; // eslint-disable-line no-var
   var rowIdSubscriptionMap = {}; // eslint-disable-line no-var
   var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
+  const CREDIT_HISTORY_PAGE_LIMIT = 5;
 
   function getAirportName (airports, id) {
     mainUtils.trace('getAirportName(airports, ' + id + '), typeof arg=' + typeof id + ''); // eslint-disable-line prefer-template
@@ -520,16 +521,72 @@ function start () {
     $('.airport-select').autocomplete(values);
   }
 
-  function renderTaxHistory ($table, history) {
-    $table.find('tr:not(:first)').remove();
-    const $tableRowTemplate = $table.find('#tax-history-template-row');
+  function displaySubscriptions () {
+    $('#credit-history-tab').hide();
+    $('#subscriptions-tab').show();
+  }
+
+  function displayCreditHistory () {
+    $('#credit-history-tab').show();
+    $('#subscriptions-tab').hide();
+
+    if ($('#credit-history-table tbody tr:not(:first)').length === 0) {
+      loadMoreCreditHistory();
+    }
+  }
+
+  function loadMoreCreditHistory () {
+    const $creditsTable = $('#credit-history-table');
+    const offset = $creditsTable.find('tbody tr:not(:first)').length;
+    const params = {
+      limit: CREDIT_HISTORY_PAGE_LIMIT,
+      offset: offset,
+    };
+
+    api.creditHistory(params, PROTOCOL_NAME, function (result) {
+      assertApp(result.status_code >= '1000', { msg: result.status_code + '' });
+      assertApp(result.status_code < '2000', { msg: result.status_code + '' });
+
+      const history = result.credit_history;
+      if (offset === 0 && history.length === 0) {
+        $creditsTable.hide();
+        $('#no-credit-history-msg').show();
+        $('#credit-history-load-more-btn').hide();
+      } else if (history.length < CREDIT_HISTORY_PAGE_LIMIT) {
+        renderCreditHistory($creditsTable, history);
+        $('#credit-history-load-more-btn').hide();
+      } else {
+        renderCreditHistory($creditsTable, history);
+      }
+    });
+  }
+
+  function renderCreditHistory ($table, history) {
+    // $table.find('tr:not(:first)').remove();
+    const $tableRowTemplate = $table.find('#credit-history-template-row');
 
     for (const historyHash of history) {
+      const {
+        fly_from,
+        fly_to,
+        date_from,
+        date_to,
+      } = subscriptions.find(s => s.id === historyHash.id);
+      const { name: airportFrom } = airports.find(a => a.id === fly_from);
+      const { name: airportTo } = airports.find(a => a.id === fly_to);
       const $tableRow = $tableRowTemplate.clone()
         .removeAttr('id')
         .removeAttr('hidden');
-      renderRow($tableRow, historyHash);
-      $table.find('tr:last').after($tableRow);
+      renderRow($tableRow, {
+        airport_from: airportFrom,
+        airport_to: airportTo,
+        date_from: date_from,
+        date_to: date_to,
+        transferred_at: new Date(historyHash.transferred_at).toLocaleString(),
+        transfer_amount: historyHash.transfer_amount,
+        reason: historyHash.reason,
+      });
+      $table.find('tbody tr:last').after($tableRow);
     }
 
     function renderRow ($tableRow, historyHash) {
@@ -538,14 +595,14 @@ function start () {
         'airport_to',
         'date_from',
         'date_to',
-        'taxed_on',
-        'amount',
+        'transferred_at',
+        'transfer_amount',
         'reason',
       ];
       for (const prop of requiredProperties) {
-        assertApp(_.has(historyHash, prop), 'missing property' + prop);
+        assertApp(_.has(historyHash, prop), { msg: 'missing property ' + prop });
 
-        const id = '#tax-' + prop.replace('_', '-');
+        const id = '#credit-' + prop.replace('_', '-');
 
         $tableRow.find(id).text(historyHash[prop]);
       }
@@ -553,9 +610,10 @@ function start () {
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    const $subscribeSubmitBtn = $('#subscribe-submit-btn');
-
-    $subscribeSubmitBtn.click(onSubscribeSubmitClick);
+    $('#subscribe-submit-btn').click(onSubscribeSubmitClick);
+    $('#display-credit-history-btn').click(displayCreditHistory);
+    $('#display-subscriptions-btn').click(displaySubscriptions);
+    $('#credit-history-load-more-btn').click(loadMoreCreditHistory);
 
     api.getAPIKey({
       v: '2.0',

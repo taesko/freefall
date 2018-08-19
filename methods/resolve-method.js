@@ -20,6 +20,9 @@ const DEFAULT_SEARCH_PAGE_OFFSET = 0;
 const MAX_FLY_DURATION = 48;
 const DEFAULT_MAX_FLY_DURATION = 24;
 
+const CREDIT_HISTORY_DEFAULT_LIMIT = 10;
+const CREDIT_HISTORY_MAX_LIMIT = 20;
+
 async function airportIDExists (dbClient, airportID) {
   assertApp(isObject(dbClient), `got ${dbClient}`);
   assertApp(Number.isInteger(airportID), `got ${airportID}`);
@@ -485,71 +488,58 @@ const editSubscription = defineAPIMethod(
   },
 );
 
-const taxHistory = defineAPIMethod(
+const creditHistory = defineAPIMethod(
   {
     'TH_BAD_USER_ID': { status_code: '2100' },
     'TH_INVALID_USER_ID': { status_code: '2100' },
     'TH_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
   },
   async (params, dbClient) => {
-    const userId = +params.user_id;
     const apiKey = params.api_key;
+    const limit = +params.limit || CREDIT_HISTORY_DEFAULT_LIMIT;
+    const offset = +params.offset || 0;
 
-    assertPeer(Number.isInteger(userId), `got ${userId}`, 'TH_BAD_USER_ID');
+    assertPeer(Number.isInteger(limit), `got ${limit}`, 'TH_BAD_LIMIT');
+    assertPeer(limit <= CREDIT_HISTORY_MAX_LIMIT, `got ${limit}`, 'TH_INVALID_LIMIT');
+    assertPeer(Number.isInteger(offset), `got ${offset}`, 'TH_BAD_OFFSET');
 
-    const user = await users.fetchUser(dbClient, { userId });
+    const user = await users.fetchUser(dbClient, { apiKey });
 
     assertPeer(user, `got ${user}`, 'TH_INVALID_USER_ID');
     assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
-    const subscrs = await subscriptions.listUserSubscriptions(dbClient, userId);
-    const subscrPlaceholders = subscrs.map((s, index) => `$${index + 1}`)
-      .join(',');
     const { rows: subscrTransfers } = await dbClient.executeQuery(
       `
-        SELECT users_subscriptions.subscription_id, transferred_at, transfer_amount, 'initial tax' AS reason
+      SELECT id, *
+      FROM (
+        SELECT usat.user_subscription_id AS id, transferred_at, transfer_amount, 'initial tax' AS reason
         FROM account_transfers
         JOIN user_subscription_account_transfers usat ON account_transfers.id=usat.account_transfer_id
-        JOIN users_subscriptions ON account_transfers.user_id = users_subscriptions.user_id
-        WHERE users_subscriptions.subscription_id IN (${subscrPlaceholders})
-        UNION
-        SELECT users_subscriptions.subscription_id, transferred_at, transfer_amount, 'fetch tax' AS reason
+        UNION ALL
+        SELECT users_subscriptions.id, transferred_at, transfer_amount, 'fetch tax' AS reason
         FROM account_transfers
         JOIN subscriptions_fetches_account_transfers sfat ON account_transfers.id=sfat.account_transfer_id
         JOIN subscriptions_fetches ON sfat.subscription_fetch_id=subscriptions_fetches.id
         JOIN subscriptions ON subscriptions_fetches.subscription_id=subscriptions.id
         JOIN users_subscriptions ON subscriptions.id=users_subscriptions.subscription_id
-        WHERE users_subscriptions.id IN (${subscrPlaceholders})
+      ) AS credit_history
+      WHERE id IN (SELECT id FROM users_subscriptions WHERE user_id=$1)
+      ORDER BY transferred_at, id
+      LIMIT $2
+      OFFSET $3
       `,
-      subscrs,
+      [user.id, limit, offset],
     );
-    const result = {};
 
-    for (const row of subscrs) {
-      // eslint-disable-next-line camelcase
-      const { subscription_id: subscrID } = row;
-
-      if (result[subscrID] == null) {
-        result[subscrID] = {};
-      }
-
-      const subscr = subscrs.find(s => s.id === subscrID);
-      result[subscrID]['fly_from'] = subscr.fly_from;
-      result[subscrID]['fly_to'] = subscr.fly_from;
-      result[subscrID]['date_from'] = moment(subscr.date_from).format('YYYY-MM-DD');
-      result[subscrID]['date_to'] = moment(subscr.date_to).format('YYYY-MM-DD');
-    }
-
-    for (const row of subscrTransfers) {
-      // eslint-disable-next-line camelcase
-      const { subscription_id: subscrID } = row;
-
-      result[subscrID] = { ...result[subscrID], ...row };
-    }
+    subscrTransfers.map(transfer => {
+      transfer.id = `${transfer.id}`;
+      transfer.transferred_at = transfer.transferred_at.toISOString();
+      return transfer;
+    });
 
     return {
       status_code: '1000',
-      result,
+      credit_history: subscrTransfers,
     };
   }
 );
@@ -1073,6 +1063,7 @@ const API_METHODS = {
   edit_subscription: editSubscription,
   list_airports: listAirports,
   list_subscriptions: listSubscriptions,
+  credit_history: creditHistory,
   admin_list_subscriptions: adminListSubscriptions,
   admin_list_users: adminListUsers,
   admin_subscribe: adminSubscribe,

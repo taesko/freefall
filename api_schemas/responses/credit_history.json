@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "response/credit_history",
+  "title": "Body of the response of the credit_history API method sent TO the client.",
+  "type": "object",
+  "properties": {
+    "status_code": {
+      "type": "string"
+    },
+    "credit_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "transferred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "transfer_amount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "initial tax",
+              "fetch tax"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "transferred_at",
+          "transfer_amount",
+          "reason"
+        ]
+      }
+    }
+  },
+  "required": [
+    "status_code"
+  ]
+}
