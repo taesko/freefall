@@ -301,3 +301,13 @@ CREATE OR REPLACE VIEW search_view AS
     LEFT JOIN airlines ON airlines.id = flights.airline_id
     LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
     LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id
+
+CREATE OR REPLACE VIEW users_subscrs_public_data_view AS
+    SELECT user_sub.id, user_sub.date_from, user_sub.date_to,
+      ap_from.id airport_from_id, ap_to.id airport_to_id,
+      users.id user_id, users.email user_email
+    FROM users_subscriptions user_sub
+    JOIN users ON user_sub.user_id=users.id
+    JOIN subscriptions sub ON user_sub.subscription_id=sub.id
+    JOIN airports ap_from ON sub.airport_from_id=ap_from.id
+    JOIN airports ap_to ON sub.airport_to_id=ap_to.id
