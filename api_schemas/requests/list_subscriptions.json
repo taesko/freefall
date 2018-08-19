@@ -9,6 +9,16 @@
     },
     "api_key": {
       "type": "string"
+    },
+    "limit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "offset": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 9007199254740991
     }
   },
   "required": [

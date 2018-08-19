@@ -20,6 +20,7 @@ const DEFAULT_SEARCH_PAGE_OFFSET = 0;
 const MAX_FLY_DURATION = 48;
 const DEFAULT_MAX_FLY_DURATION = 24;
 
+const LIST_SUBSCRIPTIONS_DEFAULT_LIMIT = 5;
 const CREDIT_HISTORY_DEFAULT_LIMIT = 10;
 const CREDIT_HISTORY_MAX_LIMIT = 20;
 
@@ -45,19 +46,71 @@ async function airportIDExists (dbClient, airportID) {
 
 const search = defineAPIMethod(
   {
-    'SEARCH_BAD_FLY_FROM': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_BAD_FLY_TO': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_INVALID_FLY_FROM': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_INVALID_FLY_TO': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_INVALID_DATE_RANGE': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_EARLY_DATE_FROM': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_BAD_PRICE_TO': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_INVALID_PRICE_TO': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_BAD_LIMIT': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_INVALID_LIMIT': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_BAD_OFFSET': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_INVALID_OFFSET': { status_code: '2000', currency: 'USD', routes: [] },
-    'SEARCH_BAD_MAX_FLY_DURATION': { status_code: '2000', currency: 'USD', routes: [] },
+    'SEARCH_BAD_FLY_FROM': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_BAD_FLY_TO': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_INVALID_FLY_FROM': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_INVALID_FLY_TO': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_INVALID_DATE_RANGE': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_EARLY_DATE_FROM': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_BAD_PRICE_TO': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_INVALID_PRICE_TO': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_BAD_LIMIT': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_INVALID_LIMIT': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_BAD_OFFSET': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_INVALID_OFFSET': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
+    'SEARCH_BAD_MAX_FLY_DURATION': {
+      status_code: '2000',
+      currency: 'USD',
+      routes: [],
+    },
   },
   async (params, dbClient) => {
     assertApp(isObject(params), `got ${params}`);
@@ -286,15 +339,42 @@ const search = defineAPIMethod(
 
 const subscribe = defineAPIMethod(
   {
-    [errorCodes.subscriptionExists]: { status_code: '2000', subscription_id: null },
-    [errorCodes.notEnoughCredits]: { status_code: '2001', subscription_id: null },
-    'SUBSCR_BAD_FLY_FROM': { status_code: '2100', subscription_id: null },
-    'SUBSCR_BAD_FLY_TO': { status_code: '2100', subscription_id: null },
-    'SUBSCR_BAD_API_KEY': { status_code: '2200', subscription_id: null },
-    'SUBSCRIBE_USER_BAD_DATE': { status_code: '2100', subscription_id: null },
-    'SUBSCR_EARLY_DATE_FROM': { status_code: '2100', subscription_id: null },
-    'SUBSCR_INVALID_FLY_FROM_ID': { status_code: '2100', subscription_id: null },
-    'SUBSCR_INVALID_FLY_TO_ID': { status_code: '2100', subscription_id: null },
+    [errorCodes.subscriptionExists]: {
+      status_code: '2000',
+      subscription_id: null,
+    },
+    [errorCodes.notEnoughCredits]: {
+      status_code: '2001',
+      subscription_id: null,
+    },
+    'SUBSCR_BAD_FLY_FROM': {
+      status_code: '2100',
+      subscription_id: null,
+    },
+    'SUBSCR_BAD_FLY_TO': {
+      status_code: '2100',
+      subscription_id: null,
+    },
+    'SUBSCR_BAD_API_KEY': {
+      status_code: '2200',
+      subscription_id: null,
+    },
+    'SUBSCRIBE_USER_BAD_DATE': {
+      status_code: '2100',
+      subscription_id: null,
+    },
+    'SUBSCR_EARLY_DATE_FROM': {
+      status_code: '2100',
+      subscription_id: null,
+    },
+    'SUBSCR_INVALID_FLY_FROM_ID': {
+      status_code: '2100',
+      subscription_id: null,
+    },
+    'SUBSCR_INVALID_FLY_TO_ID': {
+      status_code: '2100',
+      subscription_id: null,
+    },
   },
   async (params, dbClient) => {
     assertApp(isObject(params));
@@ -512,7 +592,9 @@ const creditHistory = defineAPIMethod(
 
     const { rows: subscrTransfers } = await dbClient.executeQuery(
       `
-      SELECT id, *
+      SELECT credit_history.id::text, transferred_at, transfer_amount, reason,
+        subscriptions.airport_from_id::text, subscriptions.airport_to_id::text, 
+        users_subscriptions.date_from, users_subscriptions.date_to
       FROM (
         SELECT usat.user_subscription_id AS id, transferred_at, transfer_amount, 'initial tax' AS reason
         FROM account_transfers
@@ -525,7 +607,9 @@ const creditHistory = defineAPIMethod(
         JOIN subscriptions ON subscriptions_fetches.subscription_id=subscriptions.id
         JOIN users_subscriptions ON subscriptions.id=users_subscriptions.subscription_id
       ) AS credit_history
-      WHERE id IN (SELECT id FROM users_subscriptions WHERE user_id=$1)
+      JOIN users_subscriptions ON credit_history.id=users_subscriptions.id
+      JOIN subscriptions ON users_subscriptions.subscription_id=subscriptions.id
+      WHERE users_subscriptions.user_id=$1
       ORDER BY transferred_at, id
       LIMIT $2
       OFFSET $3
@@ -534,7 +618,8 @@ const creditHistory = defineAPIMethod(
     );
 
     subscrTransfers.map(transfer => {
-      transfer.id = `${transfer.id}`;
+      transfer.date_from = moment(transfer.date_from).format(SERVER_DATE_FORMAT);
+      transfer.date_to = moment(transfer.date_to).format(SERVER_DATE_FORMAT);
       transfer.transferred_at = transfer.transferred_at.toISOString();
       return transfer;
     });
@@ -562,21 +647,31 @@ const listSubscriptions = defineAPIMethod(
   {
     'LIST_SUBSCR_INVALID_USER_ID': { subscriptions: [] }, // TODO add status codes ?
   },
-  async (params, dbClient) => {
-    const user = await users.fetchUser(dbClient, { apiKey: params.api_key });
-    assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_USER_ID');
-    const subRows = await subscriptions.listUserSubscriptions(
-      dbClient,
-      user.id,
-    );
+  async ({
+    limit = LIST_SUBSCRIPTIONS_DEFAULT_LIMIT,
+    offset = 0,
+    api_key: apiKey,
+  }, dbClient) => {
+    const user = await users.fetchUser(dbClient, { apiKey });
 
-    for (const sr of subRows) {
-      sr.id = `${sr.id}`;
-      sr.fly_from = `${sr.fly_from}`;
-      sr.fly_to = `${sr.fly_to}`;
-      sr.date_from = moment(sr.date_from).format('Y-MM-DD');
-      sr.date_to = moment(sr.date_to).format('Y-MM-DD');
-    }
+    assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_USER_ID');
+
+    const { rows: subRows } = await dbClient.executeQuery(
+      `
+      SELECT 
+        id::text,
+        airport_from_id::text AS fly_from,
+        airport_to_id::text AS fly_to,
+        to_char(date_from, 'YYYY-MM-DD') AS date_from,
+        to_char(date_to, 'YYYY-MM-DD') AS date_to
+      FROM users_subscrs_public_data_view
+      WHERE user_id=$1 AND subscription_is_active=true
+      ORDER BY updated_at DESC
+      LIMIT $2
+      OFFSET $3
+      `,
+      [user.id, limit, offset],
+    );
 
     return {
       subscriptions: subRows,
@@ -778,7 +873,7 @@ const adminListUserSubscriptions = defineAPIMethod(
       status_code: '1000',
       user_subscriptions: userSubscr,
     };
-  }
+  },
 );
 
 // const adminListSubscriptions = defineAPIMethod(

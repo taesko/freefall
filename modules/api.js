@@ -81,6 +81,7 @@ async function api (ctx, next) {
     queryParam: ctx.query.format,
   });
   log.info('Getting post request to api. Format specified by peer is: ', format);
+  log.debug('Post body is: ', ctx.request.body);
   const protocol = `${format}rpc`;
   // koa body has already parsed the json
   const parsed = format === 'json' ? ctx.request.body : multiParser.parse(ctx.request.body, format);

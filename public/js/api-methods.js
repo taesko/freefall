@@ -79,17 +79,17 @@ function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     });
   };
 
-  const listSubscriptions = function (protocolName, callback) {
+  const listSubscriptions = function (params, protocolName, callback) {
     mainUtils.trace('listSubscriptions(' + protocolName + '), typeof arg=' + typeof protocolName + ''); // eslint-disable-line prefer-template
+
+    params.api_key = mainUtils.APIKeyRef.APIKey;
+    params.v = '2.0';
 
     mainUtils.sendRequest({
       url: mainUtils.SERVER_URL,
       data: {
         method: 'list_subscriptions',
-        params: {
-          v: '2.0',
-          api_key: mainUtils.APIKeyRef.APIKey,
-        },
+        params: params,
       },
       protocolName: protocolName,
     }, function (error, result) { // eslint-disable-line prefer-arrow-callback

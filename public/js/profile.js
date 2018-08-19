@@ -1,4 +1,4 @@
-/* eslint-disable prefer-template,prefer-arrow-callback,camelcase */
+/* eslint-disable prefer-template,prefer-arrow-callback,camelcase,prefer-spread */
 'use strict';
 
 function start () {
@@ -17,6 +17,7 @@ function start () {
   var rowIdSubscriptionMap = {}; // eslint-disable-line no-var
   var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
   const CREDIT_HISTORY_PAGE_LIMIT = 5;
+  const SUBSCRIPTIONS_PAGE_LIMIT = 5;
 
   function getAirportName (airports, id) {
     mainUtils.trace('getAirportName(airports, ' + id + '), typeof arg=' + typeof id + ''); // eslint-disable-line prefer-template
@@ -94,12 +95,6 @@ function start () {
   function renderSubscriptions ($subscriptionsTable, subscriptions) {
     mainUtils.trace('renderSubscriptions');
 
-    if (subscriptions.length > 0) {
-      showSubscriptionsTable();
-    } else {
-      hideSubscriptionTable();
-    }
-
     assertApp($subscriptionsTable instanceof jQuery, {
       msg: 'Expected $subscriptionsTable to be instance of jQuery, but was ' + typeof $subscriptionsTable, // eslint-disable-line prefer-template
     });
@@ -113,7 +108,7 @@ function start () {
       msg: 'Expected subscriptions to be instance of array, but was ' + typeof subscriptions, // eslint-disable-line prefer-template
     });
 
-    rowIdSubscriptionMap = {};
+    // rowIdSubscriptionMap = {};
 
     _.each(subscriptions, function (subscription) { // eslint-disable-line prefer-arrow-callback
       renderSubscriptionRow('view', subscription);
@@ -526,6 +521,31 @@ function start () {
     $('#subscriptions-tab').show();
   }
 
+  function loadMoreSubscriptions () {
+    const $subscriptionsTable = $('#subscriptions-table');
+    const rows = $subscriptionsTable.find('tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)');
+    const offset = rows.length;
+    const params = {
+      offset: offset,
+      limit: SUBSCRIPTIONS_PAGE_LIMIT,
+    };
+
+    api.listSubscriptions(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      const newSubscrs = result.subscriptions;
+      if (newSubscrs.length === 0 && offset === 0) {
+        hideSubscriptionTable();
+        $('#subscriptions-load-more-btn').hide();
+        $('#no-subscriptions-msg').show();
+      } else {
+        if (newSubscrs.length < SUBSCRIPTIONS_PAGE_LIMIT) {
+          $('#subscriptions-load-more-btn').hide();
+        }
+        renderSubscriptions($subscriptionsTable, newSubscrs);
+      }
+      subscriptions.push.apply(subscriptions, newSubscrs);
+    });
+  }
+
   function displayCreditHistory () {
     $('#credit-history-tab').show();
     $('#subscriptions-tab').hide();
@@ -566,22 +586,18 @@ function start () {
     const $tableRowTemplate = $table.find('#credit-history-template-row');
 
     for (const historyHash of history) {
-      const {
-        fly_from,
-        fly_to,
-        date_from,
-        date_to,
-      } = subscriptions.find(s => s.id === historyHash.id);
-      const { name: airportFrom } = airports.find(a => a.id === fly_from);
-      const { name: airportTo } = airports.find(a => a.id === fly_to);
+      const { airport_from_id, airport_to_id } = historyHash;
+      const { name: airportFrom } = airports.find(a => a.id === airport_from_id);
+      const { name: airportTo } = airports.find(a => a.id === airport_to_id);
       const $tableRow = $tableRowTemplate.clone()
         .removeAttr('id')
         .show();
+
       renderRow($tableRow, {
         airport_from: airportFrom,
         airport_to: airportTo,
-        date_from: date_from,
-        date_to: date_to,
+        date_from: new Date(historyHash.date_from).toDateString(),
+        date_to: new Date(historyHash.date_to).toDateString(),
         transferred_at: new Date(historyHash.transferred_at).toLocaleString(),
         transfer_amount: historyHash.transfer_amount,
         reason: historyHash.reason,
@@ -611,8 +627,9 @@ function start () {
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $('#subscribe-submit-btn').click(onSubscribeSubmitClick);
-    $('#display-credit-history-btn').click(displayCreditHistory);
     $('#display-subscriptions-btn').click(displaySubscriptions);
+    $('#subscriptions-load-more-btn').click(loadMoreSubscriptions);
+    $('#display-credit-history-btn').click(displayCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory);
 
     api.getAPIKey({
@@ -620,7 +637,6 @@ function start () {
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
         APIKeyRef.APIKey = result.api_key;
-        const $subscriptionsTable = $('#subscriptions-table');
 
         api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
           airports = result.airports;
@@ -633,10 +649,7 @@ function start () {
 
           applyAutocomplete(airportNames);
 
-          api.listSubscriptions(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-            subscriptions = result.subscriptions;
-            renderSubscriptions($subscriptionsTable, subscriptions);
-          });
+          loadMoreSubscriptions();
         });
 
         applyDatePicker();
