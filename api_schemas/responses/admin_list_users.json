@@ -23,9 +23,38 @@
             "type": "number",
             "title": "User credits",
             "minimum": 0
+          },
+          "api_key": {
+            "title": "API key",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "verification_token": {
+            "title": "Verification token",
+            "type": "string"
+          },
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "role_id": {
+            "title": "Role id",
+            "type": "integer"
           }
         },
-        "required": ["id", "email"]
+        "required": [
+          "id",
+          "email",
+          "credits",
+          "api_key",
+          "verified",
+          "verification_token",
+          "active",
+          "role_id"
+        ]
       }
     }
   },

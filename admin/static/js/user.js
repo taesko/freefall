@@ -828,7 +828,6 @@ function start () {
     $('#next-page-btn-top').click(onNextPageClick);
     $('#prev-page-btn-bottom').click(onPreviousPageClick);
     $('#next-page-btn-bottom').click(onNextPageClick);
-
   });
 }
 

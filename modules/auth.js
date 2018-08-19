@@ -2,6 +2,7 @@
 const users = require('./users');
 const log = require('./log');
 const { AppError, assertApp } = require('./error-handling');
+const { isObject } = require('lodash');
 
 class InvalidCredentials extends AppError {}
 
@@ -92,10 +93,34 @@ async function getLoggedInUser (ctx) {
   return users.fetchUser(ctx.state.dbClient, { userId: ctx.session.userID });
 }
 
-async function tokenHasRole (dbClient, token, role) {
-  const user = await users.fetchUser(dbClient, { apiKey: token });
+async function hasPermission (dbClient, token, permission) {
+  assertApp(typeof permission === 'string', `got ${permission}`);
 
-  return role === user.role;
+  const dbResponse = await dbClient.executeQuery(`
+
+    SELECT permissions.name AS permission
+    FROM users
+    LEFT JOIN users_roles
+    ON users_roles.user_id = users.id
+    LEFT JOIN roles_permissions
+    ON users_roles.role_id = roles_permissions.role_id
+    LEFT JOIN permissions
+    ON roles_permissions.permission_id = permissions.id
+    WHERE users.api_key = $1;
+
+  `, [token]);
+
+  assertApp(isObject(dbResponse), `got ${dbResponse}`);
+  assertApp(Array.isArray(dbResponse.rows), `got ${dbResponse.rows}`);
+
+  const userPermissions = dbResponse.rows.map((row) => {
+    assertApp(isObject(row), `got ${row}`);
+    assertApp(typeof row.permission === 'string', `got ${row.permission}`);
+
+    return row.permission;
+  });
+
+  return userPermissions.includes(permission);
 }
 
 function serializeUser (user) {
@@ -110,7 +135,7 @@ module.exports = {
   register,
   getLoggedInUser,
   isLoggedIn,
-  tokenHasRole,
+  hasPermission,
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,

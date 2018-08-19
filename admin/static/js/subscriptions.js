@@ -1030,7 +1030,6 @@ function start () {
     $('#guest-subscriptions-next-page-btn-bottom').click(onGuestSubscriptionsNextPageClick);
     $('#guest-subscriptions-prev-page-btn-bottom').click(onGuestSubscriptionsPreviousPageClick);
 
-
     api.getAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
