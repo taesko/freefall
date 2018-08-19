@@ -84,7 +84,12 @@ async function notifyEmails (client) {
     `,
   );
 
-  assertApp(fetchIdRows.length === 1);
+  if (fetchIdRows.length === 0) { // we haven't fetched data yet.
+    log.info('Database does not contain any fetched data yet.');
+    return;
+  }
+
+  assertApp(fetchIdRows.length === 1, `got ${fetchIdRows}`);
   const currentFetchId = fetchIdRows[0].id;
   log.info('Most recent fetch id is: ', currentFetchId);
 
