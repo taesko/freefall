@@ -45,7 +45,7 @@
     </div>
       <div id="subscriptions-tab">
       <h3>Your subscriptions:</h3>
-      <table id="subscriptions-table" class="table table-bordered" hidden="true">
+        <table id="subscriptions-table" class="table table-bordered">
         <thead>
           <tr>
             <th>Airport from</th>
@@ -94,9 +94,10 @@
           </tr>
         </tbody>
       </table>
-      <p id="no-subscriptions-msg" class="text-center" hidden="true">No subscriptions found</p>
+        <button id="subscriptions-load-more-btn" class="btn btn-primary btn-block">Load more</button>
+        <p id="no-subscriptions-msg" class="text-center collapse">No subscriptions found</p>
     </div>
-      <div id="credit-history-tab" class="container collapse" hidden="true">
+      <div id="credit-history-tab" class="container collapse">
         <table id="credit-history-table" class="table table-bordered">
           <thead>
           <tr>
@@ -110,7 +111,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr id="credit-history-template-row" hidden="true">
+          <tr id="credit-history-template-row" class="collapse">
             <td id="credit-transferred-at"></td>
             <td id="credit-airport-from"></td>
             <td id="credit-airport-to"></td>
@@ -121,8 +122,8 @@
           </tr>
           </tbody>
         </table>
-        <button id="credit-history-load-more-btn" class="btn btn-primary btn-block"> Load more</button>
-        <p id="no-credit-history-msg" class="text-center" hidden="true">No credit transactions found.</p>
+        <button id="credit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
+        <p id="no-credit-history-msg" class="text-center collapse">No credit transactions found.</p>
       </div>
   </div>
   <script src="js/lodash/index.min.js"></script>

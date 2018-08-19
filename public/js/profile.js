@@ -576,7 +576,7 @@ function start () {
       const { name: airportTo } = airports.find(a => a.id === fly_to);
       const $tableRow = $tableRowTemplate.clone()
         .removeAttr('id')
-        .removeAttr('hidden');
+        .show();
       renderRow($tableRow, {
         airport_from: airportFrom,
         airport_to: airportTo,
