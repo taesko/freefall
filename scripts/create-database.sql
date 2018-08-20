@@ -296,8 +296,8 @@ CREATE OR REPLACE VIEW search_view AS
     FROM routes
     LEFT JOIN routes_flights ON routes_flights.route_id = routes.id
     LEFT JOIN flights ON routes_flights.flight_id = flights.id
-    LEFT JOIN airports as afrom ON afrom.id = flights.airport_from_id
-    LEFT JOIN airports as ato ON ato.id = flights.airport_to_id
+    LEFT JOIN airports AS afrom ON afrom.id = flights.airport_from_id
+    LEFT JOIN airports AS ato ON ato.id = flights.airport_to_id
     LEFT JOIN airlines ON airlines.id = flights.airline_id
     LEFT JOIN subscriptions_fetches ON routes.subscription_fetch_id=subscriptions_fetches.id
     LEFT JOIN fetches ON subscriptions_fetches.fetch_id=fetches.id

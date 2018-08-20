@@ -598,17 +598,24 @@ const creditHistory = defineAPIMethod(
       FROM (
         SELECT usat.user_subscription_id AS id, transferred_at, transfer_amount, 'initial tax' AS reason
         FROM account_transfers
-        JOIN user_subscription_account_transfers usat ON account_transfers.id=usat.account_transfer_id
+        JOIN user_subscription_account_transfers AS usat
+          ON account_transfers.id=usat.account_transfer_id
         UNION ALL
         SELECT users_subscriptions.id, transferred_at, transfer_amount, 'fetch tax' AS reason
         FROM account_transfers
-        JOIN subscriptions_fetches_account_transfers sfat ON account_transfers.id=sfat.account_transfer_id
-        JOIN subscriptions_fetches ON sfat.subscription_fetch_id=subscriptions_fetches.id
-        JOIN subscriptions ON subscriptions_fetches.subscription_id=subscriptions.id
-        JOIN users_subscriptions ON subscriptions.id=users_subscriptions.subscription_id
+        JOIN subscriptions_fetches_account_transfers AS sfat 
+          ON account_transfers.id=sfat.account_transfer_id
+        JOIN subscriptions_fetches 
+          ON sfat.subscription_fetch_id=subscriptions_fetches.id
+        JOIN subscriptions 
+          ON subscriptions_fetches.subscription_id=subscriptions.id
+        JOIN users_subscriptions 
+          ON subscriptions.id=users_subscriptions.subscription_id
       ) AS credit_history
-      JOIN users_subscriptions ON credit_history.id=users_subscriptions.id
-      JOIN subscriptions ON users_subscriptions.subscription_id=subscriptions.id
+      JOIN users_subscriptions 
+        ON credit_history.id=users_subscriptions.id
+      JOIN subscriptions 
+        ON users_subscriptions.subscription_id=subscriptions.id
       WHERE users_subscriptions.user_id=$1
       ORDER BY transferred_at, id
       LIMIT $2
@@ -618,7 +625,8 @@ const creditHistory = defineAPIMethod(
     );
 
     subscrTransfers.map(transfer => {
-      transfer.date_from = moment(transfer.date_from).format(SERVER_DATE_FORMAT);
+      transfer.date_from = moment(transfer.date_from)
+        .format(SERVER_DATE_FORMAT);
       transfer.date_to = moment(transfer.date_to).format(SERVER_DATE_FORMAT);
       transfer.transferred_at = transfer.transferred_at.toISOString();
       return transfer;
