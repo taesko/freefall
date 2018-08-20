@@ -4,10 +4,13 @@
       <ul class="nav navbar-nav">
         <li class="{{is_active item "search"}}"><a href="/">Search</a></li>
         {{#if user}}
-          <li class="{{is_active item "profile"}} dropdown">
-            <a class="dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false" data-toggle="dropdown">Profile <span class="caret"></span></a>
+          <li class="{{is_active item 'profile'}} dropdown">
+              <a class="dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false"
+                 data-toggle="dropdown">
+                  <span class="text-center">{{ user.email }} ( {{ user.credits }} credits)</span>
+                  <span class="caret"></span>
+              </a>
             <ul class="dropdown-menu">
-              <li class="text-center">{{ user.email }} <br/> ( {{ user.credits }} credits)</li>
               <li role="separator" class="divider"></li>
               <li class="{{is_active item "profile"}}"><a href="/profile">Settings</a></li>
               <li role="separator" class="divider"></li>
