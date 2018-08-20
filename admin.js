@@ -137,14 +137,88 @@ router.get('/logout', auth.redirectWhenLoggedOut('/'), async (ctx) => {
 });
 
 router.get('/subscriptions', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await auth.getLoggedInUser(ctx);
+
+  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
+  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+
+  const guestSubscriptionsPermissionStatus = await auth.hasPermission(
+    ctx.state.dbClient,
+    loggedInUser.api_key,
+    'admin_list_guest_subscriptions'
+  );
+
+  const userSubscriptionsPermissionStatus = await auth.hasPermission(
+    ctx.state.dbClient,
+    loggedInUser.api_key,
+    'admin_list_user_subscriptions'
+  );
+
+  assertApp(
+    typeof guestSubscriptionsPermissionStatus === 'boolean',
+    `got ${guestSubscriptionsPermissionStatus}`
+  );
+
+  assertApp(
+    typeof userSubscriptionsPermissionStatus === 'boolean',
+    `got ${userSubscriptionsPermissionStatus}`
+  );
+
+  if (
+    !guestSubscriptionsPermissionStatus ||
+    !userSubscriptionsPermissionStatus
+  ) {
+    ctx.status = 400;
+    ctx.body = 'Permission denied!';
+    return;
+  }
+
   return ctx.render('subscriptions.html', await getAdminContext(ctx, 'get', '/subscriptions'));
 });
 
 router.get('/users', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await auth.getLoggedInUser(ctx);
+
+  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
+  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+
+  const permissionStatus = await auth.hasPermission(
+    ctx.state.dbClient,
+    loggedInUser.api_key,
+    'admin_list_users'
+  );
+
+  assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
+
+  if (!permissionStatus) {
+    ctx.status = 400;
+    ctx.body = 'Permission denied!';
+    return;
+  }
+
   return ctx.render('users.html', await getAdminContext(ctx, 'get', '/users'));
 });
 
 router.get('/users/:user_id', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await auth.getLoggedInUser(ctx);
+
+  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
+  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+
+  const permissionStatus = await auth.hasPermission(
+    ctx.state.dbClient,
+    loggedInUser.api_key,
+    'admin_list_user_info'
+  );
+
+  assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
+
+  if (!permissionStatus) {
+    ctx.status = 400;
+    ctx.body = 'Permission denied!';
+    return;
+  }
+
   const dbClient = ctx.state.dbClient;
   const defaultContext = await getAdminContext(ctx, 'get', '/users/:user_id');
   const user = await users.fetchUser(dbClient, { userId: ctx.params.user_id });
@@ -156,7 +230,49 @@ router.get('/users/:user_id', auth.redirectWhenLoggedOut('/login'), async (ctx) 
   }
 });
 
+router.get('/roles', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await auth.getLoggedInUser(ctx);
+
+  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
+  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+
+  const permissionStatus = await auth.hasPermission(
+    ctx.state.dbClient,
+    loggedInUser.api_key,
+    'admin_list_roles'
+  );
+
+  assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
+
+  if (!permissionStatus) {
+    ctx.status = 400;
+    ctx.body = 'Permission denied!';
+    return;
+  }
+
+  return ctx.render('roles.html', await getAdminContext(ctx, 'get', '/roles'));
+});
+
 router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await auth.getLoggedInUser(ctx);
+
+  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
+  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+
+  const permissionStatus = await auth.hasPermission(
+    ctx.state.dbClient,
+    loggedInUser.api_key,
+    'admin_list_fetches'
+  );
+
+  assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
+
+  if (!permissionStatus) {
+    ctx.status = 400;
+    ctx.body = 'Permission denied!';
+    return;
+  }
+
   const dbClient = ctx.state.dbClient;
   const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
 
@@ -222,6 +338,25 @@ router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
 });
 
 router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await auth.getLoggedInUser(ctx);
+
+  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
+  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+
+  const permissionStatus = await auth.hasPermission(
+    ctx.state.dbClient,
+    loggedInUser.api_key,
+    'admin_list_transfers'
+  );
+
+  assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
+
+  if (!permissionStatus) {
+    ctx.status = 400;
+    ctx.body = 'Permission denied!';
+    return;
+  }
+
   let page;
 
   if (!ctx.query.page) {

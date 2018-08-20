@@ -13,6 +13,10 @@ addContextForRoute('get', '/register', registerPageContext);
 addContextForRoute('post', '/register', registerPageContext);
 addContextForRoute('get', '/profile', profilePageContext);
 addContextForRoute('get', '/transfers', accountTransfersContext);
+addContextForRoute('get', '/roles', rolesPageContext);
+addContextForRoute('get', '/fetches', fetchesPageContext);
+addContextForRoute('get', '/subscriptions', subscriptionsPageContext);
+addContextForRoute('get', '/users', usersPageContext);
 
 const adminContextFunctions = {};
 const addAdminContext = defineContextAdder(adminContextFunctions);
@@ -80,6 +84,30 @@ function profilePageContext () {
 function accountTransfersContext () {
   return {
     item: 'transfers',
+  };
+}
+
+function fetchesPageContext () {
+  return {
+    item: 'fetches',
+  };
+}
+
+function subscriptionsPageContext () {
+  return {
+    item: 'subscriptions',
+  };
+}
+
+function usersPageContext () {
+  return {
+    item: 'users',
+  };
+}
+
+function rolesPageContext () {
+  return {
+    item: 'roles',
   };
 }
 

@@ -12,7 +12,7 @@ function start () {
   var users = []; // eslint-disable-line no-var
   var offset = 0; // eslint-disable-line no-var
   var rowIdUserMap = {}; // eslint-disable-line no-var
-  var APIKey; // eslint-disable-line no-var
+  var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
 
   function clearUsersTable ($usersTable) {
     mainUtils.trace('clearUsersTable');
@@ -197,7 +197,7 @@ function start () {
     const removeUserParams = {
       v: '2.0',
       user_id: oldUser.id,
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
     };
 
     adminAPI.adminRemoveUser(
@@ -267,7 +267,7 @@ function start () {
 
     const params = {
       v: '2.0',
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
       user_id: user.id,
     };
 
@@ -371,7 +371,7 @@ function start () {
 
     const params = {
       v: '2.0',
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
       offset: offset,
       limit: RESULTS_LIMIT,
     };
@@ -408,7 +408,7 @@ function start () {
 
     const params = {
       v: '2.0',
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
       offset: newOffset,
       limit: RESULTS_LIMIT,
     };
@@ -440,11 +440,11 @@ function start () {
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
-        APIKey = result.api_key;
+        APIKeyRef.APIKey = result.api_key;
 
         const params = {
           v: '2.0',
-          api_key: APIKey,
+          api_key: APIKeyRef.APIKey,
           offset: 0,
           limit: RESULTS_LIMIT,
         };
