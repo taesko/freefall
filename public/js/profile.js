@@ -589,6 +589,7 @@ function start () {
       const { airport_from_id, airport_to_id } = historyHash;
       const { name: airportFrom } = airports.find(a => a.id === airport_from_id);
       const { name: airportTo } = airports.find(a => a.id === airport_to_id);
+      const statusText = { true: 'Active', false: 'Inactive' }[historyHash.subscription_status];
       const $tableRow = $tableRowTemplate.clone()
         .removeAttr('id')
         .show();
@@ -598,6 +599,7 @@ function start () {
         airport_to: airportTo,
         date_from: new Date(historyHash.date_from).toDateString(),
         date_to: new Date(historyHash.date_to).toDateString(),
+        subscr_status: statusText,
         transferred_at: new Date(historyHash.transferred_at).toLocaleString(),
         transfer_amount: historyHash.transfer_amount,
         reason: historyHash.reason,
@@ -611,6 +613,7 @@ function start () {
         'airport_to',
         'date_from',
         'date_to',
+        'subscr_status',
         'transferred_at',
         'transfer_amount',
         'reason',

@@ -594,7 +594,8 @@ const creditHistory = defineAPIMethod(
       `
       SELECT credit_history.id::text, transferred_at, transfer_amount, reason,
         subscriptions.airport_from_id::text, subscriptions.airport_to_id::text, 
-        users_subscriptions.date_from, users_subscriptions.date_to
+        users_subscriptions.date_from, users_subscriptions.date_to,
+        users_subscriptions.active AS subscription_status
       FROM (
         SELECT usat.user_subscription_id AS id, transferred_at, transfer_amount, 'initial tax' AS reason
         FROM account_transfers
