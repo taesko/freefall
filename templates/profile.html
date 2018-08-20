@@ -8,137 +8,145 @@
   <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
-	<div class="container">
-    {{> heading }}
-    {{> menu }}
-    <div>
-      <h3>Add new subscription:</h3>
-      <div class="row">
-        <div class="col-md-2">
-          <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text" placeholder="Airport from" list="from-airports" required>
-        </div>
-        <div class="col-md-2">
-          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text" placeholder="Airport to" list="to-airports" required>
-        </div>
-        <div class="col-md-2">
-          <input id="subscribe-date-from" class="form-control date-select" name="date-from" type="text" placeholder="Date from" required>
-        </div>
-        <div class="col-md-2">
-          <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to" required>
-        </div>
-        <div class="col-md-4">
-          <button id="subscribe-submit-btn" class="btn btn-primary btn-block">Subscribe</button>
-        </div>
+<div class="container">
+  {{> heading }}
+  {{> menu }}
+  <div class="row">
+    <h3>Add new subscription:</h3>
+    <div class="row">
+      <div class="col-md-2">
+        <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text"
+               placeholder="Airport from" list="from-airports" required>
+      </div>
+      <div class="col-md-2">
+        <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text"
+               placeholder="Airport to" list="to-airports" required>
+      </div>
+      <div class="col-md-2">
+        <input id="subscribe-date-from" class="form-control date-select" name="date-from" type="text"
+               placeholder="Date from" required>
+      </div>
+      <div class="col-md-2">
+        <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to"
+               required>
+      </div>
+      <div class="col-md-4">
+        <button id="subscribe-submit-btn" class="btn btn-primary btn-block">Subscribe</button>
       </div>
     </div>
-    <hr>
-    {{> messages }}
-    <div>
-      <ul class="list-unstyled">
-        <li>
-          <button id="display-subscriptions-btn" class="btn btn-primary">Subscriptions</button>
-        </li>
-        <li>
-          <button id="display-credit-history-btn" class="btn btn-primary">Credit History</button>
-        </li>
-      </ul>
-    </div>
-      <div id="subscriptions-tab">
-        <h3>Your subscriptions:</h3>
-        <table id="subscriptions-table" class="table table-bordered">
-          <thead>
-          <tr>
-            <th>Airport from</th>
-            <th>Airport to</th>
-            <th>Date from</th>
-            <th>Date to</th>
-            <th>Options</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr id="subscription-edit-mode" hidden="true">
-            <td>
-              <input id="subscription-edit-mode-airport-from" class="form-control" name="from" type="text" placeholder="Airport from" required>
-            </td>
-            <td>
-              <input id="subscription-edit-mode-airport-to" class="form-control" name="to" type="text" placeholder="Airport to" required>
-            </td>
-            <td>
-              <input id="subscription-edit-mode-date-from" class="form-control" name="date-from" type="text" placeholder="Date from" value="" required>
-            </td>
-            <td>
-              <input id="subscription-edit-mode-date-to" class="form-control" name="date-to" type="text" placeholder="Date to" value="" required>
-            </td>
-            <td>
-              <button id="subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
-              <button id="subscription-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
-              <button id="subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
-            </td>
-          </tr>
-          <tr id="subscription-view-mode" hidden="true">
-            <td>
-              <span id="subscription-view-mode-airport-from"></span>
-            </td>
-            <td>
-              <span id="subscription-view-mode-airport-to"></span>
-            </td>
-            <td>
-              <span id="subscription-view-mode-date-from"></span>
-            </td>
-            <td>
-              <span id="subscription-view-mode-date-to"></span>
-            </td>
-            <td>
-              <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
-            </td>
-          </tr>
-          </tbody>
-        </table>
-        <button id="subscriptions-load-more-btn" class="btn btn-primary btn-block">Load more</button>
-        <p id="no-subscriptions-msg" class="text-center collapse">No subscriptions found</p>
-      </div>
-      <div id="credit-history-tab" class="container collapse">
-        <table id="credit-history-table" class="table table-bordered">
-          <thead>
-          <tr>
-            <th>Taxed on</th>
-            <th>Airport from</th>
-            <th>Airport to</th>
-            <th>Date from</th>
-            <th>Date to</th>
-            <th>Status</th>
-            <th>Amount</th>
-            <th>Reason</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr id="credit-history-template-row" class="collapse">
-            <td id="credit-transferred-at"></td>
-            <td id="credit-airport-from"></td>
-            <td id="credit-airport-to"></td>
-            <td id="credit-date-from"></td>
-            <td id="credit-date-to"></td>
-            <td id="credit-subscr-status"></td>
-            <td id="credit-transfer-amount"></td>
-            <td id="credit-reason"></td>
-          </tr>
-          </tbody>
-        </table>
-        <button id="credit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
-        <p id="no-credit-history-msg" class="text-center collapse">No credit transactions found.</p>
-      </div>
   </div>
-  <script src="js/lodash/index.min.js"></script>
-  <script src="js/jquery/jquery-2.2.4.js"></script>
-  <script src="css/bootstrap/js/bootstrap.min.js"></script>
-  <script src="js/jquery-ui.min.js"></script>
-  <script src="js/autocomplete-plugin.js"></script>
-  <script src="js/ajv.min.js"></script>
-  <script src="js/js-yaml/js-yaml.min.js"></script>
-  <script src="js/json-schemas.js"></script>
-  <script src="js/api-methods.js"></script>
-  <script src="js/parsers.js"></script>
-  <script src="js/main.js"></script>
-  <script type="text/javascript" src="js/profile.js"></script>
+  <hr>
+  {{> messages }}
+  <ul class="nav nav-tabs">
+    <li role="presentation">
+      <a id="display-subscriptions-btn" class="btn" role="button" href="#">Subscriptions</a>
+    </li>
+    <li role="presentation">
+      <a id="display-credit-history-btn" class="btn" role="button" href="#">Credit History</a>
+    </li>
+  </ul>
+  <div class="row">
+    <div id="subscriptions-tab" class="container collapse">
+      <!--<h3>Your subscriptions:</h3>-->
+      <table id="subscriptions-table" class="table table-bordered">
+        <thead>
+        <tr>
+          <th>Airport from</th>
+          <th>Airport to</th>
+          <th>Date from</th>
+          <th>Date to</th>
+          <th>Options</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr id="subscription-edit-mode" hidden="true">
+          <td>
+            <input id="subscription-edit-mode-airport-from" class="form-control" name="from" type="text"
+                   placeholder="Airport from" required>
+          </td>
+          <td>
+            <input id="subscription-edit-mode-airport-to" class="form-control" name="to" type="text"
+                   placeholder="Airport to" required>
+          </td>
+          <td>
+            <input id="subscription-edit-mode-date-from" class="form-control" name="date-from" type="text"
+                   placeholder="Date from" value="" required>
+          </td>
+          <td>
+            <input id="subscription-edit-mode-date-to" class="form-control" name="date-to" type="text"
+                   placeholder="Date to" value="" required>
+          </td>
+          <td>
+            <button id="subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
+            <button id="subscription-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
+            <button id="subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
+          </td>
+        </tr>
+        <tr id="subscription-view-mode" hidden="true">
+          <td>
+            <span id="subscription-view-mode-airport-from"></span>
+          </td>
+          <td>
+            <span id="subscription-view-mode-airport-to"></span>
+          </td>
+          <td>
+            <span id="subscription-view-mode-date-from"></span>
+          </td>
+          <td>
+            <span id="subscription-view-mode-date-to"></span>
+          </td>
+          <td>
+            <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+      <button id="subscriptions-load-more-btn" class="btn btn-primary btn-block">Load more</button>
+      <p id="no-subscriptions-msg" class="text-center collapse">No subscriptions found</p>
+    </div>
+    <div id="credit-history-tab" class="container collapse">
+      <table id="credit-history-table" class="table table-bordered">
+        <thead>
+        <tr>
+          <th>Taxed on</th>
+          <th>Airport from</th>
+          <th>Airport to</th>
+          <th>Date from</th>
+          <th>Date to</th>
+          <th>Status</th>
+          <th>Amount</th>
+          <th>Reason</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr id="credit-history-template-row" class="collapse">
+          <td id="credit-transferred-at"></td>
+          <td id="credit-airport-from"></td>
+          <td id="credit-airport-to"></td>
+          <td id="credit-date-from"></td>
+          <td id="credit-date-to"></td>
+          <td id="credit-subscr-status"></td>
+          <td id="credit-transfer-amount"></td>
+          <td id="credit-reason"></td>
+        </tr>
+        </tbody>
+      </table>
+      <button id="credit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
+      <p id="no-credit-history-msg" class="text-center collapse">No credit transactions found.</p>
+    </div>
+  </div>
+</div>
+<script src="js/lodash/index.min.js"></script>
+<script src="js/jquery/jquery-2.2.4.js"></script>
+<script src="css/bootstrap/js/bootstrap.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+<script src="js/autocomplete-plugin.js"></script>
+<script src="js/ajv.min.js"></script>
+<script src="js/js-yaml/js-yaml.min.js"></script>
+<script src="js/json-schemas.js"></script>
+<script src="js/api-methods.js"></script>
+<script src="js/parsers.js"></script>
+<script src="js/main.js"></script>
+<script type="text/javascript" src="js/profile.js"></script>
 </body>
 </html>

@@ -517,11 +517,20 @@ function start () {
   }
 
   function displaySubscriptions () {
-    $('#credit-history-tab').hide();
-    $('#subscriptions-tab').show();
+    function display () {
+      $('#credit-history-tab').hide();
+      $('#subscriptions-tab').show();
+    }
+    if ($('#subscriptions-table tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)').length ===
+        0) {
+      loadMoreSubscriptions(display);
+    } else {
+      display();
+    }
   }
 
-  function loadMoreSubscriptions () {
+  function loadMoreSubscriptions (callbackOnFinish) {
+    assertApp(_.isFunction(callbackOnFinish), { msg: `got ${callbackOnFinish}` });
     const $subscriptionsTable = $('#subscriptions-table');
     const rows = $subscriptionsTable.find('tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)');
     const offset = rows.length;
@@ -543,19 +552,26 @@ function start () {
         renderSubscriptions($subscriptionsTable, newSubscrs);
       }
       subscriptions.push.apply(subscriptions, newSubscrs);
+      if (callbackOnFinish) {
+        callbackOnFinish();
+      }
     });
   }
 
   function displayCreditHistory () {
-    $('#credit-history-tab').show();
-    $('#subscriptions-tab').hide();
-
+    function display () {
+      $('#credit-history-tab').show();
+      $('#subscriptions-tab').hide();
+    }
     if ($('#credit-history-table tbody tr:not(:first)').length === 0) {
-      loadMoreCreditHistory();
+      loadMoreCreditHistory(display);
+    } else {
+      display();
     }
   }
 
-  function loadMoreCreditHistory () {
+  function loadMoreCreditHistory (callbackOnFinish) {
+    assertApp(_.isFunction(callbackOnFinish), { msg: `got ${callbackOnFinish}` });
     const $creditsTable = $('#credit-history-table');
     const offset = $creditsTable.find('tbody tr:not(:first)').length;
     const params = {
@@ -577,6 +593,9 @@ function start () {
         $('#credit-history-load-more-btn').hide();
       } else {
         renderCreditHistory($creditsTable, history);
+      }
+      if (callbackOnFinish) {
+        callbackOnFinish();
       }
     });
   }
@@ -631,9 +650,9 @@ function start () {
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $('#subscribe-submit-btn').click(onSubscribeSubmitClick);
     $('#display-subscriptions-btn').click(displaySubscriptions);
-    $('#subscriptions-load-more-btn').click(loadMoreSubscriptions);
+    $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
     $('#display-credit-history-btn').click(displayCreditHistory);
-    $('#credit-history-load-more-btn').click(loadMoreCreditHistory);
+    $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
 
     api.getAPIKey({
       v: '2.0',
@@ -652,7 +671,7 @@ function start () {
 
           applyAutocomplete(airportNames);
 
-          loadMoreSubscriptions();
+          displaySubscriptions();
         });
 
         applyDatePicker();
