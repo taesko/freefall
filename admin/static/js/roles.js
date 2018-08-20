@@ -37,6 +37,31 @@ function start() {
     $('#roles-results').attr('hidden', 'true');
   }
 
+  function clearPermissionsTable ($permissionsTable) {
+    mainUtils.trace('clearPermissionsTable');
+
+    assertApp($permissionsTable instanceof jQuery, {
+      msg: 'Expected $permissionsTable to be instance of jQuery, but was =' + $permissionsTable, // eslint-disable-line prefer-template
+    });
+
+    $permissionsTable.find('tbody tr')
+      .not('#permission')
+      .remove();
+  }
+
+  function clearRolesResults ($rolesResults) {
+    mainUtils.trace('clearRolesResults');
+
+    assertApp($rolesResults instanceof jQuery, {
+      msg: 'Expected $rolesResults to be instance of jQuery, but was =' + $rolesResults, // eslint-disable-line prefer-template
+    });
+
+    $rolesResults.children()
+      .not('#role-view-mode')
+      .not('#role-edit-mode')
+      .remove();
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     api.getAPIKey({
       v: '2.0',

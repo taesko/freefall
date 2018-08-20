@@ -26,12 +26,12 @@
               </td>
               <td id="new-role-permissions-container">
                 <div class="form-inline">
-                  <input id="new-role-permission" class="form-control" type="text" placeholder="Add permission">
+                  <input id="new-role-permission-input" class="form-control" type="text" placeholder="Add permission">
                   <button id="new-role-permission-submit-btn" class="btn btn-default permission-select">Add permission</button>
                 </div>
               </td>
               <td>
-                <button id="" type="button" class="btn btn-primary btn-block">Submit</button>
+                <button id="new-role-submit-btn" type="button" class="btn btn-primary btn-block">Submit</button>
               </td>
             </tr>
           </tbody>
@@ -107,21 +107,19 @@
               </div>
             </div>
             <h4>Add permission:</h4>
-            <div class="row">
-              <div class="form-inline">
-                <input id="add-role-permission" type="text" placeholder="Add permission" class="form-control">
-                <button class="btn btn-default">Add permission</button>
-              </div>
+            <div class="form-inline">
+              <input id="add-role-permission" type="text" placeholder="Add permission" class="form-control">
+              <button class="btn btn-default">Add permission</button>
             </div>
-            <table id="role-permissions-table" class="table table-bordered">
+            <table id="role-permissions-table-edit-mode" class="table table-bordered">
               <thead>
                 <td>Id</td>
                 <td>Permission</td>
                 <td>Options</td>
               </thead>
               <tbody>
-                <tr id="role-permission">
-                  <td id="role-permission-name"></td>
+                <tr id="role-permission-edit-mode">
+                  <td id="role-permission-name-edit-mode"></td>
                   <td></td>
                   <td>
                     <button id="remove-role-permission-btn" class="btn btn-danger">Remove</button>
@@ -131,7 +129,6 @@
             </table>
             <hr>
           </div>
-
         </div>
       </div>
       <div id="permissions-section">
@@ -143,12 +140,14 @@
                 <th>Id</th>
                 <th>Name</th>
                 <th>Created at</th>
+                <th>Updated at</th>
               </tr>
             </thead>
             <tbody>
               <tr id="permission">
                 <td>1</td>
                 <td>sample permission</td>
+                <td>yesterday</td>
                 <td>yesterday</td>
               </tr>
             </tbody>
