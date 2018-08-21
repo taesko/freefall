@@ -42,7 +42,7 @@
             <td>Options</td>
           </thead>
           <tbody>
-            <tr id="new-role-permission">
+            <tr id="new-role-permission" hidden="true">
               <td id="new-role-permission-name"></td>
               <td>
                 <button id="remove-new-role-permission-btn" class="btn btn-danger">Remove</button>
@@ -64,7 +64,7 @@
       <div id="roles-section">
         <h3>Roles:</h3>
         <div id="roles-results">
-          <div id="role-view-mode">
+          <div id="role-view-mode" hidden="true">
             <div class="row">
               <div class="col-md-6">
                 <p class="text-left">Role name: <label id="role-name-view-mode"></label></p>
@@ -83,7 +83,7 @@
                 <td>Permission</td>
               </thead>
               <tbody>
-                <tr id="role-permission-view-mode">
+                <tr id="role-permission-view-mode" hidden="true">
                   <td id="role-permission-name-view-mode"></td>
                   <td></td>
                 </td>
@@ -91,7 +91,7 @@
             </table>
             <hr>
           </div>
-          <div id="role-edit-mode">
+          <div id="role-edit-mode" hidden="true">
             <div class="row">
               <div class="col-md-6">
                 <p class="text-left">Role name: <input id="role-name-edit-mode" type="text" placeholder="" value="" class="form-control"></p>
@@ -109,7 +109,7 @@
             <h4>Add permission:</h4>
             <div class="form-inline">
               <input id="add-role-permission" type="text" placeholder="Add permission" class="form-control">
-              <button class="btn btn-default">Add permission</button>
+              <button id="add-role-permission-submit-btn" class="btn btn-default">Add permission</button>
             </div>
             <table id="role-permissions-table-edit-mode" class="table table-bordered">
               <thead>
@@ -131,10 +131,10 @@
           </div>
         </div>
       </div>
-      <div id="permissions-section">
+      <div id="permissions-section" hidden="true">
         <h3>Permissions:</h3>
         <div id="permissions-results">
-          <table class="table">
+          <table id="permissions-table" class="table">
             <thead>
               <tr>
                 <th>Id</th>
@@ -144,11 +144,11 @@
               </tr>
             </thead>
             <tbody>
-              <tr id="permission">
-                <td>1</td>
-                <td>sample permission</td>
-                <td>yesterday</td>
-                <td>yesterday</td>
+              <tr id="permission" hidden="true">
+                <td id="permission-id"></td>
+                <td id="permission-name"></td>
+                <td id="permission-created-at"></td>
+                <td id="permission-updated-at"></td>
               </tr>
             </tbody>
           </table>

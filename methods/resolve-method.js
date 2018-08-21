@@ -1380,37 +1380,26 @@ const adminListPermissions = defineAPIMethod(
       'ALP_INVALID_ADMIN_API_KEY'
     );
 
-    assertUser(
-      params.limit > 0 && params.limit <= 20,
-      'Expected limit to be 0 < limit <= 20',
-      'ALP_BAD_PARAMETERS_FORMAT'
-    );
-
-    assertUser(
-      Number.isSafeInteger(params.offset) && params.offset >= 0,
-      'Expected offset to be a positive integer!',
-      'ALP_BAD_PARAMETERS_FORMAT'
-    );
-
     const selectResult = await dbClient.executeQuery(`
 
       SELECT *
       FROM permissions
-      ORDER BY id ASC
-      LIMIT $1
-      OFFSET $2;
+      ORDER BY id ASC;
 
-    `, [params.limit, params.offset]);
+    `);
 
     assertApp(isObject(selectResult), `got ${selectResult}`);
     assertApp(Array.isArray(selectResult.rows), `got ${selectResult.rows}`);
 
     const permissions = selectResult.rows.map((row) => {
+      assertApp(row.created_at instanceof Date, `got ${row.created_at}`);
+      assertApp(row.updated_at instanceof Date, `got ${row.updated_at}`);
+
       return {
         id: row.id,
         name: row.name,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
+        created_at: row.created_at.toISOString(),
+        updated_at: row.updated_at.toISOString(),
       };
     });
 
@@ -1461,11 +1450,14 @@ const adminListRoles = defineAPIMethod(
     const roles = [];
 
     for (const role of rolesSelect.rows) {
+      assertApp(role.created_at instanceof Date, `got ${role.created_at}`);
+      assertApp(role.updated_at instanceof Date, `got ${role.updated_at}`);
+      
       const roleElement = {
         id: role.id,
         name: role.name,
-        created_at: role.created_at,
-        updated_at: role.updated_at,
+        created_at: role.created_at.toISOString(),
+        updated_at: role.updated_at.toISOString(),
       };
 
       const permissionsSelect = await dbClient.executeQuery(`

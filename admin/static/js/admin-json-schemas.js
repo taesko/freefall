@@ -1060,17 +1060,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'type': 'string',
           'title': 'API version',
         },
-        'limit': {
-          'type': 'integer',
-          'title': 'Limit',
-          'minimum': 1,
-          'maximum': 20,
-        },
-        'offset': {
-          'type': 'integer',
-          'title': 'Offset',
-          'minimum': 0,
-        },
         'api_key': {
           'type': 'string',
           'title': 'API key',
@@ -1079,8 +1068,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
       'required': [
         'v',
         'api_key',
-        'limit',
-        'offset',
       ],
     };
     return ajv.compile(adminListPermissionsRequestSchema);
