@@ -213,11 +213,11 @@ router.get('/users/:user_id', auth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
 
-  if (!permissionStatus) {
+  /*if (!permissionStatus) {
     ctx.status = 400;
     ctx.body = 'Permission denied!';
     return;
-  }
+  }*/
 
   const dbClient = ctx.state.dbClient;
   const defaultContext = await getAdminContext(ctx, 'get', '/users/:user_id');
@@ -382,13 +382,13 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
     'admin_list_transfers'
   );
 
-  assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
+  /*assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
 
   if (!permissionStatus) {
     ctx.status = 400;
     ctx.body = 'Permission denied!';
     return;
-  }
+  }*/
 
   let page;
 

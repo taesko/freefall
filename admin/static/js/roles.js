@@ -125,6 +125,10 @@ function start () {
       .removeAttr('hidden')
       .attr('id', 'role-' + rowId); // eslint-disable-line prefer-template
 
+    $roleViewModeClone.find('#role-id-view-mode')
+      .attr('id', 'role-id-' + rowId) // eslint-disable-line prefer-template
+      .text(role.id);
+
     $roleViewModeClone.find('#role-name-view-mode')
       .attr('id', 'role-name-' + rowId) // eslint-disable-line prefer-template
       .text(role.name);
@@ -136,6 +140,10 @@ function start () {
     $roleViewModeClone.find('#role-updated-at-view-mode')
       .attr('id', 'role-updated-at-' + rowId) // eslint-disable-line prefer-template
       .text(role.updated_at);
+
+    $roleViewModeClone.find('#role-open-view-mode')
+      .attr('id', 'role-open-' + rowId) // eslint-disable-line prefer-template
+      .attr('onclick', 'location.href="/roles/' + Number(role.id) + '";'); // eslint-disable-line prefer-template
 
     if ($row == null) {
       $roleViewModeClone.appendTo(

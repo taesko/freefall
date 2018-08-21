@@ -1332,6 +1332,7 @@ const adminRemoveRole = defineAPIMethod(
     'ARR_INVALID_ADMIN_API_KEY': { status_code: '2100' },
     'ARR_BAD_PARAMETERS_FORMAT': { status_code: '2101' },
     'ARR_UNKNOWN_ROLE': { status_code: '2102' },
+    'ARR_ROLE_IN_POSSESSION': { status_code: '2201' },
   },
   async (params, dbClient) => {
     assertUser(
@@ -1340,7 +1341,7 @@ const adminRemoveRole = defineAPIMethod(
       'ARR_INVALID_ADMIN_API_KEY'
     );
 
-    const selectResult = await dbClient.executeQuery(`
+    const selectRoleResult = await dbClient.executeQuery(`
 
       SELECT *
       FROM roles
@@ -1348,13 +1349,43 @@ const adminRemoveRole = defineAPIMethod(
 
     `, [params.role_id]);
 
-    assertApp(isObject(selectResult), `got ${selectResult}`);
-    assertApp(Array.isArray(selectResult.rows), `got ${selectResult.rows}`);
+    assertApp(isObject(selectRoleResult), `got ${selectRoleResult}`);
+    assertApp(Array.isArray(selectRoleResult.rows), `got ${selectRoleResult.rows}`);
 
     assertUser(
-      selectResult.rows.length === 1,
+      selectRoleResult.rows.length === 1,
       'Selected role could not be found!',
       'ARR_UNKNOWN_ROLE'
+    );
+
+    const selectUserRolePossessionResult = await dbClient.executeQuery(`
+
+      SELECT COUNT(*) AS user_role_possession_count
+      FROM users_roles
+      WHERE role_id = $1;
+
+    `, [params.role_id]);
+
+    assertApp(
+      isObject(selectUserRolePossessionResult),
+      `got ${selectUserRolePossessionResult}`
+    );
+    assertApp(
+      Array.isArray(selectUserRolePossessionResult.rows),
+      `got ${selectUserRolePossessionResult.rows}`
+    );
+    assertApp(
+      selectUserRolePossessionResult.rows.length === 1,
+      `got ${selectUserRolePossessionResult.rows.length}`
+    );
+
+    const userRolePossessionCount =
+      selectUserRolePossessionResult.rows[0].user_role_possession_count;
+
+    assertUser(
+      userRolePossessionCount === 0,
+      'Cannot delete role, there are users having this role!',
+      'ARR_ROLE_IN_POSSESSION'
     );
 
     await dbClient.executeQuery(`

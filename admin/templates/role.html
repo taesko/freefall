@@ -48,6 +48,7 @@
         </div>
       </div>
       <div>
+        <h3>Permissions:</h3>
         <table id="role-permissions-table" class="table table-bordered">
           <thead>
             <td>Id</td>
@@ -56,12 +57,13 @@
           </thead>
           <tbody>
             <tr id="role-permission-view-mode" hidden="true">
+              <td id="role-permission-id-view-mode"></td>
               <td id="role-permission-name-view-mode"></td>
               <td></td>
             </tr>
-            <tr id="role-permission-edit-mode">
+            <tr id="role-permission-edit-mode" hidden="true">
+              <td id="role-permission-id-edit-mode"></td>
               <td id="role-permission-name-edit-mode"></td>
-              <td></td>
               <td>
                 <button id="remove-role-permission-btn" class="btn btn-danger">Remove</button>
               </td>

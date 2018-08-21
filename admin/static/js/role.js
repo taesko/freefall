@@ -342,35 +342,35 @@ function start () {
     modes[mode](rolePermission, rowId, $row);
   }
 
-  function renderPermissionRowViewMode (permission, rowId, $row) {
+  function renderPermissionRowViewMode (rolePermission, rowId, $row) {
     mainUtils.trace('renderPermissionRowViewMode');
 
-    const $permissionClone = $('#permission').clone()
+    const $rolePermissionClone = $('#role-permission-view-mode').clone()
       .removeAttr('hidden')
-      .attr('id', 'permission-' + rowId); // eslint-disable-line prefer-template
+      .attr('id', 'role-permission-' + rowId); // eslint-disable-line prefer-template
 
-    $permissionClone.find('#permission-id')
-      .attr('id', 'permission-id-' + rowId) // eslint-disable-line prefer-template
-      .text(permission.id);
+    $rolePermissionClone.find('#role-permission-id-view-mode')
+      .attr('id', 'role-permission-id-' + rowId) // eslint-disable-line prefer-template
+      .text(rolePermission.id);
 
-    $permissionClone.find('#permission-name')
-      .attr('id', 'permission-name-' + rowId) // eslint-disable-line prefer-template
-      .text(permission.name);
+    $rolePermissionClone.find('#role-permission-name-view-mode')
+      .attr('id', 'role-permission-name-' + rowId) // eslint-disable-line prefer-template
+      .text(rolePermission.name);
 
-    $permissionClone.find('#permission-created-at')
-      .attr('id', 'permission-created-at-' + rowId) // eslint-disable-line prefer-template
-      .text(permission.created_at);
+    $rolePermissionClone.find('#role-permission-created-at-view-mode')
+      .attr('id', 'role-permission-created-at-' + rowId) // eslint-disable-line prefer-template
+      .text(rolePermission.created_at);
 
-    $permissionClone.find('#permission-updated-at')
-      .attr('id', 'permission-updated-at-' + rowId) // eslint-disable-line prefer-template
-      .text(permission.updated_at);
+    $rolePermissionClone.find('#role-permission-updated-at-view-mode')
+      .attr('id', 'role-permission-updated-at-' + rowId) // eslint-disable-line prefer-template
+      .text(rolePermission.updated_at);
 
     if ($row == null) {
-      $permissionClone.appendTo(
-        $('#permissions-table tbody')
+      $rolePermissionClone.appendTo(
+        $('#role-permissions-table tbody')
       );
     } else {
-      $row.replaceWith($permissionClone);
+      $row.replaceWith($rolePermissionClone);
     }
   }
 
