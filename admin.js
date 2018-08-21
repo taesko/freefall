@@ -253,6 +253,39 @@ router.get('/roles', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   return ctx.render('roles.html', await getAdminContext(ctx, 'get', '/roles'));
 });
 
+router.get('/roles/:role_id', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await auth.getLoggedInUser(ctx);
+
+  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
+  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+
+  const permissionStatus = await auth.hasPermission(
+    ctx.state.dbClient,
+    loggedInUser.api_key,
+    'admin_list_roles'
+  );
+
+  assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
+
+  if (!permissionStatus) {
+    ctx.status = 400;
+    ctx.body = 'Permission denied!';
+    return;
+  }
+
+  const roleId = Number(ctx.params.role_id);
+
+  if (!Number.isSafeInteger(roleId)) {
+    ctx.status = 400;
+    ctx.body = 'Expected role_id to be integer!';
+    return;
+  }
+
+  const defaultContext = await getAdminContext(ctx, 'get', '/roles/:role_id');
+
+  return ctx.render('role.html', Object.assign(defaultContext, { role_id: roleId }));
+});
+
 router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   const loggedInUser = await auth.getLoggedInUser(ctx);
 

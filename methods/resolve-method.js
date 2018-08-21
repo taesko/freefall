@@ -1359,6 +1359,13 @@ const adminRemoveRole = defineAPIMethod(
 
     await dbClient.executeQuery(`
 
+      DELETE FROM roles_permissions
+      WHERE role_id = $1;
+
+    `, [params.role_id]);
+
+    await dbClient.executeQuery(`
+
       DELETE FROM roles
       WHERE id = $1;
 
@@ -1434,15 +1441,34 @@ const adminListRoles = defineAPIMethod(
       'ALP_BAD_PARAMETERS_FORMAT'
     );
 
-    const rolesSelect = await dbClient.executeQuery(`
+    let rolesSelect;
 
-      SELECT *
-      FROM roles
-      ORDER BY id ASC
-      LIMIT $1
-      OFFSET $2;
+    if (params.role_id) {
+      const roleId = Number(params.role_id);
+      assertUser(
+        Number.isSafeInteger(roleId),
+        'Expected role_id to be an integer!',
+        'ALP_BAD_PARAMETERS_FORMAT'
+      );
 
-    `, [params.limit, params.offset]);
+      rolesSelect = await dbClient.executeQuery(`
+
+        SELECT *
+        FROM roles
+        WHERE id = $1;
+
+      `, [roleId]);
+    } else {
+      rolesSelect = await dbClient.executeQuery(`
+
+        SELECT *
+        FROM roles
+        ORDER BY id ASC
+        LIMIT $1
+        OFFSET $2;
+
+      `, [params.limit, params.offset]);
+    }
 
     assertApp(isObject(rolesSelect), `got ${rolesSelect}`);
     assertApp(Array.isArray(rolesSelect.rows), `got ${rolesSelect.rows}`);
@@ -1452,7 +1478,7 @@ const adminListRoles = defineAPIMethod(
     for (const role of rolesSelect.rows) {
       assertApp(role.created_at instanceof Date, `got ${role.created_at}`);
       assertApp(role.updated_at instanceof Date, `got ${role.updated_at}`);
-      
+
       const roleElement = {
         id: role.id,
         name: role.name,

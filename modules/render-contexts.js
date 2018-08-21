@@ -17,6 +17,7 @@ addContextForRoute('get', '/roles', rolesPageContext);
 addContextForRoute('get', '/fetches', fetchesPageContext);
 addContextForRoute('get', '/subscriptions', subscriptionsPageContext);
 addContextForRoute('get', '/users', usersPageContext);
+addContextForRoute('get', '/roles/:role_id', rolePageContext);
 
 const adminContextFunctions = {};
 const addAdminContext = defineContextAdder(adminContextFunctions);
@@ -110,6 +111,12 @@ function rolesPageContext () {
     item: 'roles',
   };
 }
+
+function rolePageContext () {
+  return {
+    item: 'role',
+  };
+};
 
 function defineContextAdder (contextFunctions) {
   return (request, route, ...functions) => {

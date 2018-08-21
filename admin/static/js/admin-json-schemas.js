@@ -1140,6 +1140,10 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'type': 'string',
           'title': 'API version',
         },
+        'role_id': {
+          'type': 'string',
+          'title': 'Role id',
+        },
         'limit': {
           'type': 'integer',
           'title': 'Limit',

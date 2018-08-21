@@ -11,7 +11,7 @@
       {{> menu }}
       <div>
         <h3>Add new role:</h3>
-        <table class="table">
+        <table class="table table-bordered">
           <thead>
             <tr>
               <th>Name</th>
@@ -63,78 +63,31 @@
       </ul>
       <div id="roles-section">
         <h3>Roles:</h3>
-        <div id="roles-results">
-          <div id="role-view-mode" hidden="true">
-            <div class="row">
-              <div class="col-md-6">
-                <p class="text-left">Role name: <label id="role-name-view-mode"></label></p>
-                <p class="text-left">Created at: <label id="role-created-at-view-mode"></label></p>
-                <p class="text-left">Updated at: <label id="role-updated-at-view-mode"></label></p>
-              </div>
-              <div class="col-md-6">
-                <p class="text-right">
-                  <button id="role-edit-btn" class="btn btn-primary">Edit</button>
-                </p>
-              </div>
-            </div>
-            <table id="role-permissions-table-view-mode" class="table table-bordered">
-              <thead>
-                <td>Id</td>
-                <td>Permission</td>
-              </thead>
-              <tbody>
-                <tr id="role-permission-view-mode" hidden="true">
-                  <td id="role-permission-name-view-mode"></td>
-                  <td></td>
-                </td>
-              </tbody>
-            </table>
-            <hr>
-          </div>
-          <div id="role-edit-mode" hidden="true">
-            <div class="row">
-              <div class="col-md-6">
-                <p class="text-left">Role name: <input id="role-name-edit-mode" type="text" placeholder="" value="" class="form-control"></p>
-                <p class="text-left">Created at: <label id="role-created-at-edit-mode"></label></p>
-                <p class="text-left">Updated at: <label id="role-updated-at-edit-mode"></label></p>
-              </div>
-              <div class="col-md-6">
-                <p class="text-right">
-                  <button id="role-save-btn" class="btn btn-primary">Save</button>
-                  <button id="role-cancel-btn" class="btn btn-default">Cancel</button>
-                  <button id="role-remove-btn" class="btn btn-danger">Remove</button>
-                </p>
-              </div>
-            </div>
-            <h4>Add permission:</h4>
-            <div class="form-inline">
-              <input id="add-role-permission" type="text" placeholder="Add permission" class="form-control">
-              <button id="add-role-permission-submit-btn" class="btn btn-default">Add permission</button>
-            </div>
-            <table id="role-permissions-table-edit-mode" class="table table-bordered">
-              <thead>
-                <td>Id</td>
-                <td>Permission</td>
-                <td>Options</td>
-              </thead>
-              <tbody>
-                <tr id="role-permission-edit-mode">
-                  <td id="role-permission-name-edit-mode"></td>
-                  <td></td>
-                  <td>
-                    <button id="remove-role-permission-btn" class="btn btn-danger">Remove</button>
-                  </td>
-                </td>
-              </tbody>
-            </table>
-            <hr>
-          </div>
-        </div>
+        <table id="roles-table" class="table table-bordered">
+          <thead>
+            <tr>
+              <td>Id</td>
+              <td>Name</td>
+              <td>Created at</td>
+              <td>Updated at</td>
+              <td>Options</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="role-view-mode" hidden="true">
+              <td id="role-id-view-mode"></td>
+              <td id="role-name-view-mode"></td>
+              <td id="role-created-at-view-mode"></td>
+              <td id="role-updated-at-view-mode"></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       <div id="permissions-section" hidden="true">
         <h3>Permissions:</h3>
         <div id="permissions-results">
-          <table id="permissions-table" class="table">
+          <table id="permissions-table" class="table table-bordered">
             <thead>
               <tr>
                 <th>Id</th>
