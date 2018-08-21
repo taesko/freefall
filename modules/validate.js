@@ -17,7 +17,10 @@ const RESPONSE_SCHEMAS_DIR = path.join(SCHEMAS_DIR, 'responses');
 
 (function registerSchemas () { // TODO check if read file is .json
   const schemas = discoverSchemaPaths() // TODO log what schema is being parsed
-    .map(path => [path, JSON.parse(fs.readFileSync(path))])
+    .map(path => {
+      log.info('Parsing schema on path', path);
+      return [path, JSON.parse(fs.readFileSync(path))];
+    })
     .reduce(
       (hash, entry) => {
         hash[entry[0]] = entry[1];
@@ -112,9 +115,29 @@ function validateAPIResponse (apiResult, method) {
   );
 }
 
+function daliPecheRequestIsValid (requestBody) {
+  const valid = ajv.validate('request/dalipeche', requestBody);
+
+  if (!valid) {
+    log.info(`Invalid client request. ${ajv.errorsText()}`);
+  }
+
+  return valid;
+}
+
+function daliPecheResponseIsValid (responseBody) {
+  const valid = ajv.validate('response/dalipeche', responseBody);
+  if (!valid) {
+    log.info(`Invalid DaliPeche response. ${ajv.errorsText()}`);
+  }
+  return valid;
+}
+
 module.exports = {
   validateProtocol,
   validateAPIRequest,
   validateAPIResponse,
   validateRequestFormat,
+  daliPecheRequestIsValid,
+  daliPecheResponseIsValid,
 };

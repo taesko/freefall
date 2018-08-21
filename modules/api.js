@@ -5,12 +5,11 @@ const {
   validateAPIRequest,
   validateAPIResponse,
 } = require('./validate');
-const { PeerError, UserError, assertPeer } = require('./error-handling');
+const { PeerError, UserError } = require('./error-handling');
 const compose = require('koa-compose');
 const methods = require('../methods/resolve-method');
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./protocol');
 const log = require('./log');
-const forecast = require('./forecast');
 
 const multiParser = defineParsers(jsonParser, yamlParser);
 
@@ -131,51 +130,6 @@ async function api (ctx, next) {
   await next();
 }
 
-async function daliPecheErrorHandling (ctx, next) {
-  try {
-    await next();
-  } catch (e) {
-    let response = {};
-
-    if (e.code === 'DALIPECHE_SERVICE_DOWN') {
-      log.info('Dalipeche service is unavailable setting HTTP code 503.');
-      response = { statusCode: '2000' };
-    } else if (e.code === 'DALIPECHE_BAD_API_PARAMS') {
-      response = { statusCode: '30' };
-    } else {
-      throw e;
-    }
-
-    ctx.status = 200;
-    ctx.body = response;
-  }
-}
-
-async function daliPecheAPI (ctx) {
-  // TODO move this functionality on a separate koa instance and assert API KEY integrity here
-  const { key, city, iataCode } = ctx.request.body;
-  log.debug('body is: ', ctx.request.body);
-  assertPeer(
-    (city == null && typeof iataCode === 'string') ||
-    (typeof city === 'string' && iataCode == null),
-    'Need to specify only one of city or iataCode params.',
-    'DALIPECHE_BAD_API_PARAMS',
-  );
-
-  const bodyParams = { key };
-
-  if (city) {
-    bodyParams.city = city;
-  } else {
-    bodyParams.iataCode = iataCode;
-  }
-
-  const dbClient = ctx.state.dbClient;
-  ctx.body = await forecast.fetchForecast(dbClient, bodyParams);
-  ctx.state.commitDB = true;
-}
-
 module.exports = {
   rpcAPILayer: compose([errorHandling, api]),
-  daliPecheAPI: compose([daliPecheErrorHandling, daliPecheAPI]),
 };

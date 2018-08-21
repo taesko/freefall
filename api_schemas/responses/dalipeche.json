@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "response/dalipeche",
+  "title": "Response from the DaliPeche service",
+  "type": "object",
+  "oneOf": [
+    {
+      "properties": {
+        "statusCode": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "required": ["statusCode", "msg"]
+    },
+    {
+      "required": ["observed_at", "city", "country_code", "lng", "lat", "conditions"],
+      "properties": {
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "city": { "type": "string" },
+        "country_code": { "type": "string" },
+        "lng": { "type": "string" },
+        "lat": { "type": "string" },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "number" },
+              "city_id": { "type": "number" },
+              "weather": { "type": "string" },
+              "weather_description": { "type": "string" },
+              "cloudiness": { "type": "string" },
+              "humidity": { "type": "string" },
+              "max_temperature": { "type": "string" },
+              "min_temperature": { "type": "string" },
+              "sea_pressure": { "type": "string" },
+              "ground_pressure": { "type": "string" },
+              "wind_direction": { "type": "string" },
+              "wind_speed": { "type": "string" },
+              "forecast_time": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "city_id",
+              "weather",
+              "weather_description",
+              "cloudiness",
+              "humidity",
+              "max_temperature",
+              "min_temperature",
+              "sea_pressure",
+              "ground_pressure",
+              "wind_direction",
+              "wind_speed",
+              "forecast_time"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 (function ($) {
-  const API_LINK = '/api/dalipeche';
+  const API_LINK = '/api/dalipeche/';
   const ICON_WIDTH = 64;
   const ICON_HEIGHT = 64;
 

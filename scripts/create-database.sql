@@ -15,7 +15,14 @@ DROP TABLE IF EXISTS users;
 DROP TYPE IF EXISTS user_role;
 
 CREATE TYPE user_role AS ENUM ('admin', 'customer');
-CREATE TYPE dalipeche_tax_reason AS ENUM ('successful_request', 'failed_request', 'bad_request', 'bad_response');
+CREATE TYPE dalipeche_fetch_status AS ENUM (
+  'pending', -- request was sent but hasn't been handled. Status is only temporary and should be updated after handling the response
+  'no_response', -- unknown tax
+  'bad_response', -- unknown tax
+  'free_request', -- tax = 0
+  'failed_request', -- tax = 1
+  'successful_request' -- tax = 2
+);
 
 CREATE TABLE airports (
   id serial PRIMARY KEY NOT NULL,
@@ -83,16 +90,18 @@ CREATE TABLE dalipeche_fetches (
     id serial PRIMARY KEY NOT NULL,
     api_key text NOT NULL,
     fetch_time timestamp NOT NULL,
-    tax_reason dalipeche_tax_reason NOT NULL
+    status dalipeche_fetch_status NOT NULL
 );
 
 CREATE VIEW dalipeche_fetches_reports_view AS
-    SELECT id, api_key, fetch_time, tax_reason,
+    SELECT id, api_key, fetch_time, status,
         CASE
-            WHEN tax_reason='successful_request' THEN 2
-            WHEN tax_reason='failed_request' THEN 1
-            WHEN tax_reason='bad_request' THEN 0
-            WHEN tax_reason='bad_response' THEN 0 -- TODO throw exception on ELSE in postgresql ?
+            WHEN status='successful_request' THEN 2
+            WHEN status='failed_request' THEN 1
+            WHEN status='free_request' THEN 0
+            WHEN status='no_response' THEN 0
+            WHEN status='bad_response' THEN 0 -- TODO throw exception on ELSE in postgresql ?
+            WHEN status='pending' THEN 0
         END AS tax_amount
     FROM dalipeche_fetches;
 

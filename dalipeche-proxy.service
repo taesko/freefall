@@ -1,0 +1,12 @@
+[Unit]
+Description=Proxy node server to DaliPeche web service.
+After=network.target
+
+[Service]
+ExecStart=/opt/freefall/scripts/run-dalipeche-proxy.sh
+Restart=always
+RestartSec=3
+EnvironmentFile=/opt/freefall/dalipeche-proxy.env
+
+[Install]
+WantedBy=multi-user.target

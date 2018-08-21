@@ -3,12 +3,25 @@ const http = require('http');
 const _ = require('lodash');
 const errors = require('./error-handling');
 const log = require('./log');
-const { defineParsers, jsonParser, yamlParser } = require('./normalize');
 
-const multiParser = defineParsers(jsonParser, yamlParser);
 const API_KEY = process.env.DALIPECHE_API_KEY;
 const DALIPECHE_ADDRESS = process.env.DALIPECHE_ADDRESS;
 const DALIPECHE_PORT = process.env.DALIPECHE_PORT;
+const FETCH_STATUS = {
+  pending: 'pending', // request was sent but hasn't been handled. status is only temporary
+  noResponse: 'no_response', // unknown tax
+  badResponse: 'bad_response', // unknown tax
+  freeRequest: 'free_request', // tax = 0
+  failedRequest: 'failed_request', // tax = 1
+  successfulRequest: 'successful_request', // tax = 2
+};
+const STATUS_CODES = {
+  invalidParams: 30,
+  noAPIKey: 31,
+  invalidAPIKey: 33,
+  notEnoughCredits: 300,
+};
+
 errors.assertApp(
   DALIPECHE_ADDRESS && DALIPECHE_PORT,
   'DALIPECHE_ADDRESS and/or DALIPECHE_PORT env variables are not set.',
@@ -35,13 +48,16 @@ function buildPostRequestOptions (body) {
   };
 }
 
-async function fetchForecast (dbClient, bodyParams) {
+function buildPostRequestBody (params) {
+  errors.assertApp(_.isObject(params));
+  return { key: API_KEY, ...params };
+}
+
+async function fetchForecast (dbClient, postBody) {
   errors.assertApp(_.isObject(dbClient), `got ${dbClient}`);
-  errors.assertApp(_.isObject(bodyParams), `got ${bodyParams}`);
+  errors.assertApp(_.isObject(postBody), `got ${postBody}`);
 
-  log.info('Fetching forecast with bodyParams =', bodyParams);
-
-  bodyParams.key = API_KEY;
+  log.info('Fetching forecast with postBody =', postBody);
 
   async function fetch (bodyParams) {
     const body = JSON.stringify(bodyParams);
@@ -74,78 +90,66 @@ async function fetchForecast (dbClient, bodyParams) {
     });
   }
 
-  const response = await retry(() => fetch(bodyParams));
-  let forecast;
-
-  try {
-    forecast = multiParser.parse(response, 'json');
-  } catch (e) {
-    log.critical(
-      'Send a request to DaliPeche but service returned a bad response.',
-      'Params:', bodyParams,
-      'response: ', response,
-    );
-
-    await insertFetch(dbClient, 'bad_response');
-
-    return response;
-  }
-
-  if (forecast.statusCode != null) {
-    const statusCode = +forecast.statusCode;
-    if (!Number.isInteger(statusCode)) {
-      log.critical(
-        'Send a request to DaliPeche but service returned a bad response.',
-        'Params:', bodyParams,
-        'response: ', response,
-      );
-      await insertFetch(dbClient, 'bad_response');
-
-      return response;
-    }
-
-    if (
-      forecast.statusCode === 31 || // no api key
-      forecast.statusCode === 33 || // invalid api key
-      forecast.statusCode === 300 // not enough credits
-    ) {
-      log.critical(
-        'Send a bad request to DaliPeche: ',
-        'params:', bodyParams,
-        'response:', response,
-      );
-      await insertFetch(dbClient, 'bad_request');
-
-      return response;
-    }
-    log.info(
-      'Send a request to DaliPeche but it failed: ',
-      'params', bodyParams,
-      'response', response,
-    );
-    await insertFetch(dbClient, 'failed_request');
-
-    return response;
-  }
-
-  await insertFetch(dbClient, 'successful_request');
-
-  return response;
+  // TODO handle http client errors
+  return retry(() => fetch(postBody));
 }
 
-async function insertFetch (dbClient, reason) {
-  errors.assertApp(_.isObject(dbClient), `got ${dbClient}`);
-  errors.assertApp(typeof reason === 'string', `got ${reason}`);
-
-  return dbClient.executeQuery(
-    `
-        INSERT INTO dalipeche_fetches
-          (fetch_time, api_key, tax_reason)
-        VALUES
-          (current_timestamp, $1, $2)
-      `,
-    [API_KEY, reason],
+function fetchStatusFromResponse (parsedResponse) {
+  if (parsedResponse.statusCode == null) {
+    return FETCH_STATUS.successfulRequest;
+  }
+  const statusCode = +parsedResponse.statusCode;
+  const isNotTaxedRequest = (
+    statusCode === STATUS_CODES.noAPIKey || // no api key
+    statusCode === STATUS_CODES.invalidAPIKey || // invalid api key
+    statusCode === STATUS_CODES.notEnoughCredits // not enough credits
   );
+
+  if (isNotTaxedRequest) {
+    return FETCH_STATUS.freeRequest;
+  } else {
+    return FETCH_STATUS.failedRequest;
+  }
+}
+async function recordFetch (dbClient, status) {
+  errors.assertApp(_.isObject(dbClient), `got ${dbClient}`);
+  errors.assertApp(typeof status === 'string', `got ${status}`);
+
+  const { rows } = await dbClient.executeQuery(
+    `
+    INSERT INTO dalipeche_fetches
+      (fetch_time, api_key, status)
+    VALUES
+      (current_timestamp, $1, $2)
+    RETURNING *
+    `,
+    [API_KEY, status],
+  );
+
+  errors.assertApp(rows.length === 1);
+
+  log.debug('DALIPECHE FETCH ROWS RESULT = ', rows);
+  return rows[0];
+}
+
+async function updateFetch (dbClient, fetchID, status) {
+  errors.assertApp(_.isObject(dbClient), `got ${dbClient}`);
+  errors.assertApp(Number.isSafeInteger(fetchID));
+  errors.assertApp(typeof status === 'string', `got ${status}`);
+
+  const { rows } = await dbClient.executeQuery(
+    `
+    UPDATE dalipeche_fetches
+    SET status=$2
+    WHERE id=$1
+    RETURNING *
+    `,
+    [fetchID, status],
+  );
+
+  errors.assertApp(rows.length === 1);
+
+  return rows[0];
 }
 
 async function retry (fetch, times = 2) {
@@ -168,5 +172,11 @@ async function retry (fetch, times = 2) {
 
 module.exports = {
   fetchForecast,
+  recordFetch,
+  updateFetch,
+  fetchStatusFromResponse,
+  buildPostRequestBody,
+  FETCH_STATUS,
   API_KEY,
+  STATUS_CODES,
 };
