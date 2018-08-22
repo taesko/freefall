@@ -9,9 +9,14 @@
       "title": "Status code",
       "description": "Indicator for the result of the request",
       "type": "string"
+    },
+    "role_id": {
+      "title": "Role id",
+      "type": ["integer", "null"]
     }
   },
   "required": [
-    "status_code"
+    "status_code",
+    "role_id"
   ]
 }

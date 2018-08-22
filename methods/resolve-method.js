@@ -1174,9 +1174,9 @@ async function adminAlterUserCredits (params, dbClient) {
 
 const adminAddRole = defineAPIMethod(
   {
-    'AAR_INVALID_API_KEY': { status_code: '2100' },
-    'AAR_BAD_PARAMETERS_FORMAT': { status_code: '2101' },
-    'AAR_UNKNOWN_PERMISSIONS': { status_code: '2102' },
+    'AAR_INVALID_API_KEY': { status_code: '2100', role_id: null },
+    'AAR_BAD_PARAMETERS_FORMAT': { status_code: '2101', role_id: null },
+    'AAR_UNKNOWN_PERMISSIONS': { status_code: '2102', role_id: null },
   },
   async (params, dbClient) => {
     assertUser(
@@ -1232,6 +1232,7 @@ const adminAddRole = defineAPIMethod(
 
     return {
       status_code: '1000',
+      role_id: roleId,
     };
   }
 );
@@ -1360,7 +1361,7 @@ const adminRemoveRole = defineAPIMethod(
 
     const selectUserRolePossessionResult = await dbClient.executeQuery(`
 
-      SELECT COUNT(*) AS user_role_possession_count
+      SELECT COUNT(*)::integer AS user_role_possession_count
       FROM users_roles
       WHERE role_id = $1;
 

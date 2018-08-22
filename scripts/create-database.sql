@@ -398,7 +398,7 @@ VALUES
   ('search'),
   ('senderror'),
   ('subscribe'),
-  ('unsubscrube');
+  ('unsubscribe');
 
 INSERT INTO roles_permissions
   (role_id, permission_id)

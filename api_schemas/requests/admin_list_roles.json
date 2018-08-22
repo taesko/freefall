@@ -9,7 +9,7 @@
       "title": "API version"
     },
     "role_id": {
-      "type": "string",
+      "type": "integer",
       "title": "Role id"
     },
     "limit": {

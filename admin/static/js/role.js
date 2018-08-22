@@ -154,6 +154,8 @@ function start () {
       role,
       $('#role-' + rowId) // eslint-disable-line prefer-template
     );
+
+    renderRolePermissionsTable($('#role-permissions-table'), 'edit');
   };
 
   const onCancelEditRoleClick = function (event) {
@@ -166,6 +168,12 @@ function start () {
       role,
       $('#role-' + rowId) // eslint-disable-line prefer-template
     );
+
+    rolePermissions = permissions.filter(function (p) {
+      return role.permissions.indexOf(p.id) >= 0;
+    });
+
+    renderRolePermissionsTable($('#role-permissions-table'), 'view');
   };
 
   const onSaveRoleClick = function (event) {
@@ -194,7 +202,7 @@ function start () {
       api_key: APIKeyRef.APIKey,
       role_id: oldRole.id,
       role_name: roleName,
-      permissions: rolePermissions.map(function (rolePermission) {
+      permissions: rolePermissions.map(function (rolePermission) { // eslint-disable-line prefer-arrow-callback
         return rolePermission.id;
       }),
     };
@@ -215,12 +223,15 @@ function start () {
           };
 
           rowIdRoleMap[rowId] = newRole;
+          role = newRole;
 
           renderRoleRow(
             'view',
             newRole,
             $('#role-' + rowId) // eslint-disable-line prefer-template 
           );
+
+          renderRolePermissionsTable($('#role-permissions-table'), 'view');
 
           mainUtils.displayUserMessage('Successfully edited role!', 'success');
         } else {
@@ -265,12 +276,52 @@ function start () {
 
     const removeButton = event.target;
     const rowId = mainUtils.getElementUniqueId(removeButton, 'remove-role-permission-btn-');
+
+    const rolePermission = rowIdRolePermissionMap[rowId];
+    delete rowIdRolePermissionMap[rowId];
+
+    rolePermissions = rolePermissions.filter(function (rp) {
+      return rp.id !== rolePermission.id;
+    });
+
+    renderRolePermissionsTable($('#role-permissions-table'), 'edit');
   };
 
   const onAddRolePermissionClick = function (event) {
     mainUtils.trace('onAddRolePermissionClick');
 
-    // TODO
+    const rowId = mainUtils.getElementUniqueId(event.target, 'add-role-permission-submit-btn-');
+    const newRolePermission = $('#add-role-permission-' + rowId).val().trim(); // eslint-disable-line prefer-template
+
+    assertUser(newRolePermission.length > 0, {
+      msg: 'New role permission name was empty when user clicked button Add permission',
+      userMessage: 'Please choose a permission!',
+    });
+
+    var permission; // eslint-disable-line no-var
+    var i; // eslint-disable-line no-var
+
+    for (i = 0; i < permissions.length; i++) {
+      if (permissions[i].name === newRolePermission) {
+        permission = permissions[i];
+        break;
+      }
+    }
+
+    assertUser(_.isObject(permission), {
+      msg: 'User entered name of permission that does not exist',
+      userMessage: 'Selected permission could not be found!',
+    });
+
+    for (i = 0; i < rolePermissions.length; i++) {
+      assertApp(rolePermissions[i].id !== permission.id, {
+        msg: 'User entered name of permission that is already assigned or selected to be assigned to role.',
+        userMessage: 'Permission already selected to be assigned to role!',
+      });
+    }
+
+    rolePermissions.push(permission);
+    renderRolePermissionRow('edit', permission);
   };
 
   function clearRolePermissionsTable($rolePermissionsTable) {
@@ -283,7 +334,7 @@ function start () {
       .remove();
   }
 
-  function renderRolePermissionsTable ($rolePermissionsTable) {
+  function renderRolePermissionsTable ($rolePermissionsTable, mode) {
     mainUtils.trace('renderRolePermissionsTable');
 
     assertApp($rolePermissionsTable instanceof jQuery, {
@@ -298,6 +349,12 @@ function start () {
     assertApp(permissions instanceof Array, {
       msg: 'Expected permissions to be instance of array, but was ' + typeof permissions, // eslint-disable-line prefer-template
     });
+    assertApp(typeof mode === 'string', {
+      msg: 'Expected mode to be string, but mode=' + mode, // eslint-disable-line prefer-template
+    });
+    assertApp(['view', 'edit'].indexOf(mode) >= 0, {
+      msg: 'Got unexpected mode=' + mode, // eslint-disable-line prefer-template
+    });
 
     clearRolePermissionsTable($rolePermissionsTable);
     rowIdRolePermissionMap = {};
@@ -306,7 +363,7 @@ function start () {
     // TODO labels
 
     _.each(rolePermissions, function (rolePermission) { // eslint-disable-line prefer-arrow-callback
-      renderRolePermissionRow('view', rolePermission);
+      renderRolePermissionRow(mode, rolePermission);
     });
   }
 
@@ -332,7 +389,7 @@ function start () {
 
     const modes = {
       'view': renderPermissionRowViewMode,
-      // no need for edit mode
+      'edit': renderPermissionRowEditMode,
     };
 
     assertApp(typeof modes[mode] === 'function', {
@@ -374,6 +431,43 @@ function start () {
     }
   }
 
+  function renderPermissionRowEditMode (rolePermission, rowId, $row) {
+    mainUtils.trace('renderPermissionRowEditMode');
+
+    const $rolePermissionClone = $('#role-permission-edit-mode').clone()
+      .removeAttr('hidden')
+      .attr('id', 'role-permission-' + rowId); // eslint-disable-line prefer-template
+
+    $rolePermissionClone.find('#role-permission-id-edit-mode')
+      .attr('id', 'role-permission-id-' + rowId) // eslint-disable-line prefer-template
+      .text(rolePermission.id);
+
+    $rolePermissionClone.find('#role-permission-name-edit-mode')
+      .attr('id', 'role-permission-name-' + rowId) // eslint-disable-line prefer-template
+      .text(rolePermission.name);
+
+    $rolePermissionClone.find('#role-permission-created-at-edit-mode')
+      .attr('id', 'role-permission-created-at-' + rowId) // eslint-disable-line prefer-template
+      .text(rolePermission.created_at);
+
+    $rolePermissionClone.find('#role-permission-updated-at-edit-mode')
+      .attr('id', 'role-permission-updated-at-' + rowId) // eslint-disable-line prefer-template
+      .text(rolePermission.updated_at);
+
+    $rolePermissionClone.find('#remove-role-permission-btn-edit-mode')
+      .attr('id', 'remove-role-permission-btn-' + rowId) // eslint-disable-line prefer-template
+      .click(onRemoveRolePermissionClick);
+
+    if ($row == null) {
+      $rolePermissionClone.appendTo(
+        $('#role-permissions-table tbody')
+      );
+    } else {
+      $row.replaceWith($rolePermissionClone);
+    }
+
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
 
     api.getAPIKey({
@@ -395,7 +489,7 @@ function start () {
             adminAPI.adminListRoles(
               {
                 v: '2.0',
-                role_id: roleIdGlobal,
+                role_id: Number(roleIdGlobal),
                 api_key: APIKeyRef.APIKey,
                 offset: 0,
                 limit: RESULTS_LIMIT,
@@ -415,12 +509,13 @@ function start () {
 
                 role = result.roles[0];
 
+                renderRoleRow('view', role);
+
                 rolePermissions = permissions.filter(function (p) {
                   return role.permissions.indexOf(p.id) >= 0;
                 });
 
-                renderRoleRow('view', role);
-                renderRolePermissionsTable($('#role-permissions-table'));
+                renderRolePermissionsTable($('#role-permissions-table'), 'view');
               }
             );
           }

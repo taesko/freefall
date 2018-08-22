@@ -979,9 +979,14 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'description': 'Indicator for the result of the request',
           'type': 'string',
         },
+        'role_id': {
+          'title': 'Role id',
+          'type': ['integer', 'null'],
+        },
       },
       'required': [
         'status_code',
+        'role_id',
       ],
     };
     return ajv.compile(adminAddRoleResponseSchema);
@@ -1141,7 +1146,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'title': 'API version',
         },
         'role_id': {
-          'type': 'string',
+          'type': 'integer',
           'title': 'Role id',
         },
         'limit': {
