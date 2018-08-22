@@ -9,7 +9,7 @@ const cors = require('@koa/cors');
 const session = require('koa-session');
 const { each, escape, isObject } = require('lodash');
 const log = require('./modules/log');
-const auth = require('./modules/auth');
+const adminAuth = require('./modules/admin-auth');
 const db = require('./modules/db');
 const users = require('./modules/users');
 const { getAdminContext } = require('./modules/render-contexts');
@@ -17,6 +17,7 @@ const { rpcAPILayer } = require('./modules/api');
 const {
   assertApp,
 } = require('./modules/error-handling.js');
+const crypto = require('crypto');
 
 const app = new Koa();
 const router = new Router();
@@ -92,19 +93,31 @@ app.use(views(path.join(__dirname, 'admin', 'templates'), {
   },
 }));
 
-router.get('/login', auth.redirectWhenLoggedIn('/'), async (ctx) => {
+router.get('/login', adminAuth.redirectWhenLoggedIn('/'), async (ctx) => {
   return ctx.render('login.html', await getAdminContext(ctx, 'get', '/login'));
 });
 
-router.post('/login', auth.redirectWhenLoggedIn('/'), async (ctx) => {
+router.post('/login', adminAuth.redirectWhenLoggedIn('/'), async (ctx) => {
+  const { email, password } = ctx.request.body;
+
+  log.info('Trying to log in with email: ', email);
+
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    ctx.state.login_error_message = 'Invalid username or password.';
+
+    return ctx.render('login.html', await getAdminContext(ctx, 'get', '/login'));
+  }
+
+  const passwordHashed = crypto.createHash('md5').update(password).digest('hex');
+
   try {
     const { email, password } = ctx.request.body;
-    await auth.login(ctx, email, password);
+    await adminAuth.login(ctx, email, password);
     ctx.redirect('/');
 
     return;
   } catch (e) {
-    if (e instanceof auth.InvalidCredentials) {
+    if (e instanceof adminAuth.InvalidCredentials) {
       log.info('Invalid credentials on login. Setting ctx.state.login_error_message');
       ctx.state.login_error_message = 'Invalid username or password.';
     } else {
@@ -117,34 +130,34 @@ router.post('/login', auth.redirectWhenLoggedIn('/'), async (ctx) => {
 
 router.get(
   '/',
-  auth.redirectWhenLoggedIn('/subscriptions'),
-  auth.redirectWhenLoggedOut('/login'),
+  adminAuth.redirectWhenLoggedIn('/subscriptions'),
+  adminAuth.redirectWhenLoggedOut('/login'),
   async () => {
     assertApp(
       false,
-      `auth module asserted that ctx is neither logged in nor logged out.`,
+      `adminAuth module asserted that ctx is neither logged in nor logged out.`,
     );
   }
 );
 
-router.get('/logout', auth.redirectWhenLoggedOut('/'), async (ctx) => {
-  await auth.logout(ctx);
+router.get('/logout', adminAuth.redirectWhenLoggedOut('/'), async (ctx) => {
+  await adminAuth.logout(ctx);
   ctx.redirect('/');
 });
 
-router.get('/subscriptions', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await auth.getLoggedInUser(ctx);
+router.get('/subscriptions', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
 
   assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
   assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
 
-  const guestSubscriptionsPermissionStatus = await auth.hasPermission(
+  const guestSubscriptionsPermissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
     loggedInUser.api_key,
     'admin_list_guest_subscriptions'
   );
 
-  const userSubscriptionsPermissionStatus = await auth.hasPermission(
+  const userSubscriptionsPermissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
     loggedInUser.api_key,
     'admin_list_user_subscriptions'
@@ -172,13 +185,13 @@ router.get('/subscriptions', auth.redirectWhenLoggedOut('/login'), async (ctx) =
   return ctx.render('subscriptions.html', await getAdminContext(ctx, 'get', '/subscriptions'));
 });
 
-router.get('/users', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await auth.getLoggedInUser(ctx);
+router.get('/users', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
 
   assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
   assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
 
-  const permissionStatus = await auth.hasPermission(
+  const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
     loggedInUser.api_key,
     'admin_list_users'
@@ -195,13 +208,13 @@ router.get('/users', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   return ctx.render('users.html', await getAdminContext(ctx, 'get', '/users'));
 });
 
-router.get('/users/:user_id', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await auth.getLoggedInUser(ctx);
+router.get('/users/:user_id', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
 
   assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
   assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
 
-  const permissionStatus = await auth.hasPermission(
+  const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
     loggedInUser.api_key,
     'admin_list_user_info'
@@ -226,13 +239,13 @@ router.get('/users/:user_id', auth.redirectWhenLoggedOut('/login'), async (ctx) 
   }
 });
 
-router.get('/roles', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await auth.getLoggedInUser(ctx);
+router.get('/roles', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
 
   assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
   assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
 
-  const permissionStatus = await auth.hasPermission(
+  const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
     loggedInUser.api_key,
     'admin_list_roles'
@@ -249,13 +262,13 @@ router.get('/roles', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   return ctx.render('roles.html', await getAdminContext(ctx, 'get', '/roles'));
 });
 
-router.get('/roles/:role_id', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await auth.getLoggedInUser(ctx);
+router.get('/roles/:role_id', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
 
   assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
   assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
 
-  const permissionStatus = await auth.hasPermission(
+  const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
     loggedInUser.api_key,
     'admin_list_roles'
@@ -282,13 +295,13 @@ router.get('/roles/:role_id', auth.redirectWhenLoggedOut('/login'), async (ctx) 
   return ctx.render('role.html', Object.assign(defaultContext, { role_id: roleId }));
 });
 
-router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await auth.getLoggedInUser(ctx);
+router.get('/fetches', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
 
   assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
   assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
 
-  const permissionStatus = await auth.hasPermission(
+  const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
     loggedInUser.api_key,
     'admin_list_fetches'
@@ -366,13 +379,13 @@ router.get('/fetches', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   }));
 });
 
-router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await auth.getLoggedInUser(ctx);
+router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
 
   assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
   assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
 
-  const permissionStatus = await auth.hasPermission(
+  const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
     loggedInUser.api_key,
     'admin_list_transfers'
