@@ -3,7 +3,7 @@ const bodyParser = require('koa-bodyparser');
 const Router = require('koa-router');
 const _ = require('lodash');
 
-const { assertApp, assertPeer, assertUser, UserError, PeerError, assertSystem } = require('./modules/error-handling');
+const { assertApp, UserError, PeerError, assertSystem } = require('./modules/error-handling');
 const REQUIRED_CONFIG = [
   'DALIPECHE_PROXY_PORT',
   'DALIPECHE_ADDRESS',
@@ -34,7 +34,7 @@ app.use(db.client);
 app.use(bodyParser());
 
 router.get('/', async (ctx) => {
-  ctx.body = 'Welcome to the DaliPeche proxy';
+  ctx.body = `Welcome to the DaliPeche proxy. Please issue a post request to this route to use the service.`;
 });
 
 router.post('/', DaliPecheErrorHandling, validateUserRequests, sendRequestToDaliPeche);
@@ -90,7 +90,6 @@ async function sendRequestToDaliPeche (ctx, next) {
   assertApp(_.isObject(ctx.state.dbClient));
   assertApp(_.isObject(ctx.request.body));
   const dbClient = ctx.state.dbClient;
-  const body = ctx.request.body;
 
   log.info('Recording pending state for fetch.');
   const { id: fetchID } = await forecast.recordFetch(
@@ -103,10 +102,12 @@ async function sendRequestToDaliPeche (ctx, next) {
 
   // TODO catch timeout
   let rawRes;
+
   try {
-    rawRes = await forecast.fetchForecast(dbClient, body);
+    rawRes = await forecast.fetchForecast(dbClient, ctx.request.body);
   } catch (e) {
     log.warn('Error occurred while fetching forecast:', e);
+
     if (e.code === 'DALIPECHE_SERVICE_DOWN') {
       ctx.status = 500;
       ctx.body = 'DaliPeche service is down';
@@ -123,13 +124,15 @@ async function sendRequestToDaliPeche (ctx, next) {
   ctx.body = rawRes;
 
   let parsedRes;
+
   try {
-    parsedRes = JSON.parse(body);
+    parsedRes = JSON.parse(rawRes);
   } catch (e) {
     log.warn('Parsing DaliPeche response failed with ', e);
     await forecast.updateFetch(dbClient, fetchID, FETCH_STATUS.badResponse);
     return next;
   }
+
   if (!daliPecheResponseIsValid(parsedRes)) {
     log.warn('DaliPeche service returned an invalid response: ', parsedRes);
     await forecast.updateFetch(dbClient, fetchID, FETCH_STATUS.badResponse);

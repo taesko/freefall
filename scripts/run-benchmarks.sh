@@ -17,7 +17,7 @@ if [ -z "$2" ]; then
     admin_url="http://10.20.1.128:3001"
     echo "Defaulting to ${url} on port 3000 (server) and 3001 (admin)"
 else
-    url="http://${2}:3000"
+    url="http://${2}"
     admin_url="http://${2}:3001"
 fi
 
@@ -56,6 +56,7 @@ function run_get_benchmark {
 function run_dalipeche_benchmark {
     target_url="${url}/api/dalipeche/"
     post_body="./scripts/ab-tests/request-bodies/dalipeche-SOF-body.json"
+    echo "Target url is ${target_url}"
     for concurrency in 10 100 500 1000; do
         output_file="${output_dir}/dalipeche-${concurrency}.stdout"
         echo "Benchmarking dalipeche with ${concurrency} concurrency";

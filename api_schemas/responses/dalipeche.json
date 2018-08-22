@@ -6,10 +6,10 @@
   "oneOf": [
     {
       "properties": {
-        "statusCode": { "type": "string" },
+        "statusCode": { "type": "number" },
         "message": { "type": "string" }
       },
-      "required": ["statusCode", "msg"]
+      "required": ["statusCode", "message"]
     },
     {
       "required": ["observed_at", "city", "country_code", "lng", "lat", "conditions"],

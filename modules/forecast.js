@@ -19,6 +19,7 @@ const STATUS_CODES = {
   invalidParams: 30,
   noAPIKey: 31,
   invalidAPIKey: 33,
+  exceededRateLimit: 35,
   notEnoughCredits: 300,
 };
 
@@ -76,6 +77,14 @@ async function fetchForecast (dbClient, postBody) {
         });
       });
 
+      req.setTimeout(20 * 1000, () => {
+        reject(
+          new errors.PeerError(
+            `Request to DaliPeche API timed out.`,
+            'DALIPECHE_SERVICE_DOWN',
+          ),
+        );
+      });
       req.on('error', e => {
         reject(
           new errors.PeerError(
@@ -102,7 +111,8 @@ function fetchStatusFromResponse (parsedResponse) {
   const isNotTaxedRequest = (
     statusCode === STATUS_CODES.noAPIKey || // no api key
     statusCode === STATUS_CODES.invalidAPIKey || // invalid api key
-    statusCode === STATUS_CODES.notEnoughCredits // not enough credits
+    statusCode === STATUS_CODES.notEnoughCredits || // not enough credits
+    statusCode === STATUS_CODES.exceededRateLimit
   );
 
   if (isNotTaxedRequest) {
