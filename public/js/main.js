@@ -290,6 +290,17 @@ function main () { // eslint-disable-line no-unused-vars
     }
   }
 
+  function clearFormData (formID) {
+    if (formID[0] !== '#') {
+      formID = '#' + formID;
+    }
+
+    const $form = $(formID);
+    for (const pair of $form.serializeArray()) {
+      $form.find('input[name=' + pair.name + ']').val('');
+    }
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $messagesList = $('#messages-list');
   });
@@ -312,6 +323,7 @@ function main () { // eslint-disable-line no-unused-vars
     getElementUniqueId: getElementUniqueId,
     saveFormData,
     restoreFormData,
+    clearFormData,
     SERVER_URL: SERVER_URL,
     PROTOCOL_NAME: PROTOCOL_NAME,
     APIKeyRef: APIKeyRef,

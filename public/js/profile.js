@@ -9,6 +9,7 @@ function start () {
   const assertPeer = mainUtils.assertPeer;
   const assertApp = mainUtils.assertApp;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
+  const CURRENT_PAGE_NAME = 'profile.html';
 
   const api = getAPIMethods(mainUtils);
 
@@ -606,7 +607,9 @@ function start () {
 
     for (const historyHash of history) {
       const { airport_from_id, airport_to_id } = historyHash;
-      const { name: airportFrom } = airports.find(a => a.id === airport_from_id);
+      const { name: airportFrom } = airports.find(
+        a => a.id === airport_from_id
+      );
       const { name: airportTo } = airports.find(a => a.id === airport_to_id);
       const statusText = { true: 'Active', false: 'Inactive' }[historyHash.subscription_status];
       const $tableRow = $tableRowTemplate.clone()
@@ -648,21 +651,25 @@ function start () {
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    $('#subscribe-submit-btn').click(onSubscribeSubmitClick);
     $('#display-subscriptions-btn').click(displaySubscriptions);
     $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
     $('#display-credit-history-btn').click(displayCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
+    $('#subscribe-submit-btn').click(onSubscribeSubmitClick);
+    $('#subscribe-clear-btn').click(function () {
+      mainUtils.clearFormData('#subscribe-form');
+      mainUtils.saveFormData(CURRENT_PAGE_NAME, 'subscribe-form');
+    });
 
     const $form = $('#subscribe-form');
 
-    mainUtils.restoreFormData('profile.html', 'subscribe-form');
+    mainUtils.restoreFormData(CURRENT_PAGE_NAME, 'subscribe-form');
     $form.submit(function (event) {
       event.preventDefault();
       return false;
     });
     $form.change(function () {
-      mainUtils.saveFormData('profile.html', 'subscribe-form');
+      mainUtils.saveFormData(CURRENT_PAGE_NAME, 'subscribe-form');
     });
 
     api.getAPIKey({

@@ -11,8 +11,8 @@
 <div class="container">
   {{> heading }}
   {{> menu }}
-  <div class="row">
-    <h3>Add new subscription:</h3>
+  <div class="row container">
+    <h3 class="row">Add new subscription:</h3>
     <form class="row" id="subscribe-form">
       <div class="col-md-2">
         <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text"
@@ -30,8 +30,9 @@
         <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to"
                required>
       </div>
-      <div class="col-md-4">
-        <button id="subscribe-submit-btn" class="btn btn-primary btn-block">Subscribe</button>
+      <div class="col-md-4 btn-toolbar">
+        <button id="subscribe-clear-btn" class="col-md-3 btn btn-danger" type="button">Clear</button>
+        <button id="subscribe-submit-btn" class="col-md-8 btn btn-primary" type="submit">Subscribe</button>
       </div>
     </form>
   </div>

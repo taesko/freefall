@@ -8,6 +8,7 @@ function start () {
   const assertPeer = mainUtils.assertPeer;
   const assertUser = mainUtils.assertUser;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
+  const CURRENT_PAGE_NAME = 'index.html';
   const api = getAPIMethods(mainUtils);
 
   var airports = []; // eslint-disable-line no-var
@@ -363,10 +364,15 @@ function start () {
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $loadMoreBtn = $('#load-more-btn');
-    mainUtils.restoreFormData('index.html', 'flight-form');
+    mainUtils.restoreFormData(CURRENT_PAGE_NAME, 'flight-form');
 
     $('#flight-form').change(function () {
-      mainUtils.saveFormData('index.html', 'flight-form');
+      mainUtils.saveFormData(CURRENT_PAGE_NAME, 'flight-form');
+    });
+
+    $('#clear-button').click(function () {
+      mainUtils.clearFormData('flight-form');
+      mainUtils.saveFormData(CURRENT_PAGE_NAME, 'flight-form');
     });
 
     $submitBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback
