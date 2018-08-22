@@ -100,7 +100,7 @@ async function isLoggedIn (ctx) {
     `
       SELECT 1
       FROM login_sessions
-      WHERE token=$1
+      WHERE token=$1 AND expiration_date > current_timestamp
     `,
     [token]
   );
