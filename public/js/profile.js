@@ -653,9 +653,16 @@ function start () {
     $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
     $('#display-credit-history-btn').click(displayCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
-    $('#subscribe-form').submit(function (event) {
+
+    const $form = $('#subscribe-form');
+
+    mainUtils.restoreFormData('profile.html', 'subscribe-form');
+    $form.submit(function (event) {
       event.preventDefault();
       return false;
+    });
+    $form.change(function () {
+      mainUtils.saveFormData('profile.html', 'subscribe-form');
     });
 
     api.getAPIKey({

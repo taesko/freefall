@@ -1,3 +1,4 @@
+/* eslint-disable prefer-template */
 'use strict';
 
 function main () { // eslint-disable-line no-unused-vars
@@ -10,7 +11,6 @@ function main () { // eslint-disable-line no-unused-vars
   };
 
   const SERVER_URL = '/';
-  // const SERVER_URL = 'http://127.0.0.1:3000';
   const PROTOCOL_NAME = 'yamlrpc';
   const MAX_TRACE = 300;
   var $messagesList; // eslint-disable-line no-var
@@ -254,6 +254,42 @@ function main () { // eslint-disable-line no-unused-vars
     assertUser: assertUser,
   });
 
+  function saveFormData (page, formID) {
+    assertApp(typeof page === 'string', { msg: 'got ' + page });
+    assertApp(typeof formID === 'string', { msg: 'got ' + formID });
+
+    if (formID[0] !== '#') {
+      formID = '#' + formID;
+    }
+
+    const serialized = $(formID).serializeArray();
+    for (const pair of serialized) {
+      const name = pair.name;
+      const value = pair.value;
+      window.localStorage.setItem(page + '-' + formID + '-' + name, value);
+    }
+  }
+
+  function restoreFormData (page, formID) {
+    assertApp(typeof page === 'string', { msg: 'got ' + page });
+    assertApp(typeof formID === 'string', { msg: 'got' + formID });
+
+    if (formID[0] !== '#') {
+      formID = '#' + formID;
+    }
+
+    const $form = $(formID);
+    const serialized = $form.serializeArray();
+
+    for (const pair of serialized) {
+      const name = pair.name;
+      const storedValue = window.localStorage.getItem(page + '-' + formID + '-' + name);
+      if (storedValue) {
+        $form.find('input[name=' + name + ']').val(storedValue);
+      }
+    }
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $messagesList = $('#messages-list');
   });
@@ -274,6 +310,8 @@ function main () { // eslint-disable-line no-unused-vars
     sendError: sendError,
     getUniqueId: getUniqueId,
     getElementUniqueId: getElementUniqueId,
+    saveFormData,
+    restoreFormData,
     SERVER_URL: SERVER_URL,
     PROTOCOL_NAME: PROTOCOL_NAME,
     APIKeyRef: APIKeyRef,

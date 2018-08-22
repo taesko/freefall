@@ -1,4 +1,4 @@
-/* eslint-disable no-var,prefer-template */
+/* eslint-disable no-var,prefer-template,prefer-arrow-callback */
 function start () {
   const $flightForm = $('#flight-form');
   const $submitBtn = $('#submit-button');
@@ -363,6 +363,11 @@ function start () {
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $loadMoreBtn = $('#load-more-btn');
+    mainUtils.restoreFormData('index.html', 'flight-form');
+
+    $('#flight-form').change(function () {
+      mainUtils.saveFormData('index.html', 'flight-form');
+    });
 
     $submitBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback
       mainUtils.trace('Submit button clicked');
