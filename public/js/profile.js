@@ -653,6 +653,10 @@ function start () {
     $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
     $('#display-credit-history-btn').click(displayCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
+    $('#subscribe-form').submit(function (event) {
+      event.preventDefault();
+      return false;
+    });
 
     api.getAPIKey({
       v: '2.0',

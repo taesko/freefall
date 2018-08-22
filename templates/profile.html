@@ -13,7 +13,7 @@
   {{> menu }}
   <div class="row">
     <h3>Add new subscription:</h3>
-    <div class="row">
+    <form class="row" id="subscribe-form">
       <div class="col-md-2">
         <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text"
                placeholder="Airport from" list="from-airports" required>
@@ -33,7 +33,7 @@
       <div class="col-md-4">
         <button id="subscribe-submit-btn" class="btn btn-primary btn-block">Subscribe</button>
       </div>
-    </div>
+    </form>
   </div>
   <hr>
   {{> messages }}
