@@ -98,10 +98,6 @@ router.get('/login', auth.redirectWhenLoggedIn('/'), async (ctx) => {
 
 router.post('/login', auth.redirectWhenLoggedIn('/'), async (ctx) => {
   try {
-    if (ctx.request.body.email !== 'admin@freefall.org') {
-      // noinspection ExceptionCaughtLocallyJS
-      throw new auth.InvalidCredentials('Tried to login with a non-admin account.');
-    }
     const { email, password } = ctx.request.body;
     await auth.login(ctx, email, password);
     ctx.redirect('/');
@@ -414,9 +410,9 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
       transfer_amount,
       transferred_at,
       account_transfers.user_id AS account_owner_id,
-      u1.email AS account_owner_email,
-      u2.id AS user_transferrer_id,
-      u2.email AS user_transferrer_email,
+      users.email AS account_owner_email,
+      employees.id AS employee_transferrer_id,
+      employees.email AS employee_transferrer_email,
       a1.name AS user_subscr_airport_from_name,
       a2.name AS user_subscr_airport_to_name,
       users_subscriptions.date_from AS user_subscr_date_from,
@@ -425,34 +421,34 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
       a4.name AS subscr_airport_to_name,
       fetch_time
     FROM account_transfers
-    LEFT JOIN users u1
-    ON account_transfers.user_id = u1.id
+    LEFT JOIN users
+      ON account_transfers.user_id = users.id
     LEFT JOIN user_subscription_account_transfers
-    ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
+      ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
     LEFT JOIN subscriptions_fetches_account_transfers
-    ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
-    LEFT JOIN account_transfers_by_admin
-    ON account_transfers_by_admin.account_transfer_id = account_transfers.id
-    LEFT JOIN users u2
-    ON u2.id = account_transfers_by_admin.admin_user_id
+      ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
+    LEFT JOIN account_transfers_by_employees
+      ON account_transfers_by_employees.account_transfer_id = account_transfers.id
+    LEFT JOIN employees
+      ON employees.id = account_transfers_by_employees.employee_id
     LEFT JOIN users_subscriptions
-    ON user_subscription_account_transfers.user_subscription_id = users_subscriptions.id
+      ON user_subscription_account_transfers.user_subscription_id = users_subscriptions.id
     LEFT JOIN subscriptions s1
-    ON users_subscriptions.subscription_id = s1.id
+      ON users_subscriptions.subscription_id = s1.id
     LEFT JOIN airports a1
-    ON s1.airport_from_id = a1.id
+      ON s1.airport_from_id = a1.id
     LEFT JOIN airports a2
-    ON s1.airport_to_id = a2.id
+      ON s1.airport_to_id = a2.id
     LEFT JOIN subscriptions_fetches
-    ON subscriptions_fetches_account_transfers.subscription_fetch_id = subscriptions_fetches.id
+      ON subscriptions_fetches_account_transfers.subscription_fetch_id = subscriptions_fetches.id
     LEFT JOIN subscriptions s2
-    ON subscriptions_fetches.subscription_id = s2.id
+      ON subscriptions_fetches.subscription_id = s2.id
     LEFT JOIN airports a3
-    ON s2.airport_from_id = a3.id
+      ON s2.airport_from_id = a3.id
     LEFT JOIN airports a4
-    ON s2.airport_to_id = a4.id
+      ON s2.airport_to_id = a4.id
     LEFT JOIN fetches
-    ON subscriptions_fetches.fetch_id = fetches.id
+      ON subscriptions_fetches.fetch_id = fetches.id
     ORDER BY account_transfer_id
     LIMIT $1
     OFFSET $2;
@@ -492,15 +488,15 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
       assertApp(prop.test(row[prop.name]), `Property "${prop.name}" does not pass test for expected type.`);
     });
 
-    const transferByAdminGroupCheck = {
-      name: 'transfer_by_admin',
+    const transferByEmployeeGroupCheck = {
+      name: 'transfer_by_employee',
       check: [
         {
-          name: 'user_transferrer_id',
+          name: 'employee_transferrer_id',
           test: Number.isInteger,
         },
         {
-          name: 'user_transferrer_email',
+          name: 'employee_transferrer_email',
           test: (value) => typeof value === 'string',
         },
       ],
@@ -544,7 +540,7 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
       ],
     };
     const groupChecks = [
-      transferByAdminGroupCheck,
+      transferByEmployeeGroupCheck,
       newUserSubscriptionGroupCheck,
       newFetchGroupCheck,
     ];
@@ -580,8 +576,8 @@ router.get('/transfers', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
       },
       transfer_amount: row.transfer_amount,
       transferred_at: row.transferred_at.toISOString(),
-      user_transferrer_id: row.user_transferrer_id,
-      user_transferrer_email: row.user_transferrer_email,
+      employer_transferrer_id: row.employer_transferrer_id,
+      employer_transferrer_email: row.employer_transferrer_email,
       user_subscr_airport_from_name: row.user_subscr_airport_from_name,
       user_subscr_airport_to_name: row.user_subscr_airport_to_name,
       user_subscr_date_from: row.user_subscr_date_from &&

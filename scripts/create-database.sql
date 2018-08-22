@@ -164,22 +164,36 @@ ON users(active);
 CREATE INDEX users_credits_idx
 ON users(credits);
 
-CREATE TABLE users_roles (
+CREATE TABLE employees (
   id serial PRIMARY KEY,
-  user_id integer REFERENCES users UNIQUE,
+  email text NOT NULL CHECK (char_length(email) >= 3),
+  password text NOT NULL,
+  api_key text UNIQUE NOT NULL,
+  active boolean NOT NULL DEFAULT TRUE,
+  UNIQUE(email)
+);
+
+CREATE INDEX employees_password_idx
+ON employees(password);
+CREATE INDEX employees_active_idx
+ON employees(active);
+
+CREATE TABLE employees_roles (
+  id serial PRIMARY KEY,
+  employee_id integer REFERENCES employees UNIQUE,
   role_id integer REFERENCES roles,
   created_at timestamp NOT NULL DEFAULT now(),
   updated_at timestamp NOT NULL DEFAULT now()
 );
 
-CREATE INDEX users_roles_user_id_idx
-ON users_roles(user_id);
-CREATE INDEX users_roles_role_id_idx
-ON users_roles(role_id);
-CREATE INDEX users_roles_created_at_idx
-ON users_roles(created_at);
-CREATE INDEX users_roles_updated_at_idx
-ON users_roles(updated_at);
+CREATE INDEX employees_roles_user_id_idx
+ON employees_roles(user_id);
+CREATE INDEX employees_roles_role_id_idx
+ON employees_roles(role_id);
+CREATE INDEX employees_roles_created_at_idx
+ON employees_roles(created_at);
+CREATE INDEX employees_roles_updated_at_idx
+ON employees_roles(updated_at);
 
 CREATE TABLE users_subscriptions (
   id serial PRIMARY KEY NOT NULL,
@@ -308,38 +322,14 @@ CREATE TABLE subscriptions_fetches_account_transfers (
 CREATE INDEX subscr_fetches_account_transfers_subscription_fetch_id_idx
 ON subscriptions_fetches_account_transfers(subscription_fetch_id);
 
-CREATE OR REPLACE FUNCTION is_admin (user_id integer)
-  RETURNS boolean AS
-$$
-  DECLARE
-    selected_user_role text;
-  BEGIN
-    SELECT INTO selected_user_role roles.name
-    FROM users_roles
-    LEFT JOIN roles
-    ON users_roles.role_id = roles.id
-    WHERE users_roles.id = user_id;
-    IF FOUND THEN
-      IF selected_user_role = 'admin' THEN
-        RETURN true;
-      ELSE
-        RETURN false;
-      END IF;
-    ELSE
-      RETURN false;
-    END IF;
-  END;
-$$
-LANGUAGE plpgsql;
-
-CREATE TABLE account_transfers_by_admin (
+CREATE TABLE account_transfers_by_employees (
   id serial PRIMARY KEY,
   account_transfer_id integer NOT NULL UNIQUE REFERENCES account_transfers,
-  admin_user_id integer NOT NULL REFERENCES users CHECK (is_admin(admin_user_id))
+  employee_id integer NOT NULL REFERENCES employees
 );
 
-CREATE INDEX account_transfers_by_admin_admin_user_id_idx
-ON account_transfers_by_admin(admin_user_id);
+CREATE INDEX account_transfers_by_employees_employee_id_idx
+ON account_transfers_by_employees(employee_id);
 
 CREATE OR REPLACE VIEW search_view AS
     SELECT
@@ -450,4 +440,3 @@ VALUES
   (3, 23),
   (1, 24),
   (1, 25);
-

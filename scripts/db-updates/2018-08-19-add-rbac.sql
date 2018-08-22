@@ -46,22 +46,45 @@ ON roles_permissions(created_at);
 CREATE INDEX roles_permissions_updated_at_idx
 ON roles_permissions(updated_at);
 
-CREATE TABLE users_roles (
+CREATE TABLE employees (
   id serial PRIMARY KEY,
-  user_id integer REFERENCES users UNIQUE,
+  email text NOT NULL CHECK (char_length(email) >= 3),
+  password text NOT NULL,
+  api_key text UNIQUE NOT NULL,
+  active boolean NOT NULL DEFAULT TRUE,
+  UNIQUE(email)
+);
+
+CREATE INDEX employees_password_idx
+ON employees(password);
+CREATE INDEX employees_active_idx
+ON employees(active);
+
+CREATE TABLE employees_roles (
+  id serial PRIMARY KEY,
+  employee_id integer REFERENCES employees UNIQUE,
   role_id integer REFERENCES roles,
   created_at timestamp NOT NULL DEFAULT now(),
   updated_at timestamp NOT NULL DEFAULT now()
 );
 
-CREATE INDEX users_roles_user_id_idx
-ON users_roles(user_id);
-CREATE INDEX users_roles_role_id_idx
-ON users_roles(role_id);
-CREATE INDEX users_roles_created_at_idx
-ON users_roles(created_at);
-CREATE INDEX users_roles_updated_at_idx
-ON users_roles(updated_at);
+INSERT INTO employees
+  (email, password, api_key)
+  SELECT
+    email,
+    password,
+    .api_key
+  FROM users
+  WHERE role = 'admin';
+
+CREATE INDEX employees_roles_user_id_idx
+ON employees_roles(user_id);
+CREATE INDEX employees_roles_role_id_idx
+ON employees_roles(role_id);
+CREATE INDEX employees_roles_created_at_idx
+ON employees_roles(created_at);
+CREATE INDEX employees_roles_updated_at_idx
+ON employees_roles(updated_at);
 
 INSERT INTO roles
   (name)
@@ -148,36 +171,40 @@ VALUES
   (1, 24),
   (1, 25);
 
-INSERT INTO users_roles
-  (user_id, role_id)
-  SELECT users.id, roles.id
-  FROM users
-  LEFT JOIN roles
-  ON users.role::text = roles.name;
+-- All employees were admins before this update
+INSERT INTO employees_roles
+  (employee_id, role_id)
+  SELECT
+    id,
+    1
+  FROM employees;
 
-CREATE OR REPLACE FUNCTION is_admin (user_id integer)
-  RETURNS boolean AS
-$$
-  DECLARE
-    selected_user_role text;
-  BEGIN
-    SELECT INTO selected_user_role roles.name
-    FROM users_roles
-    LEFT JOIN roles
-    ON users_roles.role_id = roles.id
-    WHERE users_roles.id = user_id;
-    IF FOUND THEN
-      IF selected_user_role = 'admin' THEN
-        RETURN true;
-      ELSE
-        RETURN false;
-      END IF;
-    ELSE
-      RETURN false;
-    END IF;
-  END;
-$$
-LANGUAGE plpgsql;
+CREATE TABLE account_transfers_by_employees (
+  id serial PRIMARY KEY,
+  account_transfer_id integer NOT NULL UNIQUE REFERENCES account_transfers,
+  employee_id integer NOT NULL REFERENCES employees
+);
+
+INSERT INTO account_transfers_by_employees
+  (account_transfer_id, employee_id)
+  SELECT
+    account_transfers_by_admin.account_transfer_id,
+    employees.id
+  FROM account_transfers_by_admin
+  JOIN users
+    ON users.id = account_transfers_by_admin.admin_user_id
+  JOIN employees
+    ON users.email = employees.email;
+
+CREATE INDEX account_transfers_by_employees_employee_id_idx
+ON account_transfers_by_employees(employee_id);
+
+DROP INDEX account_transfers_by_admin_admin_user_id_idx;
+DROP TABLE account_transfers_by_admin;
+DROP FUNCTION is_admin;
+
+DELETE FROM users
+WHERE role = 'admin';
 
 DROP INDEX users_role_idx;
 

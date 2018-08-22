@@ -1123,8 +1123,19 @@ async function adminAlterUserCredits (params, dbClient) {
     return { status_code: '2103' };
   }
 
-  const adminId = await users.fetchUser(dbClient, { apiKey: params.api_key })
-    .then(user => { return user == null ? null : user.id; });
+  const selectEmployeeResult = await dbClient.executeQuery(`
+
+    SELECT *
+    FROM employees
+    WHERE api_key = $1;
+
+  `, [params.api_key]);
+
+  assertApp(_.isObject(selectEmployeeResult), `got ${selectEmployeeResult}`);
+  assertApp(Array.isArray(selectEmployeeResult.rows), `got ${selectEmployeeResult.rows}`);
+  assertApp(selectEmployeeResult.rows.length === 1, `got ${selectEmployeeResult.rows.length}`);
+
+  const employeeId = selectEmployeeResult.rows[0].id;
 
   const userId = Number(params.user_id);
   const amount = Math.abs(params.credits_difference);
@@ -1161,10 +1172,10 @@ async function adminAlterUserCredits (params, dbClient) {
     }
   }
 
-  await accounting.registerTransferByAdmin(
+  await accounting.registerTransferByEmployee(
     dbClient,
     accountTransfer.id,
-    adminId,
+    employeeId,
   );
 
   return {
