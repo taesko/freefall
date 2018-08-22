@@ -1,3 +1,4 @@
+/* eslint-disable no-var,prefer-template */
 function start () {
   const $flightForm = $('#flight-form');
   const $submitBtn = $('#submit-button');
@@ -82,6 +83,20 @@ function start () {
     });
 
     const routeId = String(mainUtils.getUniqueId());
+    const departureDate = new Date(route.route[0].dtime);
+    const arrivalDate = new Date(route.route[route.route.length - 1].atime);
+    let attachmentTime = 0;
+
+    for (var curr = 0; curr < route.route.length - 1; curr++) {
+      const next = curr + 1;
+      const currFlight = route.route[curr];
+      const nextFlight = route.route[next];
+      attachmentTime += (new Date(nextFlight.dtime).getTime() -
+                         new Date(currFlight.atime).getTime());
+    }
+
+    const waitingHours = Math.round(attachmentTime / 1000 / 60 / 60);
+    const waitingTimeText = waitingHours + ' hours';
 
     const $routeClone = $('#route').clone()
       .removeAttr('hidden')
@@ -96,6 +111,18 @@ function start () {
       .click(function () { // eslint-disable-line prefer-arrow-callback
         window.location.href = 'https://www.kiwi.com/us/booking?token=' + route.booking_token; // eslint-disable-line prefer-template
       });
+
+    $routeClone.find('#route-departure')
+      .attr('id', 'route-departure-' + routeId)
+      .text(departureDate.toDateString());
+
+    $routeClone.find('#route-arrival')
+      .attr('id', 'route-arrival' + routeId)
+      .text(arrivalDate.toDateString());
+
+    $routeClone.find('#route-attachment-time')
+      .attr('id', '#route-attachment-time-' + routeId)
+      .text(waitingTimeText);
 
     $routeClone.find('#routes-table')
       .attr('id', 'routes-table-' + routeId); // eslint-disable-line prefer-template

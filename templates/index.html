@@ -65,13 +65,28 @@
         <div id="dalipeche-airport-to"></div>
       </div>
     </div>
-    <div id="routes-container">
-      <div id="route" hidden="true">
+    <div id="routes-container" class="row">
+      <div id="route" hidden="true" class="row">
         <div class="row">
-          <div class="col-md-6">
+          <div class="col-md-1">
             <p class="text-left">Price: <label id="route-price"></label></p>
           </div>
-          <div class="col-md-6">
+          <div class="col-md-10 row pull-left text-center">
+            <p class="col-md-4 pull-left">
+              <b id="route-attachment-time"></b> wait time between flights
+            </p>
+            <div class="col-md-8">
+              <p class="col-md-6">
+                Depart on
+                <b><time id="route-departure"></time></b>
+              </p>
+              <p class="col-md-6">
+                Arrive on
+                <b><time id="route-arrival"></time></b>
+              </p>
+            </div>
+          </div>
+          <div class="col-md-1">
             <p class="text-right">
               <button id="route-buy" type="button" onclick="location.href='http://google.com'" class="btn">Buy <span class="glyphicon glyphicon-shopping-cart"></span></button>
             </p>
@@ -79,11 +94,13 @@
         </div>
         <table id="routes-table" class="table table-bordered">
           <thead>
-            <td></td>
-            <td>Airline</td>
-            <td>Departure</td>
-            <td>Arrival</td>
-            <td>Flight duration</td>
+            <tr>
+              <td></td>
+              <td>Airline</td>
+              <td>Departure</td>
+              <td>Arrival</td>
+              <td>Flight duration</td>
+            </tr>
           </thead>
           <tbody>
             <tr id="route-flight" hidden="true">
