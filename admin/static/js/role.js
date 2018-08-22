@@ -14,19 +14,10 @@ function start () {
   var rowIdRoleMap = {}; // eslint-disable-line no-var
   var rolePermissions = []; // eslint-disable-line no-var
   var rowIdRolePermissionMap = {}; // eslint-disable-line no-var
-  var rolePermissionsOffset = 0; // eslint-disable-line no-var
   var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
 
   function applyAutocomplete (values) {
     $('.permission-select').autocomplete(values);
-  }
-
-  function showRoles () {
-    $('#roles-results').removeAttr('hidden');
-  }
-
-  function hideRoles () {
-    $('#roles-results').attr('hidden', 'true');
   }
 
   function renderRoleRow (mode, role, $row) {
@@ -141,7 +132,6 @@ function start () {
     } else {
       $row.replaceWith($roleEditModeClone);
     }
-
   }
 
   const onEditRoleClick = function (event) {
@@ -169,7 +159,7 @@ function start () {
       $('#role-' + rowId) // eslint-disable-line prefer-template
     );
 
-    rolePermissions = permissions.filter(function (p) {
+    rolePermissions = permissions.filter(function (p) { // eslint-disable-line prefer-arrow-callback
       return role.permissions.indexOf(p.id) >= 0;
     });
 
@@ -228,7 +218,7 @@ function start () {
           renderRoleRow(
             'view',
             newRole,
-            $('#role-' + rowId) // eslint-disable-line prefer-template 
+            $('#role-' + rowId) // eslint-disable-line prefer-template
           );
 
           renderRolePermissionsTable($('#role-permissions-table'), 'view');
@@ -280,7 +270,7 @@ function start () {
     const rolePermission = rowIdRolePermissionMap[rowId];
     delete rowIdRolePermissionMap[rowId];
 
-    rolePermissions = rolePermissions.filter(function (rp) {
+    rolePermissions = rolePermissions.filter(function (rp) { // eslint-disable-line prefer-arrow-callback
       return rp.id !== rolePermission.id;
     });
 
@@ -324,7 +314,7 @@ function start () {
     renderRolePermissionRow('edit', permission);
   };
 
-  function clearRolePermissionsTable($rolePermissionsTable) {
+  function clearRolePermissionsTable ($rolePermissionsTable) {
     mainUtils.trace('clearRolePermissionsTable');
 
     $rolePermissionsTable.find('tbody')
@@ -358,9 +348,6 @@ function start () {
 
     clearRolePermissionsTable($rolePermissionsTable);
     rowIdRolePermissionMap = {};
-
-    const currentPage = rolePermissionsOffset / RESULTS_LIMIT + 1;
-    // TODO labels
 
     _.each(rolePermissions, function (rolePermission) { // eslint-disable-line prefer-arrow-callback
       renderRolePermissionRow(mode, rolePermission);
@@ -465,11 +452,9 @@ function start () {
     } else {
       $row.replaceWith($rolePermissionClone);
     }
-
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-
     api.getAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
@@ -511,7 +496,7 @@ function start () {
 
                 renderRoleRow('view', role);
 
-                rolePermissions = permissions.filter(function (p) {
+                rolePermissions = permissions.filter(function (p) { // eslint-disable-line prefer-arrow-callback
                   return role.permissions.indexOf(p.id) >= 0;
                 });
 

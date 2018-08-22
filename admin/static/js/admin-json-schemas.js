@@ -108,7 +108,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                   'email': {
                     'type': 'string',
                     'title': 'User email',
-                    'format': 'email',
                   },
                 },
                 'required': ['id', 'email'],
@@ -264,7 +263,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                   'email': {
                     'type': 'string',
                     'title': 'User email',
-                    'format': 'email',
                   },
                 },
                 'required': ['id', 'email'],
@@ -462,7 +460,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
               'email': {
                 'type': 'string',
                 'title': 'User email',
-                'format': 'email',
               },
               'credits': {
                 'type': 'number',

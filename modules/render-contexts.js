@@ -116,7 +116,7 @@ function rolePageContext () {
   return {
     item: 'role',
   };
-};
+}
 
 function defineContextAdder (contextFunctions) {
   return (request, route, ...functions) => {

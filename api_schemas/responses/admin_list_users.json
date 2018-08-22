@@ -16,8 +16,7 @@
           },
           "email": {
             "type": "string",
-            "title": "User email",
-            "format": "email"
+            "title": "User email"
           },
           "credits": {
             "type": "number",

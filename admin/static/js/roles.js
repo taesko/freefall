@@ -417,7 +417,7 @@ function start () {
     const newRolePermission = rowIdNewRolePermissionMap[rowId];
     delete rowIdNewRolePermissionMap[rowId];
 
-    newRolePermissions = newRolePermissions.filter(function (rp) { // eslint-disable-line prefer-callback
+    newRolePermissions = newRolePermissions.filter(function (rp) { // eslint-disable-line prefer-arrow-callback
       return rp.id !== newRolePermission.id;
     });
 
@@ -469,7 +469,7 @@ function start () {
           adminAPI.adminListRoles(
             listRolesParams,
             PROTOCOL_NAME,
-            function (result) {
+            function (result) { // eslint-disable-line prefer-arrow-callback
               if (result.status_code === '1000') {
                 assertUser(result.roles.length === 1, {
                   msg: 'Newly added role could not be found on server',

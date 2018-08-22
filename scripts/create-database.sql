@@ -398,7 +398,9 @@ VALUES
   ('search'),
   ('senderror'),
   ('subscribe'),
-  ('unsubscribe');
+  ('unsubscribe'),
+  ('admin_list_user_info'),
+  ('admin_list_transfers');
 
 INSERT INTO roles_permissions
   (role_id, permission_id)
@@ -445,5 +447,7 @@ VALUES
   (3, 20),
   (3, 21),
   (3, 22),
-  (3, 23);
+  (3, 23),
+  (1, 24),
+  (1, 25);
 
