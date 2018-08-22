@@ -41,21 +41,35 @@ async function login (ctx, email, password) {
   log.info('Trying to login with email: ', email);
 
   if (await isLoggedIn(ctx)) {
-    throw new AlreadyLoggedIn(`Already logged in as user with id ${ctx.session.userID}`);
+    throw new AlreadyLoggedIn(`Already logged in.`);
   }
   const user = await users.fetchUser(dbClient, { email, password });
 
   if (!user) {
     throw new InvalidCredentials(`Failed to login with email=${email} and password=${password}.`);
   }
+  const { rows } = await dbClient.executeQuery(
+    `
+    INSERT INTO login_sessions
+      (user_id)
+    VALUES
+      ($1)
+    ON CONFLICT ON CONSTRAINT login_sessions_user_id_key DO
+     UPDATE SET expiration_date = current_timestamp + interval '1 day'
+    RETURNING *
+    `,
+    [user.id],
+  );
+  const { token } = rows[0];
 
-  ctx.session.userID = serializeUser(user);
-  log.info('Logged in as user', user.id);
+  ctx.session.login_token = token;
+  ctx.state.commitDB = true;
+  log.info('User with ID ', user.id);
 }
 
 function logout (ctx) {
   log.info('Logging out from session:', ctx.session);
-  ctx.session.userID = null;
+  ctx.session.login_token = null;
 }
 
 async function register (ctx, email, password) {
@@ -80,26 +94,45 @@ async function register (ctx, email, password) {
 }
 
 async function isLoggedIn (ctx) {
-  const id = ctx.session.userID;
+  const token = ctx.session.login_token;
 
-  return (
-    id != null &&
-    await users.fetchUser(ctx.state.dbClient, { userId: id }) != null
+  const { rows } = await ctx.state.dbClient.executeQuery(
+    `
+      SELECT 1
+      FROM login_sessions
+      WHERE token=$1
+    `,
+    [token]
   );
+  log.info('USER IS LOGGED IN', rows.length === 1);
+  assertApp(rows.length <= 1);
+
+  return rows.length === 1;
 }
 
 async function getLoggedInUser (ctx) {
-  return users.fetchUser(ctx.state.dbClient, { userId: ctx.session.userID });
+  const { rows } = await ctx.state.dbClient.executeQuery(
+    `
+      SELECT *
+      FROM users 
+      WHERE id = (
+        SELECT user_id 
+        FROM login_sessions
+        WHERE token=$1 AND 
+          expiration_date > current_timestamp
+        )
+      AND active=true AND verified=true
+    `,
+    [ctx.session.login_token]
+  );
+  assertApp(rows.length <= 1);
+  return rows[0];
 }
 
 async function tokenHasRole (dbClient, token, role) {
   const user = await users.fetchUser(dbClient, { apiKey: token });
 
   return role === user.role;
-}
-
-function serializeUser (user) {
-  return user.id;
 }
 
 module.exports = {
