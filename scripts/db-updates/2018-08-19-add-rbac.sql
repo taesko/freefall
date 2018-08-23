@@ -199,14 +199,11 @@ INSERT INTO account_transfers_by_employees
 CREATE INDEX account_transfers_by_employees_employee_id_idx
 ON account_transfers_by_employees(employee_id);
 
-DROP INDEX account_transfers_by_admin_admin_user_id_idx;
 DROP TABLE account_transfers_by_admin;
 DROP FUNCTION IF EXISTS is_admin(integer);
 
 DELETE FROM users
 WHERE role = 'admin';
-
-DROP INDEX users_role_idx;
 
 ALTER TABLE users
 DROP COLUMN role;
