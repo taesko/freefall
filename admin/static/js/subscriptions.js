@@ -868,7 +868,7 @@ function start () {
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
         userSubscriptions = result.user_subscriptions;
-
+        // TODO error handling
         renderUserSubscriptions($('#user-subscriptions-table'));
       }
     );
@@ -908,7 +908,7 @@ function start () {
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
-
+        // TODO error handling
         if (result.user_subscriptions.length === 0) {
           mainUtils.displayUserMessage('You are already on last page!', 'info');
           return;
@@ -962,7 +962,7 @@ function start () {
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
         guestSubscriptions = result.guest_subscriptions;
-
+        // TODO error handling
         renderGuestSubscriptions($('#guest-subscriptions-table'));
       }
     );
@@ -1002,7 +1002,7 @@ function start () {
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
-
+        // TODO error handling
         if (result.guest_subscriptions.length === 0) {
           mainUtils.displayUserMessage('You are already on last page!', 'info');
           return;
@@ -1030,8 +1030,7 @@ function start () {
     $('#guest-subscriptions-next-page-btn-bottom').click(onGuestSubscriptionsNextPageClick);
     $('#guest-subscriptions-prev-page-btn-bottom').click(onGuestSubscriptionsPreviousPageClick);
 
-
-    api.getAPIKey({
+    adminAPI.adminGetAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
@@ -1049,7 +1048,7 @@ function start () {
           PROTOCOL_NAME,
           function (result) { // eslint-disable-line prefer-arrow-callback
             userSubscriptions = result.user_subscriptions;
-
+            // TODO error handling
             renderUserSubscriptions($('#user-subscriptions-table'));
           }
         );
@@ -1059,12 +1058,12 @@ function start () {
           PROTOCOL_NAME,
           function (result) { // eslint-disable-line prefer-arrow-callback
             guestSubscriptions = result.guest_subscriptions;
-
+            // TODO error handling
             renderGuestSubscriptions($('#guest-subscriptions-table'));
           }
         );
       } else {
-        window.location.replace('/login');
+        mainUtils.displayUserMessage('Could not get API key for your account. Please try to log out and log back in your account!', 'error');
       }
     });
 

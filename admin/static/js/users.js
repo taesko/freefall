@@ -7,12 +7,11 @@ function start () {
   const RESULTS_LIMIT = 20;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
-  const api = getAPIMethods(mainUtils);
 
   var users = []; // eslint-disable-line no-var
   var offset = 0; // eslint-disable-line no-var
   var rowIdUserMap = {}; // eslint-disable-line no-var
-  var APIKey; // eslint-disable-line no-var
+  var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
 
   function clearUsersTable ($usersTable) {
     mainUtils.trace('clearUsersTable');
@@ -197,7 +196,7 @@ function start () {
     const removeUserParams = {
       v: '2.0',
       user_id: oldUser.id,
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
     };
 
     adminAPI.adminRemoveUser(
@@ -267,7 +266,7 @@ function start () {
 
     const params = {
       v: '2.0',
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
       user_id: user.id,
     };
 
@@ -371,7 +370,7 @@ function start () {
 
     const params = {
       v: '2.0',
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
       offset: offset,
       limit: RESULTS_LIMIT,
     };
@@ -380,6 +379,8 @@ function start () {
 
     adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       button.disabled = false;
+      // TODO error handling
+
       users = result.users;
 
       renderUsers($('#users-table'));
@@ -408,7 +409,7 @@ function start () {
 
     const params = {
       v: '2.0',
-      api_key: APIKey,
+      api_key: APIKeyRef.APIKey,
       offset: newOffset,
       limit: RESULTS_LIMIT,
     };
@@ -417,7 +418,7 @@ function start () {
 
     adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       button.disabled = false;
-
+      // TODO error handling
       if (result.users.length === 0) {
         mainUtils.displayUserMessage('You are already on last page!', 'info');
         return;
@@ -436,15 +437,15 @@ function start () {
     $('#prev-page-btn-bottom').click(onPreviousPageClick);
     $('#next-page-btn-bottom').click(onNextPageClick);
 
-    api.getAPIKey({
+    adminAPI.adminGetAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
-        APIKey = result.api_key;
+        APIKeyRef.APIKey = result.api_key;
 
         const params = {
           v: '2.0',
-          api_key: APIKey,
+          api_key: APIKeyRef.APIKey,
           offset: 0,
           limit: RESULTS_LIMIT,
         };
@@ -455,7 +456,7 @@ function start () {
           renderUsers($('#users-table'));
         });
       } else {
-        window.location.replace('/login');
+        mainUtils.displayUserMessage('Could not get API key for your account. Please try to log out and log back in your account!', 'error');
       }
     });
   });

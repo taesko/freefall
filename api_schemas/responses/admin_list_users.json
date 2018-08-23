@@ -16,16 +16,39 @@
           },
           "email": {
             "type": "string",
-            "title": "User email",
-            "format": "email"
+            "title": "User email"
           },
           "credits": {
             "type": "number",
             "title": "User credits",
             "minimum": 0
+          },
+          "api_key": {
+            "title": "API key",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          },
+          "verification_token": {
+            "title": "Verification token",
+            "type": "string"
+          },
+          "active": {
+            "title": "Active",
+            "type": "boolean"
           }
         },
-        "required": ["id", "email"]
+        "required": [
+          "id",
+          "email",
+          "credits",
+          "api_key",
+          "verified",
+          "verification_token",
+          "active"
+        ]
       }
     }
   },

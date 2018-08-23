@@ -143,7 +143,6 @@ module.exports = {
   register,
   getLoggedInUser,
   isLoggedIn,
-  tokenHasRole,
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,

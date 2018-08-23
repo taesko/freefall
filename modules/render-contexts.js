@@ -12,12 +12,17 @@ addContextForRoute('post', '/login', loginPageContext);
 addContextForRoute('get', '/register', registerPageContext);
 addContextForRoute('post', '/register', registerPageContext);
 addContextForRoute('get', '/profile', profilePageContext);
-addContextForRoute('get', '/transfers', accountTransfersContext);
 
 const adminContextFunctions = {};
 const addAdminContext = defineContextAdder(adminContextFunctions);
 
 addAdminContext('get', '/login', loginPageContext);
+addAdminContext('get', '/transfers', accountTransfersContext);
+addAdminContext('get', '/roles', rolesPageContext);
+addAdminContext('get', '/fetches', fetchesPageContext);
+addAdminContext('get', '/subscriptions', subscriptionsPageContext);
+addAdminContext('get', '/users', usersPageContext);
+addAdminContext('get', '/roles/:role_id', rolePageContext);
 
 async function defaultContext (appCtx) {
   if (await auth.isLoggedIn(appCtx)) {
@@ -83,6 +88,36 @@ function accountTransfersContext () {
   };
 }
 
+function fetchesPageContext () {
+  return {
+    item: 'fetches',
+  };
+}
+
+function subscriptionsPageContext () {
+  return {
+    item: 'subscriptions',
+  };
+}
+
+function usersPageContext () {
+  return {
+    item: 'users',
+  };
+}
+
+function rolesPageContext () {
+  return {
+    item: 'roles',
+  };
+}
+
+function rolePageContext () {
+  return {
+    item: 'role',
+  };
+}
+
 function defineContextAdder (contextFunctions) {
   return (request, route, ...functions) => {
     request = request.toUpperCase();
@@ -132,5 +167,4 @@ function defineContext (contextFunctions) {
 
 module.exports = {
   getContextForRoute: defineContext(mainContextFunctions),
-  getAdminContext: defineContext(adminContextFunctions),
 };

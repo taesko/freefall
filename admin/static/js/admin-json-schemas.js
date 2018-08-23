@@ -108,7 +108,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                   'email': {
                     'type': 'string',
                     'title': 'User email',
-                    'format': 'email',
                   },
                 },
                 'required': ['id', 'email'],
@@ -264,7 +263,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                   'email': {
                     'type': 'string',
                     'title': 'User email',
-                    'format': 'email',
                   },
                 },
                 'required': ['id', 'email'],
@@ -462,15 +460,38 @@ const adminValidators = { // eslint-disable-line no-unused-vars
               'email': {
                 'type': 'string',
                 'title': 'User email',
-                'format': 'email',
               },
               'credits': {
                 'type': 'number',
                 'title': 'User credits',
                 'minimum': 0,
               },
+              'api_key': {
+                'title': 'API key',
+                'type': 'string',
+              },
+              'verified': {
+                'title': 'Verified',
+                'type': 'boolean',
+              },
+              'verification_token': {
+                'title': 'Verification token',
+                'type': 'string',
+              },
+              'active': {
+                'title': 'Active',
+                'type': 'boolean',
+              },
             },
-            'required': ['id', 'email', 'credits'],
+            'required': [
+              'id',
+              'email',
+              'credits',
+              'api_key',
+              'verified',
+              'verification_token',
+              'active',
+            ],
           },
         },
       },
@@ -729,6 +750,10 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'title': 'Optional new password of the user',
           'type': 'string',
         },
+        'role': {
+          'title': 'Role',
+          'type': 'integer',
+        },
       },
       'any_of': [
         {
@@ -893,5 +918,402 @@ const adminValidators = { // eslint-disable-line no-unused-vars
       'required': ['status_code'],
     };
     return ajv.compile(adminAlterUserCreditsResponseSchema);
+  },
+
+  getValidateAdminAddRoleReq: function () {
+    const adminAddRoleRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_add_role',
+      'title': 'Admin add role request API method',
+      'description': 'Body of the admin_add_role API method',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'role_name': {
+          'type': 'string',
+          'title': 'Role name',
+        },
+        'permissions': {
+          'type': 'array',
+          'title': 'Permissions',
+          'items': {
+            'type': 'integer',
+          },
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+      },
+      'required': [
+        'v',
+        'role_name',
+        'permissions',
+        'api_key',
+      ],
+    };
+    return ajv.compile(adminAddRoleRequestSchema);
+  },
+
+  getValidateAdminAddRoleRes: function () {
+    const adminAddRoleResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_add_role',
+      'title': 'Admin add role response',
+      'description': 'Contains the response of admin_add_role method',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'description': 'Indicator for the result of the request',
+          'type': 'string',
+        },
+        'role_id': {
+          'title': 'Role id',
+          'type': ['integer', 'null'],
+        },
+      },
+      'required': [
+        'status_code',
+        'role_id',
+      ],
+    };
+    return ajv.compile(adminAddRoleResponseSchema);
+  },
+
+  getValidateAdminEditRoleReq: function () {
+    const adminEditRoleRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_edit_role',
+      'title': 'Admin edit role request API method',
+      'description': 'Body of the admin_edit_role API method',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'role_id': {
+          'type': 'integer',
+          'title': 'Role id',
+        },
+        'role_name': {
+          'type': 'string',
+          'title': 'Role name',
+        },
+        'permissions': {
+          'type': 'array',
+          'title': 'Permissions',
+          'items': {
+            'type': 'integer',
+          },
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+      },
+      'required': [
+        'v',
+        'role_id',
+        'api_key',
+      ],
+    };
+    return ajv.compile(adminEditRoleRequestSchema);
+  },
+
+  getValidateAdminEditRoleRes: function () {
+    const adminEditRoleResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_edit_role',
+      'title': 'Admin edit role response',
+      'description': 'Contains the response of admin_edit_role method',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'description': 'Indicator for the result of the request',
+          'type': 'string',
+        },
+      },
+      'required': [
+        'status_code',
+      ],
+    };
+    return ajv.compile(adminEditRoleResponseSchema);
+  },
+
+  getValidateAdminListPermissionsReq: function () {
+    const adminListPermissionsRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_list_permissions',
+      'title': 'Admin list permissions request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+      ],
+    };
+    return ajv.compile(adminListPermissionsRequestSchema);
+  },
+
+  getValidateAdminListPermissionsRes: function () {
+    const adminListPermissionsResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_list_permissions',
+      'title': 'Admin list permissions response',
+      'description': 'Contains the response of admin_list_permissions method',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'description': 'Indicator for the result of the request',
+          'type': 'string',
+        },
+        'permissions': {
+          'title': 'Permissions',
+          'type': 'array',
+          'items': {
+            'title': 'Permission',
+            'type': 'object',
+            'properties': {
+              'name': {
+                'title': 'Permission name',
+                'type': 'string',
+              },
+              'id': {
+                'title': 'Permission id',
+                'type': 'integer',
+              },
+              'created_at': {
+                'title': 'Created at',
+                'type': 'string',
+                'format': 'date-time',
+              },
+              'updated_at': {
+                'title': 'Updated at',
+                'type': 'string',
+                'format': 'date-time',
+              },
+            },
+            'required': [
+              'name',
+              'id',
+              'created_at',
+              'updated_at',
+            ],
+          },
+        },
+      },
+      'required': [
+        'status_code',
+        'permissions',
+      ],
+    };
+    return ajv.compile(adminListPermissionsResponseSchema);
+  },
+
+  getValidateAdminListRolesReq: function () {
+    const adminListRolesRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_list_roles',
+      'title': 'Admin list roles request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'role_id': {
+          'type': 'integer',
+          'title': 'Role id',
+        },
+        'limit': {
+          'type': 'integer',
+          'title': 'Limit',
+          'minimum': 1,
+          'maximum': 20,
+        },
+        'offset': {
+          'type': 'integer',
+          'title': 'Offset',
+          'minimum': 0,
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'limit',
+        'offset',
+      ],
+    };
+    return ajv.compile(adminListRolesRequestSchema);
+  },
+
+  getValidateAdminListRolesRes: function () {
+    const adminListRolesResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_list_roles',
+      'title': 'Admin list roles response',
+      'description': 'Contains the response of admin_list_roles method',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'description': 'Indicator for the result of the request',
+          'type': 'string',
+        },
+        'roles': {
+          'title': 'Roles',
+          'type': 'array',
+          'items': {
+            'title': 'Role',
+            'type': 'object',
+            'properties': {
+              'id': {
+                'title': 'Role id',
+                'type': 'integer',
+              },
+              'name': {
+                'title': 'Role name',
+                'type': 'string',
+              },
+              'permissions': {
+                'title': 'Permissions',
+                'type': 'array',
+                'items': {
+                  'title': 'Permission',
+                  'type': 'integer',
+                },
+              },
+              'created_at': {
+                'title': 'Created at',
+                'type': 'string',
+                'format': 'date-time',
+              },
+              'updated_at': {
+                'title': 'Updated at',
+                'type': 'string',
+                'format': 'date-time',
+              },
+            },
+            'required': [
+              'id',
+              'name',
+              'permissions',
+              'created_at',
+              'updated_at',
+            ],
+          },
+        },
+      },
+      'required': [
+        'status_code',
+        'roles',
+      ],
+    };
+    return ajv.compile(adminListRolesResponseSchema);
+  },
+
+  getValidateAdminRemoveRoleReq: function () {
+    const adminRemoveRoleRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_remove_role',
+      'title': 'Admin remove role request API method',
+      'description': 'Body of the admin_remove_role API method',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'role_id': {
+          'type': 'integer',
+          'title': 'Role id',
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+      },
+      'required': [
+        'v',
+        'role_id',
+        'api_key',
+      ],
+    };
+    return ajv.compile(adminRemoveRoleRequestSchema);
+  },
+
+  getValidateAdminRemoveRoleRes: function () {
+    const adminRemoveRoleResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_remove_role',
+      'title': 'Admin remove role response',
+      'description': 'Contains the response of admin_remove_role method',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'description': 'Indicator for the result of the request',
+          'type': 'string',
+        },
+      },
+      'required': [
+        'status_code',
+      ],
+    };
+    return ajv.compile(adminRemoveRoleResponseSchema);
+  },
+
+  getValidateAdminGetAPIKeyReq: function () {
+    const adminGetAPIKeyRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_get_api_key',
+      'title': 'Admin get API key request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+      },
+      'required': ['v'],
+    };
+    return ajv.compile(adminGetAPIKeyRequestSchema);
+  },
+
+  getValidateAdminGetAPIKeyRes: function () {
+    const adminGetAPIKeyResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_get_api_key',
+      'title': 'Admin get API key response',
+      'type': 'object',
+      'properties': {
+        'api_key': {
+          'type': ['string', 'null'],
+          'title': 'API key',
+        },
+      },
+      'required': ['api_key'],
+    };
+    return ajv.compile(adminGetAPIKeyResponseSchema);
   },
 };

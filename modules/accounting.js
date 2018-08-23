@@ -157,30 +157,36 @@ async function taxSubscribe (dbClient, userId, userSubscriptionId) {
   return subscrTransfer;
 }
 
-async function registerTransferByAdmin (dbClient, accountTransferId, adminId) {
+async function registerTransferByEmployee (dbClient, accountTransferId, employeeId) {
   assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   assertApp(
     typeof accountTransferId === 'number',
     `expected accountTransferId to be number but got ${typeof accountTransferId} instead - ${accountTransferId}`,
   );
   assertApp(
-    typeof adminId === 'number',
-    `expected adminId to be number but got ${typeof adminId} instead - ${adminId}`,
+    typeof employeeId === 'number',
+    `expected employeeId to be number but got ${typeof employeeId} instead - ${employeeId}`,
   );
 
-  log.info(`Registering transfer ${accountTransferId} from admin ${adminId}`);
+  log.info(`Registering transfer ${accountTransferId} from employee ${employeeId}`);
 
-  const accountTransferByAdmin = await dbClient.insert(
-    'account_transfers_by_admin',
-    {
-      'account_transfer_id': accountTransferId,
-      'admin_user_id': adminId,
-    },
-  );
+  const insertResult = await dbClient.executeQuery(`
+    INSERT INTO account_transfers_by_employees
+      (account_transfer_id, employee_id)
+    VALUES
+      ($1, $2)
+    RETURNING *;
+  `, [accountTransferId, employeeId]);
 
-  log.info('account_transfers_by_admin id is', accountTransferByAdmin.id);
+  assertApp(_.isObject(insertResult), `got ${insertResult}`);
+  assertApp(Array.isArray(insertResult.rows), `got ${insertResult.rows}`);
+  assertApp(insertResult.rows.length === 1, `got ${insertResult.rows.length}`);
 
-  return accountTransferByAdmin;
+  const accountTransferByEmployee = insertResult.rows[0];
+
+  log.info('account_transfers_by_employee id is', accountTransferByEmployee.id);
+
+  return accountTransferByEmployee;
 }
 
 module.exports = {
@@ -188,5 +194,5 @@ module.exports = {
   taxUser,
   taxSubscribe,
   subscriptionIsTaxed,
-  registerTransferByAdmin,
+  registerTransferByEmployee,
 };
