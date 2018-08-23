@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Role</title>
+    <link href="../css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      {{> heading }}
+      {{> menu }}
+      {{> messages }}
+      <div id="roles-section">
+        <div id="role-view-mode" hidden="true">
+          <div class="row">
+            <div class="col-md-6">
+              <p class="text-left">Role name: <label id="role-name-view-mode"></label></p>
+              <p class="text-left">Created at: <label id="role-created-at-view-mode"></label></p>
+              <p class="text-left">Updated at: <label id="role-updated-at-view-mode"></label></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-right">
+                <button id="role-edit-btn-view-mode" class="btn btn-primary">Edit</button>
+              </p>
+            </div>
+          </div>
+        </div>
+        <div id="role-edit-mode" hidden="true">
+          <div class="row">
+            <div class="col-md-6">
+              <p class="text-left">Role name: <input id="role-name-edit-mode" type="text" placeholder="" value="" class="form-control"></p>
+              <p class="text-left">Created at: <label id="role-created-at-edit-mode"></label></p>
+              <p class="text-left">Updated at: <label id="role-updated-at-edit-mode"></label></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-right">
+                <button id="role-save-btn-edit-mode" class="btn btn-primary">Save</button>
+                <button id="role-cancel-btn-edit-mode" class="btn btn-default">Cancel</button>
+                <button id="role-remove-btn-edit-mode" class="btn btn-danger">Remove</button>
+              </p>
+            </div>
+          </div>
+          <h4>Add permission:</h4>
+          <div class="form-inline">
+            <input id="add-role-permission" type="text" placeholder="Add permission" class="form-control">
+            <button id="add-role-permission-submit-btn" class="btn btn-default">Add permission</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Permissions:</h3>
+        <table id="role-permissions-table" class="table table-bordered">
+          <thead>
+            <td>Id</td>
+            <td>Permission</td>
+            <td>Options</td>
+          </thead>
+          <tbody>
+            <tr id="role-permission-view-mode" hidden="true">
+              <td id="role-permission-id-view-mode"></td>
+              <td id="role-permission-name-view-mode"></td>
+              <td></td>
+            </tr>
+            <tr id="role-permission-edit-mode" hidden="true">
+              <td id="role-permission-id-edit-mode"></td>
+              <td id="role-permission-name-edit-mode"></td>
+              <td>
+                <button id="remove-role-permission-btn-edit-mode" class="btn btn-danger">Remove</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <script src="../js/lodash/index.min.js"></script>
+    <script src="../js/jquery/jquery-2.2.4.js"></script>
+    <script src="../js/ajv.min.js"></script>
+    <script src="../js/js-yaml/js-yaml.min.js"></script>
+    <script src="../js/json-schemas.js"></script>
+    <script src="../js/admin-json-schemas.js"></script>
+    <script src="../js/parsers.js"></script>
+    <script src="../js/admin-api-methods.js"></script>
+    <script src="../js/main.js"></script>
+    <script src="../js/role.js"></script>
+    <script type="text/javascript">
+      var roleIdGlobal = _.unescape('{{{escape role_id}}}');
+    </script>
+  </body>
+</html>

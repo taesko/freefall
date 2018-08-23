@@ -1,3 +1,5 @@
+BEGIN;
+
 DROP TABLE IF EXISTS account_transfers_by_admin;
 DROP TABLE IF EXISTS subscriptions_fetches_account_transfers;
 DROP TABLE IF EXISTS user_subscription_account_transfers;
@@ -12,9 +14,8 @@ DROP TABLE IF EXISTS subscriptions;
 DROP TABLE IF EXISTS airports;
 DROP TABLE IF EXISTS airlines;
 DROP TABLE IF EXISTS users;
-DROP TYPE IF EXISTS user_role;
+-- DROP TYPE IF EXISTS user_role;
 
-CREATE TYPE user_role AS ENUM ('admin', 'customer');
 CREATE TYPE dalipeche_fetch_status AS ENUM (
   'pending', -- request was sent but hasn't been handled. Status is only temporary and should be updated after handling the response
   'no_response', -- unknown tax
@@ -23,6 +24,52 @@ CREATE TYPE dalipeche_fetch_status AS ENUM (
   'failed_request', -- tax = 1
   'successful_request' -- tax = 2
 );
+
+CREATE TABLE roles (
+  id serial PRIMARY KEY,
+  name text NOT NULL UNIQUE,
+  created_at timestamp NOT NULL DEFAULT now(),
+  updated_at timestamp NOT NULL DEFAULT now()
+);
+
+CREATE INDEX roles_name_idx
+ON roles(name);
+CREATE INDEX roles_created_at_idx
+ON roles(created_at);
+CREATE INDEX roles_updated_at_idx
+ON roles(updated_at);
+
+CREATE TABLE permissions (
+  id serial PRIMARY KEY,
+  name text NOT NULL UNIQUE,
+  created_at timestamp NOT NULL DEFAULT now(),
+  updated_at timestamp NOT NULL DEFAULT now()
+);
+
+CREATE INDEX permissions_name_idx
+ON permissions(name);
+CREATE INDEX permissions_created_at_idx
+ON permissions(created_at);
+CREATE INDEX permissions_updated_at_idx
+ON permissions(updated_at);
+
+CREATE TABLE roles_permissions (
+  id serial PRIMARY KEY,
+  role_id integer NOT NULL REFERENCES roles,
+  permission_id integer NOT NULL REFERENCES permissions,
+  created_at timestamp NOT NULL DEFAULT now(),
+  updated_at timestamp NOT NULL DEFAULT now(),
+  UNIQUE(role_id, permission_id)
+);
+
+CREATE INDEX roles_permissions_role_id_idx
+ON roles_permissions(role_id);
+CREATE INDEX roles_permissions_permission_id_idx
+ON roles_permissions(permission_id);
+CREATE INDEX roles_permissions_created_at_idx
+ON roles_permissions(created_at);
+CREATE INDEX roles_permissions_updated_at_idx
+ON roles_permissions(updated_at);
 
 CREATE TABLE airports (
   id serial PRIMARY KEY NOT NULL,
@@ -110,7 +157,6 @@ CREATE TABLE users (
   email text NOT NULL CONSTRAINT check_email_length CHECK (char_length(email) >= 3),
   password text NOT NULL,
   api_key text UNIQUE NOT NULL,
-  role user_role NOT NULL,
   active boolean NOT NULL DEFAULT TRUE,
   verified boolean NOT NULL DEFAULT FALSE,
   verification_token text NOT NULL UNIQUE,
@@ -121,12 +167,41 @@ CREATE TABLE users (
 
 CREATE INDEX users_password_idx
 ON users(password);
-CREATE INDEX users_role_idx
-ON users(role);
 CREATE INDEX users_active_idx
 ON users(active);
 CREATE INDEX users_credits_idx
 ON users(credits);
+
+CREATE TABLE employees (
+  id serial PRIMARY KEY,
+  email text NOT NULL CHECK (char_length(email) >= 3),
+  password text NOT NULL,
+  api_key text UNIQUE NOT NULL,
+  active boolean NOT NULL DEFAULT TRUE,
+  UNIQUE(email)
+);
+
+CREATE INDEX employees_password_idx
+ON employees(password);
+CREATE INDEX employees_active_idx
+ON employees(active);
+
+CREATE TABLE employees_roles (
+  id serial PRIMARY KEY,
+  employee_id integer REFERENCES employees UNIQUE,
+  role_id integer REFERENCES roles,
+  created_at timestamp NOT NULL DEFAULT now(),
+  updated_at timestamp NOT NULL DEFAULT now()
+);
+
+CREATE INDEX employees_roles_employee_id_idx
+ON employees_roles(employee_id);
+CREATE INDEX employees_roles_role_id_idx
+ON employees_roles(role_id);
+CREATE INDEX employees_roles_created_at_idx
+ON employees_roles(created_at);
+CREATE INDEX employees_roles_updated_at_idx
+ON employees_roles(updated_at);
 
 CREATE TABLE users_subscriptions (
   id serial PRIMARY KEY NOT NULL,
@@ -276,36 +351,14 @@ CREATE TABLE subscriptions_fetches_account_transfers (
 CREATE INDEX subscr_fetches_account_transfers_subscription_fetch_id_idx
 ON subscriptions_fetches_account_transfers(subscription_fetch_id);
 
-CREATE OR REPLACE FUNCTION is_admin (user_id integer)
-  RETURNS boolean AS
-$$
-  DECLARE
-    selected_user_role user_role;
-  BEGIN
-    SELECT INTO selected_user_role role
-    FROM users
-    WHERE id = user_id;
-    IF FOUND THEN
-      IF selected_user_role = 'admin' THEN
-        RETURN true;
-      ELSE
-        RETURN false;
-      END IF;
-    ELSE
-      RETURN false;
-    END IF;
-  END;
-$$
-LANGUAGE plpgsql;
-
-CREATE TABLE account_transfers_by_admin (
+CREATE TABLE account_transfers_by_employees (
   id serial PRIMARY KEY,
   account_transfer_id integer NOT NULL UNIQUE REFERENCES account_transfers,
-  admin_user_id integer NOT NULL REFERENCES users CHECK (is_admin(admin_user_id))
+  employee_id integer NOT NULL REFERENCES employees
 );
 
-CREATE INDEX account_transfers_by_admin_admin_user_id_idx
-ON account_transfers_by_admin(admin_user_id);
+CREATE INDEX account_transfers_by_employees_employee_id_idx
+ON account_transfers_by_employees(employee_id);
 
 CREATE OR REPLACE VIEW search_view AS
     SELECT
@@ -342,3 +395,91 @@ CREATE OR REPLACE VIEW users_subscrs_public_data_view AS
     JOIN subscriptions sub ON user_sub.subscription_id=sub.id
     JOIN airports ap_from ON sub.airport_from_id=ap_from.id
     JOIN airports ap_to ON sub.airport_to_id=ap_to.id;
+
+INSERT INTO roles
+  (name)
+VALUES
+  ('admin'),
+  ('customer'),
+  ('accountant');
+
+INSERT INTO permissions
+  (name)
+VALUES
+  ('admin_add_role'),
+  ('admin_edit_role'),
+  ('admin_remove_role'),
+  ('admin_list_permissions'),
+  ('admin_list_roles'),
+  ('admin_alter_user_credits'),
+  ('admin_edit_subscription'),
+  ('admin_edit_user'),
+  ('admin_list_fetches'),
+  ('admin_list_guest_subscriptions'),
+  ('admin_list_user_subscriptions'),
+  ('admin_list_users'),
+  ('admin_remove_user'),
+  ('admin_subscribe'),
+  ('admin_unsubscribe'),
+  ('edit_subscription'),
+  ('get_api_key'),
+  ('list_airports'),
+  ('list_subscriptions'),
+  ('search'),
+  ('senderror'),
+  ('subscribe'),
+  ('unsubscribe'),
+  ('admin_list_user_info'),
+  ('admin_list_transfers');
+
+INSERT INTO roles_permissions
+  (role_id, permission_id)
+VALUES
+  (1, 1),
+  (1, 2),
+  (1, 3),
+  (1, 4),
+  (1, 5),
+  (1, 6),
+  (1, 7),
+  (1, 8),
+  (1, 9),
+  (1, 10),
+  (1, 11),
+  (1, 12),
+  (1, 13),
+  (1, 14),
+  (1, 15),
+  (1, 16),
+  (1, 17),
+  (1, 18),
+  (1, 19),
+  (1, 20),
+  (1, 21),
+  (1, 22),
+  (1, 23),
+  (2, 16),
+  (2, 17),
+  (2, 18),
+  (2, 19),
+  (2, 20),
+  (2, 21),
+  (2, 22),
+  (2, 23),
+  (3, 9),
+  (3, 10),
+  (3, 11),
+  (3, 12),
+  (3, 16),
+  (3, 17),
+  (3, 18),
+  (3, 19),
+  (3, 20),
+  (3, 21),
+  (3, 22),
+  (3, 23),
+  (1, 24),
+  (1, 25);
+
+END;
+

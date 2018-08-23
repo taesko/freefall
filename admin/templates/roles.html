@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Roles</title>
+    <link href="css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      {{> heading }}
+      {{> menu }}
+      <div>
+        <h3>Add new role:</h3>
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Permissions</th>
+              <th>Submit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <input id="new-role-name" class="form-control" type="text" placeholder="Role name" required>
+              </td>
+              <td id="new-role-permissions-container">
+                <div class="form-inline">
+                  <input id="new-role-permission-input" class="form-control" type="text" placeholder="Add permission">
+                  <button id="new-role-permission-submit-btn" class="btn btn-default permission-select">Add permission</button>
+                </div>
+              </td>
+              <td>
+                <button id="new-role-submit-btn" type="button" class="btn btn-primary btn-block">Submit</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <table id="new-role-permissions-table" class="table table-bordered">
+          <thead>
+            <td>Permission</td>
+            <td>Options</td>
+          </thead>
+          <tbody>
+            <tr id="new-role-permission-edit-mode" hidden="true">
+              <td id="new-role-permission-name-edit-mode"></td>
+              <td>
+                <button id="remove-new-role-permission-btn-edit-mode" class="btn btn-danger">Remove</button>
+              </td>
+            </td>
+          </tbody>
+        </table>
+      </div>
+      <hr>
+      {{> messages }}
+      <ul class="nav nav-tabs">
+        <li role="presentation" class="active">
+          <a id="roles-tab" href="#">Roles</a>
+        </li>
+        <li role="presentation">
+          <a id="permissions-tab" href="#">Permissions</a>
+        </li>
+      </ul>
+      <div id="roles-section">
+        <h3>Roles:</h3>
+        <table id="roles-table" class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Id</th>
+              <th>Name</th>
+              <th>Created at</th>
+              <th>Updated at</th>
+              <th>Options</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="role-view-mode" hidden="true">
+              <td id="role-id-view-mode"></td>
+              <td id="role-name-view-mode"></td>
+              <td id="role-created-at-view-mode"></td>
+              <td id="role-updated-at-view-mode"></td>
+              <td>
+                <p class="text-center">
+                  <button id="role-open-view-mode" class="btn btn-primary">Open</button>
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="permissions-section" hidden="true">
+        <h3>Permissions:</h3>
+        <div id="permissions-results">
+          <table id="permissions-table" class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Created at</th>
+                <th>Updated at</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr id="permission" hidden="true">
+                <td id="permission-id"></td>
+                <td id="permission-name"></td>
+                <td id="permission-created-at"></td>
+                <td id="permission-updated-at"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <script src="js/lodash/index.min.js"></script>
+    <script src="js/jquery/jquery-2.2.4.js"></script>
+    <script src="js/ajv.min.js"></script>
+    <script src="js/js-yaml/js-yaml.min.js"></script>
+    <script src="js/json-schemas.js"></script>
+    <script src="js/admin-json-schemas.js"></script>
+    <script src="js/parsers.js"></script>
+    <script src="js/admin-api-methods.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/roles.js"></script>
+  </body>
+</html>

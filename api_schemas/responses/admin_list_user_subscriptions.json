@@ -24,8 +24,7 @@
               },
               "email": {
                 "type": "string",
-                "title": "User email",
-                "format": "email"
+                "title": "User email"
               }
             },
             "required": ["id", "email"]

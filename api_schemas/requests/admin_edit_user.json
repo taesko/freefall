@@ -23,6 +23,10 @@
     "password": {
       "title": "Optional new password of the user",
       "type": "string"
+    },
+    "role": {
+      "title": "Role ",
+      "type": "integer"
     }
   },
   "any_of": [

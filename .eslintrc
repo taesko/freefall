@@ -45,6 +45,7 @@
     "jsyaml": true,
     "getParserGetter": true,
     "userGlobal": true,
+    "roleIdGlobal": true,
     "getAPIMethods": true,
     "getAdminAPIMethods": true,
     "window": true

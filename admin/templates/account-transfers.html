@@ -58,9 +58,9 @@
             {{this.transferred_at}}
           </td>
           <td>
-            {{#if user_transferrer_id}}
-              <p><label>Type:</label> admin</p>
-              <p><label>Admin:</label> <a href="/users/{{this.user_transferrer_id}}">{{this.user_transferrer_email}}</a></p>
+            {{#if employee_transferrer_id}}
+              <p><label>Type:</label> by employee</p>
+              <p><label>Employee:</label> <a href="/users/{{this.employee_transferrer_id}}">{{this.employee_transferrer_email}}</a></p>
             {{/if}}
             {{#if user_subscr_airport_from_name}}
               <p><label>Type:</label> new subscription</p>

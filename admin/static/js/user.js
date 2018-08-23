@@ -178,7 +178,7 @@ function start () {
       };
 
       assertPeer(typeof messages[result.status_code] === 'string', {
-        msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        msg: 'Unexpected status code in adminEditUser. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
       });
 
       const userMessage = messages[result.status_code] || 'Edit user failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
@@ -727,7 +727,6 @@ function start () {
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
         subscriptions = result.user_subscriptions;
-
         renderUserSubscriptions($('#user-subscriptions-table'));
       }
     );
@@ -783,7 +782,7 @@ function start () {
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    api.getAPIKey({
+    adminAPI.adminGetAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
@@ -813,7 +812,7 @@ function start () {
           );
         });
       } else {
-        window.location.replace('/login');
+        mainUtils.displayUserMessage('Could not get API key for your account. Please try to log out and log back in your account!', 'error');
       }
     });
 
@@ -828,7 +827,6 @@ function start () {
     $('#next-page-btn-top').click(onNextPageClick);
     $('#prev-page-btn-bottom').click(onPreviousPageClick);
     $('#next-page-btn-bottom').click(onNextPageClick);
-
   });
 }
 
