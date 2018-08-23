@@ -146,4 +146,5 @@ module.exports = {
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,
+  tokenHasRole,
 };
