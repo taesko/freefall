@@ -12,7 +12,6 @@ const log = require('./modules/log');
 const adminAuth = require('./modules/admin-auth');
 const db = require('./modules/db');
 const users = require('./modules/users');
-const { getAdminContext } = require('./modules/render-contexts');
 const { rpcAPILayer } = require('./modules/api');
 const {
   assertApp,
@@ -94,7 +93,9 @@ app.use(views(path.join(__dirname, 'admin', 'templates'), {
 }));
 
 router.get('/login', adminAuth.redirectWhenLoggedIn('/'), async (ctx) => {
-  return ctx.render('login.html', await getAdminContext(ctx, 'get', '/login'));
+  return ctx.render('login.html', {
+    item: 'login',
+  });
 });
 
 router.post('/login', adminAuth.redirectWhenLoggedIn('/'), async (ctx) => {
@@ -105,27 +106,50 @@ router.post('/login', adminAuth.redirectWhenLoggedIn('/'), async (ctx) => {
   if (typeof email !== 'string' || typeof password !== 'string') {
     ctx.state.login_error_message = 'Invalid username or password.';
 
-    return ctx.render('login.html', await getAdminContext(ctx, 'get', '/login'));
+    return ctx.render('login.html', {
+      item: 'login',
+      error_message: ctx.state.login_error_message || '',
+    });
   }
 
   const passwordHashed = crypto.createHash('md5').update(password).digest('hex');
 
-  try {
-    const { email, password } = ctx.request.body;
-    await adminAuth.login(ctx, email, password);
-    ctx.redirect('/');
+  const selectEmployeeResult = await ctx.state.dbClient.executeQuery(`
 
-    return;
-  } catch (e) {
-    if (e instanceof adminAuth.InvalidCredentials) {
-      log.info('Invalid credentials on login. Setting ctx.state.login_error_message');
-      ctx.state.login_error_message = 'Invalid username or password.';
-    } else {
-      throw e;
-    }
+    SELECT *
+    FROM employees
+    WHERE
+      email = $1 AND
+      password = $2;
+
+  `, [email, passwordHashed]);
+
+  assertApp(isObject(selectEmployeeResult), `got ${selectEmployeeResult}`);
+  assertApp(Array.isArray(selectEmployeeResult.rows), `got ${selectEmployeeResult.rows}`);
+  assertApp(
+    selectEmployeeResult.rows.length <= 1,
+    `got ${selectEmployeeResult.rows.length}`
+  );
+
+  if (selectEmployeeResult.rows.length === 0) {
+    log.info('Invalid credentials on login. Setting ctx.state.login_error_message');
+    ctx.state.login_error_message = 'Invalid username or password.';
+
+    return ctx.render('login.html', {
+      item: 'login',
+      error_message: ctx.state.login_error_message || '',
+    });
   }
 
-  return ctx.render('login.html', await getAdminContext(ctx, 'get', '/login'));
+  const employee = selectEmployeeResult.rows[0];
+
+  assertApp(isObject(employee), `got ${employee}`);
+  assertApp(typeof employee.id === 'number', `got ${employee.id}`);
+
+  ctx.session.employeeID = employee.id;
+  log.info('Logged in as employee', employee.id);
+
+  return ctx.redirect('/');
 });
 
 router.get(
@@ -141,25 +165,37 @@ router.get(
 );
 
 router.get('/logout', adminAuth.redirectWhenLoggedOut('/'), async (ctx) => {
-  await adminAuth.logout(ctx);
+  log.info('Logging out from session:', ctx.session);
+  ctx.session.employeeID = null;
   ctx.redirect('/');
 });
 
 router.get('/subscriptions', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
 
-  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
-  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  assertApp(typeof loggedInEmployee.api_key === 'string', `got ${loggedInEmployee.api_key}`);
+  assertApp(typeof loggedInEmployee.email === 'string', `got ${loggedInEmployee.email}`);
 
   const guestSubscriptionsPermissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
-    loggedInUser.api_key,
+    loggedInEmployee.api_key,
     'admin_list_guest_subscriptions'
   );
 
   const userSubscriptionsPermissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
-    loggedInUser.api_key,
+    loggedInEmployee.api_key,
     'admin_list_user_subscriptions'
   );
 
@@ -182,18 +218,34 @@ router.get('/subscriptions', adminAuth.redirectWhenLoggedOut('/login'), async (c
     return;
   }
 
-  return ctx.render('subscriptions.html', await getAdminContext(ctx, 'get', '/subscriptions'));
+  return ctx.render('subscriptions.html', {
+    item: 'subscriptions',
+    employee: {
+      email: loggedInEmployee.email,
+    },
+  });
 });
 
 router.get('/users', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
 
-  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
-  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  assertApp(typeof loggedInEmployee.api_key === 'string', `got ${loggedInEmployee.api_key}`);
+  assertApp(typeof loggedInEmployee.email === 'string', `got ${loggedInEmployee.email}`);
 
   const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
-    loggedInUser.api_key,
+    loggedInEmployee.api_key,
     'admin_list_users'
   );
 
@@ -205,18 +257,34 @@ router.get('/users', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
     return;
   }
 
-  return ctx.render('users.html', await getAdminContext(ctx, 'get', '/users'));
+  return ctx.render('users.html', {
+    item: 'users',
+    employee: {
+      email: loggedInEmployee.email,
+    },
+  });
 });
 
 router.get('/users/:user_id', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
 
-  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
-  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  assertApp(typeof loggedInEmployee.api_key === 'string', `got ${loggedInEmployee.api_key}`);
+  assertApp(typeof loggedInEmployee.email === 'string', `got ${loggedInEmployee.email}`);
 
   const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
-    loggedInUser.api_key,
+    loggedInEmployee.api_key,
     'admin_list_user_info'
   );
 
@@ -229,25 +297,41 @@ router.get('/users/:user_id', adminAuth.redirectWhenLoggedOut('/login'), async (
   }
 
   const dbClient = ctx.state.dbClient;
-  const defaultContext = await getAdminContext(ctx, 'get', '/users/:user_id');
   const user = await users.fetchUser(dbClient, { userId: ctx.params.user_id });
 
   if (!user) {
     ctx.status = 404;
   } else {
-    return ctx.render('user.html', Object.assign(defaultContext, { user_credentials: user }));
+    return ctx.render('user.html', {
+      user_credentials: user,
+      item: 'user',
+      employee: {
+        email: loggedInEmployee.email,
+      },
+    });
   }
 });
 
 router.get('/roles', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
 
-  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
-  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  assertApp(typeof loggedInEmployee.api_key === 'string', `got ${loggedInEmployee.api_key}`);
+  assertApp(typeof loggedInEmployee.email === 'string', `got ${loggedInEmployee.email}`);
 
   const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
-    loggedInUser.api_key,
+    loggedInEmployee.api_key,
     'admin_list_roles'
   );
 
@@ -259,18 +343,34 @@ router.get('/roles', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
     return;
   }
 
-  return ctx.render('roles.html', await getAdminContext(ctx, 'get', '/roles'));
+  return ctx.render('roles.html', {
+    item: 'roles',
+    employee: {
+      email: loggedInEmployee.email,
+    },
+  });
 });
 
 router.get('/roles/:role_id', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
 
-  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
-  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  assertApp(typeof loggedInEmployee.api_key === 'string', `got ${loggedInEmployee.api_key}`);
+  assertApp(typeof loggedInEmployee.email === 'string', `got ${loggedInEmployee.email}`);
 
   const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
-    loggedInUser.api_key,
+    loggedInEmployee.api_key,
     'admin_list_roles'
   );
 
@@ -290,20 +390,35 @@ router.get('/roles/:role_id', adminAuth.redirectWhenLoggedOut('/login'), async (
     return;
   }
 
-  const defaultContext = await getAdminContext(ctx, 'get', '/roles/:role_id');
-
-  return ctx.render('role.html', Object.assign(defaultContext, { role_id: roleId }));
+  return ctx.render('role.html', {
+    item: 'role',
+    role_id: roleId,
+    employee: {
+      email: loggedInEmployee.email,
+    },
+  });
 });
 
 router.get('/fetches', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
 
-  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
-  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  assertApp(typeof loggedInEmployee.api_key === 'string', `got ${loggedInEmployee.api_key}`);
+  assertApp(typeof loggedInEmployee.email === 'string', `got ${loggedInEmployee.email}`);
 
   const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
-    loggedInUser.api_key,
+    loggedInEmployee.api_key,
     'admin_list_fetches'
   );
 
@@ -316,8 +431,6 @@ router.get('/fetches', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) =>
   }
 
   const dbClient = ctx.state.dbClient;
-  const defaultContext = await getAdminContext(ctx, 'get', '/fetches');
-
   let page;
 
   if (!ctx.query.page) {
@@ -370,24 +483,39 @@ router.get('/fetches', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) =>
     return row;
   });
 
-  return ctx.render('fetches.html', Object.assign(defaultContext, {
+  return ctx.render('fetches.html', {
+    item: 'fetches',
+    employee: {
+      email: loggedInEmployee.email,
+    },
     fetches,
     totalAPIRequests: totalFetchesResponse.rows[0].total_api_requests,
     page,
     next_page: fetches.length === RESULTS_LIMIT ? page + 1 : null,
     prev_page: page > 1 ? page - 1 : null,
-  }));
+  });
 });
 
 router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const loggedInUser = await adminAuth.getLoggedInUser(ctx);
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
 
-  assertApp(isObject(loggedInUser), `got ${loggedInUser}`);
-  assertApp(typeof loggedInUser.api_key === 'string', `got ${loggedInUser.api_key}`);
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  assertApp(typeof loggedInEmployee.api_key === 'string', `got ${loggedInEmployee.api_key}`);
+  assertApp(typeof loggedInEmployee.email === 'string', `got ${loggedInEmployee.email}`);
 
   const permissionStatus = await adminAuth.hasPermission(
     ctx.state.dbClient,
-    loggedInUser.api_key,
+    loggedInEmployee.api_key,
     'admin_list_transfers'
   );
 
@@ -415,7 +543,6 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   const offset = (page - 1) * RESULTS_LIMIT;
   const dbClient = ctx.state.dbClient;
-  const defaultContext = await getAdminContext(ctx, 'get', '/transfers');
   const selectResult = await dbClient.executeQuery(`
 
     SELECT
@@ -589,8 +716,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
       },
       transfer_amount: row.transfer_amount,
       transferred_at: row.transferred_at.toISOString(),
-      employer_transferrer_id: row.employer_transferrer_id,
-      employer_transferrer_email: row.employer_transferrer_email,
+      employee_transferrer_id: row.employee_transferrer_id,
+      employee_transferrer_email: row.employee_transferrer_email,
       user_subscr_airport_from_name: row.user_subscr_airport_from_name,
       user_subscr_airport_to_name: row.user_subscr_airport_to_name,
       user_subscr_date_from: row.user_subscr_date_from &&
@@ -638,9 +765,9 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   const totalCreditsLoaded = await dbClient.executeQuery(`
 
     SELECT COALESCE(sum(transfer_amount), 0)::integer AS users_given_credits
-    FROM account_transfers_by_admin
+    FROM account_transfers_by_employees
     LEFT JOIN account_transfers
-    ON account_transfers_by_admin.account_transfer_id = account_transfers.id
+    ON account_transfers_by_employees.account_transfer_id = account_transfers.id
     WHERE transfer_amount > 0;
 
   `);
@@ -665,7 +792,10 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   assertApp(typeof dalipecheAPITotalRequests.rows[0].dalipeche_api_requests === 'number', `got ${dalipecheAPITotalRequests.rows[0].dalipeche_api_requests}`);
 
   return ctx.render('account-transfers.html', {
-    ...defaultContext,
+    item: 'transfers',
+    employee: {
+      email: loggedInEmployee.email,
+    },
     account_transfers: accountTransfers,
     users_total_spent_credits:
       usersTotalSpentCredits.rows[0].user_spent_credits,

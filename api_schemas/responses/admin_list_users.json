@@ -38,10 +38,6 @@
           "active": {
             "title": "Active",
             "type": "boolean"
-          },
-          "role_id": {
-            "title": "Role id",
-            "type": "integer"
           }
         },
         "required": [
@@ -51,8 +47,7 @@
           "api_key",
           "verified",
           "verification_token",
-          "active",
-          "role_id"
+          "active"
         ]
       }
     }

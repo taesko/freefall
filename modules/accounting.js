@@ -170,7 +170,7 @@ async function registerTransferByEmployee (dbClient, accountTransferId, employee
 
   log.info(`Registering transfer ${accountTransferId} from employee ${employeeId}`);
 
-  const insertResult = await dbClient.execute(`
+  const insertResult = await dbClient.executeQuery(`
     INSERT INTO account_transfers_by_employees
       (account_transfer_id, employee_id)
     VALUES

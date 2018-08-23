@@ -63,6 +63,10 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     adminValidators.getValidateAdminRemoveRoleReq();
   const validateAdminRemoveRoleRes =
     adminValidators.getValidateAdminRemoveRoleRes();
+  const validateAdminGetAPIKeyReq =
+    adminValidators.getValidateAdminGetAPIKeyReq();
+  const validateAdminGetAPIKeyRes =
+    adminValidators.getValidateAdminGetAPIKeyRes();
 
   const adminListUsers = function (params, protocolName, callback) {
     mainUtils.trace('adminListUsers');
@@ -354,6 +358,7 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   };
 
   const adminAlterUserCredits = function (params, protocolName, callback) {
+    mainUtils.trace('adminAlterUserCredits');
     assertApp(validateAdminAlterUserCreditsReq(params), {
       msg: 'Params do not adhere to adminAlterUserCreditsRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminAlterUserCreditsReq), // eslint-disable-line prefer-template
     });
@@ -384,6 +389,7 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   };
 
   const adminAddRole = function (params, protocolName, callback) {
+    mainUtils.trace('adminAddRole');
     assertApp(validateAdminAddRoleReq(params), {
       msg: 'Params do not adhere to adminAddRoleRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminAddRoleReq), // eslint-disable-line prefer-template
     });
@@ -414,6 +420,7 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   };
 
   const adminEditRole = function (params, protocolName, callback) {
+    mainUtils.trace('adminEditRole');
     assertApp(validateAdminEditRoleReq(params), {
       msg: 'Params do not adhere to adminEditRoleRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminEditRoleReq), // eslint-disable-line prefer-template
     });
@@ -444,6 +451,7 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   };
 
   const adminRemoveRole = function (params, protocolName, callback) {
+    mainUtils.trace('adminRemoveRole');
     assertApp(validateAdminRemoveRoleReq(params), {
       msg: 'Params do not adhere to adminRemoveRoleRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminRemoveRoleReq), // eslint-disable-line prefer-template
     });
@@ -474,6 +482,7 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   };
 
   const adminListRoles = function (params, protocolName, callback) {
+    mainUtils.trace('adminListRoles');
     assertApp(validateAdminListRolesReq(params), {
       msg: 'Params do not adhere to adminListRolesRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminListRolesReq), // eslint-disable-line prefer-template
     });
@@ -504,6 +513,7 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   };
 
   const adminListPermissions = function (params, protocolName, callback) {
+    mainUtils.trace('adminListPermissions');
     assertApp(validateAdminListPermissionsReq(params), {
       msg: 'Params do not adhere to adminListPermissionsRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminListPermissionsReq), // eslint-disable-line prefer-template
     });
@@ -533,6 +543,37 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     });
   };
 
+  const adminGetAPIKey = function (params, protocolName, callback) {
+    mainUtils.trace('adminGetAPIKey');
+    assertApp(validateAdminGetAPIKeyReq(params), {
+      msg: 'Params do not adhere to adminGetAPIKeyRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminGetAPIKeyReq), // eslint-disable-line prefer-template
+    });
+
+    mainUtils.sendRequest({
+      url: mainUtils.SERVER_URL,
+      data: {
+        method: 'admin_get_api_key',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in admin_get_api_key:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminGetAPIKeyRes(result), {
+        msg: 'Params do not adhere to adminGetAPIKeyResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminGetAPIKeyRes), // eslint-disable-line prefer-template
+      });
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
+
   return {
     adminListUsers: adminListUsers,
     adminEditUser: adminEditUser,
@@ -549,5 +590,6 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     adminRemoveRole: adminRemoveRole,
     adminListRoles: adminListRoles,
     adminListPermissions: adminListPermissions,
+    adminGetAPIKey: adminGetAPIKey,
   };
 }

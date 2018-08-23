@@ -186,8 +186,8 @@ CREATE TABLE employees_roles (
   updated_at timestamp NOT NULL DEFAULT now()
 );
 
-CREATE INDEX employees_roles_user_id_idx
-ON employees_roles(user_id);
+CREATE INDEX employees_roles_employee_id_idx
+ON employees_roles(employee_id);
 CREATE INDEX employees_roles_role_id_idx
 ON employees_roles(role_id);
 CREATE INDEX employees_roles_created_at_idx

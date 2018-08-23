@@ -73,12 +73,12 @@ INSERT INTO employees
   SELECT
     email,
     password,
-    .api_key
+    api_key
   FROM users
   WHERE role = 'admin';
 
-CREATE INDEX employees_roles_user_id_idx
-ON employees_roles(user_id);
+CREATE INDEX employees_roles_employee_id_idx
+ON employees_roles(employee_id);
 CREATE INDEX employees_roles_role_id_idx
 ON employees_roles(role_id);
 CREATE INDEX employees_roles_created_at_idx
@@ -201,7 +201,7 @@ ON account_transfers_by_employees(employee_id);
 
 DROP INDEX account_transfers_by_admin_admin_user_id_idx;
 DROP TABLE account_transfers_by_admin;
-DROP FUNCTION is_admin;
+DROP FUNCTION IF EXISTS is_admin(integer);
 
 DELETE FROM users
 WHERE role = 'admin';

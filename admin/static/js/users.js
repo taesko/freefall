@@ -7,7 +7,6 @@ function start () {
   const RESULTS_LIMIT = 20;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
-  const api = getAPIMethods(mainUtils);
 
   var users = []; // eslint-disable-line no-var
   var offset = 0; // eslint-disable-line no-var
@@ -436,7 +435,7 @@ function start () {
     $('#prev-page-btn-bottom').click(onPreviousPageClick);
     $('#next-page-btn-bottom').click(onNextPageClick);
 
-    api.getAPIKey({
+    adminAPI.adminGetAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
@@ -455,7 +454,7 @@ function start () {
           renderUsers($('#users-table'));
         });
       } else {
-        window.location.replace('/login');
+        mainUtils.displayUserMessage('Could not get API key for your account. Please try to log out and log back in your account!', 'error');
       }
     });
   });

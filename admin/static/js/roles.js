@@ -6,7 +6,6 @@ function start () {
   const RESULTS_LIMIT = 20;
 
   const adminAPI = getAdminAPIMethods(mainUtils);
-  const api = getAPIMethods(mainUtils);
 
   var permissions = []; // eslint-disable-line no-var
   var permissionsOffset = 0; // eslint-disable-line no-var
@@ -503,7 +502,7 @@ function start () {
     $newRolePermissionSubmitBtn.click(onNewRolePermissionSubmitClick);
     $newRoleSubmitBtn.click(onNewRoleSubmitClick);
 
-    api.getAPIKey({
+    adminAPI.adminGetAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
@@ -542,7 +541,7 @@ function start () {
           }
         );
       } else {
-        window.location.replace('/login');
+        mainUtils.displayUserMessage('Could not get API key for your account. Please try to log out and log back in your account!', 'error');
       }
     });
   });

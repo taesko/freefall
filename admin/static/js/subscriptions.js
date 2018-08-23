@@ -1030,7 +1030,7 @@ function start () {
     $('#guest-subscriptions-next-page-btn-bottom').click(onGuestSubscriptionsNextPageClick);
     $('#guest-subscriptions-prev-page-btn-bottom').click(onGuestSubscriptionsPreviousPageClick);
 
-    api.getAPIKey({
+    adminAPI.adminGetAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       if (result.status_code === '1000') {
@@ -1063,7 +1063,7 @@ function start () {
           }
         );
       } else {
-        window.location.replace('/login');
+        mainUtils.displayUserMessage('Could not get API key for your account. Please try to log out and log back in your account!', 'error');
       }
     });
 

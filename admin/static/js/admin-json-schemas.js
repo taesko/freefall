@@ -482,10 +482,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                 'title': 'Active',
                 'type': 'boolean',
               },
-              'role_id': {
-                'title': 'Role id',
-                'type': 'integer',
-              },
             },
             'required': [
               'id',
@@ -495,7 +491,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
               'verified',
               'verification_token',
               'active',
-              'role_id',
             ],
           },
         },
@@ -1286,5 +1281,39 @@ const adminValidators = { // eslint-disable-line no-unused-vars
       ],
     };
     return ajv.compile(adminRemoveRoleResponseSchema);
+  },
+
+  getValidateAdminGetAPIKeyReq: function () {
+    const adminGetAPIKeyRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_get_api_key',
+      'title': 'Admin get API key request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'title': 'API version',
+          'type': 'string',
+        },
+      },
+      'required': ['v'],
+    };
+    return ajv.compile(adminGetAPIKeyRequestSchema);
+  },
+
+  getValidateAdminGetAPIKeyRes: function () {
+    const adminGetAPIKeyResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_get_api_key',
+      'title': 'Admin get API key response',
+      'type': 'object',
+      'properties': {
+        'api_key': {
+          'type': ['string', 'null'],
+          'title': 'API key',
+        },
+      },
+      'required': ['api_key'],
+    };
+    return ajv.compile(adminGetAPIKeyResponseSchema);
   },
 };

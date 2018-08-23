@@ -1,8 +1,9 @@
-const { assertPeer, assertApp, assertUser, PeerError, errorCodes } = require('../modules/error-handling');
+const { assertPeer, assertApp, assertUser, PeerError, UserError, errorCodes } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject, isFunction } = require('lodash');
 const log = require('../modules/log');
 const auth = require('../modules/auth');
+const adminAuth = require('../modules/admin-auth');
 const moment = require('moment');
 const subscriptions = require('../modules/subscriptions');
 const users = require('../modules/users');
@@ -529,7 +530,7 @@ const adminListUsers = defineAPIMethod(
   },
   async (params, dbClient) => {
     assertPeer(
-      await auth.hasPermission(dbClient, params.api_key, 'admin_list_users'),
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_users'),
       'You do not have sufficient permission to call admin_list_users method.',
       'ALU_NOT_ENOUGH_PERMISSIONS',
     );
@@ -543,11 +544,8 @@ const adminListUsers = defineAPIMethod(
         users.credits,
         users.verified,
         users.verification_token,
-        users.active,
-        users_roles.role_id
+        users.active
       FROM users
-      LEFT JOIN users_roles
-      ON users.id = users_roles.user_id
       ORDER BY users.id
       LIMIT $1
       OFFSET $2;
@@ -575,7 +573,7 @@ const adminListGuestSubscriptions = defineAPIMethod(
   },
   async (params, dbClient) => {
     assertPeer(
-      await auth.hasPermission(dbClient, params.api_key, 'admin_list_guest_subscriptions'),
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_guest_subscriptions'),
       'You do not have sufficient permission to call admin_list_subscriptions method.',
       'ALS_NOT_ENOUGH_PERMISSIONS',
     );
@@ -624,7 +622,7 @@ const adminListUserSubscriptions = defineAPIMethod(
   },
   async (params, dbClient) => {
     assertPeer(
-      await auth.hasPermission(dbClient, params.api_key, 'admin_list_user_subscriptions'),
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_user_subscriptions'),
       'You do not have sufficient permission to call admin_list_subscriptions method.',
       'ALS_NOT_ENOUGH_PERMISSIONS',
     );
@@ -748,7 +746,7 @@ const adminListUserSubscriptions = defineAPIMethod(
 //   },
 //   async (params, dbClient) => {
 //     assertPeer(
-//       await auth.hasPermission(dbClient, params.api_key, 'admin_list_subscriptions'),
+//       await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_subscriptions'),
 //       'You do not have sufficient permission to call admin_list_subscriptions method.',
 //       'ALS_NOT_ENOUGH_PERMISSIONS',
 //     );
@@ -828,7 +826,7 @@ const adminSubscribe = defineAPIMethod(
   },
   async (params, dbClient) => {
     assertPeer(
-      await auth.hasPermission(dbClient, params.api_key, 'admin_subscribe'),
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_subscribe'),
       'You do not have sufficient permission to call admin_list_subscriptions method.',
       'ASUBSCR_NOT_ENOUGH_PERMISSIONS',
     );
@@ -880,7 +878,7 @@ const adminSubscribe = defineAPIMethod(
 
 async function adminUnsubscribe (params, dbClient) {
   assertPeer(
-    await auth.hasPermission(dbClient, params.api_key, 'admin_unsubscribe'),
+    await adminAuth.hasPermission(dbClient, params.api_key, 'admin_unsubscribe'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
 
@@ -937,7 +935,7 @@ async function adminUnsubscribe (params, dbClient) {
 }
 
 async function adminEditSubscription (params, dbClient) {
-  if (!await auth.hasPermission(dbClient, params.api_key, 'admin_edit_subscription')) {
+  if (!await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_subscription')) {
     return {
       status_code: '2200',
     };
@@ -991,7 +989,7 @@ async function adminEditSubscription (params, dbClient) {
 
 async function adminRemoveUser (params, dbClient) {
   assertPeer(
-    await auth.hasPermission(dbClient, params.api_key, 'admin_remove_user'),
+    await adminAuth.hasPermission(dbClient, params.api_key, 'admin_remove_user'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
 
@@ -1015,7 +1013,7 @@ async function adminRemoveUser (params, dbClient) {
 }
 
 async function adminEditUser (params, dbClient) {
-  if (!await auth.hasPermission(dbClient, params.api_key, 'admin_edit_user')) {
+  if (!await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_user')) {
     return { status_code: '2100' };
   }
   if (!Number.isInteger(+params.user_id)) {
@@ -1096,7 +1094,7 @@ async function adminEditUser (params, dbClient) {
 
 async function adminListFetches (params, dbClient) {
   assertPeer(
-    await auth.hasPermission(dbClient, params.api_key, 'admin_list_fetches'),
+    await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_fetches'),
     'You do not have sufficient permission to call admin_list_subscriptions method.',
   );
 
@@ -1108,7 +1106,7 @@ async function adminListFetches (params, dbClient) {
 }
 
 async function adminAlterUserCredits (params, dbClient) {
-  if (!await auth.hasPermission(dbClient, params.api_key, 'admin_alter_user_credits')) {
+  if (!await adminAuth.hasPermission(dbClient, params.api_key, 'admin_alter_user_credits')) {
     return {
       status_code: '2100',
     };
@@ -1131,7 +1129,7 @@ async function adminAlterUserCredits (params, dbClient) {
 
   `, [params.api_key]);
 
-  assertApp(_.isObject(selectEmployeeResult), `got ${selectEmployeeResult}`);
+  assertApp(isObject(selectEmployeeResult), `got ${selectEmployeeResult}`);
   assertApp(Array.isArray(selectEmployeeResult.rows), `got ${selectEmployeeResult.rows}`);
   assertApp(selectEmployeeResult.rows.length === 1, `got ${selectEmployeeResult.rows.length}`);
 
@@ -1191,7 +1189,7 @@ const adminAddRole = defineAPIMethod(
   },
   async (params, dbClient) => {
     assertUser(
-      await auth.hasPermission(dbClient, params.api_key, 'admin_add_role'),
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_add_role'),
       'You do not have sufficient permission to call admin_add_role method.',
       'AAR_INVALID_API_KEY'
     );
@@ -1257,7 +1255,7 @@ const adminEditRole = defineAPIMethod(
   },
   async (params, dbClient) => {
     assertUser(
-      await auth.hasPermission(dbClient, params.api_key, 'admin_edit_role'),
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_role'),
       'You do not have sufficient permissions to call admin_edit_role_method',
       'AER_INVALID_ADMIN_API_KEY'
     );
@@ -1348,7 +1346,7 @@ const adminRemoveRole = defineAPIMethod(
   },
   async (params, dbClient) => {
     assertUser(
-      await auth.hasPermission(dbClient, params.api_key, 'admin_remove_role'),
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_remove_role'),
       'You do not have permissions to call admin_remove_role method!',
       'ARR_INVALID_ADMIN_API_KEY'
     );
@@ -1370,33 +1368,38 @@ const adminRemoveRole = defineAPIMethod(
       'ARR_UNKNOWN_ROLE'
     );
 
-    const selectUserRolePossessionResult = await dbClient.executeQuery(`
+    const selectEmployeeRolePossessionResult = await dbClient.executeQuery(`
 
-      SELECT COUNT(*)::integer AS user_role_possession_count
-      FROM users_roles
+      SELECT COUNT(*)::integer AS employee_role_possession_count
+      FROM employees_roles
       WHERE role_id = $1;
 
     `, [params.role_id]);
 
     assertApp(
-      isObject(selectUserRolePossessionResult),
-      `got ${selectUserRolePossessionResult}`
+      isObject(selectEmployeeRolePossessionResult),
+      `got ${selectEmployeeRolePossessionResult}`
     );
     assertApp(
-      Array.isArray(selectUserRolePossessionResult.rows),
-      `got ${selectUserRolePossessionResult.rows}`
+      Array.isArray(selectEmployeeRolePossessionResult.rows),
+      `got ${selectEmployeeRolePossessionResult.rows}`
     );
     assertApp(
-      selectUserRolePossessionResult.rows.length === 1,
-      `got ${selectUserRolePossessionResult.rows.length}`
+      selectEmployeeRolePossessionResult.rows.length === 1,
+      `got ${selectEmployeeRolePossessionResult.rows.length}`
     );
 
-    const userRolePossessionCount =
-      selectUserRolePossessionResult.rows[0].user_role_possession_count;
+    const employeeRolePossessionCount =
+      selectEmployeeRolePossessionResult.rows[0].employee_role_possession_count;
+
+    assertApp(
+      typeof employeeRolePossessionCount === 'number',
+      `got ${employeeRolePossessionCount}`
+    );
 
     assertUser(
-      userRolePossessionCount === 0,
-      'Cannot delete role, there are users having this role!',
+      employeeRolePossessionCount === 0,
+      'Cannot delete role, there are employees having this role!',
       'ARR_ROLE_IN_POSSESSION'
     );
 
@@ -1425,7 +1428,7 @@ const adminListPermissions = defineAPIMethod(
   },
   async (params, dbClient) => {
     assertUser(
-      await auth.hasPermission(dbClient, params.api_key, 'admin_list_permissions'),
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_permissions'),
       'You do not have permissions to call admin_list_permissions method',
       'ALP_INVALID_ADMIN_API_KEY'
     );
@@ -1467,7 +1470,7 @@ const adminListRoles = defineAPIMethod(
   },
   async (params, dbClient) => {
     assertUser(
-      await auth.hasPermission(dbClient, params.api_key, 'admin_list_roles'),
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_roles'),
       'You do not have permissions to call admin_list_roles method!',
       'ALR_INVALID_ADMIN_API_KEY'
     );
@@ -1557,6 +1560,20 @@ const adminListRoles = defineAPIMethod(
   }
 );
 
+async function adminGetAPIKey (params, db, ctx) {
+  const employee = await adminAuth.getLoggedInEmployee(ctx);
+
+  assertApp(isObject(employee) || employee === null, `got ${employee}`);
+
+  const apiKey = (employee == null) ? null : employee.api_key;
+  const statusCode = (apiKey == null) ? '2000' : '1000';
+
+  return {
+    api_key: apiKey,
+    status_code: statusCode,
+  };
+}
+
 async function getAPIKey (params, db, ctx) {
   const user = await auth.getLoggedInUser(ctx);
   const apiKey = (user == null) ? null : user.api_key;
@@ -1594,6 +1611,9 @@ function defineAPIMethod (errors, method) {
       if (e instanceof PeerError) {
         result = errors[e.code];
         assertApp(result != null, `Unhandled PeerError ${JSON.stringify(e)}`);
+      } else if (e instanceof UserError) {
+        result = errors[e.code];
+        assertApp(result != null, `Unhandled UserError ${JSON.stringify(e)}`);
       } else {
         throw e;
       }
@@ -1652,6 +1672,7 @@ const API_METHODS = {
   admin_edit_user: adminEditUser,
   admin_list_fetches: adminListFetches, // eslint-disable-line no-unused-vars
   admin_alter_user_credits: adminAlterUserCredits,
+  admin_get_api_key: adminGetAPIKey,
   get_api_key: getAPIKey,
   senderror: sendError,
 };
