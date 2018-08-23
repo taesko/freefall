@@ -68,8 +68,6 @@ app.use(bodyParser({ // TODO crashes on bad json, best avoid the inner parser
   enableTypes: ['json', 'form', 'text'],
 }));
 
-app.use(db.client);
-
 app.use(serve(path.join(__dirname, 'public')));
 app.use(views(path.join(__dirname, 'templates/'), {
   map: {
@@ -96,6 +94,7 @@ app.use(views(path.join(__dirname, 'templates/'), {
   },
 }));
 
+app.use(db.client);
 app.use(db.session);
 
 router.get('/', async (ctx, next) => {

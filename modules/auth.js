@@ -1,6 +1,8 @@
+const moment = require('moment');
 
 const users = require('./users');
 const log = require('./log');
+const { SESSION_CACHE, USER_CACHE } = require('./caching');
 const { AppError, assertApp } = require('./error-handling');
 
 class InvalidCredentials extends AppError {}
@@ -15,7 +17,7 @@ const redirectWhenLoggedOut = (redirectRoute) => async (ctx, next) => {
     // invalidate cookie because deleted user accounts have a valid id in the database
     // this causes problems like register() method automatically logging them in
     log.info('User is not logged in. Invalidating cookie and redirecting to', redirectRoute);
-    ctx.session.userID = null;
+    ctx.session.login_token = null;
     ctx.redirect(redirectRoute);
   } else {
     await next();
@@ -94,23 +96,53 @@ async function register (ctx, email, password) {
 }
 
 async function isLoggedIn (ctx) {
+  if (ctx.session.login_token == null) {
+    return false;
+  }
+
+  log.info('Checking if token is logged in -', ctx.session.login_token);
+
   const token = ctx.session.login_token;
+  const cached = SESSION_CACHE.retrieve(token);
+
+  if (cached) {
+    return true;
+  }
+
+  log.info('Cache miss on token.');
 
   const { rows } = await ctx.state.dbClient.executeQuery(
     `
-      SELECT 1
+      SELECT expiration_date
       FROM login_sessions
       WHERE token=$1 AND expiration_date > current_timestamp
     `,
     [token]
   );
-  log.info('USER IS LOGGED IN', rows.length === 1);
   assertApp(rows.length <= 1);
+
+  if (rows.length === 1) {
+    log.info('Token is logged in. Storing in cache.');
+
+    SESSION_CACHE.store(ctx.session.login_token, rows[0].expiration_date, true);
+  }
 
   return rows.length === 1;
 }
 
 async function getLoggedInUser (ctx) {
+  if (ctx.session.login_token == null) {
+    return undefined;
+  }
+
+  log.info('Getting logged in user information. login_token=', ctx.session.login_token);
+
+  const cachedUser = USER_CACHE.retrieve(ctx.session.login_token);
+  if (cachedUser && SESSION_CACHE.retrieve(ctx.session.login_token)) {
+    return cachedUser;
+  }
+
+  log.info('Cache miss on logged in user');
   const { rows } = await ctx.state.dbClient.executeQuery(
     `
       SELECT *
@@ -125,8 +157,17 @@ async function getLoggedInUser (ctx) {
     `,
     [ctx.session.login_token]
   );
+
   assertApp(rows.length <= 1);
-  return rows[0];
+
+  const user = rows[0];
+
+  if (user) {
+    log.info('User with login token exists. Storing in cache');
+    USER_CACHE.store(ctx.session.login_token, moment().add('5', 'seconds').toDate(), user);
+  }
+
+  return user;
 }
 
 async function tokenHasRole (dbClient, token, role) {

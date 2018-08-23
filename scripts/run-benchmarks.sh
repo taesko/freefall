@@ -39,17 +39,26 @@ function run_post_benchmark {
 }
 
 function run_get_benchmark {
-    if [ "$2" = "admin" ]; then
-        target_url="${admin_url}/"
+    cookie="$2";
+    if [ "$3" = "admin" ]; then
+        target_url="${admin_url}"
     else
-        target_url="${url}/"
+        target_url="${url}"
+    fi
+    if [ -z "$1" ]; then
+        rel="index"
+        target_url="${target_url}/"
+    else
+        rel=${1}
+        target_url="${target_url}/${1}"
     fi
 
-    for concurrency in 5 20 50 100 500 1000; do
-        output_file="${output_dir}/$1-${concurrency}.stdout"
-        echo "Benchmarking $1 with ${concurrency} concurrency";
+    echo "Target url is ${target_url}"
+    for concurrency in 10 50 100 500 1000; do
+        output_file="${output_dir}/${rel}-${concurrency}.stdout"
+        echo "Benchmarking ${rel} with ${concurrency} concurrency";
         echo "Output file is ${output_file}"
-        ab -n ${number_of_requests} -c ${concurrency} ${target_url} > ${output_file}
+        ab -n ${number_of_requests} -c ${concurrency} -C "${cookie}" ${target_url} > ${output_file}
     done
 }
 
@@ -63,15 +72,29 @@ function run_dalipeche_benchmark {
         echo "Output file is ${output_file}"
         ab -n ${number_of_requests} -c ${concurrency} -T 'application/json' -p ${post_body} ${target_url} > ${output_file}
     done
-        
 }
 
+function run_profile_benchmark {
+    target_url="${url}/profile"
+    post_body="./scripts/ab-tests/request-bodies/login_body.form"
+    echo "Target url is ${target_url}"
+    for concurrency in 10 100 500 1000; do
+        output="${output_dir}/login-${concurrency}.stdout"
+        echo "Benchmarking GET / profile with ${concurrency} concurrency and ${number_of_requests} number of requests";
+        echo "Output file is ${output}"
+        ab -n ${number_of_requests} -c ${concurrency} -C ${target_url} > ${output}
+    done
+}
+
+logged_in_cookie="koa:sess=eyJ1c2VySUQiOjE0LCJsb2dpbl90b2tlbiI6IjBhYzRkZjFmMmE5N2FlOWQzZWZlNTkwNDJhZjk1MTY3IiwiX2V4cGlyZSI6MTUzNTExNjI5ODgzNSwiX21heEFnZSI6ODY0MDAwMDB9; koa:sess.sig=sNM_Q84qIdHpAtnCh643S-Ahil0; koa:sess:admin=eyJ1c2VySUQiOm51bGwsImxvZ2luX3Rva2VuIjoiYWYwOTc5YzU5YTc3YzdiZGUyNDVlZTZkMWJmNDU2YjMiLCJfZXhwaXJlIjoxNTM1MDM0OTgxNTYwLCJfbWF4QWdlIjo4NjQwMDAwMH0=; koa:sess:admin.sig=7a8PxxQaPF2JK_UBVvXQ6Xsn96E; io=VDGBWa4Xpw-hIXYAAACs"
+
+run_get_benchmark "" ${logged_in_cookie}
+run_get_benchmark "profile" "${logged_in_cookie}"
+run_post_benchmark "search"
+run_post_benchmark "subscribe"
+run_post_benchmark "unsubscribe"
+run_post_benchmark "edit_subscription"
+run_post_benchmark "list_airports"
+run_post_benchmark "list_subscriptions"
+run_post_benchmark "admin_list_subscriptions" admin
 run_dalipeche_benchmark
-#run_post_benchmark "search"
-#run_post_benchmark "subscribe"
-#run_post_benchmark "unsubscribe"
-#run_post_benchmark "edit_subscription"
-#run_post_benchmark "list_airports"
-#run_post_benchmark "list_subscriptions"
-#run_post_benchmark "admin_list_subscriptions" admin
-#run_get_benchmark "get-homepage"

@@ -71,8 +71,6 @@ ON roles_permissions(created_at);
 CREATE INDEX roles_permissions_updated_at_idx
 ON roles_permissions(updated_at);
 
-CREATE TYPE dalipeche_tax_reason AS ENUM ('successful_request', 'failed_request', 'bad_request', 'bad_response');
-
 CREATE TABLE airports (
   id serial PRIMARY KEY NOT NULL,
   iata_code text NOT NULL UNIQUE,
@@ -169,8 +167,6 @@ CREATE TABLE users (
 
 CREATE INDEX users_password_idx
 ON users(password);
--- CREATE INDEX users_role_idx
--- ON users(role);
 CREATE INDEX users_active_idx
 ON users(active);
 CREATE INDEX users_credits_idx
