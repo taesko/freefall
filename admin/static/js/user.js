@@ -178,7 +178,7 @@ function start () {
       };
 
       assertPeer(typeof messages[result.status_code] === 'string', {
-        msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        msg: 'Unexpected status code in adminEditUser. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
       });
 
       const userMessage = messages[result.status_code] || 'Edit user failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
@@ -727,7 +727,6 @@ function start () {
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
         subscriptions = result.user_subscriptions;
-
         renderUserSubscriptions($('#user-subscriptions-table'));
       }
     );

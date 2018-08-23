@@ -379,6 +379,8 @@ function start () {
 
     adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       button.disabled = false;
+      // TODO error handling
+
       users = result.users;
 
       renderUsers($('#users-table'));
@@ -416,7 +418,7 @@ function start () {
 
     adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       button.disabled = false;
-
+      // TODO error handling
       if (result.users.length === 0) {
         mainUtils.displayUserMessage('You are already on last page!', 'info');
         return;

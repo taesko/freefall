@@ -2,6 +2,7 @@ function start () {
   const mainUtils = main();
   const assertApp = mainUtils.assertApp;
   const assertUser = mainUtils.assertUser;
+  const assertPeer = mainUtils.assertPeer;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const RESULTS_LIMIT = 20;
 
@@ -455,40 +456,67 @@ function start () {
       function (result) { // eslint-disable-line prefer-arrow-callback
         submitButton.disabled = false;
 
-        if (result.status_code === '1000') {
-          // TODO if role_id null
-          const listRolesParams = {
-            v: '2.0',
-            api_key: APIKeyRef.APIKey,
-            role_id: result.role_id,
-            offset: 0,
-            limit: RESULTS_LIMIT,
-          };
+        const messages = {
+          '1000': 'Successfully added new role!',
+          '2100': 'Your API key does not support this operation!',
+          '2101': 'The form you sent was not in expected format. Please correct any wrong inputs and try again!',
+          '2102': 'You have assigned permissions that were not recognised! Please, try again!',
 
-          adminAPI.adminListRoles(
-            listRolesParams,
-            PROTOCOL_NAME,
-            function (result) { // eslint-disable-line prefer-arrow-callback
-              if (result.status_code === '1000') {
-                assertUser(result.roles.length === 1, {
-                  msg: 'Newly added role could not be found on server',
-                  userMessage: 'Newly added role has just been removed! Please try adding it again!',
-                });
+        };
 
-                const newRole = result.roles[0];
-                renderRoleRow('view', newRole);
-                clearNewRolePermissionsTable($('#new-role-permissions-table'));
-              } else {
-                mainUtils.displayUserMessage('An error occurred while fetching new role data, status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-                // TODO show more descriptive error messages
-              }
-            }
-          );
-          mainUtils.displayUserMessage('Successfully added new role!', 'success');
-        } else {
-          mainUtils.displayUserMessage('Add new role failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-          // TODO show more descriptive error messages
-        }
+        assertPeer(typeof messages[result.status_code] === 'string', {
+          msg: 'Unexpected status code in adminEditRole. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        });
+
+        const msg = 'Admin add role failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+        const userMessage = messages[result.status_code] || msg;
+        assertUser(result.status_code === '1000', {
+          msg: msg,
+          userMessage: userMessage,
+        });
+
+        // TODO if role_id null
+        const listRolesParams = {
+          v: '2.0',
+          api_key: APIKeyRef.APIKey,
+          role_id: result.role_id,
+          offset: 0,
+          limit: RESULTS_LIMIT,
+        };
+
+        adminAPI.adminListRoles(
+          listRolesParams,
+          PROTOCOL_NAME,
+          function (result) { // eslint-disable-line prefer-arrow-callback
+            const messages = {
+              '1000': 'Successfully listed roles!',
+              '2100': 'Your API key does not support this operation!',
+              '2101': 'Could not list roles. Please refresh the page and try again!',
+            };
+
+            assertPeer(typeof messages[result.status_code] === 'string', {
+              msg: 'Unexpected status code in adminListRoles. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+            });
+
+            const msg = 'Admin list roles failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+            const userMessage = messages[result.status_code] || msg;
+
+            assertUser(result.status_code === '1000', {
+              userMessage: userMessage,
+              msg: msg,
+            });
+
+            assertUser(result.roles.length === 1, {
+              msg: 'Newly added role could not be found on server',
+              userMessage: 'Newly added role has just been removed! Please try adding it again!',
+            });
+
+            const newRole = result.roles[0];
+            renderRoleRow('view', newRole);
+            clearNewRolePermissionsTable($('#new-role-permissions-table'));
+          }
+        );
+        mainUtils.displayUserMessage('Successfully added new role!', 'success');
       }
     );
   };
@@ -505,44 +533,90 @@ function start () {
     adminAPI.adminGetAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      if (result.status_code === '1000') {
-        APIKeyRef.APIKey = result.api_key;
+      const messages = {
+        '1000': 'Successfully got admin API key',
+        '2000': 'Admin get API key failed',
+      };
 
-        adminAPI.adminListPermissions(
-          {
-            v: '2.0',
-            api_key: APIKeyRef.APIKey,
-          },
-          PROTOCOL_NAME,
-          function (result) { // eslint-disable-line prefer-arrow-callback
-            // TODO error handling
-            permissions = result.permissions;
+      assertPeer(typeof messages[result.status_code] === 'string', {
+        msg: 'Unexpected status code in adminListPermissions. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
 
-            $permissionsTab.click(onPermissionsTabClick);
-            renderPermissionsTable($('#permissions-table'));
+      const msg = 'Admin get API key failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+      const userMessage = messages[result.status_code] || msg;
 
-            adminAPI.adminListRoles(
-              {
-                v: '2.0',
-                api_key: APIKeyRef.APIKey,
-                offset: 0,
-                limit: RESULTS_LIMIT,
-              },
-              PROTOCOL_NAME,
-              function (result) { // eslint-disable-line prefer-arrow-callback
-                // TODO error handling
-                // TODO check if role permissions are valid according to collected permissions
-                roles = result.roles;
+      assertUser(result.status_code === '1000', {
+        userMessage: userMessage,
+        msg: msg,
+      });
 
-                $rolesTab.click(onRolesTabClick);
-                renderRolesTable($('#roles-table'));
-              }
-            );
-          }
-        );
-      } else {
-        mainUtils.displayUserMessage('Could not get API key for your account. Please try to log out and log back in your account!', 'error');
-      }
+      APIKeyRef.APIKey = result.api_key;
+
+      adminAPI.adminListPermissions(
+        {
+          v: '2.0',
+          api_key: APIKeyRef.APIKey,
+        },
+        PROTOCOL_NAME,
+        function (result) { // eslint-disable-line prefer-arrow-callback
+          const messages = {
+            '1000': 'Successfully listed permissions!',
+            '2100': 'Your API key does not support this operation!',
+            '2101': 'Could not list permissions. Please refresh the page and try again!',
+          };
+
+          assertPeer(typeof messages[result.status_code] === 'string', {
+            msg: 'Unexpected status code in adminListPermissions. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+          });
+
+          const msg = 'Admin list permissions failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+          const userMessage = messages[result.status_code] || msg;
+          assertUser(result.status_code === '1000', {
+            userMessage: userMessage,
+            msg: msg,
+          });
+
+          permissions = result.permissions;
+
+          $permissionsTab.click(onPermissionsTabClick);
+          renderPermissionsTable($('#permissions-table'));
+
+          adminAPI.adminListRoles(
+            {
+              v: '2.0',
+              api_key: APIKeyRef.APIKey,
+              offset: 0,
+              limit: RESULTS_LIMIT,
+            },
+            PROTOCOL_NAME,
+            function (result) { // eslint-disable-line prefer-arrow-callback
+              const messages = {
+                '1000': 'Successfully listed roles!',
+                '2100': 'Your API key does not support this operation!',
+                '2101': 'Could not list roles. Please refresh the page and try again!',
+              };
+
+              assertPeer(typeof messages[result.status_code] === 'string', {
+                msg: 'Unexpected status code in adminListRoles. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+              });
+
+              const msg = 'Admin list roles failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+              const userMessage = messages[result.status_code] || msg;
+
+              assertUser(result.status_code === '1000', {
+                userMessage: userMessage,
+                msg: msg,
+              });
+
+              // TODO check if role permissions are valid according to collected permissions
+              roles = result.roles;
+
+              $rolesTab.click(onRolesTabClick);
+              renderRolesTable($('#roles-table'));
+            }
+          );
+        }
+      );
     });
   });
 }
