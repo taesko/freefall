@@ -19,6 +19,7 @@ function start () {
   var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
   const CREDIT_HISTORY_PAGE_LIMIT = 5;
   const SUBSCRIPTIONS_PAGE_LIMIT = 5;
+  const ALLOWED_SUBSCRIPTION_PLANS = ['daily', 'weekly', 'monthly'];
 
   function getAirportName (airports, id) {
     mainUtils.trace('getAirportName(airports, ' + id + '), typeof arg=' + typeof id + ''); // eslint-disable-line prefer-template
@@ -141,6 +142,7 @@ function start () {
     const airportTo = $('#subscription-edit-mode-airport-to-' + rowId).val(); // eslint-disable-line prefer-template
     const dateFrom = $('#subscription-edit-mode-date-from-' + rowId).val(); // eslint-disable-line prefer-template
     const dateTo = $('#subscription-edit-mode-date-to-' + rowId).val(); // eslint-disable-line prefer-template
+    const plan = $('#subscriptions-edit-mode-plan-' + rowId).val();
 
     const airportFromId = getAirportId(airports, airportFrom);
     const airportToId = getAirportId(airports, airportTo);
@@ -165,6 +167,7 @@ function start () {
       fly_to: airportToId,
       date_from: dateFrom,
       date_to: dateTo,
+      plan: plan,
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       saveButton.disabled = false;
 
@@ -174,6 +177,7 @@ function start () {
         '2100': 'Bad request parameters format.',
         '2101': 'Such route does not exist. Departure airport or arrival airport could not be found.',
         '2102': 'Invalid dates. Date to can not be earlier than date from.',
+        '2105': 'Invalid subscription plan.',
         '2200': 'Your API key is incorrect, please contact tech support.',
       };
 
@@ -195,6 +199,7 @@ function start () {
         fly_to: airportToId,
         date_from: dateFrom,
         date_to: dateTo,
+        plan: plan,
       };
 
       rowIdSubscriptionMap[rowId] = editedSubscription;
@@ -292,6 +297,7 @@ function start () {
     const airportTo = $('#subscribe-airport-to').val().trim();
     const dateFrom = $('#subscribe-date-from').val().trim();
     const dateTo = $('#subscribe-date-to').val().trim();
+    const plan = $('#subscribe-plan').val().trim();
 
     const airportFromId = getAirportId(airports, airportFrom);
     const airportToId = getAirportId(airports, airportTo);
@@ -329,6 +335,11 @@ function start () {
       msg: wrongDateFormatMsg,
     });
 
+    assertUser(ALLOWED_SUBSCRIPTION_PLANS.indexOf(plan) !== -1, {
+      userMessage: '"' + plan + '" is not a valid subscription plan.',
+      msg: plan + ' is not a valid subscription plan.',
+    });
+
     subscribeBtn.disabled = true;
 
     api.subscribe({
@@ -338,6 +349,7 @@ function start () {
       date_from: dateFrom,
       date_to: dateTo,
       api_key: APIKeyRef.APIKey,
+      plan: plan,
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       subscribeBtn.disabled = false;
 
@@ -367,6 +379,7 @@ function start () {
         fly_to: airportToId,
         date_from: dateFrom,
         date_to: dateTo,
+        plan: plan,
       };
 
       subscriptions = subscriptions.concat([newSubscription]);
@@ -385,7 +398,7 @@ function start () {
       msg: 'Expected subscription to be an object, but was ' + typeof subscription, // eslint-disable-line prefer-template
     });
 
-    const subscriptionStringProps = ['id', 'fly_from', 'fly_to', 'date_from', 'date_to'];
+    const subscriptionStringProps = ['id', 'fly_from', 'fly_to', 'date_from', 'date_to', 'plan'];
 
     _.each(subscriptionStringProps, function (prop) { // eslint-disable-line prefer-arrow-callback
       assertApp(typeof subscription[prop] === 'string', {
@@ -446,6 +459,10 @@ function start () {
       .attr('id', 'subscription-view-mode-date-to-' + rowId) // eslint-disable-line prefer-template
       .text(subscription.date_to);
 
+    $subscriptionViewModeClone.find('#subscription-view-mode-plan')
+      .attr('id', 'subscription-view-mode-plan-' + rowId)
+      .text(subscription.plan);
+
     $subscriptionViewModeClone.find('#subscription-view-mode-edit-btn')
       .attr('id', 'subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditClick);
@@ -489,6 +506,10 @@ function start () {
       // datepicker won't work with the new clone element if the original cloned element has date-select class (datepicker adds hasDatepicker class and ignores elements with this class)
       .attr('id', 'subscription-edit-mode-date-to-' + rowId) // eslint-disable-line prefer-template
       .attr('value', subscription.date_to);
+
+    $subscriptionEditModeClone.find('#subscription-edit-mode-plan')
+      .attr('id', 'subscriptions-edit-mode-plan-' + rowId)
+      .attr('value', subscription.plan);
 
     $subscriptionEditModeClone.find('#subscription-edit-mode-save-btn')
       .attr('id', 'subscription-edit-mode-save-btn-' + rowId) // eslint-disable-line prefer-template

@@ -30,9 +30,17 @@
         <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to"
                required>
       </div>
-      <div class="col-md-4 btn-toolbar">
-        <button id="subscribe-clear-btn" class="col-md-3 btn btn-danger" type="button">Clear</button>
-        <button id="subscribe-submit-btn" class="col-md-8 btn btn-primary" type="submit">Subscribe</button>
+      <div class="col-md-2">
+        <label class="sr-only" for="subscribe-plan">Subscription plan</label>
+        <select id="subscribe-plan" name="plan" class="form-control" required>
+          <option>daily</option>
+          <option>weekly</option>
+          <option>monthly</option>
+        </select>
+      </div>
+      <div class="col-md-2 btn-toolbar">
+        <button id="subscribe-clear-btn" class="col-md-4 btn btn-danger" type="button">Clear</button>
+        <button id="subscribe-submit-btn" class="col-md-7 btn btn-primary" type="submit">Subscribe</button>
       </div>
     </form>
   </div>
@@ -56,6 +64,7 @@
           <th>Airport to</th>
           <th>Date from</th>
           <th>Date to</th>
+          <th>Plan</th>
           <th>Options</th>
         </tr>
         </thead>
@@ -78,6 +87,10 @@
                    placeholder="Date to" value="" required>
           </td>
           <td>
+            <input id="subscription-edit-mode-plan" class="form-control" name="plan" type="text"
+                   placeholder="Date to" value="" required>
+          </td>
+          <td>
             <button id="subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
             <button id="subscription-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
             <button id="subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
@@ -95,6 +108,9 @@
           </td>
           <td>
             <span id="subscription-view-mode-date-to"></span>
+          </td>
+          <td>
+            <span id="subscription-view-mode-plan"></span>
           </td>
           <td>
             <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>

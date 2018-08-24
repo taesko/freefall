@@ -38,6 +38,9 @@ const validators = { // eslint-disable-line no-unused-vars
           'title': 'API key',
           'type': 'string',
         },
+        'plan': {
+          'type': 'string',
+        },
       },
       'required': ['v', 'fly_from', 'fly_to', 'date_from', 'date_to', 'api_key'],
     };
@@ -567,6 +570,9 @@ const validators = { // eslint-disable-line no-unused-vars
           'type': 'string',
         },
         'date_to': {
+          'type': 'string',
+        },
+        'plan': {
           'type': 'string',
         },
       },
