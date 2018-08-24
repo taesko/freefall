@@ -1,4 +1,11 @@
-const { assertPeer, assertApp, assertUser, PeerError, UserError, errorCodes } = require('../modules/error-handling');
+const {
+  assertPeer,
+  assertApp,
+  assertUser,
+  PeerError,
+  UserError,
+  errorCodes,
+} = require('../modules/error-handling');
 const { toSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject, isFunction } = require('lodash');
 const log = require('../modules/log');
@@ -376,17 +383,21 @@ const subscribe = defineAPIMethod(
       status_code: '2100',
       subscription_id: null,
     },
+    'SUBSCR_INVALID_PLAN': {
+      status_code: '2100',
+      subscription_id: null,
+    },
   },
   async (params, dbClient) => {
     assertApp(isObject(params));
     const flyFrom = +params.fly_from;
     const flyTo = +params.fly_to;
-    const dateFrom = params.date_from;
-    const dateTo = params.date_to;
-    const apiKey = params.api_key;
+    const { date_from: dateFrom, date_to: dateTo } = params;
+    const { api_key: apiKey, plan } = params;
     const userExists = await users.userExists(dbClient, { apiKey });
     const flyFromExists = await airportIDExists(dbClient, flyFrom);
     const flyToExists = await airportIDExists(dbClient, flyTo);
+    const planExists = plan in subscriptions.SUBSCRIPTION_PLANS;
 
     assertPeer(Number.isInteger(flyFrom), `got ${flyFrom}`, 'SUBSCR_BAD_FLY_FROM');
     assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'SUBSCR_BAD_FLY_TO');
@@ -394,57 +405,60 @@ const subscribe = defineAPIMethod(
     assertPeer(moment() < moment(dateFrom), `dateFrom=${dateFrom}`, 'SUBSCR_EARLY_DATE_FROM');
     assertPeer(flyFromExists, `got ${flyFrom}`, 'SUBSCR_INVALID_FLY_FROM_ID');
     assertPeer(flyToExists, `got ${flyTo}`, 'SUBSCR_INVALID_FLY_TO_ID');
+    assertUser(planExists, `${plan} is not a valid plan`, 'SUBSCR_INVALID_PLAN');
 
     // TODO maybe this should be part of the transaction ?
-    const userId = await users.fetchUser(dbClient, { apiKey: params.api_key })
-      .then(user => { return user == null ? null : user.id; });
-
-    const subscribeAndTax = async (
+    const { id: userId } = await users.fetchUser(dbClient, { apiKey: apiKey });
+    const { id: subscriptionId } = await subscriptions.subscribeUser(
+      dbClient,
       userId,
       {
-        flyFrom,
-        flyTo,
+        airportFromId: flyFrom,
+        airportToId: flyTo,
         dateFrom,
         dateTo,
-      }) => {
-      const { id: subId } = await subscriptions.subscribeUser(
-        dbClient,
-        userId,
-        {
-          airportFromId: flyFrom,
-          airportToId: flyTo,
-          dateFrom,
-          dateTo,
-        },
+        plan,
+      },
+    );
+
+    // reactivating an old user subscription shouldn't be taxed
+    // if subscription has been taxed pass silently.
+    // NOTE in concurrent requests the subscription might be taxed after this query
+    // unique constraints will fail in that case.
+    const { rows: taxedRows } = await dbClient.executeQuery(
+      `SELECT 1 FROM user_subscription_account_transfers WHERE user_subscription_id=$1`,
+      [subscriptionId],
+    );
+    assertApp(taxedRows.length <= 1);
+
+    if (taxedRows.length === 1) {
+      return {
+        subscription_id: `${subscriptionId}`,
+        status_code: '1000',
+      };
+    }
+
+    const { initialTax } = subscriptions.SUBSCRIPTION_PLANS[plan];
+    log.info(`Taxing user ${userId} for subscription ${subscriptionId}`);
+    const transfer = await accounting.taxUser(dbClient, userId, initialTax);
+
+    try {
+      log.info(`Linking account transfer ${transfer.id} with user subscription ${subscriptionId}`);
+      await dbClient.executeQuery(
+        `
+        INSERT INTO user_subscription_account_transfers
+          (account_transfer_id, user_subscription_id)
+        VALUES
+          ($1, $2)
+        `,
+        [transfer.id, subscriptionId],
       );
-      // reactivating an old user subscription shouldn't be taxed
-      // if subscription has been taxed pass silently.
-      // NOTE in concurrent requests the subscription might be taxed after this query
-      // unique constraints will fail in that case.
-      if (await accounting.subscriptionIsTaxed(dbClient, subId)) {
-        log.info('Subscription is already taxed. Skipping taxing');
-        return subId;
-      }
-
-      try {
-        await accounting.taxSubscribe(dbClient, userId, subId);
-      } catch (e) {
-        if (e.code === '23505') { // unique constraint failed
-          throw PeerError('subscription already exists.', errorCodes.subscriptionExists);
-        } else {
-          throw e;
-        }
-      }
-
-      return subId;
-    };
-
-    const subscriptionId = await subscribeAndTax(userId, {
-      flyFrom,
-      flyTo,
-      dateFrom,
-      dateTo,
-    });
+    } catch (e) {
+      // unique constraint failed
+      log.info(`Subscription already was taxed. Probably by a concurrent request.`);
+      assertUser(e.code !== '23505', 'subscription exists', errorCodes.subscriptionExists);
+      throw e;
+    }
 
     return {
       subscription_id: `${subscriptionId}`,
@@ -1356,7 +1370,7 @@ const adminAddRole = defineAPIMethod(
     assertUser(
       await adminAuth.hasPermission(dbClient, params.api_key, 'admin_add_role'),
       'You do not have sufficient permission to call admin_add_role method.',
-      'AAR_INVALID_API_KEY'
+      'AAR_INVALID_API_KEY',
     );
 
     const insertResult = await dbClient.executeQuery(`
@@ -1391,7 +1405,7 @@ const adminAddRole = defineAPIMethod(
       assertUser(
         selectPermissionResult.rows.length === 1,
         'Attempted to create a role with unknown permissions!',
-        'AAR_UNKNOWN_PERMISSIONS'
+        'AAR_UNKNOWN_PERMISSIONS',
       );
 
       await dbClient.executeQuery(`
@@ -1408,7 +1422,7 @@ const adminAddRole = defineAPIMethod(
       status_code: '1000',
       role_id: roleId,
     };
-  }
+  },
 );
 
 const adminEditRole = defineAPIMethod(
@@ -1422,14 +1436,14 @@ const adminEditRole = defineAPIMethod(
     assertUser(
       await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_role'),
       'You do not have sufficient permissions to call admin_edit_role_method',
-      'AER_INVALID_ADMIN_API_KEY'
+      'AER_INVALID_ADMIN_API_KEY',
     );
 
     assertUser(
       typeof params.role_name === 'string' ||
       (Array.isArray(params.permissions) && params.permissions.length > 0),
       'No values for parameters to update!',
-      'AER_BAD_PARAMETERS_FORMAT'
+      'AER_BAD_PARAMETERS_FORMAT',
     );
 
     const selectResult = await dbClient.executeQuery(`
@@ -1446,7 +1460,7 @@ const adminEditRole = defineAPIMethod(
     assertUser(
       selectResult.rows.length === 1,
       'Could found selected role!',
-      'AER_UNKNOWN_ROLE'
+      'AER_UNKNOWN_ROLE',
     );
 
     if (params.role_name) {
@@ -1484,7 +1498,7 @@ const adminEditRole = defineAPIMethod(
         assertUser(
           selectPermissionResult.rows.length === 1,
           'Attempted to give unknown permission to role!',
-          'AER_UNKNOWN_PERMISSIONS'
+          'AER_UNKNOWN_PERMISSIONS',
         );
 
         await dbClient.executeQuery(`
@@ -1499,7 +1513,7 @@ const adminEditRole = defineAPIMethod(
     }
 
     return { status_code: '1000' };
-  }
+  },
 );
 
 const adminRemoveRole = defineAPIMethod(
@@ -1513,7 +1527,7 @@ const adminRemoveRole = defineAPIMethod(
     assertUser(
       await adminAuth.hasPermission(dbClient, params.api_key, 'admin_remove_role'),
       'You do not have permissions to call admin_remove_role method!',
-      'ARR_INVALID_ADMIN_API_KEY'
+      'ARR_INVALID_ADMIN_API_KEY',
     );
 
     const selectRoleResult = await dbClient.executeQuery(`
@@ -1530,7 +1544,7 @@ const adminRemoveRole = defineAPIMethod(
     assertUser(
       selectRoleResult.rows.length === 1,
       'Selected role could not be found!',
-      'ARR_UNKNOWN_ROLE'
+      'ARR_UNKNOWN_ROLE',
     );
 
     const selectEmployeeRolePossessionResult = await dbClient.executeQuery(`
@@ -1543,15 +1557,15 @@ const adminRemoveRole = defineAPIMethod(
 
     assertApp(
       isObject(selectEmployeeRolePossessionResult),
-      `got ${selectEmployeeRolePossessionResult}`
+      `got ${selectEmployeeRolePossessionResult}`,
     );
     assertApp(
       Array.isArray(selectEmployeeRolePossessionResult.rows),
-      `got ${selectEmployeeRolePossessionResult.rows}`
+      `got ${selectEmployeeRolePossessionResult.rows}`,
     );
     assertApp(
       selectEmployeeRolePossessionResult.rows.length === 1,
-      `got ${selectEmployeeRolePossessionResult.rows.length}`
+      `got ${selectEmployeeRolePossessionResult.rows.length}`,
     );
 
     const employeeRolePossessionCount =
@@ -1559,13 +1573,13 @@ const adminRemoveRole = defineAPIMethod(
 
     assertApp(
       typeof employeeRolePossessionCount === 'number',
-      `got ${employeeRolePossessionCount}`
+      `got ${employeeRolePossessionCount}`,
     );
 
     assertUser(
       employeeRolePossessionCount === 0,
       'Cannot delete role, there are employees having this role!',
-      'ARR_ROLE_IN_POSSESSION'
+      'ARR_ROLE_IN_POSSESSION',
     );
 
     await dbClient.executeQuery(`
@@ -1583,7 +1597,7 @@ const adminRemoveRole = defineAPIMethod(
     `, [params.role_id]);
 
     return { status_code: '1000' };
-  }
+  },
 );
 
 const adminListPermissions = defineAPIMethod(
@@ -1595,7 +1609,7 @@ const adminListPermissions = defineAPIMethod(
     assertUser(
       await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_permissions'),
       'You do not have permissions to call admin_list_permissions method',
-      'ALP_INVALID_ADMIN_API_KEY'
+      'ALP_INVALID_ADMIN_API_KEY',
     );
 
     const selectResult = await dbClient.executeQuery(`
@@ -1625,7 +1639,7 @@ const adminListPermissions = defineAPIMethod(
       status_code: '1000',
       permissions,
     };
-  }
+  },
 );
 
 const adminListRoles = defineAPIMethod(
@@ -1637,19 +1651,19 @@ const adminListRoles = defineAPIMethod(
     assertUser(
       await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_roles'),
       'You do not have permissions to call admin_list_roles method!',
-      'ALR_INVALID_ADMIN_API_KEY'
+      'ALR_INVALID_ADMIN_API_KEY',
     );
 
     assertUser(
       params.limit > 0 && params.limit <= 20,
       'Expected limit to be 0 < limit <= 20',
-      'ALP_BAD_PARAMETERS_FORMAT'
+      'ALP_BAD_PARAMETERS_FORMAT',
     );
 
     assertUser(
       Number.isSafeInteger(params.offset) && params.offset >= 0,
       'Expected offset to be a positive integer!',
-      'ALP_BAD_PARAMETERS_FORMAT'
+      'ALP_BAD_PARAMETERS_FORMAT',
     );
 
     let rolesSelect;
@@ -1659,7 +1673,7 @@ const adminListRoles = defineAPIMethod(
       assertUser(
         Number.isSafeInteger(roleId),
         'Expected role_id to be an integer!',
-        'ALP_BAD_PARAMETERS_FORMAT'
+        'ALP_BAD_PARAMETERS_FORMAT',
       );
 
       rolesSelect = await dbClient.executeQuery(`
@@ -1722,7 +1736,7 @@ const adminListRoles = defineAPIMethod(
       status_code: '1000',
       roles,
     };
-  }
+  },
 );
 
 async function adminGetAPIKey (params, db, ctx) {

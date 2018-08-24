@@ -22,7 +22,10 @@
     },
     "date_to": {
       "type": "string"
+    },
+    "plan": {
+      "type": "string"
     }
   },
-  "required": ["v", "fly_from", "fly_to", "api_key", "date_from", "date_to"]
+  "required": ["v", "fly_from", "fly_to", "api_key", "date_from", "date_to", "plan"]
 }

@@ -203,6 +203,12 @@ ON employees_roles(created_at);
 CREATE INDEX employees_roles_updated_at_idx
 ON employees_roles(updated_at);
 
+CREATE TYPE subscription_plan AS ENUM (
+    'monthly', -- check and notify for flights once a month
+    'weekly', -- check and notify for flights once a week
+    'daily' -- check and notify for flights once a day
+);
+
 CREATE TABLE users_subscriptions (
   id serial PRIMARY KEY NOT NULL,
   user_id integer NOT NULL,
@@ -210,6 +216,7 @@ CREATE TABLE users_subscriptions (
   fetch_id_of_last_send integer,
   date_from date NOT NULL,
   date_to date NOT NULL,
+  plan subscription_plan NOT NULL,
   active boolean NOT NULL DEFAULT TRUE,
   created_at timestamp DEFAULT now(), -- timestamps were added additionally and there are already records without timestamps, so they should be null
   updated_at timestamp DEFAULT now(),

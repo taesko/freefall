@@ -4,8 +4,37 @@ const moment = require('moment');
 const log = require('./log');
 const errors = require('./error-handling');
 
-// TODO fix logging in this module and return value of subscribeGlobally
+const SUBSCRIPTION_PLANS = {
+  monthly: {
+    name: 'monthly',
+    price: 100,
+    initialTax: 50,
+    shouldTax: (timeOfLastTaxing) => {
+      const timeOfNextTax = moment(timeOfLastTaxing).add('1', 'month').format('Y-MM-DD');
+      return timeOfNextTax.format('Y-MM-DD') <= moment().format('Y-MM-DD');
+    },
+  },
+  weekly: {
+    name: 'weekly',
+    price: 500,
+    initialTax: 20,
+    shouldTax: (timeOfLastTaxing) => {
+      const timeOfNextTax = moment(timeOfLastTaxing).add('1', 'week').format('Y-MM-DD');
+      return timeOfNextTax.format('Y-MM-DD') <= moment().format('Y-MM-DD');
+    },
+  },
+  daily: {
+    name: 'daily',
+    price: 500,
+    initialTax: 0,
+    shouldTax: (timeOfLastTaxing) => {
+      const timeOfNextTax = moment(timeOfLastTaxing).add('1', 'day').format('Y-MM-DD');
+      return timeOfNextTax.format('Y-MM-DD') <= moment().format('Y-MM-DD');
+    },
+  },
+};
 
+// TODO fix logging in this module and return value of subscribeGlobally
 async function subscribeUser (
   dbClient,
   userId,
@@ -14,6 +43,7 @@ async function subscribeUser (
     airportToId,
     dateFrom,
     dateTo,
+    plan = SUBSCRIPTION_PLANS.monthly,
   }) {
   // TODO validate dates.
   errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
@@ -22,6 +52,11 @@ async function subscribeUser (
     moment(dateFrom).format('YYYY-MM-DD') < moment(dateTo).format('YYYY-MM-DD'),
     'date_from must be less than date_to',
     'SUBSCRIBE_USER_BAD_DATE',
+  );
+  errors.assertUser(
+    plan in SUBSCRIPTION_PLANS,
+    `${plan} is not a valid plan`,
+    'SUBSCRIBE_INVALID_PLAN'
   );
 
   log.info(
@@ -50,9 +85,10 @@ async function subscribeUser (
   );
 
   if (sub) {
-    log.info('Found inactive user subscription with id: ', sub.id);
+    log.info('User is reviving inactive subscription or updating plan for id - ', sub.id);
+    log.debug('Old plan=', sub.plan, 'New plan=', plan);
     errors.assertPeer(
-      sub.active === false,
+      sub.active === false || sub.plan !== plan,
       `Cannot subscribe userId=${userId}, because subscription with id=${sub.id} already has the same filters.`,
       errors.errorCodes.subscriptionExists,
     );
@@ -60,20 +96,20 @@ async function subscribeUser (
     // race condition happens on multiple concurrent requests
     // two connections can successfully update the subscription
     // use WHERE active=false to only allow the first one to go through.
-    const result = await dbClient.updateWhere(
-      'users_subscriptions',
-      {
-        active: true,
-      },
-      {
-        id: sub.id,
-        active: false,
-      },
+    const { rows: updatedRows } = await dbClient.executeQuery(
+      `
+      UPDATE users_subscriptions
+      SET active=true, plan=$2
+      WHERE id=$1 AND (active=false OR (active=true AND plan!=$2))
+      RETURNING *
+      `,
+      [sub.id, plan],
     );
 
-    // query may be update 0 rows because an earlier concurrent query already updated them.
+    // query may update 0 rows because an earlier concurrent query already updated them.
+    // TODO is this check needed ?
     errors.assertPeer(
-      result.length === 1,
+      updatedRows.length === 1,
       `user subscription ${sub.id} was reactivated from another request.`,
       errors.errorCodes.subscriptionExists,
     );
@@ -95,6 +131,7 @@ async function subscribeUser (
         fetch_id_of_last_send: null,
         date_from: dateFrom,
         date_to: dateTo,
+        plan,
       },
     );
   } catch (e) {
@@ -417,4 +454,5 @@ module.exports = {
   subscribeGlobally,
   listGlobalSubscriptions,
   globalSubscriptionExists,
+  SUBSCRIPTION_PLANS,
 };

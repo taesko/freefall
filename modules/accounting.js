@@ -58,12 +58,12 @@ async function depositCredits (dbClient, userId, amount) {
 async function taxUser (dbClient, userId, amount) {
   assertApp(_.isObject(dbClient), `got ${dbClient}`);
   assertApp(typeof userId === 'number', `got ${userId}`);
-  assertApp(typeof amount === 'number' && amount > 0, `got ${amount}`);
+  // a service can be free, but it should be recorded as free of tax
+  assertApp(typeof amount === 'number' && amount >= 0, `got ${amount}`);
   assertPeer(
     await users.userExists(dbClient, { userId }),
     `user with id ${userId} does not exist.`,
   );
-  // Does taxing 0 count as a transaction ?
 
   log.info(`Taxing user ${userId} with amount=${amount}`);
 
@@ -111,7 +111,8 @@ async function taxUser (dbClient, userId, amount) {
   return accountTransfer;
 }
 
-async function subscriptionIsTaxed (dbClient, userSubscriptionId) {
+async function subscriptionIsTaxedDeprecated (dbClient, userSubscriptionId) {
+  log.warn('subscriptionIsTaxed is deprecated');
   assertApp(_.isObject(dbClient), `got ${dbClient}`);
   assertApp(Number.isInteger(userSubscriptionId), `got ${userSubscriptionId}`);
 
@@ -131,7 +132,8 @@ async function subscriptionIsTaxed (dbClient, userSubscriptionId) {
   return subscrTransfer.length === 1;
 }
 
-async function taxSubscribe (dbClient, userId, userSubscriptionId) {
+async function taxSubscribeDeprecated (dbClient, userId, userSubscriptionId) {
+  log.warn('taxSubscribe is deprecated');
   assertApp(_.isObject(dbClient), `got ${dbClient}`);
   assertApp(typeof userId === 'number', `got ${userId}`);
   assertApp(typeof userSubscriptionId === 'number', `got ${userSubscriptionId}`);
@@ -192,7 +194,7 @@ async function registerTransferByEmployee (dbClient, accountTransferId, employee
 module.exports = {
   depositCredits,
   taxUser,
-  taxSubscribe,
-  subscriptionIsTaxed,
+  taxSubscribeDeprecated,
+  subscriptionIsTaxedDeprecated,
   registerTransferByEmployee,
 };

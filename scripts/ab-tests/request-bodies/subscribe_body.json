@@ -2,11 +2,12 @@
   "method": "subscribe",
   "params": {
     "v": "2.0",
-    "api_key": "3b488149d9f06b362ad86b5b88785ed7",
-    "fly_from": "38",
-    "fly_to": "29",
+    "api_key": "5965a98637713f7234ff281ed09a04d4",
+    "fly_from": "3",
+    "fly_to": "5",
     "date_from": "2018-09-03",
-    "date_to": "2018-09-17"
+    "date_to": "2018-09-17",
+    "plan": "weekly"
   },
   "jsonrpc": "2.0",
   "id": 2
