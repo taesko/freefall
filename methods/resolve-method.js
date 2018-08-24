@@ -670,11 +670,14 @@ const listSubscriptions = defineAPIMethod(
   {
     'LIST_SUBSCR_INVALID_USER_ID': { subscriptions: [] }, // TODO add status codes ?
   },
-  async ({
-    limit = LIST_SUBSCRIPTIONS_DEFAULT_LIMIT,
-    offset = 0,
-    api_key: apiKey,
-  }, dbClient) => {
+  async (
+    {
+      limit = LIST_SUBSCRIPTIONS_DEFAULT_LIMIT,
+      offset = 0,
+      api_key: apiKey,
+    },
+    dbClient
+  ) => {
     const user = await users.fetchUser(dbClient, { apiKey });
 
     assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_USER_ID');
@@ -682,14 +685,19 @@ const listSubscriptions = defineAPIMethod(
     const { rows: subRows } = await dbClient.executeQuery(
       `
       SELECT 
-        id::text,
+        user_sub.id::text,
         airport_from_id::text AS fly_from,
         airport_to_id::text AS fly_to,
         to_char(date_from, 'YYYY-MM-DD') AS date_from,
-        to_char(date_to, 'YYYY-MM-DD') AS date_to
-      FROM users_subscrs_public_data_view
-      WHERE user_id=$1 AND subscription_is_active=true
-      ORDER BY updated_at DESC
+        to_char(date_to, 'YYYY-MM-DD') AS date_to,
+        user_sub.plan
+      FROM users_subscriptions AS user_sub
+      JOIN users ON user_sub.user_id=users.id
+      JOIN subscriptions sub ON user_sub.subscription_id=sub.id
+      JOIN airports ap_from ON sub.airport_from_id=ap_from.id
+      JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+      WHERE user_id=$1 AND user_sub.active=true
+      ORDER BY user_sub.updated_at DESC
       LIMIT $2
       OFFSET $3
       `,

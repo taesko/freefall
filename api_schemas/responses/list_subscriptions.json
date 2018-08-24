@@ -25,6 +25,10 @@
           "date_to": {
             "type": "string",
             "format": "date"
+          },
+          "plan": {
+            "type": "string",
+            "enum": ["daily", "weekly", "monthly"]
           }
         },
         "required": [
