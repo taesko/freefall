@@ -56,7 +56,7 @@ async function subscribeUser (
   errors.assertUser(
     plan in SUBSCRIPTION_PLANS,
     `${plan} is not a valid plan`,
-    'SUBSCRIBE_INVALID_PLAN'
+    'SUBSCRIBE_INVALID_PLAN',
   );
 
   log.info(
@@ -99,7 +99,7 @@ async function subscribeUser (
     const { rows: updatedRows } = await dbClient.executeQuery(
       `
       UPDATE users_subscriptions
-      SET active=true, plan=$2
+      SET active=true, plan=$2, updated_at=now()
       WHERE id=$1 AND (active=false OR (active=true AND plan!=$2))
       RETURNING *
       `,
@@ -178,8 +178,8 @@ async function updateUserSubscription (
     airportToId,
   );
 
-  const result = await dbClient.executeQuery(`
-
+  const result = await dbClient.executeQuery(
+    `
     UPDATE users_subscriptions
     SET
       subscription_id = $1,
@@ -188,13 +188,14 @@ async function updateUserSubscription (
       updated_at = now()
     WHERE id = $4
     RETURNING *;
-
-  `, [
-    globalSubscriptionId,
-    dateFrom,
-    dateTo,
-    userSubscriptionId,
-  ]);
+    `,
+    [
+      globalSubscriptionId,
+      dateFrom,
+      dateTo,
+      userSubscriptionId,
+    ]
+  );
 
   errors.assertApp(_.isObject(result), `got ${result}`);
   errors.assertApp(Array.isArray(result.rows), `got ${result.rows}`);
