@@ -43,7 +43,7 @@ async function subscribeUser (
     airportToId,
     dateFrom,
     dateTo,
-    plan = SUBSCRIPTION_PLANS.monthly,
+    plan = 'monthly',
   }) {
   // TODO validate dates.
   errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
@@ -51,10 +51,10 @@ async function subscribeUser (
   errors.assertPeer(
     moment(dateFrom).format('YYYY-MM-DD') < moment(dateTo).format('YYYY-MM-DD'),
     'date_from must be less than date_to',
-    'SUBSCRIBE_USER_BAD_DATE',
+    'SUBSCRIBE_BAD_DATE',
   );
   errors.assertUser(
-    plan in SUBSCRIPTION_PLANS,
+    SUBSCRIPTION_PLANS.hasOwnProperty(plan),
     `${plan} is not a valid plan`,
     'SUBSCRIBE_INVALID_PLAN',
   );
@@ -158,9 +158,6 @@ async function updateUserSubscription (
     dateFrom,
     dateTo,
   }) {
-  // TODO ask ivan about differences between throwing exceptions and getting null instead of object
-  // advantages to throwing is that the exception is built from inside the function and has more
-  // information
   errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   errors.assertApp(
     Number.isInteger(userSubscriptionId),

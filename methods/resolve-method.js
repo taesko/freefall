@@ -383,7 +383,7 @@ const subscribe = defineAPIMethod(
       status_code: '2100',
       subscription_id: null,
     },
-    'SUBSCR_INVALID_PLAN': {
+    'SUBSCRIBE_INVALID_PLAN': {
       status_code: '2100',
       subscription_id: null,
     },
@@ -397,7 +397,6 @@ const subscribe = defineAPIMethod(
     const userExists = await users.userExists(dbClient, { apiKey });
     const flyFromExists = await airportIDExists(dbClient, flyFrom);
     const flyToExists = await airportIDExists(dbClient, flyTo);
-    const planExists = plan in subscriptions.SUBSCRIPTION_PLANS;
 
     assertPeer(Number.isInteger(flyFrom), `got ${flyFrom}`, 'SUBSCR_BAD_FLY_FROM');
     assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'SUBSCR_BAD_FLY_TO');
@@ -405,7 +404,6 @@ const subscribe = defineAPIMethod(
     assertPeer(moment() < moment(dateFrom), `dateFrom=${dateFrom}`, 'SUBSCR_EARLY_DATE_FROM');
     assertPeer(flyFromExists, `got ${flyFrom}`, 'SUBSCR_INVALID_FLY_FROM_ID');
     assertPeer(flyToExists, `got ${flyTo}`, 'SUBSCR_INVALID_FLY_TO_ID');
-    assertUser(planExists, `${plan} is not a valid plan`, 'SUBSCR_INVALID_PLAN');
 
     // TODO maybe this should be part of the transaction ?
     const { id: userId } = await users.fetchUser(dbClient, { apiKey: apiKey });
