@@ -7,6 +7,8 @@ const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
 const session = require('koa-session');
+
+const { assertApp } = require('./modules/error-handling');
 const db = require('./modules/db');
 const auth = require('./modules/auth');
 const users = require('./modules/users');
@@ -186,17 +188,29 @@ router.get('/register/verify', async (ctx) => {
 
   try {
     await users.emailActivateUserAccount(dbClient, token);
+
+    const { rows } = await dbClient.executeQuery(
+      `
+        SELECT users.id
+        FROM users
+        WHERE verification_token=$1
+      `,
+      [token]
+    );
+    assertApp(rows.length === 1, `failed login from verification token ${token}`);
+
+    const { id } = rows[0];
+
+    await auth.loginById(ctx, id);
+    ctx.state.commitDB = true;
+    return ctx.redirect('/profile');
   } catch (e) {
     if (e.code === 'INVALID_VERIFICATION_TOKEN') {
-      ctx.body = 'Invalid or expired verfication token';
+      ctx.body = 'Invalid or expired verification token';
       return;
     }
     throw e;
   }
-
-  ctx.state.commitDB = true;
-  ctx.state.login_error_message = 'Successfully activated your account.';
-  return ctx.render('login.html', await getContextForRoute(ctx, 'get', '/login'));
 });
 
 router.get('/profile', auth.redirectWhenLoggedOut('/login'), async (ctx) => {

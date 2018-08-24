@@ -19,7 +19,7 @@ async function main () {
     for (const credentials of demoUsers) {
       const { email } = credentials;
       const password = users.hashPassword(credentials.password);
-      const user = await users.addUser(client, { email, password, role: 'customer' });
+      const user = await users.addUser(client, { email, password });
       await accounting.depositCredits(client, user.id, TEST_CREDITS);
     }
 

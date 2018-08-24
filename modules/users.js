@@ -13,12 +13,12 @@ const log = require('./log');
 
   TODO perhaps reactivating old users should be limited to admins only.
  */
-async function addUser (dbClient, { email, password, role = 'customer' }) {
+async function addUser (dbClient, { email, password }) {
   errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   errors.assertApp(typeof email === 'string', `got ${typeof email} but expected string`);
   errors.assertApp(typeof password === 'string', `got ${typeof password} but expected string`);
 
-  log.info(`Adding user with email=${email} and role=${role}`);
+  log.info(`Adding user with email=${email}`);
 
   errors.assertPeer(email.length >= 3, 'bad email.', 'FF_SHORT_EMAIL');
   errors.assertPeer(password.length >= 8, 'bad password.', 'FF_SHORT_PASSWORD');
@@ -33,7 +33,6 @@ async function addUser (dbClient, { email, password, role = 'customer' }) {
     {
       email,
       password,
-      role,
       api_key: generateAPIKey(email, password),
       active: false,
       verified: false,

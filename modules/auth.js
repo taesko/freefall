@@ -50,6 +50,12 @@ async function login (ctx, email, password) {
   if (!user) {
     throw new InvalidCredentials(`Failed to login with email=${email} and password=${password}.`);
   }
+  await loginById(ctx, user.id);
+}
+
+async function loginById (ctx, userId) {
+  const dbClient = ctx.state.dbClient;
+
   const { rows } = await dbClient.executeQuery(
     `
     INSERT INTO login_sessions
@@ -60,13 +66,13 @@ async function login (ctx, email, password) {
      UPDATE SET expiration_date = current_timestamp + interval '1 day'
     RETURNING *
     `,
-    [user.id],
+    [userId],
   );
   const { token } = rows[0];
 
   ctx.session.login_token = token;
   ctx.state.commitDB = true;
-  log.info('User with ID ', user.id);
+  log.info('User with ID ', userId);
 }
 
 function logout (ctx) {
@@ -92,7 +98,7 @@ async function register (ctx, email, password) {
 
   log.info('Registering user with email and password: ', email, password);
 
-  return users.addUser(dbClient, { email, password, role: 'customer' });
+  return users.addUser(dbClient, { email, password });
 }
 
 async function isLoggedIn (ctx) {
@@ -180,6 +186,7 @@ module.exports = {
   redirectWhenLoggedOut,
   redirectWhenLoggedIn,
   login,
+  loginById,
   logout,
   register,
   getLoggedInUser,
