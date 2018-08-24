@@ -510,74 +510,75 @@ const editSubscription = defineAPIMethod(
     'EDIT_SUBSCR_BAD_DATE_RANGE': { status_code: '2102' },
     'EDIT_SUBSCR_INVALID_DATE_FROM': { status_code: '2102' },
     'EDIT_SUBSCR_INVALID_DATE_TO': { status_code: '2102' },
+    'UPDATE_SUBSCR_INVALID_PLAN': { status_code: '2105' },
     'EDIT_SUBSCR_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
     'EDIT_SUBSCR_BAD_API_KEY': { status_code: '2200' },
   },
   async (params, dbClient) => {
-    {
-      const apiKey = params.api_key;
-      const user = await users.fetchUser(dbClient, { apiKey });
+    const apiKey = params.api_key;
+    const user = await users.fetchUser(dbClient, { apiKey });
 
-      assertPeer(user != null, `got ${user}`, 'EDIT_SUBSCR_BAD_API_KEY');
+    assertPeer(user != null, `got ${user}`, 'EDIT_SUBSCR_BAD_API_KEY');
 
-      const userSubscr = await dbClient.selectWhere(
-        'users_subscriptions',
-        '*',
-        {
-          user_id: user.id,
-        },
-      );
-      const subscriptionId = +params.user_subscription_id;
-      const flyFrom = +params.fly_from;
-      const flyTo = +params.fly_to;
+    const userSubscr = await dbClient.selectWhere(
+      'users_subscriptions',
+      '*',
+      {
+        user_id: user.id,
+      },
+    );
+    const subscriptionId = +params.user_subscription_id;
+    const flyFrom = +params.fly_from;
+    const flyTo = +params.fly_to;
+    const plan = params.plan;
 
-      assertPeer(Number.isInteger(flyFrom),
-        `got ${flyFrom}`,
-        'EDIT_SUBSCR_BAD_FROM_ID',
-      );
-      assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_BAD_TO_ID');
+    assertPeer(Number.isInteger(flyFrom),
+      `got ${flyFrom}`,
+      'EDIT_SUBSCR_BAD_FROM_ID',
+    );
+    assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_BAD_TO_ID');
+    assertPeer(
+      Number.isInteger(subscriptionId), `got ${subscriptionId}`, 'EDIT_SUBSCR_BAD_SUBSCR_ID',
+    );
+
+    const dateFrom = moment(params.date_from, SERVER_DATE_FORMAT);
+    const dateTo = moment(params.date_to, SERVER_DATE_FORMAT);
+
+    assertPeer(dateFrom.isValid(), `got ${dateFrom}`, 'EDIT_SUBSCR_INVALID_DATE_FROM');
+    assertPeer(dateTo.isValid(), `got ${dateTo}`, 'EDIT_SUBSCR_INVALID_DATE_TO');
+    assertPeer(dateFrom < dateTo, `got ${dateFrom} and ${dateTo}`, 'EDIT_SUBSCR_BAD_DATE_RANGE');
+
+    const apiKeyHasPermissions = userSubscr.find(
+      subscr => subscr.id === subscriptionId,
+    );
+
+    // TODO apiKeyHasPermissions also checks if the user exists
+    assertPeer(apiKeyHasPermissions, `apiKey=${apiKey}`, 'EDIT_SUBSCR_NOT_ENOUGH_PERMISSIONS');
+    assertPeer(
+      await airportIDExists(dbClient, flyFrom), `got ${flyFrom}`, 'EDIT_SUBSCR_INVALID_FROM_ID',
+    );
+    assertPeer(
+      await airportIDExists(dbClient, flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_INVALID_TO_ID',
+    );
+
+    try {
+      await subscriptions.updateUserSubscription(dbClient, subscriptionId, {
+        airportFromId: flyFrom,
+        airportToId: flyTo,
+        dateFrom: dateFrom.format(SERVER_TIME_FORMAT),
+        dateTo: dateTo.format(SERVER_TIME_FORMAT),
+        plan,
+      });
+    } catch (e) {
       assertPeer(
-        Number.isInteger(subscriptionId), `got ${subscriptionId}`, 'EDIT_SUBSCR_BAD_SUBSCR_ID',
+        e.code !== '23505',
+        `Peer tried to update user subscription ${subscriptionId} to another already existing one.`,
+        errorCodes.subscriptionExists,
       );
-
-      const dateFrom = moment(params.date_from, SERVER_DATE_FORMAT);
-      const dateTo = moment(params.date_to, SERVER_DATE_FORMAT);
-
-      assertPeer(dateFrom.isValid(), `got ${dateFrom}`, 'EDIT_SUBSCR_INVALID_DATE_FROM');
-      assertPeer(dateTo.isValid(), `got ${dateTo}`, 'EDIT_SUBSCR_INVALID_DATE_TO');
-      assertPeer(dateFrom < dateTo, `got ${dateFrom} and ${dateTo}`, 'EDIT_SUBSCR_BAD_DATE_RANGE');
-
-      const apiKeyHasPermissions = userSubscr.find(
-        subscr => subscr.id === subscriptionId,
-      );
-
-      // TODO apiKeyHasPermissions also checks if the user exists
-      assertPeer(apiKeyHasPermissions, `apiKey=${apiKey}`, 'EDIT_SUBSCR_NOT_ENOUGH_PERMISSIONS');
-      assertPeer(
-        await airportIDExists(dbClient, flyFrom), `got ${flyFrom}`, 'EDIT_SUBSCR_INVALID_FROM_ID',
-      );
-      assertPeer(
-        await airportIDExists(dbClient, flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_INVALID_TO_ID',
-      );
-
-      try {
-        await subscriptions.updateUserSubscription(dbClient, subscriptionId, {
-          airportFromId: flyFrom,
-          airportToId: flyTo,
-          dateFrom: dateFrom.format(SERVER_TIME_FORMAT),
-          dateTo: dateTo.format(SERVER_TIME_FORMAT),
-        });
-      } catch (e) {
-        assertPeer(
-          e.code !== '23505',
-          `Peer tried to update user subscription ${subscriptionId} to another already existing one.`,
-          errorCodes.subscriptionExists,
-        );
-        throw e;
-      }
-
-      return { status_code: '1000' };
+      throw e;
     }
+
+    return { status_code: '1000' };
   },
 );
 
@@ -1138,7 +1139,8 @@ async function adminEditSubscription (params, dbClient) {
 
     assertApp(isObject(updatedSubscription), `got ${updatedSubscription}`);
 
-    assertApp(updatedSubscription.updated_at instanceof Date, `got ${updatedSubscription.updated_at}`);
+    assertApp(updatedSubscription.updated_at instanceof
+              Date, `got ${updatedSubscription.updated_at}`);
 
     const updatedAt = updatedSubscription.updated_at.toISOString();
 

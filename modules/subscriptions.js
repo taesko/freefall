@@ -157,6 +157,7 @@ async function updateUserSubscription (
     airportToId,
     dateFrom,
     dateTo,
+    plan = 'monthly',
   }) {
   errors.assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
   errors.assertApp(
@@ -167,6 +168,11 @@ async function updateUserSubscription (
     moment(dateFrom).format('YYYY-MM-DD') < moment(dateTo).format('YYYY-MM-DD'),
     'date_from must be less than date_to',
     'UPDATE_SUBSCR_BAD_DATE',
+  );
+  errors.assertUser(
+    SUBSCRIPTION_PLANS.hasOwnProperty(plan),
+    `${plan} is not a valid plan`,
+    'UPDATE_SUBSCR_INVALID_PLAN'
   );
 
   const globalSubscriptionId = await subscribeGloballyIfNotSubscribed(
@@ -179,18 +185,20 @@ async function updateUserSubscription (
     `
     UPDATE users_subscriptions
     SET
-      subscription_id = $1,
-      date_from = $2,
-      date_to = $3,
+      subscription_id = $2,
+      date_from = $3,
+      date_to = $4,
+      plan = $5,
       updated_at = now()
-    WHERE id = $4
+    WHERE id = $1
     RETURNING *;
     `,
     [
+      userSubscriptionId,
       globalSubscriptionId,
       dateFrom,
       dateTo,
-      userSubscriptionId,
+      plan,
     ]
   );
 
