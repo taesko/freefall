@@ -13,6 +13,8 @@ const db = require('./modules/db');
 const auth = require('./modules/auth');
 const users = require('./modules/users');
 const { rpcAPILayer } = require('./modules/api');
+const methods = require('./methods/methods');
+const { getExecuteMethod } = require('./methods/resolve-method');
 const log = require('./modules/log');
 const { getContextForRoute } = require('./modules/render-contexts');
 const { escape } = require('lodash');
@@ -217,7 +219,9 @@ router.get('/profile', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   await ctx.render('profile.html', await getContextForRoute(ctx, 'get', '/profile'));
 });
 
-router.post('/', rpcAPILayer);
+const executeMethod = getExecuteMethod(methods);
+
+router.post('/', rpcAPILayer(executeMethod));
 
 app.use(router.routes());
 

@@ -13,6 +13,9 @@ const adminAuth = require('./modules/admin-auth');
 const db = require('./modules/db');
 const users = require('./modules/users');
 const { rpcAPILayer } = require('./modules/api');
+const methods = require('./methods/methods');
+const adminMethods = require('./methods/admin-methods');
+const { getExecuteMethod } = require('./methods/resolve-method');
 const {
   assertApp,
 } = require('./modules/error-handling.js');
@@ -809,7 +812,12 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   });
 });
 
-router.post('/api', rpcAPILayer);
+const executeMethod = getExecuteMethod({
+  ...methods,
+  ...adminMethods,
+});
+
+router.post('/api', rpcAPILayer(executeMethod));
 
 app.use(router.routes());
 

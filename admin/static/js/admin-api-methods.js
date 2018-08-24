@@ -63,6 +63,22 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     adminValidators.getValidateAdminRemoveRoleReq();
   const validateAdminRemoveRoleRes =
     adminValidators.getValidateAdminRemoveRoleRes();
+  const validateAdminAddEmployeeReq =
+    adminValidators.getValidateAdminAddEmployeeReq();
+  const validateAdminAddEmployeeRes =
+    adminValidators.getValidateAdminAddEmployeeRes();
+  const validateAdminEditEmployeeReq =
+    adminValidators.getValidateAdminEditEmployeeReq();
+  const validateAdminEditEmployeeRes =
+    adminValidators.getValidateAdminEditEmployeeRes();
+  const validateAdminRemoveEmployeeReq =
+    adminValidators.getValidateAdminRemoveEmployeeReq();
+  const validateAdminRemoveEmployeeRes =
+    adminValidators.getValidateAdminRemoveEmployeeRes();
+  const validateAdminListEmployeesReq =
+    adminValidators.getValidateAdminListEmployeesReq();
+  const validateAdminListEmployeesRes =
+    adminValidators.getValidateAdminListEmployeesRes();
   const validateAdminGetAPIKeyReq =
     adminValidators.getValidateAdminGetAPIKeyReq();
   const validateAdminGetAPIKeyRes =
@@ -543,6 +559,130 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     });
   };
 
+  const adminAddEmployee = function (params, protocolName, callback) {
+    mainUtils.trace('adminAddEmployee');
+    assertApp(validateAdminAddEmployeeReq(params), {
+      msg: 'Params do not adhere to adminAddEmployeeRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminAddEmployeeReq), // eslint-disable-line prefer-template
+    });
+
+    mainUtils.sendRequest({
+      url: mainUtils.SERVER_URL,
+      data: {
+        method: 'admin_add_employee',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in adminAddEmployee:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminAddEmployeeRes(result), {
+        msg: 'Params do not adhere to adminAddEmployeeResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminAddEmployeeRes), // eslint-disable-line prefer-template
+      });
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
+
+  const adminEditEmployee = function (params, protocolName, callback) {
+    mainUtils.trace('adminEditEmployee');
+    assertApp(validateAdminEditEmployeeReq(params), {
+      msg: 'Params do not adhere to adminEditEmployeeRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminEditEmployeeReq), // eslint-disable-line prefer-template
+    });
+
+    mainUtils.sendRequest({
+      url: mainUtils.SERVER_URL,
+      data: {
+        method: 'admin_edit_employee',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in adminEditEmployee:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminEditEmployeeRes(result), {
+        msg: 'Params do not adhere to adminEditEmployeeResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminEditEmployeeRes), // eslint-disable-line prefer-template
+      });
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
+
+  const adminRemoveEmployee = function (params, protocolName, callback) {
+    mainUtils.trace('adminRemoveEmployee');
+    assertApp(validateAdminRemoveEmployeeReq(params), {
+      msg: 'Params do not adhere to adminRemoveEmployeeRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminRemoveEmployeeReq), // eslint-disable-line prefer-template
+    });
+
+    mainUtils.sendRequest({
+      url: mainUtils.SERVER_URL,
+      data: {
+        method: 'admin_remove_employee',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in adminRemoveEmployee:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminRemoveEmployeeRes(result), {
+        msg: 'Params do not adhere to adminRemoveEmployeeResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminRemoveEmployeeRes), // eslint-disable-line prefer-template
+      });
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
+
+  const adminListEmployees = function (params, protocolName, callback) {
+    mainUtils.trace('adminListEmployees');
+    assertApp(validateAdminListEmployeesReq(params), {
+      msg: 'Params do not adhere to adminListEmployeesRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminListEmployeesReq), // eslint-disable-line prefer-template
+    });
+
+    mainUtils.sendRequest({
+      url: mainUtils.SERVER_URL,
+      data: {
+        method: 'admin_list_employees',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in adminListEmployees:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminListEmployeesRes(result), {
+        msg: 'Params do not adhere to adminListEmployeesResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminListEmployeesRes), // eslint-disable-line prefer-template
+      });
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
+
   const adminGetAPIKey = function (params, protocolName, callback) {
     mainUtils.trace('adminGetAPIKey');
     assertApp(validateAdminGetAPIKeyReq(params), {
@@ -590,6 +730,10 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     adminRemoveRole: adminRemoveRole,
     adminListRoles: adminListRoles,
     adminListPermissions: adminListPermissions,
+    adminAddEmployee: adminAddEmployee,
+    adminEditEmployee: adminEditEmployee,
+    adminRemoveEmployee: adminRemoveEmployee,
+    adminListEmployees: adminListEmployees,
     adminGetAPIKey: adminGetAPIKey,
   };
 }

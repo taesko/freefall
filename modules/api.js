@@ -7,7 +7,6 @@ const {
 } = require('./validate');
 const { PeerError, UserError } = require('./error-handling');
 const compose = require('koa-compose');
-const methods = require('../methods/resolve-method');
 const { buildRPCResponse, buildRPCErrorResponse, normalizeRequest } = require('./protocol');
 const log = require('./log');
 
@@ -74,7 +73,7 @@ async function errorHandling (ctx, next) {
   }
 }
 
-async function api (ctx, next) {
+const api = (executeMethod) => async (ctx, next) => {
   const format = validateRequestFormat({
     headerParam: ctx.headers['content-type'],
     queryParam: ctx.query.format,
@@ -100,7 +99,7 @@ async function api (ctx, next) {
     'version', version,
   );
 
-  const result = await methods.execute({
+  const result = await executeMethod({
     methodName: method,
     params: params,
     db: ctx.state.dbClient,
@@ -128,8 +127,10 @@ async function api (ctx, next) {
 
   log.info('Response validated. Setting ctx body.');
   await next();
-}
+};
 
 module.exports = {
-  rpcAPILayer: compose([errorHandling, api]),
+  rpcAPILayer: function (executeMethod) {
+    return compose([errorHandling, api(executeMethod)]);
+  },
 };
