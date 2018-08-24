@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/admin_add_employee",
+  "title": "Admin add employee request",
+  "type": "object",
+  "properties": {
+    "v": {
+      "type": "string",
+      "title": "API version"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API key"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "password": {
+      "type": "string",
+      "title": "Password"
+    },
+    "role_id": {
+      "type": "integer",
+      "title": "Role id"
+    }
+  },
+  "required": [
+    "v",
+    "api_key",
+    "email",
+    "password",
+    "role_id"
+  ]
+}

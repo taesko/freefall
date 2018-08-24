@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/admin_edit_employee",
+  "title": "Admin edit employee request",
+  "type": "object",
+  "properties": {
+    "v": {
+      "type": "string",
+      "title": "API version"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API key"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "password": {
+      "type": "string",
+      "title": "Password"
+    },
+    "role_id": {
+      "type": "integer",
+      "title": "Role id"
+    },
+    "employee_id": {
+      "type": "string",
+      "title": "Employee id"
+    }
+  },
+  "required": [
+    "v",
+    "api_key",
+    "employee_id"
+  ]
+}

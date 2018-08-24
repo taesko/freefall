@@ -1283,6 +1283,348 @@ const adminValidators = { // eslint-disable-line no-unused-vars
     return ajv.compile(adminRemoveRoleResponseSchema);
   },
 
+  getValidateAdminAddEmployeeReq: function () {
+    const adminAddEmployeeRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_add_employee',
+      'title': 'Admin add employee request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+        'email': {
+          'type': 'string',
+          'title': 'Email',
+        },
+        'password': {
+          'type': 'string',
+          'title': 'Password',
+        },
+        'role_id': {
+          'type': 'integer',
+          'title': 'Role id',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'email',
+        'password',
+        'role_id',
+      ],
+    };
+    return ajv.compile(adminAddEmployeeRequestSchema);
+  },
+
+  getValidateAdminAddEmployeeRes: function () {
+    const adminAddEmployeeResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_add_employee',
+      'title': 'Admin add employee response',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'type': 'string',
+        },
+        'employee': {
+          'title': 'New employee',
+          'oneOf': [
+            {
+              'type': 'null',
+            },
+            {
+              'type': 'object',
+              'properties': {
+                'id': {
+                  'title': 'Employee id',
+                  'type': 'string',
+                },
+                'email': {
+                  'title': 'Email',
+                  'type': 'string',
+                },
+                'active': {
+                  'title': 'Is active',
+                  'type': 'boolean',
+                },
+                'role_id': {
+                  'title': 'Role id',
+                  'type': 'integer',
+                },
+                'role_updated_at': {
+                  'title': 'Role updated at',
+                  'type': 'string',
+                },
+              },
+              'required': [
+                'id',
+                'email',
+                'active',
+                'role_id',
+                'role_updated_at',
+              ],
+            },
+          ],
+        },
+      },
+      'required': [
+        'status_code',
+        'employee',
+      ],
+    };
+    return ajv.compile(adminAddEmployeeResponseSchema);
+  },
+
+  getValidateAdminEditEmployeeReq: function () {
+    const adminEditEmployeeRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_edit_employee',
+      'title': 'Admin edit employee request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+        'email': {
+          'type': 'string',
+          'title': 'Email',
+        },
+        'password': {
+          'type': 'string',
+          'title': 'Password',
+        },
+        'role_id': {
+          'type': 'integer',
+          'title': 'Role id',
+        },
+        'employee_id': {
+          'type': 'string',
+          'title': 'Employee id',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'employee_id',
+      ],
+    };
+    return ajv.compile(adminEditEmployeeRequestSchema);
+  },
+
+  getValidateAdminEditEmployeeRes: function () {
+    const adminEditEmployeeResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_edit_employee',
+      'title': 'Admin edit employee response',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'type': 'string',
+        },
+        'employee': {
+          'title': 'Edited employee',
+          'oneOf': [
+            {
+              'type': 'null',
+            },
+            {
+              'type': 'object',
+              'properties': {
+                'id': {
+                  'title': 'Employee id',
+                  'type': 'string',
+                },
+                'email': {
+                  'title': 'Email',
+                  'type': 'string',
+                },
+                'active': {
+                  'title': 'Is active',
+                  'type': 'boolean',
+                },
+                'role_id': {
+                  'title': 'Role id',
+                  'type': 'integer',
+                },
+                'role_updated_at': {
+                  'title': 'Role updated at',
+                  'type': 'string',
+                },
+              },
+              'required': [
+                'id',
+                'email',
+                'active',
+                'role_id',
+                'role_updated_at',
+              ],
+            },
+          ],
+        },
+      },
+      'required': [
+        'status_code',
+        'employee',
+      ],
+    };
+    return ajv.compile(adminEditEmployeeResponseSchema);
+  },
+
+  getValidateAdminRemoveEmployeeReq: function () {
+    const adminRemoveEmployeeRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_remove_employee',
+      'title': 'Admin remove employee request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+        'employee_id': {
+          'type': 'string',
+          'title': 'Employee id',
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'employee_id',
+      ],
+    };
+    return ajv.compile(adminRemoveEmployeeRequestSchema);
+  },
+
+  getValidateAdminRemoveEmployeeRes: function () {
+    const adminRemoveEmployeeResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_remove_employee',
+      'title': 'Admin remove employee response',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'type': 'string',
+        },
+      },
+      'required': [
+        'status_code',
+      ],
+    };
+    return ajv.compile(adminRemoveEmployeeResponseSchema);
+  },
+
+  getValidateAdminListEmployeesReq: function () {
+    const adminListEmployeesRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_list_employees',
+      'title': 'Admin list employees',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+        'limit': {
+          'type': 'integer',
+          'title': 'Limit',
+          'min': 1,
+          'max': 20,
+        },
+        'offset': {
+          'type': 'integer',
+          'title': 'Offset',
+          'min': 0,
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'limit',
+        'offset',
+      ],
+    };
+    return ajv.compile(adminListEmployeesRequestSchema);
+  },
+
+  getValidateAdminListEmployeesRes: function () {
+    const adminListEmployeesResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_list_employees',
+      'title': 'Admin list employees response',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'type': 'string',
+        },
+        'employees': {
+          'title': 'Employees',
+          'type': 'array',
+          'items': {
+            'title': 'Employee',
+            'type': 'object',
+            'properties': {
+              'id': {
+                'title': 'Employee id',
+                'type': 'string',
+              },
+              'email': {
+                'title': 'Email',
+                'type': 'string',
+              },
+              'active': {
+                'title': 'Is active',
+                'type': 'boolean',
+              },
+              'role_id': {
+                'title': 'Role id',
+                'type': 'integer',
+              },
+              'role_updated_at': {
+                'title': 'Role updated at',
+                'type': 'string',
+              },
+            },
+            'required': [
+              'id',
+              'email',
+              'active',
+              'role_id',
+              'role_updated_at',
+            ],
+          },
+        },
+      },
+      'required': [
+        'status_code',
+        'employees',
+      ],
+    };
+    return ajv.compile(adminListEmployeesResponseSchema);
+  },
+
   getValidateAdminGetAPIKeyReq: function () {
     const adminGetAPIKeyRequestSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',

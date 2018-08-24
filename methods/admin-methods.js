@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { defineAPIMethod } = require('./resolve-method');
 const { assertPeer, assertApp, assertUser, PeerError, errorCodes } = require('../modules/error-handling');
 const { isObject } = require('lodash');
@@ -223,83 +224,6 @@ const adminListUserSubscriptions = defineAPIMethod(
     };
   },
 );
-
-// const adminListSubscriptions = defineAPIMethod(
-//   {
-//     'ALS_INVALID_USER_ID': { status_code: '2000' },
-//     'ALS_BAD_USER_ID': { status_code: '2100' },
-//     'ALS_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
-//   },
-//   async (params, dbClient) => {
-//     assertPeer(
-//       await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_subscriptions'),
-//       'You do not have sufficient permission to call admin_list_subscriptions method.',
-//       'ALS_NOT_ENOUGH_PERMISSIONS',
-//     );
-//
-//     let userId;
-//
-//     if (params.user_id) {
-//       userId = +params.user_id;
-//       assertPeer(Number.isInteger(userId), `got ${userId}`, 'ALS_BAD_USER_ID');
-//       const exists = await users.userExists(dbClient, { userId });
-//       assertPeer(exists, `got ${userId}`, 'ALS_INVALID_USER_ID');
-//     }
-//
-//     let userSubscr;
-//     let guestSubscr;
-//
-//     if (userId) {
-//       userSubscr = await subscriptions.listUserSubscriptions(
-//         dbClient,
-//         userId,
-//       );
-//       // TODO ask ivan if guestSubscr should be null or empty array
-//       guestSubscr = [];
-//     } else {
-//       userSubscr = await subscriptions.listAllUserSubscriptions(dbClient);
-//       guestSubscr = await subscriptions.listGlobalSubscriptions(dbClient);
-//       guestSubscr = guestSubscr.map(sub => {
-//         return {
-//           id: `${sub.id}`,
-//           fly_from: `${sub.airport_from_id}`,
-//           fly_to: `${sub.airport_to_id}`,
-//           created_at:
-//             sub.created_at == null ?
-//               'No information' : sub.created_at.toISOString(),
-//           updated_at:
-//             sub.updated_at == null ?
-//               'No information' : sub.updated_at.toISOString(),
-//         };
-//       });
-//     }
-//
-//     userSubscr = userSubscr.map(sub => {
-//       const createdAt = sub.created_at == null ? 'No information' : sub.created_at.toISOString();
-//       const updatedAt = sub.updated_at == null ? 'No information' : sub.updated_at.toISOString();
-//
-//       return {
-//         id: `${sub.id}`,
-//         user: {
-//           id: `${sub.user_id}`,
-//           email: `${sub.user_email}`,
-//         },
-//         date_from: moment(sub.date_from).format('Y-MM-DD'),
-//         date_to: moment(sub.date_to).format('Y-MM-DD'),
-//         fly_from: `${sub.fly_from}`,
-//         fly_to: `${sub.fly_to}`,
-//         created_at: createdAt,
-//         updated_at: updatedAt,
-//       };
-//     });
-//
-//     return {
-//       status_code: '1000',
-//       user_subscriptions: userSubscr,
-//       guest_subscriptions: guestSubscr,
-//     };
-//   },
-// );
 
 const adminSubscribe = defineAPIMethod(
   {
@@ -964,13 +888,13 @@ const adminListRoles = defineAPIMethod(
     assertUser(
       params.limit > 0 && params.limit <= 20,
       'Expected limit to be 0 < limit <= 20',
-      'ALP_BAD_PARAMETERS_FORMAT'
+      'ALR_BAD_PARAMETERS_FORMAT'
     );
 
     assertUser(
       Number.isSafeInteger(params.offset) && params.offset >= 0,
       'Expected offset to be a positive integer!',
-      'ALP_BAD_PARAMETERS_FORMAT'
+      'ALR_BAD_PARAMETERS_FORMAT'
     );
 
     let rolesSelect;
@@ -980,7 +904,7 @@ const adminListRoles = defineAPIMethod(
       assertUser(
         Number.isSafeInteger(roleId),
         'Expected role_id to be an integer!',
-        'ALP_BAD_PARAMETERS_FORMAT'
+        'ALR_BAD_PARAMETERS_FORMAT'
       );
 
       rolesSelect = await dbClient.executeQuery(`
@@ -1046,6 +970,379 @@ const adminListRoles = defineAPIMethod(
   }
 );
 
+const adminAddEmployee = defineAPIMethod(
+  {
+    'AAE_INVALID_ADMIN_API_KEY': { status_code: '2100', employee: null },
+    'AAE_BAD_PARAMETERS_FORMAT': { status_code: '2101', employee: null },
+    'AAE_EMPLOYEE_EXISTS': { status_code: '2201', employee: null },
+    'AAE_UNKNOWN_ROLE': { status_code: '2202', employee: null },
+  },
+  async (params, dbClient) => {
+    assertUser(
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_add_employee'),
+      'You do not have permission to call admin_add_employee method!',
+      'AAE_INVALID_ADMIN_API_KEY'
+    );
+
+    assertUser(
+      params.email.indexOf('@') >= 0,
+      'Email is not in expected format!',
+      'AAE_BAD_PARAMETERS_FORMAT'
+    );
+
+    const passwordHashed = crypto.createHash('md5').update(params.password).digest('hex');
+
+    const roleSelectResult = await dbClient.executeQuery(`
+
+      SELECT *
+      FROM roles
+      WHERE id = $1;
+
+    `, [
+      params.role_id,
+    ]);
+
+    assertApp(isObject(roleSelectResult), `got ${roleSelectResult}`);
+    assertApp(
+      Array.isArray(roleSelectResult.rows),
+      `got ${roleSelectResult.rows}`
+    );
+    assertApp(
+      roleSelectResult.rows.length <= 1,
+      `got ${roleSelectResult.rows.length}`
+    );
+
+    assertUser(
+      roleSelectResult.rows.length === 1,
+      'You have tried to set an unknown role',
+      'AAE_UNKNOWN_ROLE'
+    );
+
+    const newAPIKey = crypto.createHash('md5').update(`${params.email}:${params.password}`).digest('hex');
+
+    const employeeInsertResult = await dbClient.executeQuery(`
+
+      INSERT INTO employees
+        (email, password, api_key)
+      VALUES
+        ($1, $2, $3)
+      RETURNING *;
+
+    `, [
+      params.email,
+      passwordHashed,
+      newAPIKey,
+    ]);
+
+    assertApp(isObject(employeeInsertResult), `got ${employeeInsertResult}`);
+    assertApp(
+      Array.isArray(employeeInsertResult.rows),
+      `got ${employeeInsertResult.rows}`
+    );
+    assertApp(
+      employeeInsertResult.rows.length === 1,
+      `got ${employeeInsertResult.rows.length}`
+    );
+
+    const newEmployee = employeeInsertResult.rows[0];
+
+    const employeeRoleInsertResult = await dbClient.executeQuery(`
+
+      INSERT INTO employees_roles
+        (employee_id, role_id)
+      VALUES
+        ($1, $2)
+      RETURNING *;
+
+    `, [
+      newEmployee.id,
+      params.role_id,
+    ]);
+
+    assertApp(
+      isObject(employeeRoleInsertResult),
+      `got ${employeeRoleInsertResult}`
+    );
+    assertApp(
+      Array.isArray(employeeRoleInsertResult.rows),
+      `got ${employeeRoleInsertResult.rows}`
+    );
+    assertApp(
+      employeeRoleInsertResult.rows.length === 1,
+      `got ${employeeRoleInsertResult.rows.length}`
+    );
+
+    const newEmployeeRole = employeeRoleInsertResult.rows[0];
+
+    return {
+      status_code: '1000',
+      employee: {
+        id: newEmployee.id,
+        email: newEmployee.email,
+        active: newEmployee.active,
+        role_id: params.role_id,
+        role_updated_at: newEmployeeRole.updated_at,
+      },
+    };
+  }
+);
+
+const adminEditEmployee = defineAPIMethod(
+  {
+    'AEE_INVALID_ADMIN_API_KEY': { status_code: '2100', employee: null },
+    'AEE_BAD_PARAMETERS_FORMAT': { status_code: '2101', employee: null },
+    'AEE_EMPLOYEE_NOT_FOUND': { status_code: '2201', employee: null },
+    'AEE_UNKNOWN_ROLE': { status_code: '2202', employee: null },
+  },
+  async (params, dbClient) => {
+    assertUser(
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_employee'),
+      'You do not have permission to call admin_edit_employee method!',
+      'AEE_INVALID_ADMIN_API_KEY'
+    );
+
+    const employeeId = Number(params.employee_id);
+
+    assertUser(
+      Number.isSafeInteger(employeeId),
+      'Employee id is not of expected format!',
+      'AEE_BAD_PARAMETERS_FORMAT'
+    );
+
+    const setParams = {
+      email: null,
+      password: null,
+      role_id: null,
+    };
+
+    if (params.email) {
+      assertUser(
+        params.email.indexOf('@') >= 0,
+        'Email is not in expected format!',
+        'AEE_BAD_PARAMETERS_FORMAT'
+      );
+
+      setParams.email = params.email;
+    }
+
+    if (params.password) {
+      setParams.password = crypto.createHash('md5').update(params.password).digest('hex');
+    }
+
+    if (params.role_id) {
+      const roleSelectResult = await dbClient.executeQuery(`
+
+        SELECT *
+        FROM roles
+        WHERE id = $1;
+
+      `, [
+        params.role_id,
+      ]);
+
+      assertApp(isObject(roleSelectResult), `got ${roleSelectResult}`);
+      assertApp(
+        Array.isArray(roleSelectResult.rows),
+        `got ${roleSelectResult.rows}`
+      );
+      assertApp(
+        roleSelectResult.rows.length <= 1,
+        `got ${roleSelectResult.rows.length}`
+      );
+
+      assertUser(
+        roleSelectResult.rows.length === 1,
+        'You have tried to set an unknown role',
+        'AEE_UNKNOWN_ROLE'
+      );
+
+      setParams.role_id = params.role_id;
+    }
+
+    const employeeUpdateResult = await dbClient.executeQuery(`
+
+      UPDATE employees
+      SET
+        email = COALESCE($1, email),
+        password = COALESCE($2, password)
+      WHERE id = $3
+      RETURNING *;
+
+    `, [
+      setParams.email,
+      setParams.password,
+      employeeId,
+    ]);
+
+    assertApp(isObject(employeeUpdateResult), `got ${employeeUpdateResult}`);
+    assertApp(
+      Array.isArray(employeeUpdateResult.rows),
+      `got ${employeeUpdateResult.rows}`
+    );
+    assertApp(
+      employeeUpdateResult.rows.length <= 1,
+      `got ${employeeUpdateResult.rows.length}`
+    );
+
+    assertUser(
+      employeeUpdateResult.rows.length === 1,
+      'Employee not found!',
+      'AEE_EMPLOYEE_NOT_FOUND'
+    );
+
+    const employeeRoleUpdateResult = await dbClient.executeQuery(`
+
+      UPDATE employees_roles
+      SET
+        role_id = COALESCE($1, role_id),
+        updated_at = now()
+      WHERE employee_id = $2
+      RETURNING *;
+
+    `, [
+      setParams.role_id,
+      employeeId,
+    ]);
+
+    assertApp(isObject(employeeRoleUpdateResult), `got ${employeeRoleUpdateResult}`);
+    assertApp(
+      Array.isArray(employeeRoleUpdateResult.rows),
+      `got ${employeeRoleUpdateResult.rows}`
+    );
+
+    // Each employee must have exactly one role in this rbac implementation
+    assertUser(
+      employeeRoleUpdateResult.rows.length === 1,
+      'Employee not found!',
+      'AEE_EMPLOYEE_NOT_FOUND'
+    );
+
+    const editedEmployee = employeeUpdateResult.rows[0];
+    const editedEmployeeRole = employeeRoleUpdateResult.rows[0];
+
+    return {
+      status_code: '1000',
+      employee: {
+        id: String(editedEmployee.id),
+        email: editedEmployee.email,
+        active: editedEmployee.active,
+        role_id: editedEmployeeRole.role_id,
+        role_updated_at: editedEmployeeRole.updated_at,
+      },
+    };
+  }
+);
+
+const adminRemoveEmployee = defineAPIMethod(
+  {
+    'ARE_INVALID_ADMIN_API_KEY': { status_code: '2100' },
+    'ARE_BAD_PARAMETERS_FORMAT': { status_code: '2101' },
+    'ARE_EMPLOYEE_NOT_FOUND': { status_code: '2201' },
+  },
+  async (params, dbClient) => {
+    assertUser(
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_remove_employee'),
+      'You do not have permission to call admin_remove_employee method!',
+      'ARE_INVALID_ADMIN_API_KEY'
+    );
+
+    const employeeId = Number(params.employee_id);
+
+    assertUser(
+      Number.isSafeInteger(employeeId),
+      'Employee id is not of expected format!',
+      'ARE_BAD_PARAMETERS_FORMAT'
+    );
+
+    const employeeUpdateResult = await dbClient.executeQuery(`
+
+      UPDATE employees
+      SET active = false
+      WHERE id = $1
+      RETURNING *;
+
+    `, [
+      employeeId,
+    ]);
+
+    assertApp(isObject(employeeUpdateResult), `got ${employeeUpdateResult}`);
+    assertApp(
+      Array.isArray(employeeUpdateResult.rows),
+      `got ${employeeUpdateResult.rows}`
+    );
+    assertApp(
+      employeeUpdateResult.rows.length <= 1,
+      `got ${employeeUpdateResult.rows.length}`
+    );
+
+    assertUser(
+      employeeUpdateResult.rows.length === 1,
+      'Employee id not found!',
+      'ARE_EMPLOYEE_NOT_FOUND'
+    );
+
+    return {
+      status_code: '1000',
+    };
+  }
+);
+
+const adminListEmployees = defineAPIMethod(
+  {
+    'ALE_INVALID_ADMIN_API_KEY': { status_code: '2100', employees: [] },
+    'ALE_BAD_PARAMETERS_FORMAT': { status_code: '2101', employees: [] },
+  },
+  async (params, dbClient) => {
+    assertUser(
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_employees'),
+      'You do not have permissions to call admin_list_employees method!',
+      'ALE_INVALID_ADMIN_API_KEY'
+    );
+
+    assertUser(
+      params.limit > 0 && params.limit <= 20,
+      'Expected limit to be 0 < limit <= 20',
+      'ALE_BAD_PARAMETERS_FORMAT'
+    );
+
+    assertUser(
+      Number.isSafeInteger(params.offset) && params.offset >= 0,
+      'Expected offset to be a positive integer!',
+      'ALE_BAD_PARAMETERS_FORMAT'
+    );
+
+    const employeesSelectResult = await dbClient.executeQuery(`
+
+      SELECT
+        employees.id::text,
+        employees.email,
+        employees.active,
+        employees_roles.role_id,
+        employees_roles.updated_at AS role_updated_at
+      FROM employees
+      JOIN employees_roles
+      ORDER BY employees.id
+      LIMIT $1
+      OFFSET $2;
+
+    `, [
+      params.limit,
+      params.offset,
+    ]);
+
+    assertApp(isObject(employeesSelectResult), `got ${employeesSelectResult}`);
+    assertApp(
+      Array.isArray(employeesSelectResult.rows),
+      `got ${employeesSelectResult.rows}`
+    );
+
+    return {
+      status_code: '1000',
+      employees: employeesSelectResult.rows,
+    };
+  }
+);
+
 async function adminGetAPIKey (params, db, ctx) {
   const employee = await adminAuth.getLoggedInEmployee(ctx);
 
@@ -1066,6 +1363,10 @@ module.exports = {
   admin_remove_role: adminRemoveRole,
   admin_list_roles: adminListRoles,
   admin_list_permissions: adminListPermissions,
+  admin_add_employee: adminAddEmployee,
+  admin_edit_employee: adminEditEmployee,
+  admin_remove_employee: adminRemoveEmployee,
+  admin_list_employees: adminListEmployees,
   admin_list_user_subscriptions: adminListUserSubscriptions,
   admin_list_guest_subscriptions: adminListGuestSubscriptions,
   admin_list_users: adminListUsers,
