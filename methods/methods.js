@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 const { defineAPIMethod } = require('./resolve-method');
 const { assertPeer, assertApp, assertUser, errorCodes } = require('../modules/error-handling');
 const { toSmallestCurrencyUnit } = require('../modules/utils');
@@ -660,7 +661,7 @@ async function listAirports (params, dbClient) {
 
 const listSubscriptions = defineAPIMethod(
   {
-    'LIST_SUBSCR_INVALID_USER_ID': { subscriptions: [] }, // TODO add status codes ?
+    'LIST_SUBSCR_INVALID_API_KEY': { subscriptions: [] }, // TODO add status codes ?
   },
   async (
     {
@@ -672,7 +673,7 @@ const listSubscriptions = defineAPIMethod(
   ) => {
     const user = await users.fetchUser(dbClient, { apiKey });
 
-    assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_USER_ID');
+    assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_API_KEY');
 
     const { rows: subRows } = await dbClient.executeQuery(
       `
@@ -702,6 +703,28 @@ const listSubscriptions = defineAPIMethod(
   },
 );
 
+const modifyCredentials = defineAPIMethod(
+  {
+    'MC_SHORT_PASSWORD': { status_code: '2100' },
+    'MC_INVALID_API_KEY': { status_code: '2200' },
+  },
+  async ({ api_key, password }, dbClient) => {
+    const user = await users.fetchUser(dbClient, { apiKey: api_key });
+
+    assertUser(user != null, 'invalid api key', 'MC_INVALID_API_KEY');
+    assertUser(
+      password.length >= 8,
+      `password needs to be at least of length 8`,
+      'MC_SHORT_PASSWORD'
+    );
+
+    password = users.hashPassword(password);
+    await users.editUser(dbClient, user.id, { password });
+
+    return { status_code: '1000' };
+  }
+);
+
 async function getAPIKey (params, db, ctx) {
   const user = await auth.getLoggedInUser(ctx);
   const apiKey = (user == null) ? null : user.api_key;
@@ -725,6 +748,7 @@ async function sendError (params) {
     status_code: '1000',
   };
 }
+
 module.exports = {
   search,
   subscribe,
@@ -733,6 +757,7 @@ module.exports = {
   list_airports: listAirports,
   list_subscriptions: listSubscriptions,
   credit_history: creditHistory,
+  modify_credentials: modifyCredentials,
   get_api_key: getAPIKey,
   senderror: sendError,
 };

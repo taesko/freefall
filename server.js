@@ -358,6 +358,11 @@ router.get('/profile', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
   await ctx.render('profile.html', await getContextForRoute(ctx, 'get', '/profile'));
 });
 
+router.get('/profile/settings', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const context = await getContextForRoute(ctx, 'get', '/profile/settings');
+  await ctx.render('settings.html', context);
+});
+
 const executeMethod = getExecuteMethod(methods);
 
 router.post('/', rpcAPILayer(executeMethod));

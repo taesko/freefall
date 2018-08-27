@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile</title>
+  <link href="/css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+  {{> heading }}
+  {{> menu }}
+  <div class="col-md-4 col-md-offset-4 row container">
+    <form id="modify-credentials-form" class="row form-horizontal" method="post" action="/">
+      <label class="hidden">
+        <input class="hidden" type="email" value="{{ user.email }}" disabled>
+      </label>
+      <div class="form-group">
+        <label class="col-md-4" for="password">New password</label>
+        <input class="col-md-8" id="password" name="password" type="password" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="col-md-4" for="confirm-password">Confirm new password</label>
+        <input class="col-md-8" id="confirm-password" name="confirm-password" type="password" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <button id="submit-new-pw-btn" class="btn btn-primary btn-block" type="submit">Change</button>
+      </div>
+    </form>
+  </div>
+  <hr class="row col-md-12">
+  <div class="row container col-md-12">
+    {{> messages }}
+  </div>
+</div>
+<script src="/js/lodash/index.min.js"></script>
+<script src="/js/jquery/jquery-2.2.4.js"></script>
+<script src="/css/bootstrap/js/bootstrap.min.js"></script>
+<script src="/js/ajv.min.js"></script>
+<script src="/js/js-yaml/js-yaml.min.js"></script>
+<script src="/js/json-schemas.js"></script>
+<script src="/js/api-methods.js"></script>
+<script src="/js/parsers.js"></script>
+<script src="/js/main.js"></script>
+<script type="text/javascript" src="/js/settings.js"></script>
+</body>
+</html>
