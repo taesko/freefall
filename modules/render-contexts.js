@@ -11,6 +11,8 @@ addContextForRoute('get', '/login', loginPageContext);
 addContextForRoute('post', '/login', loginPageContext);
 addContextForRoute('get', '/register', registerPageContext);
 addContextForRoute('post', '/register', registerPageContext);
+addContextForRoute('get', '/register/password-reset', passwordResetPageContext);
+addContextForRoute('post', '/register/password-reset', passwordResetPageContext);
 addContextForRoute('get', '/profile', profilePageContext);
 
 const adminContextFunctions = {};
@@ -74,6 +76,12 @@ function registerPageContext (appCtx) {
     item: 'register',
     error_message: errMsg,
   };
+}
+
+function passwordResetPageContext (appCtx) {
+  const errors = appCtx.state.password_reset_errors || [];
+  const messages = appCtx.state.password_reset_messages || [];
+  return { error_message: errors.concat(messages).join('\n') };
 }
 
 function profilePageContext () {

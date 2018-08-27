@@ -105,7 +105,7 @@ async function notifyEmails (client) {
     }
   }
 
-  log.info('Emails to send are: ', emailsToSend);
+  log.info('Notification emails to send are: ', emailsToSend);
 
   for (const [id, subscriptions] of Object.entries(emailsToSend)) {
     const email = subscriptions[0].email;
@@ -172,13 +172,60 @@ async function sendVerificationTokens (client) {
   }));
 }
 
+async function sendPasswordResets (client) {
+  await client.executeQuery(
+    `
+    DELETE FROM password_resets
+    WHERE expires_on < current_timestamp
+    `
+  );
+
+  log.info('Cleaned expired password resets.');
+
+  const { rows } = await client.executeQuery(
+    `
+    SELECT users.email, password_resets.new_password, password_resets.token
+    FROM password_resets
+    JOIN users ON users.id=password_resets.user_id
+    WHERE sent_email=false
+    `
+  );
+
+  for (const {email, new_password, token} of rows) {
+    log.info('Sending password reset email to', email);
+    const subject = 'Freefall password reset';
+    const route = path.join(FREEFALL_ADDRESS, 'register', 'password-reset', 'reset');
+    const query = `?token=${token}`;
+    const link = route + query;
+    const text = [
+      'Someone tried to reset your Freefall account password.',
+      'If this was not you please ignore this email.',
+      `Clicking the link below will reset your password to '${new_password}'`,
+      link,
+    ].join('\n');
+
+    await sendEmail(email, {subject, text});
+    await client.executeQuery(
+      `
+      UPDATE password_resets
+      SET sent_email=true
+      WHERE user_id = (SELECT id FROM users WHERE email=$1)
+      `,
+      [email],
+    );
+  }
+}
+
 async function main () {
   const client = new Client();
   await client.connect();
   const dbClient = db.wrapPgClient(client);
   try {
-    await sendVerificationTokens(dbClient);
-    await notifyEmails(dbClient);
+    await Promise.all([
+      sendVerificationTokens(dbClient),
+      sendPasswordResets(dbClient),
+      notifyEmails(dbClient),
+    ]);
   } finally {
     client.end();
   }

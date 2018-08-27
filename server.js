@@ -22,6 +22,10 @@ const { escape } = require('lodash');
 const app = new Koa();
 const router = new Router();
 
+const MIN_EMAIL_LENGTH = 3;
+const MAX_EMAIL_LENGTH = 254;
+const MIN_PASSWORD_LENGTH = 8;
+
 app.keys = ['freefall is love freefall is life'];
 
 app.use(logger());
@@ -117,7 +121,10 @@ router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   const { email, password } = ctx.request.body;
   // TODO if typeof email or password is not string this is a peer error
   // application currently does not support peer errors thrown from here
-  if (email.length < 3 || password.length < 8) {
+  if (
+    email.length < MIN_EMAIL_LENGTH ||
+    password.length < MIN_PASSWORD_LENGTH
+  ) {
     ctx.state.login_error_message = 'Invalid username or password.';
     await ctx.render('login.html', await getContextForRoute(ctx, 'post', '/login'));
     return;
@@ -166,10 +173,10 @@ router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   if (await users.emailIsTaken(ctx.state.dbClient, email)) {
     errors.push('Email is already taken');
   }
-  if (email.length < 3) {
+  if (email.length < MIN_EMAIL_LENGTH) {
     errors.push('Email is too short.');
   }
-  if (password.length < 8) {
+  if (password.length < MIN_PASSWORD_LENGTH) {
     errors.push('Password is too short.');
   }
 
@@ -213,6 +220,138 @@ router.get('/register/verify', async (ctx) => {
     }
     throw e;
   }
+});
+
+router.get('/register/password-reset', async (ctx) => {
+  return ctx.render(
+    'password-reset.html',
+    await getContextForRoute(ctx, 'post', '/password-reset')
+  );
+});
+
+router.post('/register/password-reset', async (ctx) => {
+  const { email } = ctx.request.body;
+  const { resend } = ctx.request.body;
+  log.debug('body is', ctx.request.body);
+
+  if (
+    typeof email !== 'string' ||
+    email.length < MIN_EMAIL_LENGTH ||
+    email.length > MAX_EMAIL_LENGTH) {
+    ctx.state.password_reset_errors = ['Please provide a valid email address.'];
+
+    return ctx.render(
+      'password-reset.html',
+      await getContextForRoute(ctx, 'post', '/register/password-reset'),
+    );
+  }
+
+  if (!await users.userExists(ctx.state.dbClient, { email })) {
+    log.info('User entered an unregistered email address.');
+    ctx.state.password_reset_messages = [`Sent a password reset email to ${email}.`];
+
+    return ctx.render(
+      'password-reset.html',
+      await getContextForRoute(ctx, 'post', '/register/password-reset'),
+    );
+  }
+
+  if (resend) {
+    log.info(`User ${email} requested to resent his password reset email.`);
+    await ctx.state.dbClient.executeQuery(
+      `
+      UPDATE password_resets
+      SET sent_email=false
+      WHERE user_id = (SELECT id FROM users WHERE email=$1)
+      `,
+      [email],
+    );
+    ctx.state.password_reset_messages = ['Sent password reset email again.'];
+  } else {
+    log.info(`User ${email} wants a password reset.`);
+    try {
+      await ctx.state.dbClient.executeQuery(
+        `
+      INSERT INTO password_resets
+        (user_id)
+      VALUES
+        ((SELECT id FROM users WHERE email=$1))
+      `,
+        [email],
+      );
+      ctx.state.password_reset_messages = [`Sent a password reset email to ${email}.`];
+    } catch (e) {
+      log.error(e);
+      assertApp(e.code === '23505');
+      log.info(`Already sent a password reset email to ${email}`);
+      ctx.state.password_reset_errors = [`Already sent a password reset email to ${email}`];
+
+      return ctx.render(
+        'password-reset.html',
+        await getContextForRoute(ctx, 'post', '/register/password-reset'),
+      );
+    }
+  }
+
+  ctx.state.commitDB = true;
+
+  return ctx.render(
+    'password-reset.html',
+    await getContextForRoute(ctx, 'post', '/register/password-reset'),
+  );
+});
+
+router.get('/register/password-reset/reset', async (ctx) => {
+  const { token } = ctx.request.query;
+  const dbClient = ctx.state.dbClient;
+  const invalidTokenMsg = 'Your password reset link has expired. Please request a new one.';
+  if (token == null) {
+    log.info('User has a null token.');
+    ctx.state.password_reset_errors = [invalidTokenMsg];
+    return ctx.render(
+      'password-reset.html',
+      await getContextForRoute(ctx, 'post', '/register/password-reset'),
+    );
+  }
+
+  const { rows } = await dbClient.executeQuery(
+    `
+    SELECT user_id, new_password
+    FROM password_resets
+    WHERE token=$1
+    `,
+    [token],
+  );
+
+  if (rows.length === 0) {
+    log.info('User had an invalid token.');
+    ctx.state.password_reset_errors = [invalidTokenMsg];
+  } else {
+    assertApp(rows.length === 1, `got ${token}`);
+
+    log.info('Password reset token is valid. Resetting user password');
+
+    const { user_id: userId, new_password: newPassword } = rows[0];
+    const password = users.hashPassword(newPassword);
+    await users.editUser(dbClient, userId, { password });
+    await dbClient.executeQuery(
+      `
+        DELETE FROM password_resets
+        WHERE token=$1
+      `,
+      [token],
+    );
+    ctx.state.password_reset_messages = [
+      'Successfully reset your password.',
+      'Please change it through your profile page after logging in.',
+    ];
+    ctx.state.commitDB = true;
+  }
+
+  return ctx.render(
+    'password-reset.html',
+    await getContextForRoute(ctx, 'post', '/register/password-reset'),
+  );
 });
 
 router.get('/profile', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
