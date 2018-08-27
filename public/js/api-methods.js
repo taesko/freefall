@@ -310,6 +310,37 @@ function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     });
   };
 
+  const modifyCredentials = function (params, protocolName, callback) {
+    mainUtils.trace('modifyCredentials');
+
+    // assertApp(validateEditSubscriptionReq(params), {
+    //   msg: 'Params do not adhere to modifyCredentials: ' + mainUtils.getValidatorMsg(validateEditSubscriptionReq), // eslint-disable-line prefer-template
+    // });
+
+    mainUtils.sendRequest({
+      url: mainUtils.SERVER_URL,
+      data: {
+        method: 'modify_credentials',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in modifyCredentials:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      // assertPeer(validateEditSubscriptionRes(result), {
+      //   msg: 'Params do not adhere to modifyCredentials: ' + mainUtils.getValidatorMsg(validateEditSubscriptionRes), // eslint-disable-line prefer-template
+      // });
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
   return {
     listAirports: listAirports,
     listSubscriptions: listSubscriptions,
@@ -319,5 +350,6 @@ function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     subscribe: subscribe,
     search: search,
     editSubscription: editSubscription,
+    modifyCredentials: modifyCredentials,
   };
 }

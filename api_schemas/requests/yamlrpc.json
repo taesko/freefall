@@ -25,6 +25,7 @@
         "list_airports",
         "list_subscriptions",
         "credit_history",
+        "modify_credentials",
         "get_api_key",
         "list_users",
         "admin_add_role",
