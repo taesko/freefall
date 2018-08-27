@@ -2,7 +2,6 @@ function start () {
   const mainUtils = main();
   const assertApp = mainUtils.assertApp;
   const assertUser = mainUtils.assertUser;
-  const getUniqueId = mainUtils.getUniqueId;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const RESULTS_LIMIT = 20;
 
@@ -85,7 +84,7 @@ function start () {
     var rowId; // eslint-disable-line no-var
 
     if ($row == null) {
-      rowId = String(getUniqueId());
+      rowId = String(mainUtils.getUniqueId());
     } else {
       rowId = mainUtils.getElementUniqueId($row[0], 'user-');
     }

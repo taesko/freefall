@@ -216,7 +216,7 @@ router.get('/subscriptions', adminAuth.redirectWhenLoggedOut('/login'), async (c
     !guestSubscriptionsPermissionStatus ||
     !userSubscriptionsPermissionStatus
   ) {
-    ctx.status = 400;
+    ctx.status = 403;
     ctx.body = 'Permission denied!';
     return;
   }
@@ -255,7 +255,7 @@ router.get('/users', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
   assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
 
   if (!permissionStatus) {
-    ctx.status = 400;
+    ctx.status = 403;
     ctx.body = 'Permission denied!';
     return;
   }
@@ -294,7 +294,7 @@ router.get('/users/:user_id', adminAuth.redirectWhenLoggedOut('/login'), async (
   assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
 
   if (!permissionStatus) {
-    ctx.status = 400;
+    ctx.status = 403;
     ctx.body = 'Permission denied!';
     return;
   }
@@ -313,6 +313,134 @@ router.get('/users/:user_id', adminAuth.redirectWhenLoggedOut('/login'), async (
       },
     });
   }
+});
+
+router.get('/employees', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
+
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  assertApp(typeof loggedInEmployee.api_key === 'string', `got ${loggedInEmployee.api_key}`);
+  assertApp(typeof loggedInEmployee.email === 'string', `got ${loggedInEmployee.email}`);
+
+  const permissionStatus = await adminAuth.hasPermission(
+    ctx.state.dbClient,
+    loggedInEmployee.api_key,
+    'admin_list_employees'
+  );
+
+  assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
+
+  if (!permissionStatus) {
+    ctx.status = 403;
+    ctx.body = 'Permission denied!';
+    return;
+  }
+
+  return ctx.render('employees.html', {
+    item: 'employees',
+    employee: {
+      email: loggedInEmployee.email,
+    },
+  });
+});
+
+router.get('/employees/:employee_id', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
+
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  assertApp(typeof loggedInEmployee.api_key === 'string', `got ${loggedInEmployee.api_key}`);
+  assertApp(typeof loggedInEmployee.email === 'string', `got ${loggedInEmployee.email}`);
+
+  const permissionStatus = await adminAuth.hasPermission(
+    ctx.state.dbClient,
+    loggedInEmployee.api_key,
+    'admin_list_employee_info'
+  );
+
+  assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
+
+  if (!permissionStatus) {
+    ctx.status = 403;
+    ctx.body = 'Permission denied!';
+    return;
+  }
+
+  const employeeId = Number(ctx.params.employee_id);
+
+  if (!Number.isSafeInteger(employeeId)) {
+    ctx.status = 400;
+    ctx.body = 'Invalid parameter employee id!';
+    return;
+  }
+
+  const employeeSelectResult = await ctx.state.dbClient.executeQuery(`
+
+    SELECT
+      employees.id,
+      employees.email,
+      employees.active,
+      employess.role_id,
+      employees_roles.updated_at AS role_updated_at
+    FROM employees
+    JOIN employees_roles
+      ON employees.id = employees_roles.employee_id
+    WHERE employees.id = $1;
+
+  `, [
+    employeeId,
+  ]);
+
+  assertApp(isObject(employeeSelectResult), `got ${employeeSelectResult}`);
+  assertApp(
+    Array.isArray(employeeSelectResult.rows),
+    `got ${employeeSelectResult.rows}`
+  );
+  assertApp(
+    employeeSelectResult.rows.length <= 1,
+    `got ${employeeSelectResult.rows.length}`
+  );
+
+  if (employeeSelectResult.rows.length === 0) {
+    ctx.status = 404;
+    ctx.body = 'Employee not found!';
+    return;
+  }
+
+  const employee = employeeSelectResult.rows[0];
+
+  return ctx.render('employee.html', {
+    item: 'employee',
+    employee: {
+      email: loggedInEmployee.email,
+    },
+    employee_credentials: {
+      id: employee.id,
+      email: employee.email,
+      active: employee.active,
+      role_id: employee.role_id,
+      role_updated_at: employee.role_updated_at,
+    },
+  });
 });
 
 router.get('/roles', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
@@ -341,7 +469,7 @@ router.get('/roles', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
   assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
 
   if (!permissionStatus) {
-    ctx.status = 400;
+    ctx.status = 403;
     ctx.body = 'Permission denied!';
     return;
   }
@@ -380,7 +508,7 @@ router.get('/roles/:role_id', adminAuth.redirectWhenLoggedOut('/login'), async (
   assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
 
   if (!permissionStatus) {
-    ctx.status = 400;
+    ctx.status = 403;
     ctx.body = 'Permission denied!';
     return;
   }
@@ -428,7 +556,7 @@ router.get('/fetches', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) =>
   assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
 
   if (!permissionStatus) {
-    ctx.status = 400;
+    ctx.status = 403;
     ctx.body = 'Permission denied!';
     return;
   }
@@ -525,7 +653,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   assertApp(typeof permissionStatus === 'boolean', `got ${permissionStatus}`);
 
   if (!permissionStatus) {
-    ctx.status = 400;
+    ctx.status = 403;
     ctx.body = 'Permission denied!';
     return;
   }

@@ -437,7 +437,12 @@ VALUES
   ('subscribe'),
   ('unsubscribe'),
   ('admin_list_user_info'),
-  ('admin_list_transfers');
+  ('admin_list_transfers')
+  ('admin_list_employees'),
+  ('admin_list_employee_info'),
+  ('admin_add_employee'),
+  ('admin_remove_employee'),
+  ('admin_edit_employee');
 
 INSERT INTO roles_permissions
   (role_id, permission_id)
@@ -486,7 +491,12 @@ VALUES
   (3, 22),
   (3, 23),
   (1, 24),
-  (1, 25);
+  (1, 25),
+  (1, 26),
+  (1, 27),
+  (1, 28),
+  (1, 29),
+  (1, 30);
 
 END;
 

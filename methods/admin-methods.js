@@ -1077,11 +1077,11 @@ const adminAddEmployee = defineAPIMethod(
     return {
       status_code: '1000',
       employee: {
-        id: newEmployee.id,
+        id: String(newEmployee.id),
         email: newEmployee.email,
         active: newEmployee.active,
         role_id: params.role_id,
-        role_updated_at: newEmployeeRole.updated_at,
+        role_updated_at: newEmployeeRole.updated_at.toISOString(),
       },
     };
   }
@@ -1321,6 +1321,7 @@ const adminListEmployees = defineAPIMethod(
         employees_roles.updated_at AS role_updated_at
       FROM employees
       JOIN employees_roles
+        ON employees.id = employees_roles.employee_id
       ORDER BY employees.id
       LIMIT $1
       OFFSET $2;
@@ -1338,7 +1339,12 @@ const adminListEmployees = defineAPIMethod(
 
     return {
       status_code: '1000',
-      employees: employeesSelectResult.rows,
+      employees: employeesSelectResult.rows.map((row) => {
+        return {
+          ...row,
+          role_updated_at: row.role_updated_at.toISOString(),
+        };
+      }),
     };
   }
 );
