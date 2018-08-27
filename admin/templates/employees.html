@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Employees</title>
+    <link href="css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      {{> heading }}
+      {{> menu }}
+      {{> messages }}
+      <hr>
+      <div class="text-center">
+        <h3>Add new employee</h3>
+        <form id="new-employee-form" class="form-inline">
+          <div class="form-group">
+            <input name="employee-email" class="form-control" type="email" placeholder="Email">
+          </div>
+          <div class="form-group">
+            <input id="new-employee-password" class="form-control" name="employee-password" placeholder="Password" type="password" autocomplete="new-password" onblur="this.setAttribute('readonly', 'readonly');" onfocus="this.removeAttribute('readonly');" readonly>
+          </div>
+          <div class="form-group">
+            <input name="employee-role-name" class="form-control" placeholder="Role">
+          </div>
+          <button type="submit" class="btn btn-default">Submit</button>
+        </form>
+      </div>
+      <hr>
+      <div>
+        <table id="employees-table" class="table table-bordered" hidden="true">
+          <thead>
+            <tr>
+              <th>Id</th>
+              <th>Email</th>
+              <th>Active</th>
+              <th>Role</th>
+              <th>Role updated at</th>
+              <th>Options</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="employee" hidden="true">
+              <td id="employee-id"></td>
+              <td id="employee-email"></td>
+              <td id="employee-active"></td>
+              <td id="employee-role"></td>
+              <td id="employee-role-updated-at"></td>
+              <td class="text-center">
+                <button id="employee-open-btn" class="btn btn-primary">Open</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <script src="js/lodash/index.min.js"></script>
+    <script src="js/jquery/jquery-2.2.4.js"></script>
+    <script src="js/ajv.min.js"></script>
+    <script src="js/js-yaml/js-yaml.min.js"></script>
+    <script src="js/json-schemas.js"></script>
+    <script src="js/admin-json-schemas.js"></script>
+    <script src="js/parsers.js"></script>
+    <script src="js/admin-api-methods.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/employees.js"></script>
+  </body>
+</html>
