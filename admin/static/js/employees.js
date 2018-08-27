@@ -88,6 +88,7 @@ function start () {
     for (i = 0; i < roles.length; i++) {
       if (roles[i].id === employee.role_id) {
         employeeRoleName = roles[i].name;
+        break;
       }
     }
 
@@ -230,6 +231,7 @@ function start () {
     for (i = 0; i < roles.length; i++) {
       if (roles[i].name === newEmployeeRoleName) {
         newEmployeeRole = roles[i];
+        break;
       }
     }
 
@@ -285,7 +287,7 @@ function start () {
     return false;
   }
 
-  $(document).ready(function () { // eslint-disable-line prever-template
+  $(document).ready(function () { // eslint-disable-line prefer-template
     $('#new-employee-form').submit(onAddNewEmployee);
 
     adminAPI.adminGetAPIKey({

@@ -45,7 +45,7 @@ app.use(async (ctx, next) => {
   } catch (e) {
     log.critical('Unhandled error reached the top layer.', e);
     ctx.status = 500;
-    ctx.body = `An unknown error occurred. Please restart the server and refresh the page.\n${e}`;
+    ctx.body = `An unknown error occurred. Please restart the server and refresh the page.`;
     ctx.app.emit('error', e, ctx);
   }
 });
@@ -399,7 +399,7 @@ router.get('/employees/:employee_id', adminAuth.redirectWhenLoggedOut('/login'),
       employees.id,
       employees.email,
       employees.active,
-      employess.role_id,
+      employees_roles.role_id,
       employees_roles.updated_at AS role_updated_at
     FROM employees
     JOIN employees_roles
@@ -438,7 +438,7 @@ router.get('/employees/:employee_id', adminAuth.redirectWhenLoggedOut('/login'),
       email: employee.email,
       active: employee.active,
       role_id: employee.role_id,
-      role_updated_at: employee.role_updated_at,
+      role_updated_at: employee.role_updated_at.toISOString(),
     },
   });
 });
