@@ -1,0 +1,11 @@
+.info-dialog-titlebar {
+  background: #d9edf7;
+}
+
+.error-dialog-titlebar {
+  background: #f2dede;
+}
+
+.success-dialog-titlebar {
+  background: #dff0d8;
+}

@@ -165,22 +165,28 @@ function main () { // eslint-disable-line no-unused-vars
     );
 
     const msgTypeToClassMap = {
-      'info': 'bg-info',
-      'error': 'bg-danger',
-      'success': 'bg-success',
+      'info': 'info-dialog-titlebar',
+      'error': 'error-dialog-titlebar',
+      'success': 'success-dialog-titlebar',
     };
 
     const msgId = getUniqueId();
-    const closeMessageButton = $('<button type="button" class="close" aria-label="Close">X</button>')
-      .attr('id', 'close-msg-btn-' + msgId) // eslint-disable-line prefer-template
-      .click(onCloseMessageClick);
+    const $messageClone = $('#message').clone()
+      .attr('id', 'message-' + msgId) // eslint-disable-line prefer-template
+      .attr('title', type)
+      .removeAttr('hidden');
 
-    $('<p></p>')
-      .addClass(msgTypeToClassMap[type])
-      .attr('id', 'msg-' + msgId) // eslint-disable-line prefer-template
-      .text(msg)
-      .append(closeMessageButton)
-      .appendTo($messagesList);
+    $messageClone.find('#message-text')
+      .attr('id', 'message-text-' + msgId) // eslint-disable-line prefer-template
+      .text(msg);
+
+    $messageClone.dialog({
+      classes: {
+        'ui-dialog-titlebar': msgTypeToClassMap[type],
+        //'ui-dialog-title': msgTypeToClassMap[type],
+      },
+    });
+    $messageClone.appendTo($('messages-list'));
   };
 
   const sendError = function (params, protocolName) {
