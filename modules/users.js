@@ -5,6 +5,7 @@ const errors = require('./error-handling');
 const utils = require('./utils');
 const subscriptions = require('./subscriptions');
 const log = require('./log');
+const caching = require('./caching');
 
 /*
   Users are never deleted from the database but this should be transparent to the code
@@ -23,7 +24,7 @@ async function addUser (dbClient, { email, password }) {
   errors.assertPeer(email.length >= 3, 'bad email.', 'FF_SHORT_EMAIL');
   errors.assertPeer(password.length >= 8, 'bad password.', 'FF_SHORT_PASSWORD');
   errors.assertPeer(
-    !await userExists(dbClient, { email }),
+    !await emailIsTaken(dbClient, email),
     `Failed adding user, because email ${email} is taken`,
     errors.errorCodes.emailTaken,
   );
@@ -76,6 +77,18 @@ async function removeUser (dbClient, userId) {
     result.length === 1,
     'Removed too much users',
   );
+
+  const { rows } = await dbClient.executeQuery(
+    `
+    DELETE FROM login_sessions
+    WHERE user_id=$1
+    RETURNING *
+    `,
+    [userId],
+  );
+  errors.assertApp(rows.length <= 1, `got ${userId}`);
+
+  caching.SESSION_CACHE.remove(rows[0].token);
 }
 
 async function editUser (dbClient, userId, { email, password, apiKey }) {
