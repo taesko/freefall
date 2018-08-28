@@ -185,6 +185,10 @@ function main () { // eslint-disable-line no-unused-vars
         'ui-dialog-titlebar': msgTypeToClassMap[type],
         //'ui-dialog-title': msgTypeToClassMap[type],
       },
+      show: {
+        effect: "highlight",
+        duration: 500
+      },
     });
     $messageClone.appendTo($('messages-list'));
   };
