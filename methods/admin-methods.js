@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { defineAPIMethod } = require('./resolve-method');
-const { assertPeer, assertApp, assertUser, PeerError, errorCodes } = require('../modules/error-handling');
+const { assertPeer, assertApp, assertUser, PeerError, UserError, errorCodes } = require('../modules/error-handling');
 const { isObject } = require('lodash');
 const log = require('../modules/log');
 const adminAuth = require('../modules/admin-auth');
@@ -1093,6 +1093,7 @@ const adminEditEmployee = defineAPIMethod(
     'AEE_BAD_PARAMETERS_FORMAT': { status_code: '2101', employee: null },
     'AEE_EMPLOYEE_NOT_FOUND': { status_code: '2201', employee: null },
     'AEE_UNKNOWN_ROLE': { status_code: '2202', employee: null },
+    'AEE_EMAIL_TAKEN': { status_code: '2203', employee: null },
   },
   async (params, dbClient) => {
     assertUser(
@@ -1159,20 +1160,30 @@ const adminEditEmployee = defineAPIMethod(
       setParams.role_id = params.role_id;
     }
 
-    const employeeUpdateResult = await dbClient.executeQuery(`
+    let employeeUpdateResult;
 
-      UPDATE employees
-      SET
-        email = COALESCE($1, email),
-        password = COALESCE($2, password)
-      WHERE id = $3
-      RETURNING *;
+    try {
+      employeeUpdateResult = await dbClient.executeQuery(`
 
-    `, [
-      setParams.email,
-      setParams.password,
-      employeeId,
-    ]);
+        UPDATE employees
+        SET
+          email = COALESCE($1, email),
+          password = COALESCE($2, password)
+        WHERE id = $3
+        RETURNING *;
+
+      `, [
+        setParams.email,
+        setParams.password,
+        employeeId,
+      ]);
+    } catch (error) {
+      if (error.code === '23505') { // unique key constraint violation
+        throw new UserError('Email already taken!', 'AEE_EMAIL_TAKEN');
+      } else {
+        throw error;
+      }
+    }
 
     assertApp(isObject(employeeUpdateResult), `got ${employeeUpdateResult}`);
     assertApp(
@@ -1227,7 +1238,7 @@ const adminEditEmployee = defineAPIMethod(
         email: editedEmployee.email,
         active: editedEmployee.active,
         role_id: editedEmployeeRole.role_id,
-        role_updated_at: editedEmployeeRole.updated_at,
+        role_updated_at: editedEmployeeRole.updated_at.toISOString(),
       },
     };
   }

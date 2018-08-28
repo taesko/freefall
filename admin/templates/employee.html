@@ -10,6 +10,7 @@
       {{> heading }}
       {{> menu }}
       {{> messages }}
+      <form id="edit-employee"></form>
       <table id="employees-table" class="table table-bordered">
         <thead>
           <tr>
@@ -27,19 +28,19 @@
               <span id="employee-edit-mode-id"></span>
             </td>
             <td>
-              <input id="employee-edit-mode-email" class="form-control" name="employee-email" type="email" placeholder="Email" value="">
+              <input id="employee-edit-mode-email" class="form-control" name="employee-email" type="email" placeholder="Email" value="" form="edit-employee">
             </td>
             <td>
-              <input id="employee-edit-mode-password" name="employee-password" class="form-control" type="password" placeholder="Password" value="" autocomplete="new-password" onblur="this.setAttribute('readonly', 'readonly');" onfocus="this.removeAttribute('readonly');" readonly>
+              <input id="employee-edit-mode-password" name="employee-password" class="form-control" type="password" placeholder="Password" value="" autocomplete="new-password" form="edit-employee">
             </td>
             <td>
-              <input id="employee-edit-mode-role" name="employee-role" class="form-control" type="text" placeholder="Role" value="">
+              <input id="employee-edit-mode-role" name="employee-role" class="form-control" type="text" placeholder="Role" value="" form="edit-employee">
             </td>
             <td>
               <span id="employee-edit-mode-role-updated-at"></span>
             </td>
             <td>
-              <button id="employee-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
+              <button type="submit" form="edit-employee" class="btn btn-primary">Save</button>
               <button id="employee-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
               <button id="employee-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
             </td>

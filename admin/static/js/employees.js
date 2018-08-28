@@ -1,6 +1,6 @@
 function start () {
   const mainUtils = main();
-  const AppError = mainUtils.AppError;
+  const ApplicationError = mainUtils.ApplicationError;
   const assertApp = mainUtils.assertApp;
   const assertUser = mainUtils.assertUser;
   const assertPeer = mainUtils.assertPeer;
@@ -37,7 +37,7 @@ function start () {
     assertApp(
       $row == null ||
       $row instanceof jQuery, {
-        msg: 'Unexpected type of $row, $row=' + $row, // eslint-disable-line prefer-tmplate
+        msg: 'Unexpected type of $row, $row=' + $row, // eslint-disable-line prefer-template
       }
     );
 
@@ -63,7 +63,7 @@ function start () {
     modes[mode](employee, rowId, $row);
   }
 
-  function renderEmployeeRowViewMode(employee, rowId, $row) {
+  function renderEmployeeRowViewMode (employee, rowId, $row) {
     mainUtils.trace('renderEmployeeRowViewMode');
 
     const $employeeViewModeClone = $('#employee').clone()
@@ -166,18 +166,17 @@ function start () {
     return function (event) {
       window.location = '/employees/' + employeeId; // eslint-disable-line prefer-template
     };
-  }
+  };
 
   const onAddNewEmployee = function (event) {
     mainUtils.trace('onAddNewEmployee');
     event.preventDefault();
 
-    const form = $(event.target);
-    const formData = form.serializeArray();
-    console.log(formData);
+    const form = event.target;
+    const formData = $(form).serializeArray();
 
     var i; // eslint-disable-line no-var
-    var newEmployeeEmail, newEmployeePassword, newEmployeeRoleName; // eslint-disable-line prefer-template
+    var newEmployeeEmail, newEmployeePassword, newEmployeeRoleName; // eslint-disable-line no-var
 
     for (i = 0; i < formData.length; i++) {
       assertApp(_.isObject(formData[i]), {
@@ -197,7 +196,7 @@ function start () {
       } else if (formData[i].name === 'employee-role-name') {
         newEmployeeRoleName = formData[i].value.trim();
       } else {
-        throw new AppError({
+        throw new ApplicationError({
           msg: 'Unknown formData name: ' + formData[i].name, // eslint-disable-line prefer-template
         });
       }
@@ -277,7 +276,7 @@ function start () {
       });
 
       assertPeer(_.isObject(result.employee), {
-        msg: 'Expected employee to be an object when status code = 1000, but employee=' + employee, // eslint-disable-line prefer-template
+        msg: 'Expected employee to be an object when status code = 1000, but employee=' + result.employee, // eslint-disable-line prefer-template
       });
 
       renderEmployeeRow('view', result.employee);
@@ -285,9 +284,9 @@ function start () {
     });
 
     return false;
-  }
+  };
 
-  $(document).ready(function () { // eslint-disable-line prefer-template
+  $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $('#new-employee-form').submit(onAddNewEmployee);
 
     adminAPI.adminGetAPIKey({
@@ -303,11 +302,11 @@ function start () {
 
       APIKeyRef.APIKey = result.api_key;
 
-      var callbacksWithEmptyRolesResult = 0; // eslint-disable-line prefer-template
+      var callbacksWithEmptyRolesResult = 0; // eslint-disable-line no-var
       const parallelRoleRequests = 5;
 
       const adminListRolesCallback = function (callbackId) {
-        mainUtils.trace('adminListRolesCallback '+ callbackId); // eslint-disable-line prefer-template
+        mainUtils.trace('adminListRolesCallback ' + callbackId); // eslint-disable-line prefer-template
         return function (result) {
           mainUtils.trace('result of callback ' + callbackId); // eslint-disable-line prefer-template
           const messages = {
@@ -333,7 +332,7 @@ function start () {
           });
 
           if (result.roles.length > 0) {
-            mainUtils.trace('callback result with result.roles.length =' + result.roles.length);
+            mainUtils.trace('callback result with result.roles.length =' + result.roles.length); // eslint-disable-line prefer-template
             roles = roles.concat(result.roles);
 
             adminAPI.adminListRoles(
@@ -347,7 +346,7 @@ function start () {
               adminListRolesCallback(callbackId + parallelRoleRequests)
             );
           } else {
-            mainUtils.trace('callbacksWithEmptyRolesResult: ' + callbacksWithEmptyRolesResult + 1);
+            mainUtils.trace('callbacksWithEmptyRolesResult: ' + callbacksWithEmptyRolesResult + 1); // eslint-disable-line prefer-template
             callbacksWithEmptyRolesResult++;
 
             if (callbacksWithEmptyRolesResult === parallelRoleRequests) {
@@ -359,7 +358,7 @@ function start () {
                   api_key: APIKeyRef.APIKey,
                 },
                 PROTOCOL_NAME,
-                function (result) {
+                function (result) { // eslint-disable-line prefer-arrow-callback
                   const messages = {
                     '1000': 'adminListEmployees success!',
                     '2100': 'Could not get API key for your account. Please try to log out and log back in your account!',
@@ -396,7 +395,11 @@ function start () {
           offset: i * RESULTS_LIMIT,
           api_key: APIKeyRef.APIKey,
         };
-        adminAPI.adminListRoles(params, PROTOCOL_NAME, adminListRolesCallback(i));
+        adminAPI.adminListRoles(
+          params,
+          PROTOCOL_NAME,
+          adminListRolesCallback(i)
+        );
       }
     });
   });

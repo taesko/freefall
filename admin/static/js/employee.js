@@ -2,10 +2,10 @@
 
 function start () {
   const mainUtils = main();
+  const ApplicationError = mainUtils.ApplicationError;
   const assertApp = mainUtils.assertApp;
   const assertPeer = mainUtils.assertPeer;
   const assertUser = mainUtils.assertUser;
-  const UserError = mainUtils.UserError;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const RESULTS_LIMIT = 20;
   const APIKeyRef = mainUtils.APIKeyRef;
@@ -57,7 +57,7 @@ function start () {
       .text(employee.email);
 
     var i; // eslint-disable-line no-var
-    var employeeRoleName;
+    var employeeRoleName; // eslint-disable-line no-var
 
     for (i = 0; i < roles.length; i++) {
       if (roles[i].id === employee.role_id) {
@@ -93,7 +93,7 @@ function start () {
       .attr('value', employee.email);
 
     var i; // eslint-disable-line no-var
-    var employeeRoleName;
+    var employeeRoleName; // eslint-disable-line no-var
 
     for (i = 0; i < roles.length; i++) {
       if (roles[i].id === employee.role_id) {
@@ -114,13 +114,49 @@ function start () {
       .text(employee.role_updated_at);
   }
 
-  const onSaveEmployeeClick = function (event) {
-    mainUtils.trace('onSaveEmployeeClick');
+  const onSaveEmployee = function (event) {
+    mainUtils.trace('onSaveEmployee');
+    event.preventDefault();
 
-    const saveButton = event.target;
+    const form = event.target;
+    const formData = $(form).serializeArray();
 
-    const newEmail = $('#employee-edit-mode-email').val().trim();
-    const newPassword = $('#employee-edit-mode-password').val().trim();
+    var i; // eslint-disable-line no-var
+    var editedEmail, editedPassword, editedRoleName; // eslint-disable-line no-var
+
+    for (i = 0; i < formData.length; i++) {
+      assertApp(_.isObject(formData[i]), {
+        msg: 'Expected each item in formData to be an object, but current item=' + formData[i], // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].name === 'string', {
+        msg: 'Expected item in formData to have property "name" of type string, but property "name" =' + formData[i].name, // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].value === 'string', {
+        msg: 'Expected item in formData to have property "value" of type string, but property "value" =' + formData[i].value, // eslint-disable-line prefer-template
+      });
+
+      if (formData[i].name === 'employee-email') {
+        editedEmail = formData[i].value.trim();
+      } else if (formData[i].name === 'employee-password') {
+        editedPassword = formData[i].value.trim();
+      } else if (formData[i].name === 'employee-role') {
+        editedRoleName = formData[i].value.trim();
+      } else {
+        throw new ApplicationError({
+          msg: 'Unknown formData name: ' + formData[i].name, // eslint-disable-line prefer-template
+        });
+      }
+    }
+
+    assertApp(typeof editedEmail === 'string', {
+      msg: 'Expected editedEmail to be string, but editedEmail =' + editedEmail, // eslint-disable-line prefer-template
+    });
+    assertApp(typeof editedPassword === 'string', {
+      msg: 'Expected editedPassword to be string, but editedPassword =' + editedPassword, // eslint-disable-line prefer-template
+    });
+    assertApp(typeof editedRoleName === 'string', {
+      msg: 'Expected editedRoleName to be string, but editedRoleName =' + editedRoleName, // eslint-disable-line prefer-template
+    });
 
     const params = {
       v: '2.0',
@@ -128,41 +164,75 @@ function start () {
       employee_id: employeeGlobal.id,
     };
 
-    if (newEmail.length > 0) {
-      params.email = newEmail;
+    if (editedEmail.length > 0) {
+      assertUser(editedEmail.length > 2, {
+        userMessage: 'Please enter a valid email!',
+        msg: 'Expected user to enter a valid employee email address, but editedEmail =' + editedEmail, // eslint-disable-line prefer-template
+      });
+      params.email = editedEmail;
     }
 
-    if (newPassword.length > 0) {
-      params.password = newPassword;
+    if (editedPassword.length > 0) {
+      params.password = editedPassword;
     }
 
-    saveButton.disabled = true;
+    if (editedRoleName.length > 0) {
+      var editedRole; // eslint-disable-line no-var
+
+      for (i = 0; i < roles.length; i++) {
+        if (roles[i].name === editedRoleName) {
+          editedRole = roles[i];
+          break;
+        }
+      }
+
+      assertUser(_.isObject(editedRole), {
+        userMessage: 'Can not assign role! Role does not exist!',
+        msg: 'User entered a name of role that could not be resolved to an existing role, editedRole =' + editedRole, // eslint-disable-line prefer-template
+      });
+
+      assertApp(typeof editedRole.id === 'number', {
+        msg: 'Expected editedRole.id to be a number, but editedRole.id=' + editedRole.id, // eslint-disable-line prefer-template
+      });
+
+      params.role_id = editedRole.id;
+    }
+
+    form.disabled = true;
 
     adminAPI.adminEditEmployee(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      saveButton.disabled = false;
+      form.disabled = false;
 
       const messages = {
         '1000': 'Successfully updated employee!',
-        '2201': 'Edit employee failed: Email is already taken.',
+        '2100': 'Your API key does not support this operation!',
+        '2101': 'The form you sent was not in expected format. Please correct any wrong inputs and try again!',
+        '2201': 'This employee does not exists! Please refresh the page and try again!',
+        '2202': 'You have assigned a role that was not recognized! Please, refresh the page and try again!',
+        '2203': 'Edit employee failed: Email is already taken.',
       };
 
       assertPeer(typeof messages[result.status_code] === 'string', {
         msg: 'Unexpected status code in adminEditEmployee. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
       });
 
-      const employeeMessage = messages[result.status_code] || 'Edit employee failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+      const userMessage = messages[result.status_code] || 'Edit employee failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
       assertUser(result.status_code === '1000', {
-        employeeMessage: employeeMessage,
+        userMessage: userMessage,
         msg: 'Edit employee failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
       });
 
-      if (newEmail.length > 0) {
-        employeeGlobal.email = newEmail;
-      }
+      assertPeer(_.isObject(result.employee), {
+        msg: 'Expected adminEditEmployee to return an employee object when status code = "1000", but result.employee=' + result.employee, // eslint-disable-line prefer-template
+      });
+
+      employeeGlobal = result.employee;
 
       renderEmployeeRow('view', employeeGlobal);
       mainUtils.displayUserMessage('Successfully updated employee!', 'success');
     });
+
+    return false;
   };
 
   const onCancelEditEmployeeClick = function (event) {
@@ -188,14 +258,25 @@ function start () {
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         const messages = {
-          '1000': 'Successfully removed employee
+          '1000': 'Successfully removed employee',
+          '2100': 'Your API key does not support this operation!',
+          '2101': 'The form you sent was not in expected format. Please correct any wrong inputs and try again!',
+          '2201': 'Remove failed: no such employee found!',
         };
 
-        if (result.status_code === '1000') {
-          window.location.replace('/employees');
-        } else {
-          mainUtils.displayUserMessage('Remove employee failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-        }
+        assertPeer(typeof messages[result.status_code] === 'string', {
+          msg: 'Unexpected status code in adminRemoveEmployee. Status code: ' + result.status_code, // eslint-disable-line prefer-template
+        });
+
+        const msg = 'Admin remove employee failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
+        const userMessage = messages[result.status_code] || msg;
+
+        assertUser(result.status_code === '1000', {
+          msg: msg,
+          userMessage: userMessage,
+        });
+
+        window.location.replace('/employees');
       }
     );
   };
@@ -220,11 +301,11 @@ function start () {
 
       APIKeyRef.APIKey = result.api_key;
 
-      var callbacksWithEmptyRolesResult = 0; // eslint-disable-line prefer-template
+      var callbacksWithEmptyRolesResult = 0; // eslint-disable-line no-var
       const parallelRoleRequests = 5;
 
       const adminListRolesCallback = function (callbackId) {
-        mainUtils.trace('adminListRolesCallback '+ callbackId); // eslint-disable-line prefer-template
+        mainUtils.trace('adminListRolesCallback ' + callbackId); // eslint-disable-line prefer-template
         return function (result) {
           mainUtils.trace('result of callback ' + callbackId); // eslint-disable-line prefer-template
           const messages = {
@@ -250,7 +331,7 @@ function start () {
           });
 
           if (result.roles.length > 0) {
-            mainUtils.trace('callback result with result.roles.length =' + result.roles.length);
+            mainUtils.trace('callback result with result.roles.length =' + result.roles.length); // eslint-disable-line prefer-template
             roles = roles.concat(result.roles);
 
             adminAPI.adminListRoles(
@@ -264,7 +345,7 @@ function start () {
               adminListRolesCallback(callbackId + parallelRoleRequests)
             );
           } else {
-            mainUtils.trace('callbacksWithEmptyRolesResult: ' + callbacksWithEmptyRolesResult + 1);
+            mainUtils.trace('callbacksWithEmptyRolesResult: ' + callbacksWithEmptyRolesResult + 1); // eslint-disable-line prefer-template
             callbacksWithEmptyRolesResult++;
 
             if (callbacksWithEmptyRolesResult === parallelRoleRequests) {
@@ -283,12 +364,16 @@ function start () {
           offset: i * RESULTS_LIMIT,
           api_key: APIKeyRef.APIKey,
         };
-        adminAPI.adminListRoles(params, PROTOCOL_NAME, adminListRolesCallback(i));
+        adminAPI.adminListRoles(
+          params,
+          PROTOCOL_NAME,
+          adminListRolesCallback(i)
+        );
       }
     });
 
+    $('#edit-employee').submit(onSaveEmployee);
     $('#employee-view-mode-edit-btn').click(onEditEmployeeClick);
-    $('#employee-edit-mode-save-btn').click(onSaveEmployeeClick);
     $('#employee-edit-mode-cancel-btn').click(onCancelEditEmployeeClick);
     $('#employee-edit-mode-remove-btn').click(onRemoveEmployeeClick);
   });
