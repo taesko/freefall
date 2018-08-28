@@ -175,12 +175,12 @@ function start () {
 
   function showUsersResults () {
     $('#users-results').removeAttr('hidden');
-    $('#no-users-msg').attr('hidden', 'true');
+    $('#no-users-msg').attr('hidden', true);
   }
 
   function hideUsersResults () {
     $('#no-users-msg').removeAttr('hidden');
-    $('#users-results').attr('hidden', 'true');
+    $('#users-results').attr('hidden', true);
   }
 
   const onRemoveUserClick = function (event) {

@@ -95,22 +95,22 @@ function start () {
 
   function showUserSubscriptionsResults () {
     $('#user-subscriptions-results').removeAttr('hidden');
-    $('#no-subscriptions-msg').attr('hidden', 'true');
+    $('#no-subscriptions-msg').attr('hidden', true);
   }
 
   function hideUserSubscriptionsResults () {
     $('#no-subscriptions-msg').removeAttr('hidden');
-    $('#user-subscriptions-results').attr('hidden', 'true');
+    $('#user-subscriptions-results').attr('hidden', true);
   }
 
   function showGuestSubscriptionsResults () {
     $('#guest-subscriptions-results').removeAttr('hidden');
-    $('#no-subscriptions-msg').attr('hidden', 'true');
+    $('#no-subscriptions-msg').attr('hidden', true);
   }
 
   function hideGuestSubscriptionsResults () {
     $('#no-subscriptions-msg').removeAttr('hidden');
-    $('#guest-subscriptions-results').attr('hidden', 'true');
+    $('#guest-subscriptions-results').attr('hidden', true);
   }
 
   function clearGuestSubscriptionsTable ($guestSubscriptionsTable) {
@@ -806,7 +806,7 @@ function start () {
     }
 
     $('#user-subscriptions-section').removeAttr('hidden');
-    $('#guest-subscriptions-section').attr('hidden', 'true');
+    $('#guest-subscriptions-section').attr('hidden', true);
 
     $('#user-subscriptions-tab').parent().addClass('active');
     $('#guest-subscriptions-tab').parent().removeClass('active');
@@ -822,7 +822,7 @@ function start () {
     }
 
     $('#guest-subscriptions-section').removeAttr('hidden');
-    $('#user-subscriptions-section').attr('hidden', 'true');
+    $('#user-subscriptions-section').attr('hidden', true);
 
     $('#guest-subscriptions-tab').parent().addClass('active');
     $('#user-subscriptions-tab').parent().removeClass('active');

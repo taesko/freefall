@@ -45,7 +45,7 @@ app.use(async (ctx, next) => {
   } catch (e) {
     log.critical('Unhandled error reached the top layer.', e);
     ctx.status = 500;
-    ctx.body = `An unknown error occurred. Please restart the server and refresh the page.\n${e}`;
+    ctx.body = `An unknown error occurred. Please restart the server and refresh the page.`;
     ctx.app.emit('error', e, ctx);
   }
 });
@@ -153,6 +153,132 @@ router.post('/login', adminAuth.redirectWhenLoggedIn('/'), async (ctx) => {
   log.info('Logged in as employee', employee.id);
 
   return ctx.redirect('/');
+});
+
+router.get('/change_password', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
+
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  return ctx.render('change-password.html', {
+    item: 'change_password',
+    employee: {
+      email: loggedInEmployee.email,
+    },
+  });
+});
+
+router.post('/change_password', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) => {
+  const loggedInEmployee = await adminAuth.getLoggedInEmployee(ctx);
+
+  assertApp(
+    isObject(loggedInEmployee) ||
+    loggedInEmployee === null,
+    `got ${loggedInEmployee}`
+  );
+
+  if (loggedInEmployee == null) {
+    ctx.session.employeeID = null;
+    return ctx.redirect('/login');
+  }
+
+  const oldPassword = ctx.request.body['old-password'];
+  const newPassword = ctx.request.body['new-password'];
+  const confirmNewPassword = ctx.request.body['confirm-new-password'];
+
+  if (
+    typeof oldPassword !== 'string' ||
+    typeof newPassword !== 'string' ||
+    typeof confirmNewPassword !== 'string'
+  ) {
+    log.info('Invalid form format was sent.');
+
+    return ctx.render('change-password.html', {
+      item: 'change_password',
+      employee: {
+        email: loggedInEmployee.email,
+      },
+      error_message: 'Change password failed. Invalid form was sent.',
+    });
+  }
+
+  if (newPassword !== confirmNewPassword) {
+    log.info('New password and confirm new password do not match');
+
+    return ctx.render('change-password.html', {
+      item: 'change_password',
+      employee: {
+        email: loggedInEmployee.email,
+      },
+      error_message: 'Change password failed. New password and confirm new password do not match.',
+    });
+  }
+
+  const oldPasswordHashed = crypto.createHash('md5').update(oldPassword).digest('hex');
+
+  const selectEmployeeResult = await ctx.state.dbClient.executeQuery(`
+
+    SELECT *
+    FROM employees
+    WHERE
+      email = $1 AND
+      password = $2;
+
+  `, [
+    loggedInEmployee.email,
+    oldPasswordHashed,
+  ]);
+
+  assertApp(isObject(selectEmployeeResult), `got ${selectEmployeeResult}`);
+  assertApp(Array.isArray(selectEmployeeResult.rows), `got ${selectEmployeeResult.rows}`);
+  assertApp(
+    selectEmployeeResult.rows.length <= 1,
+    `got ${selectEmployeeResult.rows.length}`
+  );
+
+  if (selectEmployeeResult.rows.length === 0) {
+    log.info('Wrong old password');
+
+    return ctx.render('change-password.html', {
+      item: 'change_password',
+      employee: {
+        email: loggedInEmployee.email,
+      },
+      error_message: 'Change password failed. Old password was not correct.',
+    });
+  }
+
+  const newPasswordHashed = crypto.createHash('md5').update(newPassword).digest('hex');
+
+  await ctx.state.dbClient.executeQuery(`
+
+    UPDATE employees
+    SET password = $1
+    WHERE id = $2;
+
+  `, [
+    newPasswordHashed,
+    loggedInEmployee.id,
+  ]);
+
+  ctx.state.commitDB = true;
+
+  return ctx.render('change-password.html', {
+    item: 'change_password',
+    employee: {
+      email: loggedInEmployee.email,
+    },
+    success_message: 'Successfully changed password!',
+  });
 });
 
 router.get(
@@ -399,7 +525,7 @@ router.get('/employees/:employee_id', adminAuth.redirectWhenLoggedOut('/login'),
       employees.id,
       employees.email,
       employees.active,
-      employess.role_id,
+      employees_roles.role_id,
       employees_roles.updated_at AS role_updated_at
     FROM employees
     JOIN employees_roles
@@ -438,7 +564,7 @@ router.get('/employees/:employee_id', adminAuth.redirectWhenLoggedOut('/login'),
       email: employee.email,
       active: employee.active,
       role_id: employee.role_id,
-      role_updated_at: employee.role_updated_at,
+      role_updated_at: employee.role_updated_at.toISOString(),
     },
   });
 });

@@ -25,7 +25,7 @@ function start () {
   }
 
   function hidePermissions () {
-    $('#permissions-results').attr('hidden', 'true');
+    $('#permissions-results').attr('hidden', true);
   }
 
   function showRoles () {
@@ -33,7 +33,7 @@ function start () {
   }
 
   function hideRoles () {
-    $('#roles-results').attr('hidden', 'true');
+    $('#roles-results').attr('hidden', true);
   }
 
   function clearPermissionsTable ($permissionsTable) {
@@ -350,7 +350,7 @@ function start () {
     }
 
     $('#roles-section').removeAttr('hidden');
-    $('#permissions-section').attr('hidden', 'true');
+    $('#permissions-section').attr('hidden', true);
 
     $('#roles-tab').parent().addClass('active');
     $('#permissions-tab').parent().removeClass('active');
@@ -366,7 +366,7 @@ function start () {
     }
 
     $('#permissions-section').removeAttr('hidden');
-    $('#roles-section').attr('hidden', 'true');
+    $('#roles-section').attr('hidden', true);
 
     $('#permissions-tab').parent().addClass('active');
     $('#roles-tab').parent().removeClass('active');

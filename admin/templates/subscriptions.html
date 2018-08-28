@@ -15,10 +15,10 @@
       <h3>Add new guest subscription:</h3>
       <div class="row">
         <div class="col-md-2">
-          <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text" placeholder="Airport from" list="from-airports" required>
+          <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text" placeholder="Airport from" required>
         </div>
         <div class="col-md-2">
-          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text" placeholder="Airport to" list="to-airports" required>
+          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text" placeholder="Airport to" autocomplete="off" required>
         </div>
         <div class="col-md-4">
           <button id="subscribe-submit-btn" class="btn btn-primary btn-block">Subscribe</button>
@@ -33,7 +33,7 @@
     </ul>
     <div id="user-subscriptions-section">
       <h3>Users' subscriptions:</h3>
-      <div id="user-subscriptions-results" hidden="true">
+      <div id="user-subscriptions-results" hidden>
         <div class="row">
           <div class="col-md-4">
             <p class="text-left">
@@ -66,7 +66,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr id="user-subscription-edit-mode" hidden="true">
+            <tr id="user-subscription-edit-mode" hidden>
               <td>
                 <a id="user-subscription-edit-mode-user-email" href=""></a>
               </td>
@@ -94,7 +94,7 @@
                 <button id="user-subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
               </td>
             </tr>
-            <tr id="user-subscription-view-mode" hidden="true">
+            <tr id="user-subscription-view-mode" hidden>
               <td>
                 <a id="user-subscription-view-mode-user-email" href=""></a>
               </td>
@@ -142,9 +142,9 @@
         </div>
       </div>
     </div>
-    <div id="guest-subscriptions-section" hidden="true">
+    <div id="guest-subscriptions-section" hidden>
       <h3>Guest subscriptions:</h3>
-      <div id="guest-subscriptions-results" hidden="true">
+      <div id="guest-subscriptions-results" hidden>
         <div class="row">
           <div class="col-md-4">
             <p class="text-left">
@@ -169,12 +169,12 @@
               <th>Airport from</th>
               <th>Airport to</th>
               <th>Created at</th>
-              <td>Updated at</th>
+              <th>Updated at</th>
               <th>Options</th>
             </tr>
           </thead>
           <tbody>
-            <tr id="guest-subscription-edit-mode" hidden="true">
+            <tr id="guest-subscription-edit-mode" hidden>
               <td>
                 <input id="guest-subscription-edit-mode-airport-from" class="form-control" name="from" type="text" placeholder="Airport from" required>
               </td>
@@ -193,7 +193,7 @@
                 <button id="guest-subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
               </td>
             </tr>
-            <tr id="guest-subscription-view-mode" hidden="true">
+            <tr id="guest-subscription-view-mode" hidden>
               <td>
                 <span id="guest-subscription-view-mode-airport-from"></span>
               </td>
@@ -232,7 +232,7 @@
         </div>
       </div>
     </div>
-    <p id="no-subscriptions-msg" class="text-center" hidden="true">No subscriptions found</p>
+    <p id="no-subscriptions-msg" class="text-center" hidden>No subscriptions found</p>
   </div>
   <script src="js/lodash/index.min.js"></script>
   <script src="js/jquery/jquery-2.2.4.js"></script>
@@ -247,6 +247,6 @@
   <script src="js/api-methods.js"></script>
   <script src="js/admin-api-methods.js"></script>
   <script src="js/main.js"></script>
-  <script type="text/javascript" src="js/subscriptions.js"></script>
+  <script src="js/subscriptions.js"></script>
 </body>
 </html>

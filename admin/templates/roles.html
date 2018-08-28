@@ -38,16 +38,18 @@
         </table>
         <table id="new-role-permissions-table" class="table table-bordered">
           <thead>
-            <td>Permission</td>
-            <td>Options</td>
+            <tr>
+              <td>Permission</td>
+              <td>Options</td>
+            </tr>
           </thead>
           <tbody>
-            <tr id="new-role-permission-edit-mode" hidden="true">
+            <tr id="new-role-permission-edit-mode" hidden>
               <td id="new-role-permission-name-edit-mode"></td>
               <td>
                 <button id="remove-new-role-permission-btn-edit-mode" class="btn btn-danger">Remove</button>
               </td>
-            </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -74,7 +76,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr id="role-view-mode" hidden="true">
+            <tr id="role-view-mode" hidden>
               <td id="role-id-view-mode"></td>
               <td id="role-name-view-mode"></td>
               <td id="role-created-at-view-mode"></td>
@@ -88,7 +90,7 @@
           </tbody>
         </table>
       </div>
-      <div id="permissions-section" hidden="true">
+      <div id="permissions-section" hidden>
         <h3>Permissions:</h3>
         <div id="permissions-results">
           <table id="permissions-table" class="table table-bordered">
@@ -101,7 +103,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr id="permission" hidden="true">
+              <tr id="permission" hidden>
                 <td id="permission-id"></td>
                 <td id="permission-name"></td>
                 <td id="permission-created-at"></td>

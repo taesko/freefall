@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Employee</title>
+    <link href="../css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      {{> heading }}
+      {{> menu }}
+      {{> messages }}
+      <form id="edit-employee"></form>
+      <table id="employees-table" class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th>Email</th>
+            <th>Password</th>
+            <th>Role</th>
+            <th>Role updated at</th>
+            <th>Options</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="employee-edit-mode" hidden>
+            <td>
+              <span id="employee-edit-mode-id"></span>
+            </td>
+            <td>
+              <input id="employee-edit-mode-email" class="form-control" name="employee-email" type="email" placeholder="Email" value="" form="edit-employee">
+            </td>
+            <td>
+              <input id="employee-edit-mode-password" name="employee-password" class="form-control" type="password" placeholder="Password" value="" autocomplete="new-password" form="edit-employee">
+            </td>
+            <td>
+              <input id="employee-edit-mode-role" name="employee-role" class="form-control" type="text" placeholder="Role" value="" form="edit-employee">
+            </td>
+            <td>
+              <span id="employee-edit-mode-role-updated-at"></span>
+            </td>
+            <td>
+              <button type="submit" form="edit-employee" class="btn btn-primary">Save</button>
+              <button id="employee-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
+              <button id="employee-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
+            </td>
+          </tr>
+          <tr id="employee-view-mode">
+            <td>
+              <span id="employee-view-mode-id"></span>
+            </td>
+            <td>
+              <a id="employee-view-mode-email" href=""></a>
+            </td>
+            <td>
+              <span>****</span>
+            </td>
+            <td>
+              <span id="employee-view-mode-role"></span>
+            </td>
+            <td>
+              <span id="employee-view-mode-role-updated-at"></span>
+            </td>
+            <td>
+              <button id="employee-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <script src="../js/lodash/index.min.js"></script>
+    <script src="../js/jquery/jquery-2.2.4.js"></script>
+    <script src="../js/ajv.min.js"></script>
+    <script src="../js/js-yaml/js-yaml.min.js"></script>
+    <script src="../js/autocomplete-plugin.js"></script>
+    <script src="../js/json-schemas.js"></script>
+    <script src="../js/admin-json-schemas.js"></script>
+    <script src="../js/parsers.js"></script>
+    <script src="../js/api-methods.js"></script>
+    <script src="../js/admin-api-methods.js"></script>
+    <script src="../js/main.js"></script>
+    <script>
+      var employeeGlobal = {
+        id: _.unescape('{{{escape employee_credentials.id}}}'),
+        email: _.unescape('{{{escape employee_credentials.email}}}'),
+        active: Boolean(_.unescape('{{{escape employee_credentials.active}}}')),
+        role_id: Number(_.unescape('{{{escape employee_credentials.role_id}}}')),
+        role_updated_at: _.unescape('{{{escape employee_credentials.role_updated_at}}}'),
+      };
+    </script>
+    <script src="../js/employee.js"></script>
+  </body>
+</html>
