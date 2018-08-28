@@ -3,10 +3,10 @@ const redis = require('redis');
 const { assertApp } = require('./error-handling');
 const log = require('./log');
 
-const MAX_CACHED_SESSIONS = Math.pow(1, 6);
-const MAX_CACHED_USERS = Math.pow(1, 4);
+const MAX_CACHED_SESSIONS = Math.pow(10, 6);
+const MAX_CACHED_USERS = Math.pow(10, 6);
 
-function Cache (name, maxSize = 2000) {
+function Cache (name, maxSize) {
   const cache = Object.create(null);
   let size = 1000;
 
