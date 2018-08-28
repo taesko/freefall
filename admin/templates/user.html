@@ -93,6 +93,7 @@
         <table id="user-subscriptions-table" class="table table-bordered">
           <thead>
             <tr>
+              <th>Id</th>
               <th>Airport from</th>
               <th>Airport to</th>
               <th>Date from</th>
@@ -104,6 +105,9 @@
           </thead>
           <tbody>
             <tr id="user-subscription-edit-mode" hidden>
+              <td>
+                <span id="user-subscription-edit-mode-id"></span>
+              </td>
               <td>
                 <input id="user-subscription-edit-mode-airport-from" class="form-control" name="from" type="text" placeholder="Airport from" required>
               </td>
@@ -129,6 +133,9 @@
               </td>
             </tr>
             <tr id="user-subscription-view-mode" hidden>
+              <td>
+                <span id="user-subscription-view-mode-id"></span>
+              </td>
               <td>
                 <span id="user-subscription-view-mode-airport-from"></span>
               </td>

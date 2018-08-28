@@ -18,7 +18,7 @@
           <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text" placeholder="Airport from" required>
         </div>
         <div class="col-md-2">
-          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text" placeholder="Airport to" autocomplete="off" required>
+          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text" placeholder="Airport to" required>
         </div>
         <div class="col-md-4">
           <button id="subscribe-submit-btn" class="btn btn-primary btn-block">Subscribe</button>
@@ -55,6 +55,7 @@
         <table id="user-subscriptions-table" class="table table-bordered">
           <thead>
             <tr>
+              <th>Id</th>
               <th>User</th>
               <th>Airport from</th>
               <th>Airport to</th>
@@ -67,6 +68,9 @@
           </thead>
           <tbody>
             <tr id="user-subscription-edit-mode" hidden>
+              <td>
+                <span id="user-subscription-edit-mode-id"></span>
+              </td>
               <td>
                 <a id="user-subscription-edit-mode-user-email" href=""></a>
               </td>
@@ -95,6 +99,9 @@
               </td>
             </tr>
             <tr id="user-subscription-view-mode" hidden>
+              <td>
+                <span id="user-subscription-view-mode-id"></span>
+              </td>
               <td>
                 <a id="user-subscription-view-mode-user-email" href=""></a>
               </td>
@@ -166,6 +173,7 @@
         <table id="guest-subscriptions-table" class="table table-bordered">
           <thead>
             <tr>
+              <th>Id</th>
               <th>Airport from</th>
               <th>Airport to</th>
               <th>Created at</th>
@@ -175,6 +183,9 @@
           </thead>
           <tbody>
             <tr id="guest-subscription-edit-mode" hidden>
+              <td>
+                <span id="guest-subscription-edit-mode-id"></span>
+              </td>
               <td>
                 <input id="guest-subscription-edit-mode-airport-from" class="form-control" name="from" type="text" placeholder="Airport from" required>
               </td>
@@ -194,6 +205,9 @@
               </td>
             </tr>
             <tr id="guest-subscription-view-mode" hidden>
+              <td>
+                <span id="guest-subscription-view-mode-id"></span>
+              </td>
               <td>
                 <span id="guest-subscription-view-mode-airport-from"></span>
               </td>
