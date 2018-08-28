@@ -44,7 +44,7 @@ function start () {
   function renderEmployeeRowViewMode (employee) {
     mainUtils.trace('renderEmployeeRowViewMode');
 
-    $('#employee-edit-mode').attr('hidden', 'true');
+    $('#employee-edit-mode').attr('hidden', true);
 
     const $employeeViewMode = $('#employee-view-mode')
       .removeAttr('hidden');
@@ -81,7 +81,7 @@ function start () {
   function renderEmployeeRowEditMode (employee) {
     mainUtils.trace('renderEmployeeRowEditMode');
 
-    $('#employee-view-mode').attr('hidden', 'true');
+    $('#employee-view-mode').attr('hidden', true);
 
     const $employeeEditMode = $('#employee-edit-mode')
       .removeAttr('hidden');

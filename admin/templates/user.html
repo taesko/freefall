@@ -23,7 +23,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr id="user-edit-mode" hidden="true">
+        <tr id="user-edit-mode" hidden>
           <td>
             <span id="user-edit-mode-id"></span>
           </td>
@@ -66,12 +66,12 @@
       <div class="form-inline">
         <label>Change by: <input id="user-credits-change" class="form-control" type="number" value="0"></label>
         <button id="user-credits-submit-btn" class="btn btn-default">Submit</button>
-        <p>(value > 0 to add credits or value < 0 to remove credits)</p>
+        <p>(value &lt; 0 to add credits or value &lt; 0 to remove credits)</p>
       </div>
     </div>
     <div id="user-subscriptions-section">
       <h3>User's subscriptions:</h3>
-      <div id="user-subscriptions-results" hidden="true">
+      <div id="user-subscriptions-results" hidden>
         <div class="row">
           <div class="col-md-4">
             <p class="text-left">
@@ -103,7 +103,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr id="user-subscription-edit-mode" hidden="true">
+            <tr id="user-subscription-edit-mode" hidden>
               <td>
                 <input id="user-subscription-edit-mode-airport-from" class="form-control" name="from" type="text" placeholder="Airport from" required>
               </td>
@@ -128,7 +128,7 @@
                 <button id="user-subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
               </td>
             </tr>
-            <tr id="user-subscription-view-mode" hidden="true">
+            <tr id="user-subscription-view-mode" hidden>
               <td>
                 <span id="user-subscription-view-mode-airport-from"></span>
               </td>
@@ -173,7 +173,7 @@
         </div>
       </div>
     </div>
-    <p id="no-subscriptions-msg" class="text-center" hidden="true">No subscriptions found</p>
+    <p id="no-subscriptions-msg" class="text-center" hidden>No subscriptions found</p>
   </div>
   <script src="../js/lodash/index.min.js"></script>
   <script src="../js/jquery/jquery-2.2.4.js"></script>
@@ -187,13 +187,13 @@
   <script src="../js/api-methods.js"></script>
   <script src="../js/admin-api-methods.js"></script>
   <script src="../js/main.js"></script>
-  <script type="text/javascript">
+  <script>
     var userGlobal = {
       id: _.unescape('{{{escape user_credentials.id}}}'),
       email: _.unescape('{{{escape user_credentials.email}}}'),
       credits: Number(_.unescape('{{{escape user_credentials.credits}}}')),
     };
   </script>
-  <script type="text/javascript" src="../js/user.js"></script>
+  <script src="../js/user.js"></script>
 </body>
 </html>

@@ -23,7 +23,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr id="employee-edit-mode" hidden="true">
+          <tr id="employee-edit-mode" hidden>
             <td>
               <span id="employee-edit-mode-id"></span>
             </td>
@@ -79,7 +79,7 @@
     <script src="../js/api-methods.js"></script>
     <script src="../js/admin-api-methods.js"></script>
     <script src="../js/main.js"></script>
-    <script type="text/javascript">
+    <script>
       var employeeGlobal = {
         id: _.unescape('{{{escape employee_credentials.id}}}'),
         email: _.unescape('{{{escape employee_credentials.email}}}'),
@@ -88,6 +88,6 @@
         role_updated_at: _.unescape('{{{escape employee_credentials.role_updated_at}}}'),
       };
     </script>
-    <script type="text/javascript" src="../js/employee.js"></script>
+    <script src="../js/employee.js"></script>
   </body>
 </html>

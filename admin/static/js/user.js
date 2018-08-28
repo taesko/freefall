@@ -111,7 +111,7 @@ function start () {
   function renderUserRowViewMode (user) {
     mainUtils.trace('renderUserRowViewMode');
 
-    $('#user-edit-mode').attr('hidden', 'true');
+    $('#user-edit-mode').attr('hidden', true);
 
     const $userViewMode = $('#user-view-mode')
       .removeAttr('hidden');
@@ -130,7 +130,7 @@ function start () {
   function renderUserRowEditMode (user) {
     mainUtils.trace('renderUserRowEditMode');
 
-    $('#user-view-mode').attr('hidden', 'true');
+    $('#user-view-mode').attr('hidden', true);
 
     const $userEditMode = $('#user-edit-mode')
       .removeAttr('hidden');
@@ -247,12 +247,12 @@ function start () {
 
   function showUserSubscriptionsResults () {
     $('#user-subscriptions-results').removeAttr('hidden');
-    $('#no-subscriptions-msg').attr('hidden', 'true');
+    $('#no-subscriptions-msg').attr('hidden', true);
   }
 
   function hideUserSubscriptionsResults () {
     $('#no-subscriptions-msg').removeAttr('hidden');
-    $('#user-subscriptions-results').attr('hidden', 'true');
+    $('#user-subscriptions-results').attr('hidden', true);
   }
 
   function clearUserSubscriptionsTable ($subscriptionsTable) {

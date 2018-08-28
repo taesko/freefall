@@ -154,12 +154,12 @@ function start () {
 
   function showEmployeesTable () {
     $('#employees-table').removeAttr('hidden');
-    $('#no-employees-msg').attr('hidden', 'true');
+    $('#no-employees-msg').attr('hidden', true);
   }
 
   function hideEmployeesTable () {
     $('#no-employees-msg').removeAttr('hidden');
-    $('#employees-table').attr('hidden', 'true');
+    $('#employees-table').attr('hidden', true);
   }
 
   const onOpenEmployeeClick = function (employeeId) {

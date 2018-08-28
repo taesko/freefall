@@ -13,7 +13,7 @@
     {{> messages }}
     <div id="users-section">
       <h3>Users:</h3>
-      <div id="users-results" hidden="true">
+      <div id="users-results" hidden>
         <div class="row">
           <div class="col-md-4">
             <p class="text-left">
@@ -43,7 +43,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr id="user-edit-mode" hidden="true">
+            <tr id="user-edit-mode" hidden>
               <td>
                 <span id="user-edit-mode-id"></span>
               </td>
@@ -62,7 +62,7 @@
                 <button id="user-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
               </td>
             </tr>
-            <tr id="user-view-mode" hidden="true">
+            <tr id="user-view-mode" hidden>
               <td>
                 <span id="user-view-mode-id"></span>
               </td>
@@ -101,7 +101,7 @@
         </div>
       </div>
     </div>
-    <p id="no-users-msg" class="text-center" hidden="true">No users found</p>
+    <p id="no-users-msg" class="text-center" hidden>No users found</p>
   </div>
   <script src="js/lodash/index.min.js"></script>
   <script src="js/jquery/jquery-2.2.4.js"></script>
@@ -112,6 +112,6 @@
   <script src="js/parsers.js"></script>
   <script src="js/admin-api-methods.js"></script>
   <script src="js/main.js"></script>
-  <script type="text/javascript" src="js/users.js"></script>
+  <script src="js/users.js"></script>
 </body>
 </html>

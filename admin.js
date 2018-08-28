@@ -253,7 +253,7 @@ router.post('/change_password', adminAuth.redirectWhenLoggedOut('/login'), async
       employee: {
         email: loggedInEmployee.email,
       },
-      error_message: 'Change password failed. Old password was not correct.'
+      error_message: 'Change password failed. Old password was not correct.',
     });
   }
 
