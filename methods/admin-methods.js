@@ -33,6 +33,7 @@ const adminListUsers = defineAPIMethod(
         users.verification_token,
         users.active
       FROM users
+      WHERE active = true
       ORDER BY users.id
       LIMIT $1
       OFFSET $2;
@@ -1333,6 +1334,7 @@ const adminListEmployees = defineAPIMethod(
       FROM employees
       JOIN employees_roles
         ON employees.id = employees_roles.employee_id
+      WHERE employees.active = true
       ORDER BY employees.id
       LIMIT $1
       OFFSET $2;

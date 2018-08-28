@@ -123,7 +123,8 @@ router.post('/login', adminAuth.redirectWhenLoggedIn('/'), async (ctx) => {
     FROM employees
     WHERE
       email = $1 AND
-      password = $2;
+      password = $2 AND
+      active = true;
 
   `, [email, passwordHashed]);
 
@@ -231,6 +232,7 @@ router.post('/change_password', adminAuth.redirectWhenLoggedOut('/login'), async
     FROM employees
     WHERE
       email = $1 AND
+      active = true AND
       password = $2;
 
   `, [
@@ -530,7 +532,9 @@ router.get('/employees/:employee_id', adminAuth.redirectWhenLoggedOut('/login'),
     FROM employees
     JOIN employees_roles
       ON employees.id = employees_roles.employee_id
-    WHERE employees.id = $1;
+    WHERE
+      employees.id = $1 AND
+      employees.active = true;
 
   `, [
     employeeId,

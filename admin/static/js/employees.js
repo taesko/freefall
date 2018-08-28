@@ -78,10 +78,6 @@ function start () {
       .attr('id', 'employee-email-' + rowId) // eslint-disable-line prefer-template
       .text(employee.email);
 
-    $employeeViewModeClone.find('#employee-active')
-      .attr('id', 'employee-active-' + rowId) // eslint-disable-line prefer-template
-      .text(employee.active ? 'Yes' : 'No');
-
     var i; // eslint-disable-line no-var
     var employeeRoleName; // eslint-disable-line no-var
 
