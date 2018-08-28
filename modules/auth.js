@@ -77,6 +77,7 @@ async function loginById (ctx, userId) {
 
 function logout (ctx) {
   log.info('Logging out from session:', ctx.session);
+  SESSION_CACHE.remove(ctx.session.login_token);
   ctx.session.login_token = null;
 }
 
@@ -170,13 +171,13 @@ async function getLoggedInUser (ctx) {
 
   if (user) {
     log.info('User with login token exists. Storing in cache');
-    USER_CACHE.store(ctx.session.login_token, moment().add('5', 'seconds').toDate(), user);
+    USER_CACHE.store(ctx.session.login_token, moment().add('1', 'hour').toDate(), user);
   }
 
   return user;
 }
 
-async function tokenHasRole (dbClient, token, role) {
+async function tokenHasRoleDepreciated (dbClient, token, role) {
   const user = await users.fetchUser(dbClient, { apiKey: token });
 
   return role === user.role;
@@ -194,5 +195,5 @@ module.exports = {
   UserExists,
   AlreadyLoggedIn,
   InvalidCredentials,
-  tokenHasRole,
+  tokenHasRoleDepreciated: tokenHasRoleDepreciated,
 };
