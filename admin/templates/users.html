@@ -39,46 +39,23 @@
             <tr>
               <th>Id</th>
               <th>Email</th>
-              <th>Password</th>
               <th>Credits</th>
               <th>Options</th>
             </tr>
           </thead>
           <tbody>
-            <tr id="user-edit-mode" hidden>
-              <td>
-                <span id="user-edit-mode-id"></span>
-              </td>
-              <td>
-                <input id="user-edit-mode-email" class="form-control" name="user-email" type="email" placeholder="Email" value="" required>
-              </td>
-              <td>
-                <input id="user-edit-mode-password" name="user-password" class="form-control" type="password" placeholder="Password" value="" required>
-              </td>
-              <td>
-                <span id="user-edit-mode-credits"></span>
-              </td>
-              <td>
-                <button id="user-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
-                <button id="user-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
-                <button id="user-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
-              </td>
-            </tr>
             <tr id="user-view-mode" hidden>
               <td>
                 <span id="user-view-mode-id"></span>
               </td>
               <td>
-                <a id="user-view-mode-email" href=""></a>
-              </td>
-              <td>
-                <span>****</span>
+                <span id="user-view-mode-email"></span>
               </td>
               <td>
                 <span id="user-view-mode-credits"></span>
               </td>
               <td>
-                <button id="user-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
+                <button id="user-view-mode-open-btn" type="button" class="btn btn-primary btn-block">Open</button>
               </td>
             </tr>
           </tbody>
