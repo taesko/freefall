@@ -13,7 +13,6 @@ function main () { // eslint-disable-line no-unused-vars
   // const SERVER_URL = 'http://127.0.0.1:3000';
   const PROTOCOL_NAME = 'yamlrpc';
   const MAX_TRACE = 300;
-  var $messagesList; // eslint-disable-line no-var
   const validateSendErrorReq = validators.getValidateSendErrorReq();
   const APIKeyRef = {};
 
@@ -141,13 +140,6 @@ function main () { // eslint-disable-line no-unused-vars
     return idResult;
   };
 
-  const onCloseMessageClick = function (event) {
-    const closeMessageButton = event.target;
-
-    const uniqueId = getElementUniqueId(closeMessageButton, 'close-msg-btn-');
-    $('#msg-' + uniqueId).remove(); // eslint-disable-line prefer-template
-  };
-
   const trace = function (msg) {
     if (traceLog.length > MAX_TRACE) {
       traceLog.shift();
@@ -183,10 +175,9 @@ function main () { // eslint-disable-line no-unused-vars
     $messageClone.dialog({
       classes: {
         'ui-dialog-titlebar': msgTypeToClassMap[type],
-        //'ui-dialog-title': msgTypeToClassMap[type],
       },
       show: {
-        effect: "highlight",
+        effect: 'highlight',
         duration: 500,
       },
     });
@@ -262,10 +253,6 @@ function main () { // eslint-disable-line no-unused-vars
     assertApp: assertApp,
     assertPeer: assertPeer,
     assertUser: assertUser,
-  });
-
-  $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    $messagesList = $('#messages-list');
   });
 
   return {

@@ -6,7 +6,17 @@
       if ($(this).siblings('datalist').length > 0) {
         $dataList = $(this).siblings('datalist');
       } else {
-        $(this).attr('list', $(this).attr('name'));
+        if (!(this instanceof window.HTMLInputElement)) {
+          throw new Error('Autocomplete plugin: Expected selected element to be <input>');
+        }
+
+        const elementName = $(this).attr('name');
+
+        if (typeof elementName !== 'string') {
+          throw new Error('Autocomplete plugin: Expected selected element to have attribute "name".');
+        }
+
+        $(this).attr('list', elementName);
         $(this).attr('autocomplete', 'off');
         $dataList = $('<datalist></datalist>')
           .attr('id', $(this).attr('name'))

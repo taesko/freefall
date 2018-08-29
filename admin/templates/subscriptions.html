@@ -12,21 +12,6 @@
   <div class="container">
     {{> heading }}
     {{> menu }}
-    <div>
-      <h3>Add new guest subscription:</h3>
-      <div class="row">
-        <div class="col-md-2">
-          <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text" placeholder="Airport from" required>
-        </div>
-        <div class="col-md-2">
-          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text" placeholder="Airport to" required>
-        </div>
-        <div class="col-md-4">
-          <button id="subscribe-submit-btn" class="btn btn-primary btn-block">Subscribe</button>
-        </div>
-      </div>
-    </div>
-    <hr>
     {{> messages }}
     <ul class="nav nav-tabs">
       <li role="presentation" class="active"><a id="user-subscriptions-tab" href="#">Users' subscriptions</a></li>
@@ -64,42 +49,9 @@
               <th>Date to</th>
               <th>Created at</th>
               <th>Updated at</th>
-              <th>Options</th>
             </tr>
           </thead>
           <tbody>
-            <tr id="user-subscription-edit-mode" hidden>
-              <td class="text-right">
-                <span id="user-subscription-edit-mode-id"></span>
-              </td>
-              <td>
-                <span id="user-subscription-edit-mode-user-email"></span>
-                <a id="user-subscription-edit-mode-user-link" href="">(open)</a>
-              </td>
-              <td>
-                <input id="user-subscription-edit-mode-airport-from" class="form-control" name="from" type="text" placeholder="Airport from" required>
-              </td>
-              <td>
-                <input id="user-subscription-edit-mode-airport-to" name="to" class="form-control" type="text" placeholder="Airport to" required>
-              </td>
-              <td>
-                <input id="user-subscription-edit-mode-date-from" class="form-control" name="date-from" type="text" placeholder="Date from" value="" required>
-              </td>
-              <td>
-                <input id="user-subscription-edit-mode-date-to" name="date-to" class="form-control" type="text" placeholder="Date to" value="" required>
-              </td>
-              <td>
-                <span id="user-subscription-edit-mode-created-at"></span>
-              </td>
-              <td>
-                <span id="user-subscription-edit-mode-updated-at"></span>
-              </td>
-              <td>
-                <button id="user-subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
-                <button id="user-subscription-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
-                <button id="user-subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
-              </td>
-            </tr>
             <tr id="user-subscription-view-mode" hidden>
               <td class="text-right">
                 <span id="user-subscription-view-mode-id"></span>
@@ -125,9 +77,6 @@
               </td>
               <td>
                 <span id="user-subscription-view-mode-updated-at"></span>
-              </td>
-              <td>
-                <button id="user-subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
               </td>
             </tr>
           </tbody>
@@ -181,32 +130,9 @@
               <th>Airport to</th>
               <th>Created at</th>
               <th>Updated at</th>
-              <th>Options</th>
             </tr>
           </thead>
           <tbody>
-            <tr id="guest-subscription-edit-mode" hidden>
-              <td class="text-right">
-                <span id="guest-subscription-edit-mode-id"></span>
-              </td>
-              <td>
-                <input id="guest-subscription-edit-mode-airport-from" class="form-control" name="from" type="text" placeholder="Airport from" required>
-              </td>
-              <td>
-                <input id="guest-subscription-edit-mode-airport-to" class="form-control" name="to" type="text" placeholder="Airport to" required>
-              </td>
-              <td>
-                <span id="guest-subscription-edit-mode-created-at"></span>
-              </td>
-              <td>
-                <span id="guest-subscription-edit-mode-updated-at"></span>
-              </td>
-              <td>
-                <button id="guest-subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
-                <button id="guest-subscription-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
-                <button id="guest-subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
-              </td>
-            </tr>
             <tr id="guest-subscription-view-mode" hidden>
               <td class="text-right">
                 <span id="guest-subscription-view-mode-id"></span>
@@ -222,9 +148,6 @@
               </td>
               <td>
                 <span id="guest-subscription-view-mode-updated-at"></span>
-              </td>
-              <td>
-                <button id="guest-subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
               </td>
             </tr>
           </tbody>

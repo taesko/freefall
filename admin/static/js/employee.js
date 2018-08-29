@@ -250,7 +250,7 @@ function start () {
       buttons: [
         {
           text: 'Cancel',
-          click: function() {
+          click: function () {
             $(this).dialog('close');
           },
         },
@@ -261,7 +261,7 @@ function start () {
         },
       ],
       show: {
-        effect: "highlight",
+        effect: 'highlight',
         duration: 500,
       },
     });
@@ -305,7 +305,7 @@ function start () {
         window.location.replace('/employees');
       }
     );
-  }
+  };
 
   const onEditEmployeeClick = function (event) {
     mainUtils.trace('onEditEmployeeClick');
@@ -376,6 +376,10 @@ function start () {
 
             if (callbacksWithEmptyRolesResult === parallelRoleRequests) {
               renderEmployeeRow('view', employeeGlobal);
+
+              $('.role-select').autocomplete(roles.map(function (role) { // eslint-disable-line prefer-arrow-callback
+                return role.name;
+              }));
             }
           }
         };

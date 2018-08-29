@@ -15,10 +15,6 @@ function start () {
   var rowIdRolePermissionMap = {}; // eslint-disable-line no-var
   var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
 
-  function applyAutocomplete (values) {
-    $('.permission-select').autocomplete(values);
-  }
-
   function renderRoleRow (mode, role, $row) {
     mainUtils.trace('renderRoleRow');
 
@@ -50,7 +46,9 @@ function start () {
 
     modes[mode](role, rowId, $row);
 
-    // TODO apply autocomplete
+    $('.permission-select').autocomplete(permissions.map(function (permission) { // eslint-disable-line prefer-arrow-callback
+      return permission.name;
+    }));
   }
 
   function renderRoleRowViewMode (role, rowId, $row) {
@@ -255,7 +253,7 @@ function start () {
       buttons: [
         {
           text: 'Cancel',
-          click: function() {
+          click: function () {
             $(this).dialog('close');
           },
         },
@@ -266,7 +264,7 @@ function start () {
         },
       ],
       show: {
-        effect: "highlight",
+        effect: 'highlight',
         duration: 500,
       },
     });
@@ -313,7 +311,7 @@ function start () {
         window.location.replace('/roles');
       }
     );
-  }
+  };
 
   const onRemoveRolePermissionClick = function (event) {
     mainUtils.trace('onRemoveRolePermissionClick');

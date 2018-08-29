@@ -377,6 +377,10 @@ function start () {
                   renderEmployees($('#employees-table'));
                 }
               );
+
+              $('.role-select').autocomplete(roles.map(function (role) { // eslint-disable-line prefer-arrow-callback
+                return role.name;
+              }));
             }
           }
         };

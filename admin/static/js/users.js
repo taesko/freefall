@@ -148,7 +148,7 @@ function start () {
     return function (event) {
       window.location = '/users/' + userId; // eslint-disable-line prefer-template
     };
-  }
+  };
 
   const onPreviousPageClick = function (event) {
     mainUtils.trace('onPreviousPageClick');

@@ -50,37 +50,6 @@ function start () {
     });
   }
 
-  function getAirportId (airports, name) {
-    mainUtils.trace('getAirportId(airports, ' + name + '), typeof arg=' + typeof name + ''); // eslint-disable-line prefer-template
-
-    assertApp(airports instanceof Array, {
-      msg: 'Expected airports to be instance of array, but was ' + typeof airports, // eslint-disable-line prefer-template
-    });
-
-    assertApp(typeof name === 'string', {
-      msg: 'Expected name to be a string, but was ' + typeof name, // eslint-disable-line prefer-template
-    });
-
-    const normalizedName = name.trim().toLowerCase();
-
-    var i; // eslint-disable-line no-var
-    for (i = 0; i < airports.length; i++) {
-      const expectedProps = ['id', 'name'];
-
-      _.each(expectedProps, function (prop) { // eslint-disable-line prefer-arrow-callback
-        assertApp(typeof airports[i][prop] === 'string', {
-          msg: 'Expected airport ' + prop + ' to be string, but was ' + typeof airports[i][prop], // eslint-disable-line prefer-template
-        });
-      });
-
-      if (airports[i].name.trim().toLowerCase() === normalizedName) {
-        return airports[i].id;
-      }
-    }
-
-    return null;
-  }
-
   function renderUserRow (mode, user) {
     mainUtils.trace('renderUserRow');
 
@@ -211,7 +180,7 @@ function start () {
       buttons: [
         {
           text: 'Cancel',
-          click: function() {
+          click: function () {
             $(this).dialog('close');
           },
         },
@@ -222,7 +191,7 @@ function start () {
         },
       ],
       show: {
-        effect: "highlight",
+        effect: 'highlight',
         duration: 500,
       },
     });
@@ -251,7 +220,6 @@ function start () {
         }
       }
     );
-
   };
 
   const onEditUserClick = function (event) {
@@ -364,10 +332,6 @@ function start () {
       .attr('id', 'user-subscription-view-mode-updated-at' + rowId) // eslint-disable-line prefer-template
       .text(subscription.updated_at);
 
-    $userSubscriptionViewModeClone.find('#user-subscription-view-mode-edit-btn')
-      .attr('id', 'user-subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
-      .click(onEditUserSubscriptionClick);
-
     if ($row == null) {
       $userSubscriptionViewModeClone.appendTo(
         $('#user-subscriptions-table tbody')
@@ -375,64 +339,6 @@ function start () {
     } else {
       $row.replaceWith($userSubscriptionViewModeClone);
     }
-  }
-
-  function renderUserSubscriptionRowEditMode (subscription, rowId, $row) {
-    mainUtils.trace('renderUserSubscriptionRowEditMode');
-
-    const $userSubscriptionEditModeClone = $('#user-subscription-edit-mode').clone()
-      .removeAttr('hidden')
-      .attr('id', 'user-subscription-' + rowId); // eslint-disable-line prefer-template
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-id')
-      .attr('id', 'user-subscription-edit-mode-id-' + rowId) // eslint-disable-line prefer-template
-      .text(subscription.id);
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-airport-from')
-      .addClass('airport-select')
-      .attr('id', 'user-subscription-edit-mode-airport-from-' + rowId) // eslint-disable-line prefer-template
-      .attr('list', 'user-subscription-airport-from-' + rowId) // eslint-disable-line prefer-template
-      .attr('value', getAirportName(airports, subscription.fly_from));
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-airport-to')
-      .addClass('airport-select')
-      .attr('id', 'user-subscription-edit-mode-airport-to-' + rowId) // eslint-disable-line prefer-template
-      .attr('list', 'user-subscription-airport-to-' + rowId) // eslint-disable-line prefer-template
-      .attr('value', getAirportName(airports, subscription.fly_to));
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-date-from')
-      .addClass('date-select') // Necessary!! items with date-select class will be used with jQuery datepicker (see function applyDatePicker).
-      // datepicker won't work with the new clone element if the original cloned element has date-select class (datepicker adds hasDatepicker class and ignores elements with this class)
-      .attr('id', 'user-subscription-edit-mode-date-from-' + rowId) // eslint-disable-line prefer-template
-      .attr('value', subscription.date_from);
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-date-to')
-      .addClass('date-select') // Necessary!! items with date-select class will be used with jQuery datepicker (see function applyDatePicker).
-      // datepicker won't work with the new clone element if the original cloned element has date-select class (datepicker adds hasDatepicker class and ignores elements with this class)
-      .attr('id', 'user-subscription-edit-mode-date-to-' + rowId) // eslint-disable-line prefer-template
-      .attr('value', subscription.date_to);
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-created-at')
-      .attr('id', 'user-subscription-edit-mode-created-at-' + rowId) // eslint-disable-line prefer-template
-      .text(subscription.created_at);
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-updated-at')
-      .attr('id', 'user-subscription-edit-mode-updated-at-' + rowId) // eslint-disable-line prefer-template
-      .text(subscription.updated_at);
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-save-btn')
-      .attr('id', 'user-subscription-edit-mode-save-btn-' + rowId) // eslint-disable-line prefer-template
-      .click(onSaveUserSubscriptionClick);
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-cancel-btn')
-      .attr('id', 'user-subscription-edit-mode-cancel-btn-' + rowId) // eslint-disable-line prefer-template
-      .click(onCancelUserSubscriptionClick);
-
-    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-remove-btn')
-      .attr('id', 'user-subscription-edit-mode-remove-btn-' + rowId) // eslint-disable-line prefer-template
-      .click(onRemoveUserSubscriptionClick);
-
-    $row.replaceWith($userSubscriptionEditModeClone);
   }
 
   function renderUserSubscriptionRow (mode, subscription, $row) {
@@ -477,7 +383,7 @@ function start () {
 
     const modes = {
       'view': renderUserSubscriptionRowViewMode,
-      'edit': renderUserSubscriptionRowEditMode,
+      // no need for edit mode
     };
 
     assertApp(typeof modes[mode] === 'function', {
@@ -491,178 +397,6 @@ function start () {
       return airport.name;
     }));
   }
-
-  const onEditUserSubscriptionClick = function (event) {
-    mainUtils.trace('onEditUserSubscriptionClick');
-
-    const rowId = mainUtils.getElementUniqueId(event.target, 'user-subscription-view-mode-edit-btn-');
-    const userSubscription = rowIdUserSubscriptionMap[rowId];
-
-    renderUserSubscriptionRow(
-      'edit',
-      userSubscription,
-      $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
-    );
-  };
-
-  const onCancelUserSubscriptionClick = function (event) {
-    mainUtils.trace('onCancelUserSubscriptionClick');
-
-    const rowId = mainUtils.getElementUniqueId(event.target, 'user-subscription-edit-mode-cancel-btn-');
-    const userSubscription = rowIdUserSubscriptionMap[rowId];
-
-    renderUserSubscriptionRow(
-      'view',
-      userSubscription,
-      $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
-    );
-  };
-
-  const onRemoveUserSubscriptionClick = function (event) {
-    mainUtils.trace('onRemoveUserSubscriptionClick');
-
-    const removeButton = event.target;
-
-    const rowId = mainUtils.getElementUniqueId(removeButton, 'user-subscription-edit-mode-remove-btn-');
-    const oldSubscription = rowIdUserSubscriptionMap[rowId];
-
-    removeButton.disabled = true;
-
-    const unsubscribeParams = {
-      v: '2.0',
-      user_subscription_id: oldSubscription.id,
-      api_key: APIKeyRef.APIKey,
-    };
-
-    adminAPI.adminUnsubscribe(
-      unsubscribeParams,
-      PROTOCOL_NAME,
-      function (result) { // eslint-disable-line prefer-arrow-callback
-        removeButton.disabled = false;
-
-        if (result.status_code === '1000') {
-          subscriptions = subscriptions.filter(function (subscription) { // eslint-disable-line prefer-arrow-callback
-            return subscription.id !== oldSubscription.id;
-          });
-
-          delete rowIdUserSubscriptionMap[rowId];
-
-          $('#user-subscription-' + rowId).remove(); // eslint-disable-line prefer-template
-
-          if (subscriptions.length > 0) {
-            showUserSubscriptionsResults();
-          } else {
-            hideUserSubscriptionsResults();
-          }
-
-          mainUtils.displayUserMessage('Successfully deleted user subscription!', 'success');
-        } else {
-          mainUtils.displayUserMessage('Remove user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-        }
-      }
-    );
-  };
-
-  const onSaveUserSubscriptionClick = function (event) {
-    mainUtils.trace('onSaveUserSubscriptionClick');
-
-    const saveButton = event.target;
-
-    const rowId = mainUtils.getElementUniqueId(saveButton, 'user-subscription-edit-mode-save-btn-');
-    const oldSubscription = rowIdUserSubscriptionMap[rowId];
-
-    const airportFrom = $('#user-subscription-edit-mode-airport-from-' + rowId).val().trim(); // eslint-disable-line prefer-template
-    const airportTo = $('#user-subscription-edit-mode-airport-to-' + rowId).val().trim(); // eslint-disable-line prefer-template
-    const dateFrom = $('#user-subscription-edit-mode-date-from-' + rowId).val().trim(); // eslint-disable-line prefer-template
-    const dateTo = $('#user-subscription-edit-mode-date-to-' + rowId).val().trim(); // eslint-disable-line prefer-template
-
-    const airportFromId = getAirportId(airports, airportFrom);
-    const airportToId = getAirportId(airports, airportTo);
-
-    assertUser(typeof airportFromId === 'string', {
-      userMessage: 'Could not find selected departure airport.',
-      msg: 'Expected airportFromId to be a string, but was ' + typeof airportFromId, // eslint-disable-line prefer-template
-    });
-
-    assertUser(typeof airportToId === 'string', {
-      userMessage: 'Could not find selected arrival airport.',
-      msg: 'Expected airportToId to be a string, but was ' + typeof airportToId, // eslint-disable-line prefer-template
-    });
-
-    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-    const wrongDateFormatMsg = 'Expected format YYYY-MM-DD for date!';
-
-    assertUser(datePattern.test(dateFrom), {
-      userMessage: wrongDateFormatMsg,
-      msg: wrongDateFormatMsg,
-    });
-
-    assertUser(Number.isInteger(Date.parse(dateFrom)), {
-      userMessage: 'Invalid date!',
-      msg: 'User entered invalid date in dateFrom',
-    });
-
-    assertUser(datePattern.test(dateTo), {
-      userMessage: wrongDateFormatMsg,
-      msg: wrongDateFormatMsg,
-    });
-
-    assertUser(Number.isInteger(Date.parse(dateTo)), {
-      userMessage: 'Invalid date!',
-      msg: 'User entered invalid date in dateTo',
-    });
-
-    saveButton.disabled = true;
-
-    const editSubscriptionParams = {
-      v: '2.0',
-      api_key: APIKeyRef.APIKey,
-      user_subscription_id: oldSubscription.id,
-      fly_from: airportFromId,
-      fly_to: airportToId,
-      date_from: dateFrom,
-      date_to: dateTo,
-    };
-
-    adminAPI.adminEditSubscription(
-      editSubscriptionParams,
-      PROTOCOL_NAME,
-      function (result) { // eslint-disable-line prefer-arrow-callback
-        saveButton.disabled = false;
-
-        if (result.status_code === '1000') {
-          const newSubscription = {
-            id: oldSubscription.id,
-            user: oldSubscription.user,
-            fly_from: airportFromId,
-            fly_to: airportToId,
-            date_from: dateFrom,
-            date_to: dateTo,
-            created_at: oldSubscription.created_at,
-            updated_at: result.updated_at,
-          };
-
-          rowIdUserSubscriptionMap[rowId] = newSubscription;
-          subscriptions = subscriptions.map(function (subscription) { // eslint-disable-line prefer-arrow-callback
-            if (subscription.id !== oldSubscription.id) {
-              return subscription;
-            }
-            return newSubscription;
-          });
-
-          renderUserSubscriptionRow(
-            'view',
-            newSubscription,
-            $('#user-subscription-' + rowId) // eslint-disable-line prefer-template
-          );
-
-          mainUtils.displayUserMessage('Successfully edited user subscription!', 'success');
-        } else {
-          mainUtils.displayUserMessage('Edit user subscription failed with status code: ' + result.status_code, 'error'); // eslint-disable-line prefer-template
-        }
-      }
-    );
-  };
 
   const onUserCreditsSubmitClick = function (event) {
     mainUtils.trace('onUserCreditsSubmitClick');

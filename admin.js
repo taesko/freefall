@@ -976,7 +976,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
         id: row.account_owner_id,
       },
       deposit_amount: (row.transfer_amount > 0) ? row.transfer_amount : null,
-      withdrawal_amount: 
+      withdrawal_amount:
         (row.transfer_amount < 0) ? row.transfer_amount * -1 : null,
       transferred_at: row.transferred_at.toISOString(),
       employee_transferrer_id: row.employee_transferrer_id,

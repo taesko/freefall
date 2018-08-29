@@ -16,10 +16,6 @@ function start () {
   var rowIdNewRolePermissionMap = {}; // eslint-disable-line no-var
   var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
 
-  function applyAutocomplete (values) {
-    $('.permission-select').autocomplete(values);
-  }
-
   function showPermissions () {
     $('#permissions-results').removeAttr('hidden');
   }
@@ -539,7 +535,7 @@ function start () {
       };
 
       assertPeer(typeof messages[result.status_code] === 'string', {
-        msg: 'Unexpected status code in adminListPermissions. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+        msg: 'Unexpected status code in adminGetAPIKey. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
       });
 
       const msg = 'Admin get API key failed with status code: ' + result.status_code; // eslint-disable-line prefer-template
@@ -577,6 +573,9 @@ function start () {
           });
 
           permissions = result.permissions;
+          $('.permission-select').autocomplete(permissions.map(function (permission) { // eslint-disable-line prefer-arrow-callback
+            return permission.name;
+          }));
 
           $permissionsTab.click(onPermissionsTabClick);
           renderPermissionsTable($('#permissions-table'));
