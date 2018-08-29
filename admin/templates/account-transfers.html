@@ -37,7 +37,8 @@
         <tr>
           <th>Id</th>
           <th>User</th>
-          <th>Transfer amount</th>
+          <th>Deposits</th>
+          <th>Withdrawals</th>
           <th>Transferred at</th>
           <th>More information</th>
         </tr>
@@ -52,7 +53,10 @@
             <a href="/users/{{this.user.id}}">{{this.user.email}}</a>
           </td>
           <td>
-            {{this.transfer_amount}}
+            {{this.deposit_amount}}
+          </td>
+          <td>
+            {{this.withdrawal_amount}}
           </td>
           <td>
             {{this.transferred_at}}
