@@ -1038,9 +1038,14 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'description': 'Indicator for the result of the request',
           'type': 'string',
         },
+        'updated_at': {
+          'title': 'Updated at',
+          'type': ['null', 'string'],
+        },
       },
       'required': [
         'status_code',
+        'updated_at',
       ],
     };
     return ajv.compile(adminEditRoleResponseSchema);

@@ -427,6 +427,7 @@ async function adminEditUser (params, dbClient) {
   if (!await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_user')) {
     return { status_code: '2100' };
   }
+
   if (!Number.isInteger(+params.user_id)) {
     return { status_code: '2200' };
   }
@@ -442,37 +443,6 @@ async function adminEditUser (params, dbClient) {
 
   if (email.indexOf('@') === -1) {
     return { status_code: '2203' };
-  }
-
-  if (params.role) {
-    if (!Number.isSafeInteger(params.role)) {
-      return { status_code: '2204' };
-    }
-
-    const selectResult = await dbClient.executeQuery(`
-
-      SELECT *
-      FROM roles
-      WHERE id = $1;
-
-    `, [params.role]);
-
-    assertApp(isObject(selectResult), `got ${selectResult}`);
-    assertApp(Array.isArray(selectResult.rows), `got ${selectResult.rows}`);
-
-    if (selectResult.rows.length !== 1) {
-      return { status_code: '2204' };
-    }
-
-    await dbClient.executeQuery(`
-
-      UPDATE users_roles
-      SET
-        role_id = $1,
-        updated_at = now()
-      WHERE user_id = $2;
-
-    `, [params.role, userId]);
   }
 
   try {
@@ -492,7 +462,7 @@ async function adminEditUser (params, dbClient) {
     } else if (e.code === 'FF_SHORT_PASSWORD') {
       statusCode = '2202';
     } else if (e.code === errorCodes.emailTaken) {
-      statusCode = '2204';
+      statusCode = '2001';
     } else if (e instanceof PeerError) {
       statusCode = '2000';
     } else {
@@ -517,6 +487,7 @@ async function adminListFetches (params, dbClient) {
 }
 
 async function adminAlterUserCredits (params, dbClient) {
+  // TODO define as API method
   if (!await adminAuth.hasPermission(dbClient, params.api_key, 'admin_alter_user_credits')) {
     return {
       status_code: '2100',
@@ -531,20 +502,6 @@ async function adminAlterUserCredits (params, dbClient) {
   if (!Number.isInteger(+params.credits_difference)) {
     return { status_code: '2103' };
   }
-
-  const selectEmployeeResult = await dbClient.executeQuery(`
-
-    SELECT *
-    FROM employees
-    WHERE api_key = $1;
-
-  `, [params.api_key]);
-
-  assertApp(isObject(selectEmployeeResult), `got ${selectEmployeeResult}`);
-  assertApp(Array.isArray(selectEmployeeResult.rows), `got ${selectEmployeeResult.rows}`);
-  assertApp(selectEmployeeResult.rows.length === 1, `got ${selectEmployeeResult.rows.length}`);
-
-  const employeeId = selectEmployeeResult.rows[0].id;
 
   const userId = Number(params.user_id);
   const amount = Math.abs(params.credits_difference);
@@ -565,6 +522,8 @@ async function adminAlterUserCredits (params, dbClient) {
     } catch (e) {
       if (e.code === errorCodes.userDoesNotExist) {
         return { status_code: '2102' };
+      } else if (e.code === '23503' && e.constraint === 'account_transfers_user_id_fkey') {
+        return { status_code: '2102' };
       } else {
         throw e;
       }
@@ -575,12 +534,32 @@ async function adminAlterUserCredits (params, dbClient) {
     } catch (e) {
       if (e.code === errorCodes.notEnoughCredits) {
         return { status_code: '2101' };
+      } else if (e.code === '23503' && e.constraint === 'account_transfers_user_id_fkey') {
+        return { status_code: '2102' };
       } else {
         throw e;
       }
     }
   }
 
+  const selectEmployeeResult = await dbClient.executeQuery(`
+
+    SELECT *
+    FROM employees
+    WHERE api_key = $1;
+
+  `, [params.api_key]);
+
+  assertApp(isObject(selectEmployeeResult), `got ${selectEmployeeResult}`);
+  assertApp(Array.isArray(selectEmployeeResult.rows), `got ${selectEmployeeResult.rows}`);
+
+  if (selectEmployeeResult.rows.length !== 1) {
+    return { status_code: '2100' };
+  }
+
+  const employeeId = selectEmployeeResult.rows[0].id;
+
+  // TODO add try catch if employee does not exist
   await accounting.registerTransferByEmployee(
     dbClient,
     accountTransfer.id,
@@ -597,6 +576,7 @@ const adminAddRole = defineAPIMethod(
     'AAR_INVALID_API_KEY': { status_code: '2100', role_id: null },
     'AAR_BAD_PARAMETERS_FORMAT': { status_code: '2101', role_id: null },
     'AAR_UNKNOWN_PERMISSIONS': { status_code: '2102', role_id: null },
+    'AAR_ALREADY_EXISTS': { status_code: '2103', role_id: null },
   },
   async (params, dbClient) => {
     assertUser(
@@ -605,15 +585,25 @@ const adminAddRole = defineAPIMethod(
       'AAR_INVALID_API_KEY'
     );
 
-    const insertResult = await dbClient.executeQuery(`
+    let insertResult;
 
-      INSERT INTO roles
-        (name)
-      VALUES
-        ($1)
-      RETURNING *;
+    try {
+      insertResult = await dbClient.executeQuery(`
 
-    `, [params.role_name]);
+        INSERT INTO roles
+          (name)
+        VALUES
+          ($1)
+        RETURNING *;
+
+      `, [params.role_name]);
+    } catch (error) {
+      if (error.code === '23505') { // unique constraint violation
+        throw new UserError('Role with this name already exists!', 'AAR_ALREADY_EXISTS');
+      } else {
+        throw error;
+      }
+    }
 
     assertApp(isObject(insertResult), `got ${insertResult}`);
     assertApp(Array.isArray(insertResult.rows), `got ${insertResult.rows}`);
@@ -622,32 +612,29 @@ const adminAddRole = defineAPIMethod(
 
     const roleId = insertResult.rows[0].id;
 
+    assertUser(
+      (new Set(params.permissions)).size === params.permissions.length,
+      'Expected permission ids to be unique!',
+      'AAR_BAD_PARAMETERS_FORMAT'
+    );
+
     for (const permissionId of params.permissions) {
-      const selectPermissionResult = await dbClient.executeQuery(`
+      try {
+        await dbClient.executeQuery(`
 
-        SELECT *
-        FROM permissions
-        WHERE id = $1;
+          INSERT INTO roles_permissions
+            (role_id, permission_id)
+          VALUES
+            ($1, $2);
 
-      `, [permissionId]);
-
-      assertApp(isObject(selectPermissionResult), `got ${selectPermissionResult}`);
-      assertApp(Array.isArray(selectPermissionResult.rows), `got ${selectPermissionResult.rows}`);
-
-      assertUser(
-        selectPermissionResult.rows.length === 1,
-        'Attempted to create a role with unknown permissions!',
-        'AAR_UNKNOWN_PERMISSIONS'
-      );
-
-      await dbClient.executeQuery(`
-
-        INSERT INTO roles_permissions
-          (role_id, permission_id)
-        VALUES
-          ($1, $2);
-
-      `, [roleId, permissionId]);
+        `, [roleId, permissionId]);
+      } catch (error) {
+        if (error.code === '23503' && error.constraint === 'roles_permissions_permission_id_fkey') { // foreign key constraint violation
+          throw new UserError('Attempted to create a role with unknown permissions!', 'AAR_UNKNOWN_PERMISSIONS');
+        } else {
+          throw error;
+        }
+      }
     }
 
     return {
@@ -659,10 +646,12 @@ const adminAddRole = defineAPIMethod(
 
 const adminEditRole = defineAPIMethod(
   {
-    'AER_INVALID_ADMIN_API_KEY': { status_code: '2100' },
-    'AER_BAD_PARAMETERS_FORMAT': { status_code: '2101' },
-    'AER_UNKNOWN_PERMISSIONS': { status_code: '2102' },
-    'AER_UNKNOWN_ROLE': { status_code: '2103' },
+    'AER_INVALID_ADMIN_API_KEY': { status_code: '2100', updated_at: null },
+    'AER_BAD_PARAMETERS_FORMAT': { status_code: '2101', updated_at: null },
+    'AER_UNKNOWN_PERMISSIONS': { status_code: '2102', updated_at: null, },
+    'AER_UNKNOWN_ROLE': { status_code: '2103', updated_at: null, },
+    'AER_ROLE_NAME_EXISTS': { status_code: '2104', updated_at: null },
+    'AER_REQUEST_CONFLICT': { status_code: '2201', updated_at: null },
   },
   async (params, dbClient) => {
     assertUser(
@@ -695,19 +684,50 @@ const adminEditRole = defineAPIMethod(
       'AER_UNKNOWN_ROLE'
     );
 
+    let roleUpdatedAt = selectResult.rows[0].updated_at;
+
     if (params.role_name) {
-      await dbClient.executeQuery(`
+      let updateRoleResult;
 
-        UPDATE roles
-        SET
-          name = $1,
-          updated_at = now()
-        WHERE id = $2;
+      try {
+        updateRoleResult = await dbClient.executeQuery(`
 
-      `, [params.role_name, params.role_id]);
+          UPDATE roles
+          SET
+            name = $1,
+            updated_at = now()
+          WHERE id = $2
+          RETURNING *;
+
+        `, [params.role_name, params.role_id]);
+      } catch (error) {
+        if (error.code === '23505') { // unique key constraint violation
+          throw new UserError('Role with that name already exists!', 'AER_ROLE_NAME_EXISTS');
+        } else {
+          throw error;
+        }
+      }
+
+      assertApp(isObject(updateRoleResult), `got ${updateRoleResult}`);
+      assertApp(Array.isArray(updateRoleResult.rows), `got ${updateRoleResult.rows}`);
+      assertApp(updateRoleResult.rows.length <= 1, `got ${updateRoleResult.rows.length}`);
+
+      assertUser(
+        updateRoleResult.rows.length === 1,
+        'Could not find selected role!',
+        'AER_UNKNOWN_ROLE'
+      );
+
+      roleUpdatedAt = updateRoleResult.rows[0].updated_at;
     }
 
     if (params.permissions && params.permissions.length > 0) {
+      assertUser(
+        (new Set(params.permissions)).size === params.permissions.length,
+        'Expected permission ids to be unique!',
+        'AER_BAD_PARAMETERS_FORMAT'
+      );
+
       await dbClient.executeQuery(`
 
         DELETE FROM roles_permissions
@@ -716,35 +736,44 @@ const adminEditRole = defineAPIMethod(
       `, [params.role_id]);
 
       for (const permissionId of params.permissions) {
-        const selectPermissionResult = await dbClient.executeQuery(`
+        let insertRolePermissionResult;
 
-          SELECT *
-          FROM permissions
-          WHERE id = $1;
+        try {
+          insertRolePermissionResult = await dbClient.executeQuery(`
 
-        `, [permissionId]);
+            INSERT INTO roles_permissions
+              (role_id, permission_id)
+            VALUES
+              ($1, $2)
+            RETURNING *;
 
-        assertApp(isObject(selectPermissionResult), `got ${selectPermissionResult}`);
-        assertApp(Array.isArray(selectPermissionResult.rows), `got ${selectPermissionResult.rows}`);
+          `, [params.role_id, permissionId]);
+        } catch (error) {
+          if (error.code === '23503' && error.constraint === 'roles_permissions_permission_id_fkey') {
+            throw new UserError('Attempted to give unknown permission to role!', 'AER_UNKNOWN_PERMISSIONS');
+          } else if (error.code === '23503' && error.constraint === 'roles_permissions_role_id_fkey') {
+            throw new UserError('Could not find selected role!', 'AER_UNKNOWN_ROLE');
+          } else if (error.code === '23505') { // unique key constraint violation
+            throw new UserError('Role permission unexpectedly already inserted. There was a request conflict.', 'AER_REQUEST_CONFLICT');
+          } else {
+            throw error;
+          }
+        }
 
-        assertUser(
-          selectPermissionResult.rows.length === 1,
-          'Attempted to give unknown permission to role!',
-          'AER_UNKNOWN_PERMISSIONS'
-        );
+        assertApp(isObject(insertRolePermissionResult), `got ${insertRolePermissionResult}`);
+        assertApp(Array.isArray(insertRolePermissionResult.rows), `got ${insertRolePermissionResult.rows}`);
+        assertApp(insertRolePermissionResult.rows.length === 1, `got ${insertRolePermissionResult.rows.length}`);
 
-        await dbClient.executeQuery(`
-
-          INSERT INTO roles_permissions
-            (role_id, permission_id)
-          VALUES
-            ($1, $2);
-
-        `, [params.role_id, permissionId]);
+        roleUpdatedAt = insertRolePermissionResult.rows[0].updated_at;
       }
     }
 
-    return { status_code: '1000' };
+    // TODO everywhere where toISOString is used - check if used on a Date object
+
+    return {
+      status_code: '1000',
+      updated_at: roleUpdatedAt.toISOString(),
+    };
   }
 );
 
@@ -992,33 +1021,6 @@ const adminAddEmployee = defineAPIMethod(
     );
 
     const passwordHashed = crypto.createHash('md5').update(params.password).digest('hex');
-
-    const roleSelectResult = await dbClient.executeQuery(`
-
-      SELECT *
-      FROM roles
-      WHERE id = $1;
-
-    `, [
-      params.role_id,
-    ]);
-
-    assertApp(isObject(roleSelectResult), `got ${roleSelectResult}`);
-    assertApp(
-      Array.isArray(roleSelectResult.rows),
-      `got ${roleSelectResult.rows}`
-    );
-    assertApp(
-      roleSelectResult.rows.length <= 1,
-      `got ${roleSelectResult.rows.length}`
-    );
-
-    assertUser(
-      roleSelectResult.rows.length === 1,
-      'You have tried to set an unknown role',
-      'AAE_UNKNOWN_ROLE'
-    );
-
     const newAPIKey = crypto.createHash('md5').update(`${params.email}:${params.password}`).digest('hex');
 
     let employeeInsertResult;
@@ -1040,6 +1042,8 @@ const adminAddEmployee = defineAPIMethod(
     } catch (error) {
       if (error.code === '23505') { // unique key constraint violation
         throw new UserError('Employee already exists!', 'AAE_EMPLOYEE_EXISTS');
+      } else if (error.code === '23514') { // check violation
+        throw new UserError('Parameters not in correct format', 'AAE_BAD_PARAMETERS_FORMAT');
       } else {
         throw error;
       }
@@ -1056,19 +1060,28 @@ const adminAddEmployee = defineAPIMethod(
     );
 
     const newEmployee = employeeInsertResult.rows[0];
+    let employeeRoleInsertResult;
 
-    const employeeRoleInsertResult = await dbClient.executeQuery(`
+    try {
+      employeeRoleInsertResult = await dbClient.executeQuery(`
 
-      INSERT INTO employees_roles
-        (employee_id, role_id)
-      VALUES
-        ($1, $2)
-      RETURNING *;
+        INSERT INTO employees_roles
+          (employee_id, role_id)
+        VALUES
+          ($1, $2)
+        RETURNING *;
 
-    `, [
-      newEmployee.id,
-      params.role_id,
-    ]);
+      `, [
+        newEmployee.id,
+        params.role_id,
+      ]);
+    } catch (error) {
+      if (error.code === '23503' && error.constraint === 'employees_roles_role_id_fkey') {
+        throw new UserError('You have tried to set an unknown role', 'AAE_UNKNOWN_ROLE');
+      } else {
+        throw error;
+      }
+    }
 
     assertApp(
       isObject(employeeRoleInsertResult),
@@ -1191,6 +1204,8 @@ const adminEditEmployee = defineAPIMethod(
     } catch (error) {
       if (error.code === '23505') { // unique key constraint violation
         throw new UserError('Email already taken!', 'AEE_EMAIL_TAKEN');
+      } else if (error.code === '23514') { // check constraint violation
+        throw new UserError('Params were not in expected format.', 'AEE_BAD_PARAMETERS_FORMAT');
       } else {
         throw error;
       }
@@ -1212,19 +1227,29 @@ const adminEditEmployee = defineAPIMethod(
       'AEE_EMPLOYEE_NOT_FOUND'
     );
 
-    const employeeRoleUpdateResult = await dbClient.executeQuery(`
+    let employeeRoleUpdateResult;
 
-      UPDATE employees_roles
-      SET
-        role_id = COALESCE($1, role_id),
-        updated_at = now()
-      WHERE employee_id = $2
-      RETURNING *;
+    try {
+      employeeRoleUpdateResult = await dbClient.executeQuery(`
 
-    `, [
-      setParams.role_id,
-      employeeId,
-    ]);
+        UPDATE employees_roles
+        SET
+          role_id = COALESCE($1, role_id),
+          updated_at = now()
+        WHERE employee_id = $2
+        RETURNING *;
+
+      `, [
+        setParams.role_id,
+        employeeId,
+      ]);
+    } catch (error) {
+      if (error.code === '23503' && error.constraint === 'employees_roles_role_id_fkey') {
+        throw new UserError('You have tried to set an unknown role', 'AEE_UNKNOWN_ROLE');
+      } else {
+        throw error;
+      }
+    }
 
     assertApp(isObject(employeeRoleUpdateResult), `got ${employeeRoleUpdateResult}`);
     assertApp(

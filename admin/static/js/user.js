@@ -142,7 +142,12 @@ function start () {
 
       const messages = {
         '1000': 'Successfully updated user!',
-        '2201': 'Edit user failed: Email is already taken.',
+        '2201': 'Email is too short.',
+        '2001': 'Email already taken.',
+        '2100': 'Your API key does not support this operation!',
+        '2200': 'Form parameters were not in correct format. Please correct any mistakes and try again!',
+        '2202': 'Password is too short.',
+        '2203': 'Invalid email.',
       };
 
       assertPeer(typeof messages[result.status_code] === 'string', {

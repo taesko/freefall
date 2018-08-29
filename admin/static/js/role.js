@@ -206,6 +206,7 @@ function start () {
           '2101': 'The form you sent was not in expected format. Please correct any wrong inputs and try again!',
           '2102': 'You have assigned permissions that were not recognized! Please, try again!',
           '2103': 'You have sent a form for editing a role that does not exist!',
+          '2201': 'Request could not be processed. Please refresh the page and try again!',
         };
 
         assertPeer(typeof messages[result.status_code] === 'string', {
@@ -219,12 +220,16 @@ function start () {
           userMessage: userMessage,
         });
 
+        assertPeer(typeof result.updated_at === 'string', {
+          msg: 'Expected updated_at to be a string when status code is 1000, but updated_at=' + result.updated_at, // eslint-disable-line prefer-template
+        });
+
         const newRole = {
           id: oldRole.id,
           name: roleName,
           permissions: rolePermissions,
           created_at: oldRole.created_at,
-          updated_at: oldRole.updated_at, // TODO change to result.updated_at and add support for this on server
+          updated_at: result.updated_at,
         };
 
         rowIdRoleMap[rowId] = newRole;

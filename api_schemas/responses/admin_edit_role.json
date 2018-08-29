@@ -9,9 +9,14 @@
       "title": "Status code",
       "description": "Indicator for the result of the request",
       "type": "string"
+    },
+    "updated_at": {
+      "title": "Updated_at",
+      "type": ["null", "string"]
     }
   },
   "required": [
-    "status_code"
+    "status_code",
+    "updated_at"
   ]
 }

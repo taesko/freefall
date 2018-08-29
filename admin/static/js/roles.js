@@ -451,13 +451,14 @@ function start () {
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         submitButton.disabled = false;
+        newRolePermissions = [];
 
         const messages = {
           '1000': 'Successfully added new role!',
           '2100': 'Your API key does not support this operation!',
           '2101': 'The form you sent was not in expected format. Please correct any wrong inputs and try again!',
           '2102': 'You have assigned permissions that were not recognised! Please, try again!',
-
+          '2103': 'Role already exists!',
         };
 
         assertPeer(typeof messages[result.status_code] === 'string', {
