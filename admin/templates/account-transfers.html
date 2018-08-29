@@ -46,16 +46,16 @@
       <tbody>
         {{#each account_transfers}}
         <tr>
-          <td>
+          <td class="text-right">
             {{this.account_transfer_id}}
           </td>
           <td>
             <a href="/users/{{this.user.id}}">{{this.user.email}}</a>
           </td>
-          <td>
+          <td class="text-right">
             {{this.deposit_amount}}
           </td>
-          <td>
+          <td class="text-right">
             {{this.withdrawal_amount}}
           </td>
           <td>
