@@ -827,9 +827,9 @@ function start () {
     renderUserRow('view', userGlobal);
 
     $('#user-view-mode-edit-btn').click(onEditUserClick);
+    $('#user-view-mode-remove-btn').click(onRemoveUserClick);
     $('#user-edit-mode-save-btn').click(onSaveUserClick);
     $('#user-edit-mode-cancel-btn').click(onCancelEditUserClick);
-    $('#user-edit-mode-remove-btn').click(onRemoveUserClick);
     $('#user-credits-submit-btn').click(onUserCreditsSubmitClick);
     $('#prev-page-btn-top').click(onPreviousPageClick);
     $('#next-page-btn-top').click(onNextPageClick);

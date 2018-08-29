@@ -76,6 +76,10 @@ function start () {
       .attr('id', 'role-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditRoleClick);
 
+    $roleViewModeClone.find('#role-remove-btn-view-mode')
+      .attr('id', 'role-remove-btn-' + rowId) // eslint-disable-line prefer-template
+      .click(onRemoveRoleClick);
+
     if ($row == null) {
       $roleViewModeClone.appendTo(
         $('#roles-section')
@@ -112,10 +116,6 @@ function start () {
     $roleEditModeClone.find('#role-cancel-btn-edit-mode')
       .attr('id', 'role-cancel-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onCancelEditRoleClick);
-
-    $roleEditModeClone.find('#role-remove-btn-edit-mode')
-      .attr('id', 'role-remove-btn-' + rowId) // eslint-disable-line prefer-template
-      .click(onRemoveRoleClick);
 
     $roleEditModeClone.find('#add-role-permission')
       .attr('id', 'add-role-permission-' + rowId); // eslint-disable-line prefer-template

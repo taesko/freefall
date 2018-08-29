@@ -374,8 +374,8 @@ function start () {
 
     $('#edit-employee').submit(onSaveEmployee);
     $('#employee-view-mode-edit-btn').click(onEditEmployeeClick);
+    $('#employee-view-mode-remove-btn').click(onRemoveEmployeeClick);
     $('#employee-edit-mode-cancel-btn').click(onCancelEditEmployeeClick);
-    $('#employee-edit-mode-remove-btn').click(onRemoveEmployeeClick);
   });
 }
 
