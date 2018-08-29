@@ -480,8 +480,11 @@ function start () {
 
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-user-email')
       .attr('id', 'user-subscription-view-mode-user-email-' + rowId) // eslint-disable-line prefer-template
-      .attr('href', '/users/' + subscription.user.id) // eslint-disable-line prefer-template
       .text(subscription.user.email);
+
+    $userSubscriptionViewModeClone.find('#user-subscription-view-mode-user-link')
+      .attr('id', 'user-subscription-view-mode-user-link-' + rowId) // eslint-disable-line prefer-template
+      .attr('href', '/users/' + subscription.user.id); // eslint-disable-line prefer-template
 
     $userSubscriptionViewModeClone.find('#user-subscription-view-mode-airport-from')
       .attr('id', 'user-subscription-view-mode-airport-from-' + rowId) // eslint-disable-line prefer-template
@@ -533,8 +536,11 @@ function start () {
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-user-email')
       .attr('id', 'user-subscription-edit-mode-user-email-' + rowId) // eslint-disable-line prefer-template
-      .attr('href', '/users/' + subscription.user.id) // eslint-disable-line prefer-template
       .text(subscription.user.email);
+
+    $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-user-link')
+      .attr('id', 'user-subscription-edit-mode-user-link-' + rowId) // eslint-disable-line prefer-template
+      .attr('href', '/users/' + subscription.user.id); // eslint-disable-line prefer-template
 
     $userSubscriptionEditModeClone.find('#user-subscription-edit-mode-airport-from')
       .addClass('airport-select')

@@ -53,7 +53,6 @@ function start () {
       .text(employee.id);
 
     $employeeViewMode.find('#employee-view-mode-email')
-      .attr('href', '/employees/' + employee.id) // eslint-disable-line prefer-template
       .text(employee.email);
 
     var i; // eslint-disable-line no-var

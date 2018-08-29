@@ -10,6 +10,10 @@
   <div class="container">
     {{> heading }}
     {{> menu }}
+    <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
+    <p><label>Credits owned by all users:</label> {{users_total_credits}}</p>
+    <p><label>Credits loaded into system:</label> {{total_credits_loaded}}</p>
+    <p><label>Amount of requests to Dalipeche:</label> {{dalipeche_api_total_requests}}</p>
     <div class="row">
       <div class="col-md-4">
         {{#if prev_page}}
@@ -50,7 +54,8 @@
             {{this.account_transfer_id}}
           </td>
           <td>
-            <a href="/users/{{this.user.id}}">{{this.user.email}}</a>
+            {{this.user.email}}
+            <a href="/users/{{this.user.id}}">(open)</a>
           </td>
           <td class="text-right">
             {{this.deposit_amount}}
@@ -64,7 +69,7 @@
           <td>
             {{#if employee_transferrer_id}}
               <p><label>Type:</label> by employee</p>
-              <p><label>Employee:</label> <a href="/employees/{{this.employee_transferrer_id}}">{{this.employee_transferrer_email}}</a></p>
+              <p><label>Employee:</label> {{this.employee_transferrer_email}} <a href="/employees/{{this.employee_transferrer_id}}">(open)</a></p>
             {{/if}}
             {{#if user_subscr_airport_from_name}}
               <p><label>Type:</label> new subscription</p>
@@ -106,11 +111,6 @@
         {{/if}}
       </div>
     </div>
-<!--     <p id="no-fetches-msg" class="text-center" hidden="true">No fetches found</p> -->
-    <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
-    <p><label>Credits owned by all users:</label> {{users_total_credits}}</p>
-    <p><label>Credits loaded into system:</label> {{total_credits_loaded}}</p>
-    <p><label>Amount of requests to Dalipeche:</label> {{dalipeche_api_total_requests}}</p>
   </div>
 </body>
 </html>

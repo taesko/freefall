@@ -120,7 +120,6 @@ function start () {
       .text(user.id);
 
     $userViewMode.find('#user-view-mode-email')
-      .attr('href', '/users/' + user.id) // eslint-disable-line prefer-template
       .text(user.email);
 
     $userViewMode.find('#user-view-mode-credits')
