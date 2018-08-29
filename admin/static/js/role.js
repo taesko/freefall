@@ -245,18 +245,44 @@ function start () {
     );
   };
 
-  const onRemoveRoleClick = function (event) {
+  const onRemoveRoleClick = function () {
     mainUtils.trace('onRemoveRoleClick');
 
+    $('#confirm-remove-role-dialog').dialog({
+      classes: {
+        'ui-dialog-titlebar': 'info-dialog-titlebar',
+      },
+      buttons: [
+        {
+          text: 'Cancel',
+          click: function() {
+            $(this).dialog('close');
+          },
+        },
+        {
+          text: 'Remove',
+          class: 'confirm-remove-btn',
+          click: onConfirmRemoveRoleClick,
+        },
+      ],
+      show: {
+        effect: "highlight",
+        duration: 500,
+      },
+    });
+  };
+
+  const onConfirmRemoveRoleClick = function (event) {
+    mainUtils.trace('onConfirmRemoveRoleClick');
+
     const removeButton = event.target;
-
-    removeButton.disabled = true;
-
     const removeRoleParams = {
       v: '2.0',
       role_id: role.id,
       api_key: APIKeyRef.APIKey,
     };
+
+    removeButton.disabled = true;
 
     adminAPI.adminRemoveRole(
       removeRoleParams,
@@ -287,7 +313,7 @@ function start () {
         window.location.replace('/roles');
       }
     );
-  };
+  }
 
   const onRemoveRolePermissionClick = function (event) {
     mainUtils.trace('onRemoveRolePermissionClick');

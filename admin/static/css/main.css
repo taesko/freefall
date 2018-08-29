@@ -9,3 +9,14 @@
 .success-dialog-titlebar {
   background: #dff0d8;
 }
+
+.confirm-remove-btn,
+.confirm-remove-btn:focus {
+  background: #d9534f;
+  color: white;
+}
+
+.confirm-remove-btn:hover {
+  background: #c9302c;
+  color: white;
+}

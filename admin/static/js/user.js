@@ -205,6 +205,33 @@ function start () {
   const onRemoveUserClick = function (event) {
     mainUtils.trace('onRemoveUserClick');
 
+    $('#confirm-remove-user-dialog').dialog({
+      classes: {
+        'ui-dialog-titlebar': 'info-dialog-titlebar',
+      },
+      buttons: [
+        {
+          text: 'Cancel',
+          click: function() {
+            $(this).dialog('close');
+          },
+        },
+        {
+          text: 'Remove',
+          class: 'confirm-remove-btn',
+          click: onConfirmRemoveUserClick,
+        },
+      ],
+      show: {
+        effect: "highlight",
+        duration: 500,
+      },
+    });
+  };
+
+  const onConfirmRemoveUserClick = function (event) {
+    mainUtils.trace('onConfirmRemoveUserClick');
+
     const removeButton = event.target;
     removeButton.disabled = true;
 
@@ -225,6 +252,7 @@ function start () {
         }
       }
     );
+
   };
 
   const onEditUserClick = function (event) {

@@ -1021,19 +1021,29 @@ const adminAddEmployee = defineAPIMethod(
 
     const newAPIKey = crypto.createHash('md5').update(`${params.email}:${params.password}`).digest('hex');
 
-    const employeeInsertResult = await dbClient.executeQuery(`
+    let employeeInsertResult;
 
-      INSERT INTO employees
-        (email, password, api_key)
-      VALUES
-        ($1, $2, $3)
-      RETURNING *;
+    try {
+      employeeInsertResult = await dbClient.executeQuery(`
 
-    `, [
-      params.email,
-      passwordHashed,
-      newAPIKey,
-    ]);
+        INSERT INTO employees
+          (email, password, api_key)
+        VALUES
+          ($1, $2, $3)
+        RETURNING *;
+
+      `, [
+        params.email,
+        passwordHashed,
+        newAPIKey,
+      ]);
+    } catch (error) {
+      if (error.code === '23505') { // unique key constraint violation
+        throw new UserError('Employee already exists!', 'AAE_EMPLOYEE_EXISTS');
+      } else {
+        throw error;
+      }
+    }
 
     assertApp(isObject(employeeInsertResult), `got ${employeeInsertResult}`);
     assertApp(

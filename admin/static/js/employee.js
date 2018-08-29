@@ -244,6 +244,33 @@ function start () {
   const onRemoveEmployeeClick = function (event) {
     mainUtils.trace('onRemoveEmployeeClick');
 
+    $('#confirm-remove-employee-dialog').dialog({
+      classes: {
+        'ui-dialog-titlebar': 'info-dialog-titlebar',
+      },
+      buttons: [
+        {
+          text: 'Cancel',
+          click: function() {
+            $(this).dialog('close');
+          },
+        },
+        {
+          text: 'Remove',
+          class: 'confirm-remove-btn',
+          click: onConfirmRemoveEmployeeClick,
+        },
+      ],
+      show: {
+        effect: "highlight",
+        duration: 500,
+      },
+    });
+  };
+
+  const onConfirmRemoveEmployeeClick = function (event) {
+    mainUtils.trace('onConfirmRemoveEmployeeClick');
+
     const removeButton = event.target;
     removeButton.disabled = true;
 
@@ -279,7 +306,7 @@ function start () {
         window.location.replace('/employees');
       }
     );
-  };
+  }
 
   const onEditEmployeeClick = function (event) {
     mainUtils.trace('onEditEmployeeClick');

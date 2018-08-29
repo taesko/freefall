@@ -187,7 +187,7 @@ function main () { // eslint-disable-line no-unused-vars
       },
       show: {
         effect: "highlight",
-        duration: 500
+        duration: 500,
       },
     });
     $messageClone.appendTo($('messages-list'));
