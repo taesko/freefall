@@ -152,24 +152,51 @@ function generateMailContent (subscriptions) {
 }
 
 async function sendVerificationTokens (client) {
+  const tokensExpiredBefore = moment().subtract(1, 'days');
+  await client.executeQuery(
+    `
+    DELETE FROM users
+    WHERE verified=false AND created_at < $1
+    `,
+    [tokensExpiredBefore]
+  );
   const { rows } = await client.executeQuery(
     `
-      SELECT email, verification_token
-      FROM users
-      WHERE verified=false
+    SELECT email, verification_token
+    FROM users
+    WHERE verified=false and sent_verification_email=false
     `,
   );
 
-  return Promise.all(rows.map(({ email, verification_token }) => {
-    const subject = 'Freefall account activation';
-    const route = path.join(FREEFALL_ADDRESS, 'register', 'verify');
-    const query = `?token=${verification_token}`;
-    const link = route + query;
-    const text = `Visit this link here to activate your account:\n${link}.`;
+  const successful = [];
 
-    log.info('Send email for verification of account to', email);
-    return sendEmail(email, { subject, text });
-  }));
+  try {
+    log.info('Sending emails for verification');
+    await Promise.all(rows.map(async ({ email, verification_token }) => {
+      const subject = 'Freefall account activation';
+      const route = path.join(FREEFALL_ADDRESS, 'register', 'verify');
+      const query = `?token=${verification_token}`;
+      const link = route + query;
+      const text = `Visit this link here to activate your account:\n${link}.`;
+
+      log.info('Send email for verification of account to', email);
+      await sendEmail(email, { subject, text });
+      successful.push(email);
+    }));
+  } finally {
+    if (successful.length !== 0) {
+      const placeholders = successful.map((element, index) => `$${index + 1}`)
+        .join(',');
+      await client.executeQuery(
+        `
+      UPDATE users
+      SET sent_verification_email=true
+      WHERE email IN (${placeholders})
+      `,
+        successful,
+      );
+    }
+  }
 }
 
 async function sendPasswordResets (client) {

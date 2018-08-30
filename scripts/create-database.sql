@@ -159,6 +159,8 @@ CREATE TABLE users (
   api_key text UNIQUE NOT NULL,
   active boolean NOT NULL DEFAULT TRUE,
   verified boolean NOT NULL DEFAULT FALSE,
+  sent_verification_email boolean NOT NULL DEFAULT false,
+  created_at timestamp NOT NULL DEFAULT now(),
   verification_token text NOT NULL UNIQUE,
   credits integer NOT NULL DEFAULT 0,
   CHECK(credits >= 0),
