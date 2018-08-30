@@ -12,7 +12,7 @@ function toQueryString (params) {
   return paramsList.map(pair => pair.join('=')).join('&');
 }
 
-async function requestJSON (url, parameters) {
+async function requestJSONDepreciate (url, parameters) {
   assertApp(
     typeof url === 'string',
     'Invalid url.'
@@ -35,7 +35,7 @@ async function requestJSON (url, parameters) {
   return response.json();
 }
 
-function hashFromEntries (entries) {
+function hashFromEntriesDepreciate (entries) {
   return entries.reduce(
     (hash, [key, value]) => {
       hash[key] = value;
@@ -80,15 +80,15 @@ function toSmallestCurrencyUnit (quantity) {
   return quantity * 100;
 }
 
-function fromSmallestCurrencyUnit (quantity) {
+function fromSmallestCurrencyUnitDepreciate (quantity) {
   return quantity / 100;
 }
 
 module.exports = {
-  requestJSONDepreciate: requestJSON,
+  requestJSONDepreciate: requestJSONDepreciate,
   toSmallestCurrencyUnit,
-  fromSmallestCurrencyUnitDepreciate: fromSmallestCurrencyUnit,
-  hashFromEntriesDepreciate: hashFromEntries,
+  fromSmallestCurrencyUnitDepreciate: fromSmallestCurrencyUnitDepreciate,
+  hashFromEntriesDepreciate: hashFromEntriesDepreciate,
   cleanHash,
   batchMap,
 };
