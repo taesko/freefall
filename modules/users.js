@@ -88,7 +88,9 @@ async function removeUser (dbClient, userId) {
   );
   errors.assertApp(rows.length <= 1, `got ${userId}`);
 
-  caching.SESSION_CACHE.remove(rows[0].token);
+  if (rows.length === 1) {
+    caching.SESSION_CACHE.remove(rows[0].token);
+  }
 }
 
 async function editUser (dbClient, userId, { email, password, apiKey }) {
