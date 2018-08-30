@@ -98,14 +98,16 @@ function SyncedCache (name, maxSize = 2000) {
     }
 
     log.info(`In cache '${name}' - freeing space`);
+
     for (const [key, value] of Object.entries(cache)) {
       if (value.expiresOn.getTime() < new Date().getTime()) {
-        remove(cache)(key);
+        removeAndSync(cache)(key);
       }
     }
 
     const numberOfCachedObjects = Object.keys(cache).length;
     const newSize = numberOfCachedObjects * 2;
+
     if (newSize <= maxSize) {
       size = newSize;
     }
@@ -113,8 +115,8 @@ function SyncedCache (name, maxSize = 2000) {
 
   const store = (cache) => (key, expiresOn, value) => {
     assertApp(expiresOn instanceof Date, `got ${expiresOn}`);
-
     freeExpiredIfFull(cache);
+
     if (size >= maxSize) {
       log.warn(`Cache ${name} is full.`);
       return;
@@ -133,7 +135,7 @@ function SyncedCache (name, maxSize = 2000) {
 
       if (expiresOn.getTime() < new Date().getTime()) {
         log.info(`In cache '${name}' - key ${key} has expired`);
-        remove(cache)(key);
+        removeAndSync(cache)(key);
         return undefined;
       } else {
         return cached;
