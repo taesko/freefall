@@ -17,7 +17,7 @@ const SUBSCRIPTION_PLANS = {
   weekly: {
     name: 'weekly',
     price: 500,
-    initialTax: 20,
+    initialTax: 50,
     shouldTax: (timeOfLastTaxing) => {
       const timeOfNextTax = moment(timeOfLastTaxing).add('1', 'week').format('Y-MM-DD');
       return timeOfNextTax.format('Y-MM-DD') <= moment().format('Y-MM-DD');
@@ -25,8 +25,8 @@ const SUBSCRIPTION_PLANS = {
   },
   daily: {
     name: 'daily',
-    price: 500,
-    initialTax: 0,
+    price: 1000,
+    initialTax: 50,
     shouldTax: (timeOfLastTaxing) => {
       const timeOfNextTax = moment(timeOfLastTaxing).add('1', 'day').format('Y-MM-DD');
       return timeOfNextTax.format('Y-MM-DD') <= moment().format('Y-MM-DD');
