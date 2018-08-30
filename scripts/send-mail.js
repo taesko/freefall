@@ -2,9 +2,11 @@
 const path = require('path');
 const { Client } = require('pg');
 const mailer = require('nodemailer');
+const moment = require('moment');
+
 const log = require('../modules/log');
 const db = require('../modules/db');
-const moment = require('moment');
+const utils = require('../modules/utils');
 const { assertApp } = require('../modules/error-handling');
 
 const DEFAULT_EMAIL = 'freefall.subscriptions';
@@ -12,6 +14,7 @@ const DEFAULT_PASSWORD = 'onetosix';
 const FREEFALL_ADDRESS = '10.20.1.128:3000';
 const TODAY = moment();
 const NOTIFY_UNTIL_DATE = moment().add(7, 'days');
+const VERIFICATION_EMAIL_BATCH_COUNT = 100;
 
 const [FREEFALL_MAIL, mailTransporter] = (function init () {
   // TODO get another environment variable for service
@@ -152,24 +155,66 @@ function generateMailContent (subscriptions) {
 }
 
 async function sendVerificationTokens (client) {
+  const tokensExpiredBefore = moment().subtract(1, 'days');
+  await client.executeQuery(
+    `
+    DELETE FROM users
+    WHERE verified=false AND created_at < $1
+    `,
+    [tokensExpiredBefore]
+  );
   const { rows } = await client.executeQuery(
     `
-      SELECT email, verification_token
-      FROM users
-      WHERE verified=false
+    SELECT email, verification_token
+    FROM users
+    WHERE verified=false and sent_verification_email=false
     `,
   );
 
-  return Promise.all(rows.map(({ email, verification_token }) => {
-    const subject = 'Freefall account activation';
-    const route = path.join(FREEFALL_ADDRESS, 'register', 'verify');
-    const query = `?token=${verification_token}`;
-    const link = route + query;
-    const text = `Visit this link here to activate your account:\n${link}.`;
+  const sendVerificationEmail = (successful) =>
+    async ({ email, verification_token: token }) => {
+      assertApp(typeof email === 'string', `got ${email}`);
+      assertApp(typeof token === 'string', `got ${token}`);
+      const subject = 'Freefall account activation';
+      const route = path.join(FREEFALL_ADDRESS, 'register', 'verify');
+      const query = `?token=${token}`;
+      const link = route + query;
+      const text = `Visit this link here to activate your account:\n${link}.`;
 
-    log.info('Send email for verification of account to', email);
-    return sendEmail(email, { subject, text });
-  }));
+      log.info('Send email for verification of account to', email);
+      await sendEmail(email, { subject, text });
+      successful.push(email);
+    };
+
+  const successful = [];
+  const batchGen = utils.batchMap(
+    rows,
+    sendVerificationEmail(successful),
+    VERIFICATION_EMAIL_BATCH_COUNT
+  );
+
+  for (const batch of batchGen) {
+    try {
+      await Promise.all(batch);
+    } catch (e) {
+      log.critical('Error occurred while sending batch of verification emails', e);
+    } finally {
+      log.info('Successful from batch are', successful);
+      if (successful.length !== 0) {
+        const placeholders = successful.map((element, index) => `$${index + 1}`)
+          .join(',');
+        await client.executeQuery(
+          `
+          UPDATE users
+          SET sent_verification_email=true
+          WHERE email IN (${placeholders})
+          `,
+          successful,
+        );
+      }
+      successful.length = 0;
+    }
+  }
 }
 
 async function sendPasswordResets (client) {

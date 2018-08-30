@@ -1,4 +1,6 @@
+const _ = require('lodash');
 const fetch = require('node-fetch');
+
 const { assertApp } = require('./error-handling');
 const log = require('./log');
 
@@ -12,7 +14,7 @@ function toQueryString (params) {
   return paramsList.map(pair => pair.join('=')).join('&');
 }
 
-async function requestJSON (url, parameters) {
+async function requestJSONDepreciate (url, parameters) {
   assertApp(
     typeof url === 'string',
     'Invalid url.'
@@ -35,7 +37,7 @@ async function requestJSON (url, parameters) {
   return response.json();
 }
 
-function hashFromEntries (entries) {
+function hashFromEntriesDepreciate (entries) {
   return entries.reduce(
     (hash, [key, value]) => {
       hash[key] = value;
@@ -57,18 +59,42 @@ function cleanHash (hash) {
   return result;
 }
 
+function * batchMap (collection, func, count) {
+  assertApp(_.isObject(collection));
+  assertApp(_.isFunction(func));
+  assertApp(Number.isInteger(count));
+  assertApp(count > 0);
+
+  let itemCount = 0;
+  let batch = [];
+
+  for (const [index, element] of Object.entries(collection)) {
+    if (itemCount === count) {
+      yield batch;
+      batch = [];
+      itemCount = 0;
+    }
+    batch.push(func(element, index, collection));
+    itemCount++;
+  }
+  if (batch.length > 0) {
+    yield batch;
+  }
+}
+
 function toSmallestCurrencyUnit (quantity) {
   return quantity * 100;
 }
 
-function fromSmallestCurrencyUnit (quantity) {
+function fromSmallestCurrencyUnitDepreciate (quantity) {
   return quantity / 100;
 }
 
 module.exports = {
-  requestJSON,
+  requestJSONDepreciate: requestJSONDepreciate,
   toSmallestCurrencyUnit,
-  fromSmallestCurrencyUnit,
-  hashFromEntries,
+  fromSmallestCurrencyUnitDepreciate: fromSmallestCurrencyUnitDepreciate,
+  hashFromEntriesDepreciate: hashFromEntriesDepreciate,
   cleanHash,
+  batchMap,
 };

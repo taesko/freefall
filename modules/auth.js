@@ -87,8 +87,6 @@ async function register (ctx, email, password) {
   log.info('Attempting to register user with email:', email);
 
   // TODO handle empty string email;
-  password = users.hashPassword(password);
-
   log.info(`Checking if email ${email} is taken.`);
 
   if (await users.emailIsTaken(dbClient, email)) {
@@ -99,6 +97,7 @@ async function register (ctx, email, password) {
 
   log.info('Registering user with email and password: ', email, password);
 
+  password = users.hashPassword(password);
   return users.addUser(dbClient, { email, password });
 }
 

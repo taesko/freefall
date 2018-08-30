@@ -159,6 +159,8 @@ CREATE TABLE users (
   api_key text UNIQUE NOT NULL,
   active boolean NOT NULL DEFAULT TRUE,
   verified boolean NOT NULL DEFAULT FALSE,
+  sent_verification_email boolean NOT NULL DEFAULT false,
+  created_at timestamp NOT NULL DEFAULT now(),
   verification_token text NOT NULL UNIQUE,
   credits integer NOT NULL DEFAULT 0,
   CHECK(credits >= 0),
@@ -203,12 +205,6 @@ ON employees_roles(created_at);
 CREATE INDEX employees_roles_updated_at_idx
 ON employees_roles(updated_at);
 
-CREATE TYPE subscription_plan AS ENUM (
-    'monthly', -- check and notify for flights once a month
-    'weekly', -- check and notify for flights once a week
-    'daily' -- check and notify for flights once a day
-);
-
 CREATE TABLE users_subscriptions (
   id serial PRIMARY KEY NOT NULL,
   user_id integer NOT NULL,
@@ -216,7 +212,7 @@ CREATE TABLE users_subscriptions (
   fetch_id_of_last_send integer,
   date_from date NOT NULL,
   date_to date NOT NULL,
-  plan subscription_plan NOT NULL,
+  subscription_plan_id integer NOT NULL REFERENCES subscription_plans,
   active boolean NOT NULL DEFAULT TRUE,
   created_at timestamp DEFAULT now(), -- timestamps were added additionally and there are already records without timestamps, so they should be null
   updated_at timestamp DEFAULT now(),
@@ -243,6 +239,21 @@ CREATE INDEX users_subscriptions_created_at_idx
 ON users_subscriptions(created_at);
 CREATE INDEX users_subscriptions_updated_at_idx
 ON users_subscriptions(updated_at);
+
+CREATE TABLE subscription_plans (
+    id serial PRIMARY KEY,
+    name text NOT NULL UNIQUE,
+    initial_tax integer NOT NULL,
+    fetch_tax integer NOT NULL,
+    tax_interval interval NOT NULL
+);
+
+INSERT INTO subscription_plans
+    (name, initial_tax, fetch_tax, tax_interval)
+VALUES
+    ('daily', 50, 1000, '1 day'),
+    ('weekly', 50, 500, '1 week'),
+    ('monthly', 50, 100, '1 month');
 
 CREATE FUNCTION generate_session_token() RETURNS text AS $$
 DECLARE

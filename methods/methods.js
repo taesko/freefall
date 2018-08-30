@@ -360,7 +360,7 @@ const subscribe = defineAPIMethod(
       status_code: '2200',
       subscription_id: null,
     },
-    'SUBSCRIBE_USER_BAD_DATE': {
+    'SUBSCRIBE_BAD_DATE': {
       status_code: '2100',
       subscription_id: null,
     },
@@ -429,7 +429,8 @@ const subscribe = defineAPIMethod(
       };
     }
 
-    const { initialTax } = subscriptions.SUBSCRIPTION_PLANS[plan];
+    const planRecord = await subscriptions.fetchSubscriptionPlan(dbClient, plan);
+    const { initial_tax: initialTax } = planRecord;
     log.info(`Taxing user ${userId} for subscription ${subscriptionId}`);
     const transfer = await accounting.taxUser(dbClient, userId, initialTax);
 
@@ -683,12 +684,13 @@ const listSubscriptions = defineAPIMethod(
         airport_to_id::text AS fly_to,
         to_char(date_from, 'YYYY-MM-DD') AS date_from,
         to_char(date_to, 'YYYY-MM-DD') AS date_to,
-        user_sub.plan
+        subscription_plans.name AS plan
       FROM users_subscriptions AS user_sub
       JOIN users ON user_sub.user_id=users.id
       JOIN subscriptions sub ON user_sub.subscription_id=sub.id
       JOIN airports ap_from ON sub.airport_from_id=ap_from.id
       JOIN airports ap_to ON sub.airport_to_id=ap_to.id
+      JOIN subscription_plans ON user_sub.subscription_plan_id=subscription_plans.id
       WHERE user_id=$1 AND user_sub.active=true
       ORDER BY user_sub.updated_at DESC
       LIMIT $2
