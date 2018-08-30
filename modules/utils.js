@@ -57,6 +57,25 @@ function cleanHash (hash) {
   return result;
 }
 
+function * batchMap (collection, func, count) {
+  assertApp(_.isObject(collection));
+  assertApp(_.isFunction(func));
+  assertApp(Number.isInteger(count));
+  assertApp(count > 0);
+
+  let itemCount = 0;
+  let batch = [];
+
+  for (const [index, element] of Object.entries(collection)) {
+    if (itemCount === count) {
+      yield batch;
+      batch = [];
+    }
+    batch.push(func(element, index, collection));
+    itemCount++;
+  }
+}
+
 function toSmallestCurrencyUnit (quantity) {
   return quantity * 100;
 }
@@ -66,9 +85,10 @@ function fromSmallestCurrencyUnit (quantity) {
 }
 
 module.exports = {
-  requestJSON,
+  requestJSONDepreciate: requestJSON,
   toSmallestCurrencyUnit,
-  fromSmallestCurrencyUnit,
-  hashFromEntries,
+  fromSmallestCurrencyUnitDepreciate: fromSmallestCurrencyUnit,
+  hashFromEntriesDepreciate: hashFromEntries,
   cleanHash,
+  batchMap,
 };
