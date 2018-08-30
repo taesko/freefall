@@ -53,11 +53,9 @@ async function subscribeUser (
     'date_from must be less than date_to',
     'SUBSCRIBE_BAD_DATE',
   );
-  errors.assertUser(
-    SUBSCRIPTION_PLANS.hasOwnProperty(plan),
-    `${plan} is not a valid plan`,
-    'SUBSCRIBE_INVALID_PLAN',
-  );
+
+  const planRecord = await fetchSubscriptionPlan(dbClient, plan);
+  errors.assertUser(planRecord, `${plan} is not a valid plan`, 'SUBSCRIBE_INVALID_PLAN');
 
   log.info(
     `Subscribing user ${userId} with parameters - `,
@@ -69,8 +67,8 @@ async function subscribeUser (
     airportFromId,
     airportToId,
   );
-  log.info('Found global subscriptions between airports', airportFromId, airportToId);
 
+  log.info('Found global subscriptions between airports', airportFromId, airportToId);
   log.info('Searching for inactive user subscription');
 
   const [sub] = await dbClient.selectWhere(
@@ -85,10 +83,9 @@ async function subscribeUser (
   );
 
   if (sub) {
-    log.info('User is reviving inactive subscription or updating plan for id - ', sub.id);
-    log.debug('Old plan=', sub.plan, 'New plan=', plan);
+    log.info('User is updating plan or reviving inactive subscription with id - ', sub.id);
     errors.assertPeer(
-      sub.active === false || sub.plan !== plan,
+      sub.active === false || sub.subscription_plan_id !== planRecord.id,
       `Cannot subscribe userId=${userId}, because subscription with id=${sub.id} already has the same filters.`,
       errors.errorCodes.subscriptionExists,
     );
@@ -99,8 +96,14 @@ async function subscribeUser (
     const { rows: updatedRows } = await dbClient.executeQuery(
       `
       UPDATE users_subscriptions
-      SET active=true, plan=$2, updated_at=now()
-      WHERE id=$1 AND (active=false OR (active=true AND plan!=$2))
+      SET 
+        active=true,
+         subscription_plan_id=(SELECT id FROM subscription_plans WHERE name=$2),
+         updated_at=now()
+      WHERE 
+        id=$1 AND 
+        (active=false OR (active=true AND 
+                          subscription_plan_id != (SELECT id FROM subscription_plans WHERE name=$2)))
       RETURNING *
       `,
       [sub.id, plan],
@@ -123,17 +126,18 @@ async function subscribeUser (
   let result;
 
   try {
-    result = await dbClient.insert(
-      'users_subscriptions',
-      {
-        user_id: userId,
-        subscription_id: globalSubId,
-        fetch_id_of_last_send: null,
-        date_from: dateFrom,
-        date_to: dateTo,
-        plan,
-      },
+    const { rows } = await dbClient.executeQuery(
+      `
+      INSERT INTO users_subscriptions
+        (user_id, subscription_id, fetch_id_of_last_send, date_from, date_to, subscription_plan_id)
+      VALUES
+        ($1, $2, $3, $4, $5, (SELECT id FROM subscription_plans WHERE name=$6))
+      RETURNING *
+      `,
+      [userId, globalSubId, null, dateFrom, dateTo, plan],
     );
+    errors.assertApp(rows.length === 1);
+    result = rows[0];
   } catch (e) {
     if (e.code === '23505') { // unique constraint failed
       throw new errors.PeerError(
@@ -169,11 +173,8 @@ async function updateUserSubscription (
     'date_from must be less than date_to',
     'UPDATE_SUBSCR_BAD_DATE',
   );
-  errors.assertUser(
-    SUBSCRIPTION_PLANS.hasOwnProperty(plan),
-    `${plan} is not a valid plan`,
-    'UPDATE_SUBSCR_INVALID_PLAN'
-  );
+  const planRecord = await fetchSubscriptionPlan(dbClient, plan);
+  errors.assertUser(planRecord, `${plan} is not a valid plan`, 'UPDATE_SUBSCR_INVALID_PLAN');
 
   const globalSubscriptionId = await subscribeGloballyIfNotSubscribed(
     dbClient,
@@ -188,7 +189,7 @@ async function updateUserSubscription (
       subscription_id = $2,
       date_from = $3,
       date_to = $4,
-      plan = $5,
+      subscription_plan_id = (SELECT id FROM subscription_plans WHERE name=$5),
       updated_at = now()
     WHERE id = $1
     RETURNING *;
@@ -450,6 +451,20 @@ async function subscribeGlobally (dbClient, airportFromId, airportToId) {
   return sub.id;
 }
 
+async function fetchSubscriptionPlan (dbClient, name) {
+  const { rows } = await dbClient.executeQuery(
+    `SELECT * FROM subscription_plans WHERE name=$1`,
+    [name],
+  );
+  errors.assertApp(rows.length <= 1);
+
+  const plan = rows[0];
+
+  log.info('Found subscription plan', plan);
+
+  return plan;
+}
+
 module.exports = {
   subscribeUser,
   removeUserSubscription,
@@ -460,5 +475,6 @@ module.exports = {
   subscribeGlobally,
   listGlobalSubscriptions,
   globalSubscriptionExists,
+  fetchSubscriptionPlan,
   SUBSCRIPTION_PLANS,
 };
