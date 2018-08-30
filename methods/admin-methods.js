@@ -8,6 +8,7 @@ const moment = require('moment');
 const subscriptions = require('../modules/subscriptions');
 const users = require('../modules/users');
 const accounting = require('../modules/accounting');
+const caching = require('../modules/caching');
 
 const MAX_CREDITS_DIFFERENCE = Math.pow(10, 12);
 
@@ -226,7 +227,7 @@ const adminListUserSubscriptions = defineAPIMethod(
   },
 );
 
-const adminSubscribe = defineAPIMethod(
+/*const adminSubscribe = defineAPIMethod(
   {
     'ASUBSCR_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
     'ASUBSCR_BAD_FLY_FROM': { status_code: '2100' },
@@ -396,32 +397,86 @@ async function adminEditSubscription (params, dbClient) {
       throw e;
     }
   }
-}
+}*/
 
-async function adminRemoveUser (params, dbClient) {
-  assertPeer(
-    await adminAuth.hasPermission(dbClient, params.api_key, 'admin_remove_user'),
-    'You do not have sufficient permission to call admin_list_subscriptions method.',
-  );
+const adminRemoveUser = defineAPIMethod(
+  {
+    'ARU_INVALID_API_KEY': { status_code: '2100' },
+    'ARU_UNKNOWN_USER': { status_code: '2201' },
+    'ARU_BAD_PARAMETERS_FORMAT': { status_code: '2101' },
+  },
+  async (params, dbClient) => {
+    assertUser(
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_remove_user'),
+      'You do not have sufficient permission to call admin_remove_user method.',
+      'ARU_INVALID_API_KEY'
+    );
 
-  let statusCode;
-  const userId = +params.user_id;
+    const userId = Number(params.user_id);
 
-  assertPeer(Number.isInteger(userId));
+    assertUser(
+      Number.isSafeInteger(userId),
+      'User id is not of expected format!',
+      'ARU_BAD_PARAMETERS_FORMAT'
+    );
 
-  try {
-    await users.removeUser(dbClient, userId);
-    statusCode = '1000';
-  } catch (e) {
-    if (e instanceof PeerError) {
-      statusCode = '2000';
-    } else {
-      throw e;
+    // no need for try catch,
+    // if it fails, it must be an app error
+    await dbClient.executeQuery(`
+
+      UPDATE users_subscriptions
+      SET active = false
+      WHERE user_id = $1;
+
+    `, [
+      userId,
+    ]);
+
+    // no need for try catch,
+    // if it fails, it must be an app error
+    const deactivateUserResult = await dbClient.executeQuery(`
+
+      UPDATE users
+      SET active = false
+      WHERE id = $1
+      RETURNING *;
+
+    `, [
+      userId,
+    ]);
+
+    assertApp(isObject(deactivateUserResult), `got ${deactivateUserResult}`);
+    assertApp(Array.isArray(deactivateUserResult.rows), `got ${deactivateUserResult.rows}`);
+    assertApp(deactivateUserResult.rows.length <= 1, `got ${deactivateUserResult.rows.length}`);
+
+    assertUser(
+      deactivateUserResult.rows.length === 1,
+      'User does not exist!',
+      'ARU_UNKNOWN_USER'
+    );
+
+    // no need for try catch
+    // if it fails then it's an app error
+    const deleteLoginSessionResult = await dbClient.executeQuery(`
+
+      DELETE FROM login_sessions
+      WHERE user_id = $1
+      RETURNING *;
+
+    `);
+
+    assertApp(isObject(deleteLoginSessionResult), `${deleteLoginSessionResult}`);
+    assertApp(Array.isArray(deleteLoginSessionResult.rows), `got ${deleteLoginSessionResult.rows}`);
+    assertApp(deleteLoginSessionResult.rows.length <= 1, `got ${deleteLoginSessionResult.rows.length}`);
+
+    if (deleteLoginSessionResult.rows.length === 1) {
+      const token = deleteLoginSessionResult.rows[0].token;
+      caching.SESSION_CACHE.remove(token);
     }
-  }
 
-  return { status_code: statusCode };
-}
+    return { status_code: '1000' };
+  }
+);
 
 async function adminEditUser (params, dbClient) {
   if (!await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_user')) {

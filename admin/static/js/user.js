@@ -218,6 +218,17 @@ function start () {
       removeUserParams,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
+        const messages = {
+          '1000': 'Successfully removed user!',
+          '2100': 'Your API key does not support this operation!',
+          '2101': 'The form you sent was not in correct format. Please refresh the page and try again!',
+          '2201': 'User not found. Please refresh the page and try again!',
+        };
+
+        assertPeer(typeof messages[result.status_code] === 'string', {
+          msg: 'Unexpected status code in adminRemoveUser. Status code: ' + result.status_code, // eslint-disable-line prefer-template
+        });
+
         if (result.status_code === '1000') {
           window.location.replace('/users');
         } else {
