@@ -1,4 +1,6 @@
+const _ = require('lodash');
 const fetch = require('node-fetch');
+
 const { assertApp } = require('./error-handling');
 const log = require('./log');
 
@@ -70,9 +72,13 @@ function * batchMap (collection, func, count) {
     if (itemCount === count) {
       yield batch;
       batch = [];
+      itemCount = 0;
     }
     batch.push(func(element, index, collection));
     itemCount++;
+  }
+  if (batch.length > 0) {
+    yield batch;
   }
 }
 
