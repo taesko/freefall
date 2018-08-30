@@ -55,7 +55,8 @@
           "date_to"
         ]
       }
-    }
+    },
+    "deposit_history":
   },
   "required": [
     "status_code"

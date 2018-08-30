@@ -429,7 +429,10 @@ const subscribe = defineAPIMethod(
       };
     }
 
-    const planRecord = await subscriptions.fetchSubscriptionPlan(dbClient, plan);
+    const planRecord = await subscriptions.fetchSubscriptionPlan(
+      dbClient,
+      plan
+    );
     const { initial_tax: initialTax } = planRecord;
     log.info(`Taxing user ${userId} for subscription ${subscriptionId}`);
     const transfer = await accounting.taxUser(dbClient, userId, initialTax);
@@ -598,6 +601,26 @@ const creditHistory = defineAPIMethod(
     assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
     assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
+    const { rows: transfers } = await dbClient.executeQuery(
+      `
+      SELECT transferred_at, transfer_amount, account_transfers.id AS transfer_id,
+        CASE
+          WHEN usat.id IS NULL THEN 'fetch tax'
+          WHEN usat.id IS NOT NULL THEN 'initial tax'
+        AS reason
+      LEFT JOIN user_subscription_account_transfers AS usat
+        ON account_transfers.id=usat.account_transfer_id
+      LEFT JOIN subscriptions_fetches_account_transfers AS sfat
+        ON account_tranfers.id=sfat.account_transfer_id
+      LEFT JOIN 
+      FROM account_transfers
+      WHERE user_id=$1
+      ORDER BY transferred_at
+      LIMIT $2
+      OFFSET $3
+      `,
+      [user.id, limit, offset],
+    );
     const { rows: subscrTransfers } = await dbClient.executeQuery(
       `
       SELECT credit_history.id::text, transferred_at, transfer_amount, reason,
@@ -641,9 +664,19 @@ const creditHistory = defineAPIMethod(
       return transfer;
     });
 
+    const { rows: depositHistory } = dbClient.executeQuery(
+      `
+      SELECT transferred_at, transfer_amount, reason AS 'gift'
+      WHERE user_id=$1 AND
+        id IN (SELECT account_transfer_id FROM account_transfers_by_employee)
+      `,
+      [user.id, limit, offset],
+    );
+
     return {
       status_code: '1000',
       credit_history: subscrTransfers,
+      depositHistory: depositHistory,
     };
   },
 );
