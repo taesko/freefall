@@ -429,7 +429,10 @@ const subscribe = defineAPIMethod(
       };
     }
 
-    const planRecord = await subscriptions.fetchSubscriptionPlan(dbClient, plan);
+    const planRecord = await subscriptions.fetchSubscriptionPlan(
+      dbClient,
+      plan
+    );
     const { initial_tax: initialTax } = planRecord;
     log.info(`Taxing user ${userId} for subscription ${subscriptionId}`);
     const transfer = await accounting.taxUser(dbClient, userId, initialTax);
@@ -626,24 +629,36 @@ const creditHistory = defineAPIMethod(
       JOIN subscriptions 
         ON users_subscriptions.subscription_id=subscriptions.id
       WHERE users_subscriptions.user_id=$1
-      ORDER BY transferred_at, id
+      ORDER BY transferred_at DESC, id ASC
       LIMIT $2
       OFFSET $3
       `,
       [user.id, limit, offset],
     );
 
-    subscrTransfers.map(transfer => {
+    for (const transfer of subscrTransfers) {
       transfer.date_from = moment(transfer.date_from)
         .format(SERVER_DATE_FORMAT);
       transfer.date_to = moment(transfer.date_to).format(SERVER_DATE_FORMAT);
       transfer.transferred_at = transfer.transferred_at.toISOString();
-      return transfer;
-    });
+    }
+
+    const { rows: depositHistory } = await dbClient.executeQuery(
+      `
+      SELECT transferred_at::text, transfer_amount, 'Freefall deposit' AS reason
+      FROM account_transfers
+      WHERE user_id=$1 AND id IN (SELECT account_transfer_id FROM account_transfers_by_employees)
+      ORDER BY transferred_at DESC, id ASC
+      LIMIT $2
+      OFFSET $3
+      `,
+      [user.id, limit, offset],
+    );
 
     return {
       status_code: '1000',
       credit_history: subscrTransfers,
+      deposit_history: depositHistory,
     };
   },
 );
