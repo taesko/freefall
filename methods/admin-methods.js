@@ -1,16 +1,16 @@
 const crypto = require('crypto');
 const { defineAPIMethod } = require('./resolve-method');
-const { assertPeer, assertApp, assertUser, PeerError, UserError, errorCodes } = require('../modules/error-handling');
+const { assertPeer, assertApp, assertUser, UserError } = require('../modules/error-handling');
 const { isObject } = require('lodash');
-const log = require('../modules/log');
 const adminAuth = require('../modules/admin-auth');
 const moment = require('moment');
-const subscriptions = require('../modules/subscriptions');
 const users = require('../modules/users');
 const accounting = require('../modules/accounting');
 const caching = require('../modules/caching');
 
 const MAX_CREDITS_DIFFERENCE = Math.pow(10, 12);
+const MIN_USER_EMAIL_LENGTH = 3;
+const MIN_USER_PASSWORD_LENGTH = 8;
 
 const adminListUsers = defineAPIMethod(
   {
@@ -227,178 +227,6 @@ const adminListUserSubscriptions = defineAPIMethod(
   },
 );
 
-/*const adminSubscribe = defineAPIMethod(
-  {
-    'ASUBSCR_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
-    'ASUBSCR_BAD_FLY_FROM': { status_code: '2100' },
-    'ASUBSCR_BAD_FLY_TO': { status_code: '2100' },
-    'ASUBSCR_BAD_USER_ID': { status_code: '2100' },
-    [errorCodes.subscriptionExists]: { status_code: '2000' },
-    [errorCodes.subscriptionDoesNotExist]: { status_code: '2000' },
-  },
-  async (params, dbClient) => {
-    assertPeer(
-      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_subscribe'),
-      'You do not have sufficient permission to call admin_list_subscriptions method.',
-      'ASUBSCR_NOT_ENOUGH_PERMISSIONS',
-    );
-
-    const flyFrom = +params.fly_from;
-    const flyTo = +params.fly_to;
-    const dateFrom = params.date_from;
-    const dateTo = params.date_to;
-    const userId = +params.user_id;
-
-    assertPeer(Number.isInteger(flyFrom), `got ${flyFrom}`, 'ASUBSCR_BAD_FLY_FROM');
-    assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'ASUBSCR_BAD_FLY_TO');
-    assertPeer(Number.isInteger(userId), `got ${userId}`, 'ASUBSCR_BAD_USER_ID');
-
-    let subscriptionId;
-    let statusCode;
-
-    try {
-      subscriptionId = await subscriptions.subscribeUser(
-        dbClient,
-        userId,
-        {
-          airportFromId: flyFrom,
-          airportToId: flyTo,
-          dateFrom,
-          dateTo,
-        },
-      );
-      statusCode = 1000;
-    } catch (e) {
-      if (e instanceof PeerError) {
-        log.warn(
-          'An error occurred while executing method admin_subscribe with params',
-          params,
-        );
-        subscriptionId = null;
-        statusCode = 2000;
-      } else {
-        throw e;
-      }
-    }
-
-    return {
-      subscription_id: `${subscriptionId}`,
-      status_code: `${statusCode}`,
-    };
-  },
-);
-
-async function adminUnsubscribe (params, dbClient) {
-  assertPeer(
-    await adminAuth.hasPermission(dbClient, params.api_key, 'admin_unsubscribe'),
-    'You do not have sufficient permission to call admin_list_subscriptions method.',
-  );
-
-  async function removeSubscription (params, dbClient) {
-    let statusCode;
-
-    const subId = +params.user_subscription_id;
-
-    try {
-      await subscriptions.removeUserSubscription(dbClient, subId);
-      statusCode = '1000';
-    } catch (e) {
-      if (e instanceof PeerError) {
-        log.warn(
-          'An error occurred while executing method admin_unsubscribe with params',
-          params,
-        );
-        statusCode = '2000';
-      } else {
-        throw e;
-      }
-    }
-
-    return { status_code: `${statusCode}` };
-  }
-
-  async function removeAllSubscriptions (params, dbClient) {
-    const userId = +params.user_id;
-    assertPeer(Number.isInteger(userId), 'user_id must be an integer wrapped in string.');
-    let statusCode;
-    try {
-      await subscriptions.removeAllSubscriptionsOfUser(dbClient, userId);
-      statusCode = '1000';
-    } catch (e) {
-      if (e instanceof PeerError) {
-        log.warn(
-          'An error occurred while executing method admin_unsubscribe with params',
-          params,
-        );
-        statusCode = '2000';
-      } else {
-        throw e;
-      }
-    }
-    // this method never fails ?
-    return { status_code: statusCode };
-  }
-
-  if (params.user_id) {
-    return removeAllSubscriptions(params, dbClient);
-  } else {
-    return removeSubscription(params, dbClient);
-  }
-}
-
-async function adminEditSubscription (params, dbClient) {
-  if (!await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_subscription')) {
-    return {
-      status_code: '2200',
-    };
-  }
-
-  const userSubId = +params.user_subscription_id;
-  const airportFromId = +params.fly_from;
-  const airportToId = +params.fly_to;
-  const dateFrom = params.date_from;
-  const dateTo = params.date_to;
-
-  try {
-    const updatedSubscription = await subscriptions.updateUserSubscription(
-      dbClient,
-      userSubId,
-      {
-        airportFromId,
-        airportToId,
-        dateFrom,
-        dateTo,
-      },
-    );
-
-    assertApp(isObject(updatedSubscription), `got ${updatedSubscription}`);
-
-    assertApp(updatedSubscription.updated_at instanceof Date, `got ${updatedSubscription.updated_at}`);
-
-    const updatedAt = updatedSubscription.updated_at.toISOString();
-
-    return {
-      updated_at: updatedAt,
-      status_code: '1000',
-    };
-  } catch (e) {
-    if (e instanceof PeerError) {
-      // TODO somehow make this a decorator ?
-      log.warn(
-        'An error occurred while executing method admin_edit_subscription with params',
-        params,
-      );
-      if (e.code === 'UPDATE_SUBSCR_BAD_DATE') {
-        return { status_code: '2100' };
-      } else {
-        return { status_code: '2000' };
-      }
-    } else {
-      throw e;
-    }
-  }
-}*/
-
 const adminRemoveUser = defineAPIMethod(
   {
     'ARU_INVALID_API_KEY': { status_code: '2100' },
@@ -478,153 +306,241 @@ const adminRemoveUser = defineAPIMethod(
   }
 );
 
-async function adminEditUser (params, dbClient) {
-  if (!await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_user')) {
-    return { status_code: '2100' };
-  }
-
-  if (!Number.isInteger(+params.user_id)) {
-    return { status_code: '2200' };
-  }
-
-  let statusCode;
-  const userId = +params.user_id;
-  const { email } = params;
-  let password;
-
-  if (params.password) {
-    password = users.hashPassword(params.password);
-  }
-
-  if (email.indexOf('@') === -1) {
-    return { status_code: '2203' };
-  }
-
-  try {
-    await users.editUser(
-      dbClient,
-      userId,
-      {
-        email,
-        password,
-      },
+const adminEditUser = defineAPIMethod(
+  {
+    'AEU_EMAIL_TAKEN': { status_code: '2001' },
+    'AEU_USER_NOT_EXIST': { status_code: '2002' },
+    'AEU_INVALID_API_KEY_': { status_code: '2100' },
+    'AEU_BAD_PARAMETERS_FORMAT': { status_code: '2200' },
+    'AEU_EMAIL_TOO_SHORT': { status_code: '2201' },
+    'AEU_PASSWORD_TOO_SHORT': { status_code: '2202' },
+    'AEU_INVALID_EMAIL': { status_code: '2203' },
+  },
+  async (params, dbClient) => {
+    assertUser(
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_edit_user'),
+      'You do not have permission to call admin_edit_user method!',
+      'AEU_INVALID_API_KEY'
     );
-    statusCode = '1000';
-  } catch (e) {
-    // TODO verify emails
-    if (e.code === 'FF_SHORT_EMAIL') {
-      statusCode = '2201';
-    } else if (e.code === 'FF_SHORT_PASSWORD') {
-      statusCode = '2202';
-    } else if (e.code === errorCodes.emailTaken) {
-      statusCode = '2001';
-    } else if (e instanceof PeerError) {
-      statusCode = '2000';
-    } else {
-      throw e;
-    }
-  }
 
-  return { status_code: statusCode };
-}
+    const userId = Number(params.user_id);
 
-async function adminListFetches (params, dbClient) {
-  assertPeer(
-    await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_fetches'),
-    'You do not have sufficient permission to call admin_list_subscriptions method.',
-  );
+    assertUser(
+      Number.isSafeInteger(userId),
+      'User id is not of expected format!',
+      'AEU_BAD_PARAMETERS_FORMAT'
+    );
 
-  const fetches = await dbClient.select('fetches');
-  return {
-    status_code: '1000',
-    fetches,
-  };
-}
+    let email = null;
+    let hashedPassword = null;
 
-async function adminAlterUserCredits (params, dbClient) {
-  // TODO define as API method
-  if (!await adminAuth.hasPermission(dbClient, params.api_key, 'admin_alter_user_credits')) {
-    return {
-      status_code: '2100',
-    };
-  }
-
-  if (!Number.isInteger(Number(params.user_id))) {
-    return {
-      status_code: '2103', // user not found or parameter error ?
-    };
-  }
-  if (!Number.isInteger(+params.credits_difference)) {
-    return { status_code: '2103' };
-  }
-
-  const userId = Number(params.user_id);
-  const amount = Math.abs(params.credits_difference);
-
-  let accountTransfer;
-
-  if (Math.abs(+params.credits_difference) > MAX_CREDITS_DIFFERENCE) {
-    return { status_code: '2103' }; // TODO set a new status code at the front end
-  } else if (params.credits_difference === 0) {
-    return { status_code: '2103' }; // TODO does not fail when user id does not exist.
-  } else if (params.credits_difference > 0) {
-    try {
-      accountTransfer = await accounting.depositCredits(
-        dbClient,
-        userId,
-        amount,
+    if (params.password) {
+      assertUser(
+        params.password.length >= MIN_USER_PASSWORD_LENGTH,
+        'Password too short!',
+        'AEU_PASSWORD_TOO_SHORT'
       );
-    } catch (e) {
-      if (e.code === errorCodes.userDoesNotExist) {
-        return { status_code: '2102' };
-      } else if (e.code === '23503' && e.constraint === 'account_transfers_user_id_fkey') {
-        return { status_code: '2102' };
-      } else {
-        throw e;
-      }
+
+      hashedPassword = users.hashPassword(params.password);
     }
-  } else {
+
+    if (params.email) {
+      assertUser(
+        params.email.indexOf('@') !== -1,
+        'Invalid email!',
+        'AEU_INVALID_EMAIL'
+      );
+
+      assertUser(
+        params.email.length >= MIN_USER_EMAIL_LENGTH,
+        'Email too short!',
+        'AEU_EMAIL_TOO_SHORT'
+      );
+
+      email = params.email;
+    }
+
+    let updateUserResult;
+
     try {
-      accountTransfer = await accounting.taxUser(dbClient, userId, amount);
-    } catch (e) {
-      if (e.code === errorCodes.notEnoughCredits) {
-        return { status_code: '2101' };
-      } else if (e.code === '23503' && e.constraint === 'account_transfers_user_id_fkey') {
-        return { status_code: '2102' };
+      updateUserResult = await dbClient.executeQuery(`
+
+        UPDATE users
+        SET
+          email = COALESCE($1, email),
+          password = COALESCE($2, password)
+        WHERE
+          active = true AND
+          id = $3
+          RETURNING *;
+
+      `, [
+        email,
+        hashedPassword,
+        userId,
+      ]);
+    } catch (error) {
+      // TODO verify emails
+      if (error.code === '23514' && error.constraint === 'check_email_length') {
+        throw new UserError('Email too short!', 'AEU_EMAIL_TOO_SHORT');
+      } else if (error.code === '23505') {
+        throw new UserError('Email already taken!', 'AEU_EMAIL_TAKEN');
       } else {
-        throw e;
+        throw error;
       }
     }
+
+    assertApp(isObject(updateUserResult), `got ${updateUserResult}`);
+    assertApp(Array.isArray(updateUserResult.rows), `got ${updateUserResult.rows}`);
+    assertApp(updateUserResult.rows.length <= 1, `got ${updateUserResult.rows.length}`);
+
+    assertUser(
+      updateUserResult.rows.length === 1,
+      'User does not exist!',
+      'AEU_USER_NOT_EXIST'
+    );
+
+    return { status_code: '1000' };
   }
+);
 
-  const selectEmployeeResult = await dbClient.executeQuery(`
+const adminAlterUserCredits = defineAPIMethod(
+  {
+    'AAUC_INVALID_API_KEY': { status_code: '2100' },
+    'AAUC_INSUFFICIENT_CREDITS': { status_code: '2101' },
+    'AAUC_INVALID_CREDITS_DIFFERENCE': { status_code: '2104' },
+    'AAUC_UNKNOWN_USER': { status_code: '2102' },
+    'AAUC_BAD_PARAMETERS_FORMAT': { status_code: '2103' },
+  },
+  async (params, dbClient) => {
+    assertUser(
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_alter_user_credits'),
+      'You do not have permission to call admin_alter_user_credits method!',
+      'AAUC_INVALID_API_KEY'
+    );
 
-    SELECT *
-    FROM employees
-    WHERE api_key = $1;
+    const userId = Number(params.user_id);
+    const creditsDifference = Number(params.credits_difference);
 
-  `, [params.api_key]);
+    assertUser(
+      Number.isSafeInteger(userId),
+      'User id was not in expected format!',
+      'AAUC_BAD_PARAMETERS_FORMAT'
+    );
 
-  assertApp(isObject(selectEmployeeResult), `got ${selectEmployeeResult}`);
-  assertApp(Array.isArray(selectEmployeeResult.rows), `got ${selectEmployeeResult.rows}`);
+    assertUser(
+      Number.isSafeInteger(creditsDifference),
+      'Credits difference was not in expected format!',
+      'AAUC_BAD_PARAMETERS_FORMAT'
+    );
 
-  if (selectEmployeeResult.rows.length !== 1) {
-    return { status_code: '2100' };
+    assertUser(
+      Math.abs(creditsDifference) <= MAX_CREDITS_DIFFERENCE,
+      'Credits difference too large!',
+      'AAUC_INVALID_CREDITS_DIFFERENCE'
+    );
+
+    assertUser(
+      creditsDifference !== 0,
+      'Credits difference can not be 0!',
+      'AAUC_INVALID_CREDITS_DIFFERENCE'
+    );
+
+    let accountTransferInsertResult, updateCreditsResult;
+
+    try {
+      updateCreditsResult = await dbClient.executeQuery(`
+
+        UPDATE users
+        SET credits = credits + $1
+        WHERE
+          id=$2 AND
+          active=true
+        RETURNING *;
+
+      `, [
+        creditsDifference,
+        userId,
+      ]);
+
+      accountTransferInsertResult = await dbClient.executeQuery(`
+
+        INSERT INTO account_transfers
+          (user_id, transfer_amount, transferred_at)
+        VALUES
+          ($1, $2, $3)
+        RETURNING *;
+
+      `, [
+        userId,
+        creditsDifference,
+        (new Date()).toISOString(),
+      ]);
+    } catch (error) {
+      if (error.code === '23503') { // foreign key constraint, for account_transfers user_id
+        throw new UserError('User does not exist!', 'AAUC_UNKNOWN_USER');
+      } else if (error.code === '23514' && error.constraint === 'users_credits_check') { // check constraint, for user credits amount >= 0
+        throw new UserError('User does not have enough credits!', 'AAUC_INSUFFICIENT_CREDITS');
+      } else {
+        throw error;
+      }
+    }
+
+    assertApp(isObject(updateCreditsResult), `got ${updateCreditsResult}`);
+    assertApp(Array.isArray(updateCreditsResult.rows), `got ${updateCreditsResult}`);
+    assertApp(updateCreditsResult.rows.length <= 1, `got ${updateCreditsResult.rows.length}`);
+
+    assertUser(
+      updateCreditsResult.rows.length === 1,
+      'User does not exist!',
+      'AAUC_UNKNOWN_USER'
+    );
+
+    assertApp(isObject(accountTransferInsertResult), `got ${accountTransferInsertResult}`);
+    assertApp(Array.isArray(accountTransferInsertResult.rows), `got ${accountTransferInsertResult}`);
+    assertApp(accountTransferInsertResult.rows.length === 1, `got ${accountTransferInsertResult.rows.length}`);
+
+    const accountTransferId = accountTransferInsertResult.rows[0].id;
+
+    const selectEmployeeResult = await dbClient.executeQuery(`
+
+      SELECT *
+      FROM employees
+      WHERE api_key = $1;
+
+    `, [params.api_key]);
+
+    assertApp(isObject(selectEmployeeResult), `got ${selectEmployeeResult}`);
+    assertApp(Array.isArray(selectEmployeeResult.rows), `got ${selectEmployeeResult.rows}`);
+    assertApp(selectEmployeeResult.rows.length <= 1, `got ${selectEmployeeResult.rows.length}`);
+
+    assertUser(
+      selectEmployeeResult.rows.length === 1,
+      'Employee does not exist!',
+      'AAUC_INVALID_API_KEY'
+    );
+
+    const employeeId = selectEmployeeResult.rows[0].id;
+
+    try {
+      await accounting.registerTransferByEmployee(
+        dbClient,
+        accountTransferId,
+        employeeId,
+      );
+    } catch (error) {
+      if (error.code === '23503' && error.constraint === 'account_transfers_by_employees_employee_id_fkey') {
+        throw new UserError('Employee does not exist!', 'AAUC_INVALID_API_KEY');
+      } else {
+        throw error;
+      }
+    }
+
+    return {
+      status_code: '1000',
+    };
   }
-
-  const employeeId = selectEmployeeResult.rows[0].id;
-
-  // TODO add try catch if employee does not exist
-  await accounting.registerTransferByEmployee(
-    dbClient,
-    accountTransfer.id,
-    employeeId,
-  );
-
-  return {
-    status_code: '1000',
-  };
-}
+);
 
 const adminAddRole = defineAPIMethod(
   {
@@ -703,8 +619,8 @@ const adminEditRole = defineAPIMethod(
   {
     'AER_INVALID_ADMIN_API_KEY': { status_code: '2100', updated_at: null },
     'AER_BAD_PARAMETERS_FORMAT': { status_code: '2101', updated_at: null },
-    'AER_UNKNOWN_PERMISSIONS': { status_code: '2102', updated_at: null, },
-    'AER_UNKNOWN_ROLE': { status_code: '2103', updated_at: null, },
+    'AER_UNKNOWN_PERMISSIONS': { status_code: '2102', updated_at: null },
+    'AER_UNKNOWN_ROLE': { status_code: '2103', updated_at: null },
     'AER_ROLE_NAME_EXISTS': { status_code: '2104', updated_at: null },
     'AER_REQUEST_CONFLICT': { status_code: '2201', updated_at: null },
   },
@@ -822,8 +738,6 @@ const adminEditRole = defineAPIMethod(
         roleUpdatedAt = insertRolePermissionResult.rows[0].updated_at;
       }
     }
-
-    // TODO everywhere where toISOString is used - check if used on a Date object
 
     return {
       status_code: '1000',
@@ -1479,12 +1393,8 @@ module.exports = {
   admin_list_user_subscriptions: adminListUserSubscriptions,
   admin_list_guest_subscriptions: adminListGuestSubscriptions,
   admin_list_users: adminListUsers,
-  admin_subscribe: adminSubscribe,
-  admin_unsubscribe: adminUnsubscribe,
-  admin_edit_subscription: adminEditSubscription,
   admin_remove_user: adminRemoveUser,
   admin_edit_user: adminEditUser,
-  admin_list_fetches: adminListFetches, // eslint-disable-line no-unused-vars
   admin_alter_user_credits: adminAlterUserCredits,
   admin_get_api_key: adminGetAPIKey,
 };

@@ -451,7 +451,8 @@ function start () {
           '2100': 'Invalid api key!',
           '2101': 'User does not have enough credits for this transaction!',
           '2102': 'User not found',
-          '2103': 'Invalid credits value.',
+          '2103': 'The form you have submitted was not in expected format. Please correct any wrong inputs and try again!',
+          '2104': 'Invalid credits value!',
         };
 
         assertPeer(typeof messages[result.status_code] === 'string', {
