@@ -1,11 +1,13 @@
 const moment = require('moment');
+const url = require('url');
 
 const users = require('./users');
 const log = require('./log');
+const config = require('./config');
 const { SESSION_CACHE, USER_CACHE } = require('./caching');
-const { AppError, assertApp } = require('./error-handling');
+const { AppError, assertApp, assertUser } = require('./error-handling');
 
-class InvalidCredentials extends AppError {}
+class InvalidCredentialsDepreciated extends AppError {}
 
 class UserExists extends AppError {}
 
@@ -45,11 +47,23 @@ async function login (ctx, email, password) {
   if (await isLoggedIn(ctx)) {
     throw new AlreadyLoggedIn(`Already logged in.`);
   }
-  const user = await users.fetchUser(dbClient, { email, password });
+  const { rows: userRows } = await dbClient.executeQuery(
+    `SELECT * FROM users WHERE email=$1 AND password=$2`,
+    [email, password]
+  );
+  const [user] = userRows;
 
-  if (!user) {
-    throw new InvalidCredentials(`Failed to login with email=${email} and password=${password}.`);
-  }
+  assertUser(user, `Invalid email or password`, 'LOGIN_INVALID_CREDENTIALS');
+
+  const relUrl = url.resolve(config.address, config.routes.verify_email);
+  const query = `?token=${encodeURIComponent(user.verification_token)}&resend=true`;
+  const link = relUrl + query;
+  const resendVerificationLinkMsg = `Your account is not verified. We sent verification email to ${user.email}. If you haven't received it please visit this link here ${link} to resend it.`;
+  // TODO ask Manol whether user messages should be based on a configuration.
+
+  assertUser(user.verified, resendVerificationLinkMsg, 'LOGIN_UNVERIFIED_EMAIL');
+  assertUser(user.active, `Your account has been suspended`, `LOGIN_SUSPENDED_USER`);
+
   await loginById(ctx, user.id);
 }
 
@@ -193,6 +207,6 @@ module.exports = {
   isLoggedIn,
   UserExists,
   AlreadyLoggedIn,
-  InvalidCredentials,
+  InvalidCredentialsDepreciated,
   tokenHasRoleDepreciated: tokenHasRoleDepreciated,
 };

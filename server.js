@@ -8,12 +8,13 @@ const views = require('koa-views');
 const cors = require('@koa/cors');
 const session = require('koa-session');
 
-const { assertApp } = require('./modules/error-handling');
+const { assertApp, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
 const auth = require('./modules/auth');
 const users = require('./modules/users');
 const { rpcAPILayer } = require('./modules/api');
 const methods = require('./methods/methods');
+const config = require('./modules/config');
 const { getExecuteMethod } = require('./methods/resolve-method');
 const log = require('./modules/log');
 const { getContextForRoute } = require('./modules/render-contexts');
@@ -137,9 +138,9 @@ router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
 
     return;
   } catch (e) {
-    if (e instanceof auth.InvalidCredentials) {
-      log.info('Invalid credentials on login. Setting ctx.state.login_error_message');
-      ctx.state.login_error_message = 'Invalid username or password.';
+    if (e instanceof UserError) {
+      log.info('Login failed. Setting ctx.state.login_error_message');
+      ctx.state.login_error_message = e.message;
     } else {
       throw e;
     }
@@ -191,9 +192,23 @@ router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   return ctx.render('login.html', await getContextForRoute(ctx, 'get', '/login'));
 });
 
-router.get('/register/verify', async (ctx) => {
-  const { token } = ctx.request.query;
+router.get(config.routes.verify_email, async (ctx) => {
+  const { token, resend } = ctx.request.query;
   const { dbClient } = ctx.state;
+
+  if (resend) {
+    await dbClient.executeQuery(
+      `
+      UPDATE users 
+      SET sent_verification_email=false 
+      WHERE verification_token=$1 AND verified=false
+      `,
+      [token]
+    );
+    ctx.state.commitDB = true;
+    ctx.body = 'We re-sent a verification link to your email.';
+    return;
+  }
 
   try {
     await users.emailActivateUserAccount(dbClient, token);
