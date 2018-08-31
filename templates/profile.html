@@ -51,7 +51,10 @@
       <a id="display-subscriptions-btn" class="btn" role="button" href="#">Subscriptions</a>
     </li>
     <li role="presentation">
-      <a id="display-credit-history-btn" class="btn" role="button" href="#">Credit History</a>
+      <a id="display-credit-history-btn" class="btn" role="button" href="#">History of taxing</a>
+    </li>
+    <li role="presentation">
+      <a id="display-deposit-history-btn" class="btn" role="button" href="#">History of deposits</a>
     </li>
   </ul>
   <div class="row">
@@ -150,6 +153,26 @@
       </table>
       <button id="credit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
       <p id="no-credit-history-msg" class="text-center collapse">No credit transactions found.</p>
+    </div>
+    <div id="deposit-history-tab" class="container collapse">
+      <table id="deposit-history-table" class="table table-bordered">
+        <thead>
+          <tr>
+            <td><b>Deposited on</b></td>
+            <td><b>Amount</b></td>
+            <td><b>Reason</b></td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="deposit-history-template-row" class="collapse">
+            <td id="deposited-on"></td>
+            <td id="deposit-amount"></td>
+            <td id="deposit-reason"></td>
+          </tr>
+        </tbody>
+      </table>
+      <button id="deposit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
+      <p id="no-deposit-history-msg" class="text-center collapse">No deposits found.</p>
     </div>
   </div>
 </div>

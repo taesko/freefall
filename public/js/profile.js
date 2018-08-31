@@ -539,15 +539,12 @@ function start () {
   }
 
   function displaySubscriptions () {
-    function display () {
-      $('#credit-history-tab').hide();
-      $('#subscriptions-tab').show();
-    }
-    if ($('#subscriptions-table tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)').length ===
-        0) {
-      loadMoreSubscriptions(display);
+    const rows = $('#subscriptions-table tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)');
+
+    if (rows.length === 0) {
+      loadMoreSubscriptions(switchTab.bind({}, '#subscriptions-tab'));
     } else {
-      display();
+      switchTab('#subscriptions-tab');
     }
   }
 
@@ -581,21 +578,40 @@ function start () {
   }
 
   function displayCreditHistory () {
-    function display () {
-      $('#credit-history-tab').show();
-      $('#subscriptions-tab').hide();
-    }
     if ($('#credit-history-table tbody tr:not(:first)').length === 0) {
-      loadMoreCreditHistory(display);
+      loadMoreCreditHistory(switchTab.bind({}, '#credit-history-tab'));
     } else {
-      display();
+      switchTab('#credit-history-tab');
     }
+  }
+
+  function displayDepositHistory () {
+    if ($('#deposit-history-table tbody tr:not(:first)').length === 0) {
+      loadMoreCreditHistory(switchTab.bind({}, '#deposit-history-tab'));
+    } else {
+      switchTab('#deposit-history-tab');
+    }
+  }
+
+  function switchTab (tabID) {
+    const tabs = ['#credit-history-tab', '#subscriptions-tab', '#deposit-history-tab'];
+
+    for (const tab of tabs) {
+      if (tab !== tabID) {
+        $(tab).hide();
+      }
+    }
+
+    $(tabID).show();
   }
 
   function loadMoreCreditHistory (callbackOnFinish) {
     assertApp(_.isFunction(callbackOnFinish), { msg: `got ${callbackOnFinish}` });
     const $creditsTable = $('#credit-history-table');
-    const offset = $creditsTable.find('tbody tr:not(:first)').length;
+    const $depositsTable = $('#deposit-history-table');
+    const creditsOffset = $creditsTable.find('tbody tr:not(:first)').length;
+    const depositsOffset = $depositsTable.find('tbody tr:not(:first)').length;
+    const offset = Math.max(creditsOffset, depositsOffset);
     const params = {
       limit: CREDIT_HISTORY_PAGE_LIMIT,
       offset: offset,
@@ -606,23 +622,45 @@ function start () {
       assertApp(result.status_code < '2000', { msg: result.status_code + '' });
 
       const history = result.credit_history;
-      if (offset === 0 && history.length === 0) {
-        $creditsTable.hide();
-        $('#no-credit-history-msg').show();
-        $('#credit-history-load-more-btn').hide();
-      } else if (history.length < CREDIT_HISTORY_PAGE_LIMIT) {
-        renderCreditHistory($creditsTable, history);
-        $('#credit-history-load-more-btn').hide();
-      } else {
-        renderCreditHistory($creditsTable, history);
-      }
+      const deposits = result.deposit_history;
+
+      renderCreditHistoryTab(history);
+      renderDepositHistoryTab(deposits);
+
       if (callbackOnFinish) {
         callbackOnFinish();
       }
     });
+
+    function renderCreditHistoryTab (creditHistory) {
+      if (offset === 0 && creditHistory.length === 0) {
+        $creditsTable.hide();
+        $('#no-credit-history-msg').show();
+        $('#credit-history-load-more-btn').hide();
+      } else if (creditHistory.length < CREDIT_HISTORY_PAGE_LIMIT) {
+        renderCreditHistoryTable($creditsTable, creditHistory);
+        $('#credit-history-load-more-btn').hide();
+      } else {
+        renderCreditHistoryTable($creditsTable, creditHistory);
+      }
+    }
+    function renderDepositHistoryTab (depositHistory) {
+      const $rowTemplate = $depositsTable.find('#deposit-history-template-row');
+
+      if (offset === 0 && depositHistory.length === 0) {
+        $depositsTable.hide();
+        $('#no-deposit-history-msg').show();
+        $('#deposit-history-load-more-btn').hide();
+      } else if (depositHistory.length < CREDIT_HISTORY_PAGE_LIMIT) {
+        renderDepositHistoryTable($depositsTable, $rowTemplate, depositHistory);
+        $('#deposit-history-load-more-btn').hide();
+      } else {
+        renderDepositHistoryTable($depositsTable, $rowTemplate, depositHistory);
+      }
+    }
   }
 
-  function renderCreditHistory ($table, history) {
+  function renderCreditHistoryTable ($table, history) {
     // $table.find('tr:not(:first)').remove();
     const $tableRowTemplate = $table.find('#credit-history-template-row');
 
@@ -671,11 +709,41 @@ function start () {
     }
   }
 
+  function renderDepositHistoryTable ($table, $rowTemplate, history) {
+    assertApp($table instanceof jQuery, { msg: `got ${$table}` });
+    assertApp($rowTemplate instanceof jQuery, { msg: `got ${$rowTemplate}` });
+    assertApp(_.isArray(history), { msg: `got ${history}` });
+
+    for (const deposit of history) {
+      const $clone = $rowTemplate.clone()
+        .removeAttr('id')
+        .show();
+
+      renderRow($clone, deposit);
+
+      $table.find('tbody tr:last').after($clone);
+    }
+
+    function renderRow ($tableRow, depositHash) {
+      const propToId = {
+        'transferred_at': '#deposited-on',
+        'transfer_amount': '#deposit-amount',
+        'reason': '#deposit-reason',
+      };
+
+      for (const prop of Object.keys(propToId)) {
+        $tableRow.find(propToId[prop]).text(depositHash[prop]);
+      }
+    }
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $('#display-subscriptions-btn').click(displaySubscriptions);
     $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
     $('#display-credit-history-btn').click(displayCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
+    $('#display-deposit-history-btn').click(displayDepositHistory);
+    $('#deposit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayDepositHistory));
     $('#subscribe-submit-btn').click(onSubscribeSubmitClick);
     $('#subscribe-clear-btn').click(function () {
       mainUtils.clearFormData('#subscribe-form');
