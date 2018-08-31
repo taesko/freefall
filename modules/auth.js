@@ -58,7 +58,7 @@ async function login (ctx, email, password) {
   const relUrl = url.resolve(config.address, config.routes.verify_email);
   const query = `?token=${encodeURIComponent(user.verification_token)}&resend=true`;
   const link = relUrl + query;
-  const resendVerificationLinkMsg = `Your account is not verified. We sent verification email to ${user.email}. If you haven't received it please visit this link here ${link} to resend it.`;
+  const resendVerificationLinkMsg = `Your account is not verified. We sent verification email to ${user.email}. If you haven't received it please click <a href="${link}">here</a> to resend it.`;
   // TODO ask Manol whether user messages should be based on a configuration.
 
   assertUser(user.verified, resendVerificationLinkMsg, 'LOGIN_UNVERIFIED_EMAIL');

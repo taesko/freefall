@@ -1,3 +1,4 @@
+const url = require('url');
 const path = require('path');
 const Koa = require('koa');
 const Router = require('koa-router');
@@ -139,6 +140,17 @@ router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
     return;
   } catch (e) {
     if (e instanceof UserError) {
+      if (e.code === 'LOGIN_UNVERIFIED_EMAIL') {
+        const { rows: userRows } = await ctx.state.dbClient.executeQuery(
+          'SELECT * FROM users WHERE email=$1',
+          [email]
+        );
+        const [user] = userRows;
+        const relUrl = url.resolve(config.address, config.routes.verify_email);
+        const query = `?token=${encodeURIComponent(user.verification_token)}&resend=true`;
+        const link = relUrl + query;
+        const resendVerificationLinkMsg = `Your account is not verified. We sent verification email to ${user.email}. If you haven't received it please click <a href="${link}">here</a> to resend it.`;
+      }
       log.info('Login failed. Setting ctx.state.login_error_message');
       ctx.state.login_error_message = e.message;
     } else {
