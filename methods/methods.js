@@ -629,7 +629,7 @@ const creditHistory = defineAPIMethod(
       JOIN subscriptions 
         ON users_subscriptions.subscription_id=subscriptions.id
       WHERE users_subscriptions.user_id=$1
-      ORDER BY transferred_at, id
+      ORDER BY transferred_at DESC, id ASC
       LIMIT $2
       OFFSET $3
       `,
@@ -648,7 +648,7 @@ const creditHistory = defineAPIMethod(
       SELECT transferred_at::text, transfer_amount, 'Freefall deposit' AS reason
       FROM account_transfers
       WHERE user_id=$1 AND id IN (SELECT account_transfer_id FROM account_transfers_by_employees)
-      ORDER BY transferred_at
+      ORDER BY transferred_at DESC, id ASC
       LIMIT $2
       OFFSET $3
       `,
