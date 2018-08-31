@@ -658,7 +658,7 @@ const creditHistory = defineAPIMethod(
     return {
       status_code: '1000',
       credit_history: subscrTransfers,
-      depositHistory: depositHistory,
+      deposit_history: depositHistory,
     };
   },
 );
