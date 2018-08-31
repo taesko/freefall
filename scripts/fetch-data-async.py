@@ -14,6 +14,7 @@ TIMEOUT = 15
 
 loop = None
 
+
 class BaseError(Exception):
     def __init__(self, msg):
         super().__init__(msg)
@@ -74,7 +75,7 @@ async def request(http_client, URL, params=None, max_retries=5):
         isinstance(max_retries, int),
         'Expected max_retries to be int, but was "{0}"'.format(type(max_retries)))
 
-    uri = URL;
+    uri = URL
 
     if '?' not in URL and params is not None:
         uri += '?'
@@ -104,6 +105,7 @@ def stringify_columns(columns):
     assert_app(all(isinstance(col, str) for col in columns), 'All elements in arg "columns" in stringify_columns function are required to be str.')
 
     return ', '.join(columns)
+
 
 def to_smallest_currency_unit(quantity):
     return quantity * 100
@@ -166,7 +168,7 @@ async def insert(conn, table, data):
 async def insert_data_fetch(conn):
     assert_db_connection(conn, 'insert_data_fetch function called without connection to db.')
 
-    insert_result = await conn.fetch('INSERT INTO fetches(fetch_time) VALUES (now()) RETURNING id;');
+    insert_result = await conn.fetch('INSERT INTO fetches(fetch_time) VALUES (now()) RETURNING id;')
 
     assert_app(isinstance(insert_result, list), 'Expected insert_result to be list, but was {0}'.format(type(insert_result)))
     assert_app(len(insert_result) == 1, 'Expected insert_result to have length=1, but got length={0}'.format(len(insert_result)))
@@ -716,7 +718,7 @@ async def insert_airline(pool, airline):
 
         # check for FakeAirline:
         if airline['id'] == '__':
-            return;
+            return
 
         iata_code_pattern = re.compile('^[A-Z0-9]+$')
 
@@ -779,7 +781,7 @@ async def start():
                     subscription_fetch = await insert(conn, 'subscriptions_fetches', {
                         'subscription_id': sub['id'],
                         'fetch_id': fetch_id
-                    });
+                    })
 
                     assert_app(isinstance(subscription_fetch, asyncpg.Record), 'Expected subscription_fetch to be a asyncpg.Record, but was {0}'.format(type(subscription_fetch)))
                     async with conn.transaction():
