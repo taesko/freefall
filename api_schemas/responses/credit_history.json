@@ -56,7 +56,20 @@
         ]
       }
     },
-    "deposit_history":
+    "deposit_history": {
+      "type": "object",
+      "properties": {
+        "transferred_at": {
+          "type": "string"
+        },
+        "transfer_amount": {
+          "type": "number"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    }
   },
   "required": [
     "status_code"

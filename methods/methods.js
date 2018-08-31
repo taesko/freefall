@@ -601,26 +601,6 @@ const creditHistory = defineAPIMethod(
     assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
     assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
-    const { rows: transfers } = await dbClient.executeQuery(
-      `
-      SELECT transferred_at, transfer_amount, account_transfers.id AS transfer_id,
-        CASE
-          WHEN usat.id IS NULL THEN 'fetch tax'
-          WHEN usat.id IS NOT NULL THEN 'initial tax'
-        AS reason
-      LEFT JOIN user_subscription_account_transfers AS usat
-        ON account_transfers.id=usat.account_transfer_id
-      LEFT JOIN subscriptions_fetches_account_transfers AS sfat
-        ON account_tranfers.id=sfat.account_transfer_id
-      LEFT JOIN 
-      FROM account_transfers
-      WHERE user_id=$1
-      ORDER BY transferred_at
-      LIMIT $2
-      OFFSET $3
-      `,
-      [user.id, limit, offset],
-    );
     const { rows: subscrTransfers } = await dbClient.executeQuery(
       `
       SELECT credit_history.id::text, transferred_at, transfer_amount, reason,
@@ -656,19 +636,21 @@ const creditHistory = defineAPIMethod(
       [user.id, limit, offset],
     );
 
-    subscrTransfers.map(transfer => {
+    for (const transfer of subscrTransfers) {
       transfer.date_from = moment(transfer.date_from)
         .format(SERVER_DATE_FORMAT);
       transfer.date_to = moment(transfer.date_to).format(SERVER_DATE_FORMAT);
       transfer.transferred_at = transfer.transferred_at.toISOString();
-      return transfer;
-    });
+    }
 
-    const { rows: depositHistory } = dbClient.executeQuery(
+    const { rows: depositHistory } = await dbClient.executeQuery(
       `
-      SELECT transferred_at, transfer_amount, reason AS 'gift'
-      WHERE user_id=$1 AND
-        id IN (SELECT account_transfer_id FROM account_transfers_by_employee)
+      SELECT transferred_at::text, transfer_amount, 'Freefall deposit' AS reason
+      FROM account_transfers
+      WHERE user_id=$1 AND id IN (SELECT account_transfer_id FROM account_transfers_by_employees)
+      ORDER BY transferred_at
+      LIMIT $2
+      OFFSET $3
       `,
       [user.id, limit, offset],
     );
