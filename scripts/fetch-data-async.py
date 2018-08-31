@@ -14,6 +14,7 @@ TIMEOUT = 15
 
 loop = None
 
+
 class BaseError(Exception):
     def __init__(self, msg):
         super().__init__(msg)
@@ -74,7 +75,7 @@ async def request(http_client, URL, params=None, max_retries=5):
         isinstance(max_retries, int),
         'Expected max_retries to be int, but was "{0}"'.format(type(max_retries)))
 
-    uri = URL;
+    uri = URL
 
     if '?' not in URL and params is not None:
         uri += '?'
@@ -104,6 +105,7 @@ def stringify_columns(columns):
     assert_app(all(isinstance(col, str) for col in columns), 'All elements in arg "columns" in stringify_columns function are required to be str.')
 
     return ', '.join(columns)
+
 
 def to_smallest_currency_unit(quantity):
     return quantity * 100
@@ -166,7 +168,7 @@ async def insert(conn, table, data):
 async def insert_data_fetch(conn):
     assert_db_connection(conn, 'insert_data_fetch function called without connection to db.')
 
-    insert_result = await conn.fetch('INSERT INTO fetches(fetch_time) VALUES (now()) RETURNING id;');
+    insert_result = await conn.fetch('INSERT INTO fetches(fetch_time) VALUES (now()) RETURNING id;')
 
     assert_app(isinstance(insert_result, list), 'Expected insert_result to be list, but was {0}'.format(type(insert_result)))
     assert_app(len(insert_result) == 1, 'Expected insert_result to have length=1, but got length={0}'.format(len(insert_result)))
@@ -598,13 +600,12 @@ async def get_airport_if_not_exists(pool, http_client, iata_code):
         await pool.release(conn)
 
 
-async def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
+async def charge_fetch_tax(conn, subscription_fetch):
     assert_db_connection(conn, 'charge_fetch_tax called without connection to db')
     assert_app(conn.is_in_transaction(), 'Connection not in transaction, in charge_fetch_tax')
     assert_app(
         isinstance(subscription_fetch, asyncpg.Record),
         'Expected subscription_fetch to be asyncpg.Record, but was "{0}"'.format(type(subscription_fetch)))
-    assert_app(isinstance(fetch_tax, int), 'Expected fetch_tax to be int, but was "{0}"'.format(type(fetch_tax)))
 
     expect_subscription_fetch_keys = ['id', 'subscription_id']
 
@@ -614,42 +615,49 @@ async def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
             isinstance(subscription_fetch[key], int),
             'Expected subscription_fetch[{0}] "{1}" to be int, but was "{2}"'.format(key, subscription_fetch[key], type(subscription_fetch[key])))
 
-    log('Beginning transaction. Charging fetch_tax {0} for subscription_id {1}'.format(fetch_tax, subscription_fetch['subscription_id']))
+    log('Beginning transaction. Charging subscription_id {0}'.format(subscription_fetch['subscription_id']))
 
     await conn.execute('''
-
         UPDATE users_subscriptions
         SET active = FALSE
-        WHERE
-        (
-            user_id IN (
-                SELECT id
-                FROM users
-                WHERE credits < $1
-            ) OR
-            date_to < now()
-        );
-
-    ''', fetch_tax)
+        FROM subscription_plans
+        WHERE 
+            date_to < now() OR
+            (
+                users_subscriptions.subscription_plan_id = subscription_plans.id AND
+                user_id IN (SELECT id FROM users WHERE credits < subscription_plans.fetch_tax)
+            )
+        ;
+    ''')
 
     users = await conn.fetch('''
-
         UPDATE users
-        SET credits = credits - $1
-        WHERE id IN (
-            SELECT user_id
-            FROM users_subscriptions
-            WHERE
-                active = TRUE AND
-                subscription_id = $2
-        )
-        RETURNING *;
-
-    ''', fetch_tax, subscription_fetch['subscription_id'])
+        SET credits = credits - subscription_plans.fetch_tax
+        FROM 
+            subscription_plans,
+            users_subscriptions
+        WHERE users.id=users_subscriptions.user_id AND
+            users_subscriptions.subscription_id=$1 AND
+            users_subscriptions.active=true AND
+            COALESCE( -- if subscription has never been taxed below query returns null
+                now() - subscription_plans.tax_interval > (
+                    SELECT MAX(transferred_at)
+                    FROM account_transfers
+                    JOIN subscriptions_fetches_account_transfers sfat
+                        ON account_transfers.id = sfat.account_transfer_id
+                    JOIN subscriptions_fetches
+                        ON sfat.subscription_fetch_id = subscriptions_fetches.id
+                    WHERE subscriptions_fetches.subscription_id=users_subscriptions.subscription_id AND
+                        account_transfers.user_id=users.id
+                ),
+                true
+            )
+        RETURNING users.id, subscription_plans.fetch_tax;
+    ''', subscription_fetch['subscription_id'])
 
     assert_app(isinstance(users, list), 'Expected users to be list, but was {0}'.format(type(users)))
 
-    log('Charged {0} users with fetch_tax {1} for subscription_id {2}'.format(len(users), fetch_tax, subscription_fetch['subscription_id']))
+    # log('Charged {0} users with fetch_tax {1} for subscription_id {2}'.format(len(users), fetch_tax, subscription_fetch['subscription_id']))
 
     for user in users:
         assert_app(isinstance(user, asyncpg.Record), 'Expected user to be asyncpg.Record, but was {0}'.format(type(user)))
@@ -659,17 +667,15 @@ async def charge_fetch_tax(conn, subscription_fetch, fetch_tax):
         for key in expect_user_keys:
             assert_app(key in user, 'Key "{0}" not found in user'.format(key))
 
-        log('Saving account transfer transfer_amount={0} for user_id={1}'.format(fetch_tax * -1, user['id']))
+        log('Saving account transfer transfer_amount={0} for user_id={1}'.format(user['fetch_tax'] * -1, user['id']))
 
         insert_result = await conn.fetch('''
-
             INSERT INTO account_transfers
                 (user_id, transfer_amount, transferred_at)
             VALUES
                 ($1, $2, now())
             RETURNING *;
-
-        ''', user['id'], fetch_tax * -1)
+        ''', user['id'], user['fetch_tax'] * -1)
 
         assert_app(isinstance(insert_result, list), 'Expected insert_result to be a list, but was {0}'.format(type(insert_result)))
         assert_app(len(insert_result) == 1, 'Expected insert_result to have length=1, but got length={0}'.format(len(insert_result)))
@@ -716,7 +722,7 @@ async def insert_airline(pool, airline):
 
         # check for FakeAirline:
         if airline['id'] == '__':
-            return;
+            return
 
         iata_code_pattern = re.compile('^[A-Z0-9]+$')
 
@@ -737,7 +743,6 @@ async def insert_airline(pool, airline):
 
 
 async def start():
-    fetch_tax = 500 # cents
     try:
         pool = await asyncpg.create_pool(database='freefall', user='freefall', password='freefall')
 
@@ -779,11 +784,11 @@ async def start():
                     subscription_fetch = await insert(conn, 'subscriptions_fetches', {
                         'subscription_id': sub['id'],
                         'fetch_id': fetch_id
-                    });
+                    })
 
                     assert_app(isinstance(subscription_fetch, asyncpg.Record), 'Expected subscription_fetch to be a asyncpg.Record, but was {0}'.format(type(subscription_fetch)))
                     async with conn.transaction():
-                        await charge_fetch_tax(conn, subscription_fetch, fetch_tax)
+                        await charge_fetch_tax(conn, subscription_fetch)
 
                     # TODO take airport_from and airport_to in paralel
                     airport_from = await select_where(conn, 'airports', ['id', 'iata_code', 'name'], {

@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-const path = require('path');
+const url = require('url');
 const { Client } = require('pg');
 const mailer = require('nodemailer');
 const moment = require('moment');
@@ -7,11 +7,11 @@ const moment = require('moment');
 const log = require('../modules/log');
 const db = require('../modules/db');
 const utils = require('../modules/utils');
+const config = require('../modules/config');
 const { assertApp } = require('../modules/error-handling');
 
 const DEFAULT_EMAIL = 'freefall.subscriptions';
 const DEFAULT_PASSWORD = 'onetosix';
-const FREEFALL_ADDRESS = '10.20.1.128:3000';
 const TODAY = moment();
 const NOTIFY_UNTIL_DATE = moment().add(7, 'days');
 const VERIFICATION_EMAIL_BATCH_COUNT = 100;
@@ -151,7 +151,7 @@ function generateMailContent (subscriptions) {
     })
     .join('\n\t');
 
-  return `Come visit our site at ${FREEFALL_ADDRESS} to see new information about the following flights:\n\t${mainContent}`;
+  return `Come visit our site at ${config.address} to see new information about the following flights:\n\t${mainContent}`;
 }
 
 async function sendVerificationTokens (client) {
@@ -176,7 +176,7 @@ async function sendVerificationTokens (client) {
       assertApp(typeof email === 'string', `got ${email}`);
       assertApp(typeof token === 'string', `got ${token}`);
       const subject = 'Freefall account activation';
-      const route = path.join(FREEFALL_ADDRESS, 'register', 'verify');
+      const route = url.resolve(config.address, config.routes.verify_email);
       const query = `?token=${token}`;
       const link = route + query;
       const text = `Visit this link here to activate your account:\n${link}.`;
@@ -239,7 +239,10 @@ async function sendPasswordResets (client) {
   for (const {email, new_password, token} of rows) {
     log.info('Sending password reset email to', email);
     const subject = 'Freefall password reset';
-    const route = path.join(FREEFALL_ADDRESS, 'register', 'password-reset', 'reset');
+    const route = url.resolve(
+      config.address,
+      config.routes.password_reset_email
+    );
     const query = `?token=${token}`;
     const link = route + query;
     const text = [

@@ -25,6 +25,22 @@
           <div class="form-group fixed-form-height text-center">
             <button type="submit" class="btn btn-primary">Log in</button>
           </div>
+          {{#if errors}}
+            <p class="text-center text-danger">
+              {{#if errors.LOGIN_UNVERIFIED_EMAIL }}
+                Your account is not verified. We sent verification email to <b>{{ email }}</b>.
+                If you haven't received it please click <a href="{{link}}">here</a> to resend it.`
+              {{else if errors.LOGIN_SUSPENDED_USER }}
+                Your account <b>{{ email }}</b> has been suspended.
+              {{else if errors.LOGIN_INVALID_CREDENTIALS }}
+                Invalid username or password.
+              {{else}}
+                An unknown error occurred, please refresh the page.
+              {{/if}}
+            </p>
+          {{else}}
+            <p class="text-center text-success">{{ success_message }}</p>
+          {{/if}}
           {{> auth_message_success }}
           {{> auth_message_error }}
         </div>
