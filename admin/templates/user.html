@@ -13,6 +13,7 @@
     {{> heading }}
     {{> menu }}
     {{> messages }}
+    <form id="edit-user"></form>
     <table id="users-table" class="table table-bordered">
       <thead>
         <tr>
@@ -29,16 +30,16 @@
             <span id="user-edit-mode-id"></span>
           </td>
           <td>
-            <input id="user-edit-mode-email" class="form-control" name="user-email" type="email" placeholder="Email" value="" required>
+            <input id="user-edit-mode-email" class="form-control" name="user-email" type="email" placeholder="Email" value="" form="edit-user">
           </td>
           <td>
-            <input id="user-edit-mode-password" name="user-password" class="form-control" type="password" autocomplete="new-password" placeholder="Password" value="" required>
+            <input id="user-edit-mode-password" name="user-password" class="form-control" type="password" autocomplete="new-password" placeholder="Password" value="" form="edit-user">
           </td>
           <td class="text-right">
             <span id="user-edit-mode-credits"></span>
           </td>
           <td>
-            <button id="user-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
+            <input id="user-edit-mode-save-btn" type="submit" form="edit-user" class="btn btn-primary">
             <button id="user-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
           </td>
         </tr>

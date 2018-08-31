@@ -6,6 +6,7 @@ function start () {
   const assertPeer = mainUtils.assertPeer;
   const assertUser = mainUtils.assertUser;
   const UserError = mainUtils.UserError;
+  const ApplicationError = mainUtils.ApplicationError;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const RESULTS_LIMIT = 20;
   const APIKeyRef = mainUtils.APIKeyRef;
@@ -115,11 +116,43 @@ function start () {
 
   const onSaveUserClick = function (event) {
     mainUtils.trace('onSaveUserClick');
+    event.preventDefault();
 
-    const saveButton = event.target;
+    const form = event.target;
+    const formData = $(form).serializeArray();
 
-    const newEmail = $('#user-edit-mode-email').val().trim();
-    const newPassword = $('#user-edit-mode-password').val().trim();
+    var i; // eslint-disable-line no-var
+    var newEmail, newPassword; // eslint-disable-line no-var
+
+    for (i = 0; i < formData.length; i++) {
+      assertApp(_.isObject(formData[i]), {
+        msg: 'Expected each item in formData to be an object, but current item=' + formData[i], // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].name === 'string', {
+        msg: 'Expected item in formData to have property "name" of type string, but property "name" =' + formData[i].name, // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].value === 'string', {
+        msg: 'Expected item in formData to have property "value" of type string, but property "value" =' + formData[i].value, // eslint-disable-line prefer-template
+      });
+
+      if (formData[i].name === 'user-email') {
+        newEmail = formData[i].value.trim();
+      } else if (formData[i].name === 'user-password') {
+        newPassword = formData[i].value.trim();
+      } else {
+        throw new ApplicationError({
+          msg: 'Unknown formData name: ' + formData[i].name, // eslint-disable-line prefer-template
+        });
+      }
+    }
+
+    assertApp(typeof newEmail === 'string', {
+      msg: 'Expected newEmail to be string, but newEmail=' + newEmail, // eslint-disable-line prefer-template
+    });
+
+    assertApp(typeof newPassword === 'string', {
+      msg: 'Expected newPassword to be string, but newPassword=' + newPassword, // eslint-disable-line prefer-template
+    });
 
     const params = {
       v: '2.0',
@@ -128,17 +161,35 @@ function start () {
     };
 
     if (newEmail.length > 0) {
+      assertUser(newEmail.length >= 3, {
+        userMessage: 'Invalid email!',
+        msg: 'User entered a string that is less than three symbols long.',
+      });
+
+      assertUser(newEmail.indexOf('@') !== -1, {
+        userMessage: 'Invalid email!',
+        msg: 'User entered an email that does not contain the symbol "@".',
+      });
+
       params.email = newEmail;
     }
 
     if (newPassword.length > 0) {
+      assertUser(newPassword.length >= 8, {
+        userMessage: 'Password too short! It must be at least 8 symbols long!',
+        msg: 'User entered a password that is less than eight symbols long.',
+      });
+
       params.password = newPassword;
     }
 
-    saveButton.disabled = true;
+    $(form).off('submit').submit(function (event) { // eslint-disable-line prefer-arrow-callback
+      event.preventDefault();
+      return false;
+    });
 
     adminAPI.adminEditUser(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      saveButton.disabled = false;
+      $(form).off('submit').submit(onSaveUserClick);
 
       const messages = {
         '1000': 'Successfully updated user!',
@@ -167,6 +218,8 @@ function start () {
       renderUserRow('view', userGlobal);
       mainUtils.displayUserMessage('Successfully updated user!', 'success');
     });
+
+    return false;
   };
 
   const onCancelEditUserClick = function (event) {
@@ -604,9 +657,9 @@ function start () {
 
     renderUserRow('view', userGlobal);
 
+    $('#edit-user').submit(onSaveUserClick);
     $('#user-view-mode-edit-btn').click(onEditUserClick);
     $('#user-view-mode-remove-btn').click(onRemoveUserClick);
-    $('#user-edit-mode-save-btn').click(onSaveUserClick);
     $('#user-edit-mode-cancel-btn').click(onCancelEditUserClick);
     $('#user-credits-submit-btn').click(onUserCreditsSubmitClick);
     $('#prev-page-btn-top').click(onPreviousPageClick);

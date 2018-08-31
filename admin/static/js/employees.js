@@ -247,9 +247,12 @@ function start () {
       role_id: newEmployeeRole.id,
     };
 
-    form.disabled = true;
+    $(form).off('submit').submit(function (event) { // eslint-disable-line prefer-arrow-callback
+      event.preventDefault();
+      return false;
+    });
     adminAPI.adminAddEmployee(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      form.disabled = false;
+      $(form).off('submit').submit(onAddNewEmployee);
 
       const messages = {
         '1000': 'Successfully added new employee!',
