@@ -257,7 +257,9 @@ function start () {
         const newRole = {
           id: oldRole.id,
           name: roleName,
-          permissions: rolePermissions,
+          permissions: rolePermissions.map(function (rp) { // eslint-disable-line prefer-arrow-callback
+            return rp.id;
+          }),
           created_at: oldRole.created_at,
           updated_at: result.updated_at,
         };
