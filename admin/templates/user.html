@@ -68,11 +68,11 @@
     </div>
     <div id="user-credits-options">
       <h3>User's credits</h3>
-      <div class="form-inline">
-        <label>Change by: <input id="user-credits-change" class="form-control" type="number" value="0"></label>
-        <button id="user-credits-submit-btn" class="btn btn-default">Submit</button>
+      <form id="change-credits" class="form-inline">
+        <label>Change by: <input id="user-credits-change" class="form-control" type="number" name="credits-difference" value="0"></label>
+        <input type="submit" id="user-credits-submit-btn" class="btn btn-default">
         <p>(value &gt; 0 to add credits or value &lt; 0 to remove credits)</p>
-      </div>
+      </form>
     </div>
     <div id="user-subscriptions-section">
       <h3>User's subscriptions:</h3>

@@ -13,6 +13,8 @@
       {{> menu }}
       <div>
         <h3>Add new role:</h3>
+        <form id="new-role-form"></form>
+        <form id="new-role-permission-form"></form>
         <table class="table table-bordered">
           <thead>
             <tr>
@@ -24,16 +26,16 @@
           <tbody>
             <tr>
               <td>
-                <input id="new-role-name" class="form-control" type="text" placeholder="Role name" required>
+                <input id="new-role-name" class="form-control" type="text" placeholder="Role name" name="role-name" form="new-role-form" required>
               </td>
               <td id="new-role-permissions-container">
                 <div class="form-inline">
-                  <input id="new-role-permission-input" class="form-control permission-select" name="permission-select" type="text" placeholder="Add permission">
-                  <button id="new-role-permission-submit-btn" class="btn btn-default permission-select">Add permission</button>
+                  <input id="new-role-permission-input" class="form-control permission-select" name="permission-select" type="text" placeholder="Add permission" form="new-role-permission-form">
+                  <input id="new-role-permission-submit-btn" type="submit" class="btn btn-default permission-select" form="new-role-permission-form">
                 </div>
               </td>
               <td>
-                <button id="new-role-submit-btn" type="button" class="btn btn-primary btn-block">Submit</button>
+                <input id="new-role-submit-btn" type="submit" class="btn btn-primary btn-block" form="new-role-form">
               </td>
             </tr>
           </tbody>
