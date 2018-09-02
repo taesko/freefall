@@ -808,6 +808,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     date_to: null,
   };
 
+  // TODO validate dates
+
   let page;
 
   if (!ctx.query.page) {
@@ -824,8 +826,6 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   filters.offset = (page - 1) * RESULTS_LIMIT;
 
-  // TODO check if email exists and if it doesn't, offer something LIKE
-  // TODO provide more info about filtered user
   if (ctx.query['user-email'] && ctx.query['user-email'].length > 0) {
     filters.user_email = ctx.query['user-email'];
   }
@@ -863,7 +863,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   }
 
   const dbClient = ctx.state.dbClient;
-  const selectResult = await dbClient.executeQuery(`
+  const selectAccountTransfersResult = await dbClient.executeQuery(`
 
     SELECT
       account_transfers.id AS account_transfer_id,
@@ -963,150 +963,114 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     filters.offset,
   ]);
 
-  assertApp(isObject(selectResult), `Expected selectResult to be an object, but was ${typeof selectResult}`);
-  assertApp(Array.isArray(selectResult.rows), `Expected selectResult.rows to be array, but was ${typeof selectResult.rows}`);
+  assertApp(isObject(selectAccountTransfersResult), `Expected selectAccountTransfersResult to be an object, but was ${typeof selectAccountTransfersResult}`);
+  assertApp(Array.isArray(selectAccountTransfersResult.rows), `Expected selectAccountTransfersResult.rows to be array, but was ${typeof selectAccountTransfersResult.rows}`);
 
-  // TODO for checks below do not throw app error, but display errors in back office
+  const accountTransfersUsersRows = selectAccountTransfersResult.rows;
 
-  const accountTransfersUsersRows = selectResult.rows;
+  const accountTransfers = accountTransfersUsersRows.map(row => ({
+    account_transfer_id: row.account_transfer_id,
+    user: {
+      email: row.account_owner_email,
+      id: row.account_owner_id,
+    },
+    deposit_amount: (row.transfer_amount > 0) ? row.transfer_amount : null,
+    withdrawal_amount:
+      (row.transfer_amount < 0) ? row.transfer_amount * -1 : null,
+    transferred_at: row.transferred_at.toISOString(),
+    employee_transferrer_id: row.employee_transferrer_id,
+    employee_transferrer_email: row.employee_transferrer_email,
+    user_subscr_airport_from_name: row.user_subscr_airport_from_name,
+    user_subscr_airport_to_name: row.user_subscr_airport_to_name,
+    user_subscr_date_from: row.user_subscr_date_from &&
+      row.user_subscr_date_from.toISOString(),
+    user_subscr_date_to: row.user_subscr_date_to &&
+      row.user_subscr_date_to.toISOString(),
+    subscr_airport_from_name: row.subscr_airport_from_name,
+    subscr_airport_to_name: row.subscr_airport_to_name,
+    fetch_time: row.fetch_time && row.fetch_time.toISOString(),
+  }));
 
-  const accountTransfers = accountTransfersUsersRows.map(row => {
-    const expectRequiredRowProps = [
-      {
-        name: 'account_transfer_id',
-        test: Number.isInteger,
-      },
-      {
-        name: 'transfer_amount',
-        test: Number.isInteger,
-      },
-      {
-        name: 'transferred_at',
-        test: (value) => value instanceof Date,
-      },
-      {
-        name: 'account_owner_id',
-        test: Number.isInteger,
-      },
-      {
-        name: 'account_owner_email',
-        test: (value) => typeof value === 'string',
-      },
-    ];
+  const selectAllTransferAmountsResult = await dbClient.executeQuery(`
 
-    each(expectRequiredRowProps, (prop) => {
-      assertApp(prop.test(row[prop.name]), `Property "${prop.name}" does not pass test for expected type.`);
-    });
+    SELECT
+      transfer_amount
+    FROM account_transfers
+    LEFT JOIN users
+      ON account_transfers.user_id = users.id
+    LEFT JOIN user_subscription_account_transfers
+      ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
+    LEFT JOIN subscriptions_fetches_account_transfers
+      ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
+    LEFT JOIN account_transfers_by_employees
+      ON account_transfers_by_employees.account_transfer_id = account_transfers.id
+    WHERE
+      (
+        $1::text IS NULL OR
+        users.email = $1
+      ) AND
+      (
+        $2::text IS NULL OR
+        transferred_at::date >= to_date($2, 'YYYY-MM-DD')
+      ) AND
+      (
+        $3::text IS NULL OR
+        transferred_at::date <= to_date($3, 'YYYY-MM-DD')
+      ) AND
+      (
+        (
+          $4 = true AND
+          transfer_amount >= 0
+        ) OR
+        (
+          $5 = true AND
+          transfer_amount <= 0
+        )
+      ) AND
+      (
+        (
+          $6 = true AND
+          account_transfers_by_employees.id IS NOT NULL
+        ) OR
+        (
+          $7 = true AND
+          user_subscription_account_transfers.id IS NOT NULL
+        ) OR
+        (
+          $8 = true AND
+          subscriptions_fetches_account_transfers.id IS NOT NULL
+        )
+      );
+  `, [
+    filters.user_email,
+    filters.date_from,
+    filters.date_to,
+    filters.deposits,
+    filters.withdrawals,
+    filters.transfers_by_employees,
+    filters.new_subsctiption_taxes,
+    filters.new_fetch_taxes,
+  ]);
 
-    const transferByEmployeeGroupCheck = {
-      name: 'transfer_by_employee',
-      check: [
-        {
-          name: 'employee_transferrer_id',
-          test: Number.isInteger,
-        },
-        {
-          name: 'employee_transferrer_email',
-          test: (value) => typeof value === 'string',
-        },
-      ],
-    };
-    const newUserSubscriptionGroupCheck = {
-      name: 'new_user_subscription',
-      check: [
-        {
-          name: 'user_subscr_airport_from_name',
-          test: (value) => typeof value === 'string',
-        },
-        {
-          name: 'user_subscr_airport_to_name',
-          test: (value) => typeof value === 'string',
-        },
-        {
-          name: 'user_subscr_date_from',
-          test: (value) => value instanceof Date,
-        },
-        {
-          name: 'user_subscr_date_to',
-          test: (value) => value instanceof Date,
-        },
-      ],
-    };
-    const newFetchGroupCheck = {
-      name: 'new_fetch',
-      check: [
-        {
-          name: 'subscr_airport_from_name',
-          test: (value) => typeof value === 'string',
-        },
-        {
-          name: 'subscr_airport_to_name',
-          test: (value) => typeof value === 'string',
-        },
-        {
-          name: 'fetch_time',
-          test: (value) => value instanceof Date,
-        },
-      ],
-    };
-    const groupChecks = [
-      transferByEmployeeGroupCheck,
-      newUserSubscriptionGroupCheck,
-      newFetchGroupCheck,
-    ];
-    // in null groups all props must be null
-    // in a not null group all props must pass their test
-    // there must be exactly one not null group
-    let isFoundNotNullGroup = false;
+  assertApp(isObject(selectAllTransferAmountsResult), `Expected selectAllTransferAmountsResult to be an object, but was ${typeof selectAllTransferAmountsResult}`);
+  assertApp(Array.isArray(selectAllTransferAmountsResult.rows), `Expected selectAllTransferAmountsResult.rows to be array, but was ${typeof selectAllTransferAmountsResult.rows}`);
 
-    for (const groupCheck of groupChecks) {
-      const check = groupCheck.check;
+  const allTransferAmountRows = selectAllTransferAmountsResult.rows;
 
-      if (isFoundNotNullGroup || row[check[0].name] == null) {
-        each(check, (prop) => {
-          assertApp(row[prop.name] == null, `Property "${prop.name}" does not pass test for expected type = null.`);
-        });
-        continue;
-      }
+  let filterTotalDeposited = 0;
+  let filterTotalWithdrawn = 0;
 
-      isFoundNotNullGroup = true;
-
-      each(check, (prop) => {
-        assertApp(prop.test(row[prop.name]), `Property "${prop.name}" does not pass test for expected type. (isFoundNotNullGroup = true)`);
-      });
+  for (const transferAmountRow of allTransferAmountRows) {
+    if (transferAmountRow.transfer_amount > 0) {
+      filterTotalDeposited += transferAmountRow.transfer_amount;
     }
 
-    assertApp(isFoundNotNullGroup, 'Reason for transaction not found');
+    if (transferAmountRow.transfer_amount < 0) {
+      filterTotalWithdrawn += transferAmountRow.transfer_amount;
+    }
+  }
 
-    const accountTransfer = {
-      account_transfer_id: row.account_transfer_id,
-      user: {
-        email: row.account_owner_email,
-        id: row.account_owner_id,
-      },
-      deposit_amount: (row.transfer_amount > 0) ? row.transfer_amount : null,
-      withdrawal_amount:
-        (row.transfer_amount < 0) ? row.transfer_amount * -1 : null,
-      transferred_at: row.transferred_at.toISOString(),
-      employee_transferrer_id: row.employee_transferrer_id,
-      employee_transferrer_email: row.employee_transferrer_email,
-      user_subscr_airport_from_name: row.user_subscr_airport_from_name,
-      user_subscr_airport_to_name: row.user_subscr_airport_to_name,
-      user_subscr_date_from: row.user_subscr_date_from &&
-        row.user_subscr_date_from.toISOString(),
-      user_subscr_date_to: row.user_subscr_date_to &&
-        row.user_subscr_date_to.toISOString(),
-      subscr_airport_from_name: row.subscr_airport_from_name,
-      subscr_airport_to_name: row.subscr_airport_to_name,
-      fetch_time: row.fetch_time && row.fetch_time.toISOString(),
-    };
-
-    log.debug(accountTransfer);
-
-    return accountTransfer;
-  });
-
-  // TODO show totals
+  filterTotalWithdrawn *= -1;
 
   const usersTotalSpentCredits = await dbClient.executeQuery(`
 
@@ -1165,6 +1129,16 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   assertApp(isObject(dalipecheAPITotalRequests.rows[0]), `got ${dalipecheAPITotalRequests.rows[0]}`);
   assertApp(typeof dalipecheAPITotalRequests.rows[0].dalipeche_api_requests === 'number', `got ${dalipecheAPITotalRequests.rows[0].dalipeche_api_requests}`);
 
+  const { page: pageRemoved, ...queryWithoutPage } = ctx.query;
+
+  ctx.query = queryWithoutPage;
+
+  let queryStringWithoutPage = ctx.querystring;
+
+  if (queryStringWithoutPage.length > 0) {
+    queryStringWithoutPage = `&${queryStringWithoutPage}`;
+  }
+
   return ctx.render('account-transfers.html', {
     item: 'transfers',
     employee: {
@@ -1174,6 +1148,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     transaction_type: ctx.query.type,
     transaction_reason: ctx.query.reason,
     account_transfers: accountTransfers,
+    filter_total_deposited: filterTotalDeposited,
+    filter_total_withdrawn: filterTotalWithdrawn,
     users_total_spent_credits:
       usersTotalSpentCredits.rows[0].user_spent_credits,
     users_total_credits: usersTotalCredits.rows[0].users_credits,
@@ -1181,6 +1157,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     dalipeche_api_total_requests:
       dalipecheAPITotalRequests.rows[0].dalipeche_api_requests,
     page,
+    query_string_without_page: queryStringWithoutPage,
     next_page: accountTransfers.length === RESULTS_LIMIT ? page + 1 : null,
     prev_page: page > 1 ? page - 1 : null,
   });

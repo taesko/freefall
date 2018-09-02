@@ -53,15 +53,25 @@
       </form>
     </div>
     <hr>
-    <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
-    <p><label>Credits owned by all users:</label> {{users_total_credits}}</p>
-    <p><label>Credits loaded into system:</label> {{total_credits_loaded}}</p>
-    <p><label>Amount of requests to Dalipeche:</label> {{dalipeche_api_total_requests}}</p>
+    <div class="row">
+      <div class="col-md-6">
+        <h3>Current filter data:</h3>
+        <p><label>Total deposited:</label> {{filter_total_deposited}}</p>
+        <p><label>Total withdrawn:</label> {{filter_total_withdrawn}}</p>
+      </div>
+      <div class="col-md-6">
+        <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
+        <p><label>Credits owned by all users:</label> {{users_total_credits}}</p>
+        <p><label>Credits loaded into system:</label> {{total_credits_loaded}}</p>
+        <p><label>Amount of requests to Dalipeche:</label> {{dalipeche_api_total_requests}}</p>
+      </div>
+    </div>
+    <hr>
     <div class="row">
       <div class="col-md-4">
         {{#if prev_page}}
         <p class="text-left">
-          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}';">Previous page</button>
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}{{query_string_without_page}}';">Previous page</button>
         </p>
         {{/if}}
       </div>
@@ -74,7 +84,7 @@
       <div class="col-md-4">
         {{#if next_page}}
         <p class="text-right">
-          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}';">Next page</button>
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}{{query_string_without_page}}';">Next page</button>
         </p>
         {{/if}}
       </div>
@@ -136,7 +146,7 @@
       <div class="col-md-4">
         {{#if prev_page}}
         <p class="text-left">
-          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}';">Previous page</button>
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}{{query_string_without_page}}';">Previous page</button>
         </p>
         {{/if}}
       </div>
@@ -149,7 +159,7 @@
       <div class="col-md-4">
         {{#if next_page}}
         <p class="text-right">
-          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}';">Next page</button>
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}{{query_string_without_page}}';">Next page</button>
         </p>
         {{/if}}
       </div>
