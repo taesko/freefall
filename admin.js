@@ -83,6 +83,13 @@ app.use(views(path.join(__dirname, 'admin', 'templates'), {
           return '';
         }
       },
+      is_selected: (a, b) => {
+        if (a === b) {
+          return 'selected';
+        } else {
+          return '';
+        }
+      },
       escape,
     },
     partials: {
@@ -791,14 +798,14 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   const filters = {
     offset: null,
     limit: RESULTS_LIMIT,
-    userEmail: null,
+    user_email: null,
     deposits: true,
     withdrawals: true,
-    transfersByEmployees: true,
-    newSubsctiptionTaxes: true,
-    newFetchTaxes: true,
-    dateFrom: null,
-    dateTo: null,
+    transfers_by_employees: true,
+    new_subsctiption_taxes: true,
+    new_fetch_taxes: true,
+    date_from: null,
+    date_to: null,
   };
 
   let page;
@@ -817,8 +824,10 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   filters.offset = (page - 1) * RESULTS_LIMIT;
 
+  // TODO check if email exists and if it doesn't, offer something LIKE
+  // TODO provide more info about filtered user
   if (ctx.query['user-email'] && ctx.query['user-email'].length > 0) {
-    filters.userEmail = ctx.query['user-email'];
+    filters.user_email = ctx.query['user-email'];
   }
 
   if (ctx.query.type && ctx.query.type.length > 0 && ctx.query.type !== 'all') {
@@ -833,28 +842,25 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   if (ctx.query.reason && ctx.query.reason.length > 0 && ctx.query.reason !== 'all') {
     if (ctx.query.reason !== 'employee') {
-      filters.transfersByEmployees = false;
+      filters.transfers_by_employees = false;
     }
 
     if (ctx.query.reason !== 'new-subscription') {
-      filters.newSubsctiptionTaxes = false;
+      filters.new_subsctiption_taxes = false;
     }
 
     if (ctx.query.reason !== 'fetch') {
-      filters.newFetchTaxes = false;
+      filters.new_fetch_taxes = false;
     }
   }
 
   if (ctx.query['date-from'] && ctx.query['date-from'].length > 0) {
-    filters.dateFrom = ctx.query['date-from'];
+    filters.date_from = ctx.query['date-from'];
   }
 
   if (ctx.query['date-to'] && ctx.query['date-to'].length > 0) {
-    filters.dateTo = ctx.query['date-to'];
+    filters.date_to = ctx.query['date-to'];
   }
-
-  console.log('here are filters');
-  console.log(filters);
 
   const dbClient = ctx.state.dbClient;
   const selectResult = await dbClient.executeQuery(`
@@ -904,37 +910,63 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     LEFT JOIN fetches
       ON subscriptions_fetches.fetch_id = fetches.id
     WHERE
-      ($1::text IS NULL OR users.email = $1) AND
-      ($2::text IS NULL OR transferred_at::date >= to_date($2, 'YYYY-MM-DD')) AND
-      ($3::text IS NULL OR transferred_at::date <= to_date($3, 'YYYY-MM-DD')) AND
       (
-        ($4 = true AND transfer_amount > 0) OR
-        ($5 = true AND transfer_amount < 0)
+        $1::text IS NULL OR
+        users.email = $1
       ) AND
       (
-        ($6 = true AND employees.id IS NOT NULL) OR
-        ($7 = true AND users_subscriptions.date_to IS NOT NULL) OR
-        ($8 = true AND fetch_time IS NOT NULL)
+        $2::text IS NULL OR
+        transferred_at::date >= to_date($2, 'YYYY-MM-DD')
+      ) AND
+      (
+        $3::text IS NULL OR
+        transferred_at::date <= to_date($3, 'YYYY-MM-DD')
+      ) AND
+      (
+        (
+          $4 = true AND
+          transfer_amount >= 0
+        ) OR
+        (
+          $5 = true AND
+          transfer_amount <= 0
+        )
+      ) AND
+      (
+        (
+          $6 = true AND
+          employees.id IS NOT NULL
+        ) OR
+        (
+          $7 = true AND
+          users_subscriptions.date_to IS NOT NULL
+        ) OR
+        (
+          $8 = true AND
+          fetch_time IS NOT NULL
+        )
       )
     ORDER BY account_transfer_id
     LIMIT $9
     OFFSET $10;
 
   `, [
-    filters.userEmail,
-    filters.dateFrom,
-    filters.dateTo,
+    filters.user_email,
+    filters.date_from,
+    filters.date_to,
     filters.deposits,
     filters.withdrawals,
-    filters.transfersByEmployees,
-    filters.newSubsctiptionTaxes,
-    filters.newFetchTaxes,
+    filters.transfers_by_employees,
+    filters.new_subsctiption_taxes,
+    filters.new_fetch_taxes,
     filters.limit,
     filters.offset,
   ]);
 
   assertApp(isObject(selectResult), `Expected selectResult to be an object, but was ${typeof selectResult}`);
   assertApp(Array.isArray(selectResult.rows), `Expected selectResult.rows to be array, but was ${typeof selectResult.rows}`);
+
+  // TODO for checks below do not throw app error, but display errors in back office
 
   const accountTransfersUsersRows = selectResult.rows;
 
@@ -1074,6 +1106,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     return accountTransfer;
   });
 
+  // TODO show totals
+
   const usersTotalSpentCredits = await dbClient.executeQuery(`
 
     SELECT COALESCE(sum(transfer_amount) * -1, 0)::integer AS user_spent_credits
@@ -1136,6 +1170,9 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     employee: {
       email: loggedInEmployee.email,
     },
+    filters,
+    transaction_type: ctx.query.type,
+    transaction_reason: ctx.query.reason,
     account_transfers: accountTransfers,
     users_total_spent_credits:
       usersTotalSpentCredits.rows[0].user_spent_credits,
