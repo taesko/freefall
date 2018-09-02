@@ -788,6 +788,19 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     return;
   }
 
+  const filters = {
+    offset: null,
+    limit: RESULTS_LIMIT,
+    userEmail: null,
+    deposits: true,
+    withdrawals: true,
+    transfersByEmployees: true,
+    newSubsctiptionTaxes: true,
+    newFetchTaxes: true,
+    dateFrom: null,
+    dateTo: null,
+  };
+
   let page;
 
   if (!ctx.query.page) {
@@ -802,7 +815,47 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     return;
   }
 
-  const offset = (page - 1) * RESULTS_LIMIT;
+  filters.offset = (page - 1) * RESULTS_LIMIT;
+
+  if (ctx.query['user-email'] && ctx.query['user-email'].length > 0) {
+    filters.userEmail = ctx.query['user-email'];
+  }
+
+  if (ctx.query.type && ctx.query.type.length > 0 && ctx.query.type !== 'all') {
+    if (ctx.query.type !== 'deposits') {
+      filters.deposits = false;
+    }
+
+    if (ctx.query.type !== 'withdrawals') {
+      filters.withdrawals = false;
+    }
+  }
+
+  if (ctx.query.reason && ctx.query.reason.length > 0 && ctx.query.reason !== 'all') {
+    if (ctx.query.reason !== 'employee') {
+      filters.transfersByEmployees = false;
+    }
+
+    if (ctx.query.reason !== 'new-subscription') {
+      filters.newSubsctiptionTaxes = false;
+    }
+
+    if (ctx.query.reason !== 'fetch') {
+      filters.newFetchTaxes = false;
+    }
+  }
+
+  if (ctx.query['date-from'] && ctx.query['date-from'].length > 0) {
+    filters.dateFrom = ctx.query['date-from'];
+  }
+
+  if (ctx.query['date-to'] && ctx.query['date-to'].length > 0) {
+    filters.dateTo = ctx.query['date-to'];
+  }
+
+  console.log('here are filters');
+  console.log(filters);
+
   const dbClient = ctx.state.dbClient;
   const selectResult = await dbClient.executeQuery(`
 
@@ -850,11 +903,35 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
       ON s2.airport_to_id = a4.id
     LEFT JOIN fetches
       ON subscriptions_fetches.fetch_id = fetches.id
+    WHERE
+      ($1::text IS NULL OR users.email = $1) AND
+      ($2::text IS NULL OR transferred_at::date >= to_date($2, 'YYYY-MM-DD')) AND
+      ($3::text IS NULL OR transferred_at::date <= to_date($3, 'YYYY-MM-DD')) AND
+      (
+        ($4 = true AND transfer_amount > 0) OR
+        ($5 = true AND transfer_amount < 0)
+      ) AND
+      (
+        ($6 = true AND employees.id IS NOT NULL) OR
+        ($7 = true AND users_subscriptions.date_to IS NOT NULL) OR
+        ($8 = true AND fetch_time IS NOT NULL)
+      )
     ORDER BY account_transfer_id
-    LIMIT $1
-    OFFSET $2;
+    LIMIT $9
+    OFFSET $10;
 
-  `, [RESULTS_LIMIT, offset]);
+  `, [
+    filters.userEmail,
+    filters.dateFrom,
+    filters.dateTo,
+    filters.deposits,
+    filters.withdrawals,
+    filters.transfersByEmployees,
+    filters.newSubsctiptionTaxes,
+    filters.newFetchTaxes,
+    filters.limit,
+    filters.offset,
+  ]);
 
   assertApp(isObject(selectResult), `Expected selectResult to be an object, but was ${typeof selectResult}`);
   assertApp(Array.isArray(selectResult.rows), `Expected selectResult.rows to be array, but was ${typeof selectResult.rows}`);
