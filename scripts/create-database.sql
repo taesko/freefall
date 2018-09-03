@@ -205,6 +205,21 @@ ON employees_roles(created_at);
 CREATE INDEX employees_roles_updated_at_idx
 ON employees_roles(updated_at);
 
+CREATE TABLE subscription_plans (
+    id serial PRIMARY KEY,
+    name text NOT NULL UNIQUE,
+    initial_tax integer NOT NULL,
+    fetch_tax integer NOT NULL,
+    tax_interval interval NOT NULL
+);
+
+INSERT INTO subscription_plans
+    (name, initial_tax, fetch_tax, tax_interval)
+VALUES
+    ('daily', 50, 1000, '1 day'),
+    ('weekly', 50, 500, '1 week'),
+    ('monthly', 50, 100, '1 month');
+
 CREATE TABLE users_subscriptions (
   id serial PRIMARY KEY NOT NULL,
   user_id integer NOT NULL,
@@ -239,21 +254,6 @@ CREATE INDEX users_subscriptions_created_at_idx
 ON users_subscriptions(created_at);
 CREATE INDEX users_subscriptions_updated_at_idx
 ON users_subscriptions(updated_at);
-
-CREATE TABLE subscription_plans (
-    id serial PRIMARY KEY,
-    name text NOT NULL UNIQUE,
-    initial_tax integer NOT NULL,
-    fetch_tax integer NOT NULL,
-    tax_interval interval NOT NULL
-);
-
-INSERT INTO subscription_plans
-    (name, initial_tax, fetch_tax, tax_interval)
-VALUES
-    ('daily', 50, 1000, '1 day'),
-    ('weekly', 50, 500, '1 week'),
-    ('monthly', 50, 100, '1 month');
 
 CREATE FUNCTION generate_session_token() RETURNS text AS $$
 DECLARE
