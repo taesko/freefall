@@ -1,5 +1,6 @@
 const log = require('./log');
 const auth = require('./auth');
+const config = require('./config');
 
 const mainContextFunctions = {};
 const addContextForRoute = defineContextAdder(mainContextFunctions);
@@ -27,15 +28,18 @@ addAdminContext('get', '/users', usersPageContext);
 addAdminContext('get', '/roles/:role_id', rolePageContext);
 
 async function defaultContext (appCtx) {
+  const result = {};
   if (await auth.isLoggedIn(appCtx)) {
     const user = await auth.getLoggedInUser(appCtx);
 
     delete user.password;
 
-    return { user };
+    result.user = user;
   }
 
-  return {};
+  result.routes = config.routes;
+
+  return result;
 }
 
 function indexPageContext () {
@@ -60,6 +64,7 @@ function loginPageContext (appCtx) {
   return {
     item: 'login',
     errors: appCtx.errors,
+    login_messages: appCtx.state.login_messages,
   };
 }
 
@@ -165,6 +170,7 @@ function defineContext (contextFunctions) {
       return context;
     }
 
+    log.debug('Default context is', context);
     for (const getContext of contextFunctions[route][request]) {
       context = Object.assign(context, await getContext(appCtx));
     }

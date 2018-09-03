@@ -241,7 +241,7 @@ async function sendPasswordResets (client) {
     const subject = 'Freefall password reset';
     const route = url.resolve(
       config.address,
-      config.routes.password_reset_email
+      config.routes.password_reset_email_link
     );
     const query = `?token=${token}`;
     const link = route + query;

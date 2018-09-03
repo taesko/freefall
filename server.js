@@ -105,112 +105,139 @@ app.use(views(path.join(__dirname, 'templates/'), {
 app.use(db.client);
 app.use(db.session);
 
-router.get('/', async (ctx, next) => {
+router.get(config.routes.index, async (ctx, next) => {
   const airports = await ctx.state.dbClient.select('airports');
 
   await ctx.render('index.html', {
     airports,
-    ...await getContextForRoute(ctx, 'get', '/'),
+    ...await getContextForRoute(ctx, 'get', config.routes.index),
   });
   await next();
 });
 
-router.get('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
-  await ctx.render('login.html', await getContextForRoute(ctx, 'get', '/login'));
-});
+router.get(
+  config.routes.login,
+  auth.redirectWhenLoggedIn(config.routes.profile),
+  async (ctx) => {
+    await ctx.render('login.html', await getContextForRoute(ctx, 'get', config.routes.login));
+  },
+);
 
-router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
-  const { email, password } = ctx.request.body;
+router.post(
+  config.routes.login,
+  auth.redirectWhenLoggedIn(config.routes.profile),
+  async (ctx) => {
+    const { email, password } = ctx.request.body;
 
-  ctx.state.errors = ctx.state.errors || {};
+    ctx.state.errors = ctx.state.errors || {};
 
-  // TODO if typeof email or password is not string this is a peer error
-  // application currently does not support peer errors thrown from here
-  if (
-    email.length < MIN_EMAIL_LENGTH ||
-    password.length < MIN_PASSWORD_LENGTH
-  ) {
-    ctx.state.errors['LOGIN_INVALID_CREDENTIALS'] = {};
-    await ctx.render('login.html', await getContextForRoute(ctx, 'post', '/login'));
-    return;
-  }
-
-  try {
-    await auth.login(ctx, email, password);
-    ctx.state.commitDB = true;
-    ctx.redirect('/');
-
-    return;
-  } catch (e) {
-    if (e instanceof UserError) {
-      if (e.code === 'LOGIN_UNVERIFIED_EMAIL') {
-        const { rows: userRows } = await ctx.state.dbClient.executeQuery(
-          'SELECT * FROM users WHERE email=$1',
-          [email]
-        );
-        const [user] = userRows;
-        const relUrl = url.resolve(config.address, config.routes.verify_email);
-        const query = `?token=${encodeURIComponent(user.verification_token)}&resend=true`;
-        const link = relUrl + query;
-        ctx.state.errors['LOGIN_UNVERIFIED_EMAIL'] = {
-          email,
-          link,
-        };
-      } else {
-        ctx.state.errors[e.code] = {};
-      }
-
-      log.info(`Login failed with code ${e.code}. Setting ctx.state.errors`);
-    } else {
-      throw e;
+    // TODO if typeof email or password is not string this is a peer error
+    // application currently does not support peer errors thrown from here
+    if (
+      email.length < MIN_EMAIL_LENGTH ||
+      password.length < MIN_PASSWORD_LENGTH
+    ) {
+      ctx.state.errors['LOGIN_INVALID_CREDENTIALS'] = {};
+      await ctx.render('login.html', await getContextForRoute(ctx, 'post', config.routes.login));
+      return;
     }
-  }
 
-  await ctx.render('login.html', await getContextForRoute(ctx, 'post', '/login'));
-});
+    try {
+      await auth.login(ctx, email, password);
+      ctx.state.commitDB = true;
+      ctx.redirect(config.routes.index);
 
-router.get('/logout', auth.redirectWhenLoggedOut('/'), async (ctx, next) => {
-  auth.logout(ctx);
-  ctx.redirect('/');
-  await next();
-});
+      return;
+    } catch (e) {
+      if (e instanceof UserError) {
+        if (e.code === 'LOGIN_UNVERIFIED_EMAIL') {
+          const { rows: userRows } = await ctx.state.dbClient.executeQuery(
+            'SELECT * FROM users WHERE email=$1',
+            [email],
+          );
+          const [user] = userRows;
+          const route = config.routes.verify_email;
+          const relUrl = url.resolve(config.address, route);
+          const query = `?token=${encodeURIComponent(user.verification_token)}&resend=true`;
+          const link = relUrl + query;
+          ctx.state.errors['LOGIN_UNVERIFIED_EMAIL'] = {
+            email,
+            link,
+          };
+        } else {
+          ctx.state.errors[e.code] = {};
+        }
 
-router.get('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
-  await ctx.render('register.html', await getContextForRoute(ctx, 'get', '/register'));
-});
+        log.info(`Login failed with code ${e.code}. Setting ctx.state.errors`);
+      } else {
+        throw e;
+      }
+    }
 
-router.post('/register', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
-  const errors = [];
-  const {
-    email,
-    password,
-    confirm_password: confirmPassword,
-  } = ctx.request.body;
+    await ctx.render('login.html', await getContextForRoute(ctx, 'post', config.routes.login));
+  },
+);
 
-  if (password !== confirmPassword) {
-    errors.push('Passwords are not the same.');
-  }
+router.get(
+  config.routes.logout,
+  auth.redirectWhenLoggedOut(config.routes.index),
+  async (ctx, next) => {
+    auth.logout(ctx);
+    ctx.redirect(config.routes.login);
+    return next();
+  },
+);
 
-  if (await users.emailIsTaken(ctx.state.dbClient, email)) {
-    errors.push('Email is already taken');
-  }
-  if (email.length < MIN_EMAIL_LENGTH) {
-    errors.push('Email is too short.');
-  }
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    errors.push('Password is too short.');
-  }
+router.get(
+  config.routes.register,
+  auth.redirectWhenLoggedIn(config.routes.profile),
+  async (ctx) => {
+    return ctx.render(
+      'register.html',
+      await getContextForRoute(ctx, 'get', config.routes.register),
+    );
+  },
+);
 
-  if (errors.length > 0) {
-    ctx.state.register_errors = errors;
-    return ctx.render('register.html', await getContextForRoute(ctx, 'post', '/register'));
-  }
-  await auth.register(ctx, email, password);
-  ctx.state.commitDB = true;
-  ctx.state.login_error_message = 'Please visit your email and validate your account.';
+router.post(
+  config.routes.register,
+  auth.redirectWhenLoggedIn(config.routes.profile),
+  async (ctx) => {
+    const errors = [];
+    const {
+      email,
+      password,
+      confirm_password: confirmPassword,
+    } = ctx.request.body;
 
-  return ctx.render('login.html', await getContextForRoute(ctx, 'get', '/login'));
-});
+    if (password !== confirmPassword) {
+      errors.push('Passwords are not the same.');
+    }
+
+    if (await users.emailIsTaken(ctx.state.dbClient, email)) {
+      errors.push('Email is already taken');
+    }
+    if (email.length < MIN_EMAIL_LENGTH) {
+      errors.push('Email is too short.');
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      errors.push('Password is too short.');
+    }
+
+    if (errors.length > 0) {
+      ctx.state.register_errors = errors;
+      const context = await getContextForRoute(ctx, 'post', config.routes.register);
+      return ctx.render('register.html', context);
+    }
+    await auth.register(ctx, email, password);
+    ctx.state.commitDB = true;
+    ctx.state.login_messages = ctx.state.login_messages || [];
+    ctx.state.login_messages.push('Please visit your email and validate your account.');
+
+    const context = await getContextForRoute(ctx, 'get', config.routes.login);
+    return ctx.render('login.html', context);
+  },
+);
 
 router.get(config.routes.verify_email, async (ctx) => {
   const { token, resend } = ctx.request.query;
@@ -223,7 +250,7 @@ router.get(config.routes.verify_email, async (ctx) => {
       SET sent_verification_email=false 
       WHERE verification_token=$1 AND verified=false
       `,
-      [token]
+      [token],
     );
     ctx.state.commitDB = true;
     ctx.body = 'We re-sent a verification link to your email.';
@@ -239,7 +266,7 @@ router.get(config.routes.verify_email, async (ctx) => {
         FROM users
         WHERE verification_token=$1
       `,
-      [token]
+      [token],
     );
     assertApp(rows.length === 1, `failed login from verification token ${token}`);
 
@@ -247,7 +274,7 @@ router.get(config.routes.verify_email, async (ctx) => {
 
     await auth.loginById(ctx, id);
     ctx.state.commitDB = true;
-    return ctx.redirect('/profile');
+    return ctx.redirect(config.routes.profile);
   } catch (e) {
     if (e.code === 'INVALID_VERIFICATION_TOKEN') {
       ctx.body = 'Invalid or expired verification token';
@@ -257,14 +284,14 @@ router.get(config.routes.verify_email, async (ctx) => {
   }
 });
 
-router.get('/register/password-reset', async (ctx) => {
+router.get(config.routes.reset_password, async (ctx) => {
   return ctx.render(
     'password-reset.html',
-    await getContextForRoute(ctx, 'post', '/password-reset')
+    await getContextForRoute(ctx, 'post', config.routes.reset_password),
   );
 });
 
-router.post('/register/password-reset', async (ctx) => {
+router.post(config.routes.reset_password, async (ctx) => {
   const { email } = ctx.request.body;
   const { resend } = ctx.request.body;
   log.debug('body is', ctx.request.body);
@@ -277,7 +304,7 @@ router.post('/register/password-reset', async (ctx) => {
 
     return ctx.render(
       'password-reset.html',
-      await getContextForRoute(ctx, 'post', '/register/password-reset'),
+      await getContextForRoute(ctx, 'post', config.routes.reset_password),
     );
   }
 
@@ -287,7 +314,7 @@ router.post('/register/password-reset', async (ctx) => {
 
     return ctx.render(
       'password-reset.html',
-      await getContextForRoute(ctx, 'post', '/register/password-reset'),
+      await getContextForRoute(ctx, 'post', config.routes.reset_password),
     );
   }
 
@@ -323,7 +350,7 @@ router.post('/register/password-reset', async (ctx) => {
 
       return ctx.render(
         'password-reset.html',
-        await getContextForRoute(ctx, 'post', '/register/password-reset'),
+        await getContextForRoute(ctx, 'post', config.routes.reset_password),
       );
     }
   }
@@ -332,11 +359,11 @@ router.post('/register/password-reset', async (ctx) => {
 
   return ctx.render(
     'password-reset.html',
-    await getContextForRoute(ctx, 'post', '/register/password-reset'),
+    await getContextForRoute(ctx, 'post', config.routes.reset_password),
   );
 });
 
-router.get('/register/password-reset/reset', async (ctx) => {
+router.get(config.routes.password_reset_email_link, async (ctx) => {
   const { token } = ctx.request.query;
   const dbClient = ctx.state.dbClient;
   const invalidTokenMsg = 'Your password reset link has expired. Please request a new one.';
@@ -345,7 +372,7 @@ router.get('/register/password-reset/reset', async (ctx) => {
     ctx.state.password_reset_errors = [invalidTokenMsg];
     return ctx.render(
       'password-reset.html',
-      await getContextForRoute(ctx, 'post', '/register/password-reset'),
+      await getContextForRoute(ctx, 'post', config.routes.reset_password),
     );
   }
 
@@ -385,22 +412,31 @@ router.get('/register/password-reset/reset', async (ctx) => {
 
   return ctx.render(
     'password-reset.html',
-    await getContextForRoute(ctx, 'post', '/register/password-reset'),
+    await getContextForRoute(ctx, 'post', config.routes.reset_password),
   );
 });
 
-router.get('/profile', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  await ctx.render('profile.html', await getContextForRoute(ctx, 'get', '/profile'));
-});
+router.get(
+  config.routes.profile,
+  auth.redirectWhenLoggedOut(config.routes.login),
+  async (ctx) => {
+    const context = await getContextForRoute(ctx, 'get', config.routes.profile);
+    return ctx.render('profile.html', context);
+  },
+);
 
-router.get('/profile/settings', auth.redirectWhenLoggedOut('/login'), async (ctx) => {
-  const context = await getContextForRoute(ctx, 'get', '/profile/settings');
-  await ctx.render('settings.html', context);
-});
+router.get(
+  config.routes.settings,
+  auth.redirectWhenLoggedOut(config.routes.login),
+  async (ctx) => {
+    const context = await getContextForRoute(ctx, 'get', config.routes.settings);
+    await ctx.render('settings.html', context);
+  },
+);
 
 const executeMethod = getExecuteMethod(methods);
 
-router.post('/', rpcAPILayer(executeMethod));
+router.post(config.routes.api, rpcAPILayer(executeMethod));
 
 app.use(router.routes());
 
