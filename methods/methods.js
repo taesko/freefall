@@ -581,26 +581,27 @@ const editSubscription = defineAPIMethod(
 
 const creditHistory = defineAPIMethod(
   {
-    'TH_BAD_LIMIT': { status_code: '2100' },
-    'TH_BAD_OFFSET': { status_code: '2100' },
-    'TH_INVALID_LIMIT': { status_code: '2100' },
     'TH_INVALID_API_KEY': { status_code: '2200' },
     'TH_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
   },
-  async (params, dbClient) => {
-    const apiKey = params.api_key;
-    const limit = +params.limit || CREDIT_HISTORY_DEFAULT_LIMIT;
-    const offset = +params.offset || 0;
-
-    assertPeer(Number.isSafeInteger(limit), `got ${limit}`, 'TH_BAD_LIMIT');
-    assertPeer(Number.isSafeInteger(offset), `got ${offset}`, 'TH_BAD_OFFSET');
-    assertPeer(limit <= CREDIT_HISTORY_MAX_LIMIT, `got ${limit}`, 'TH_INVALID_LIMIT');
-
-    const user = await users.fetchUser(dbClient, { apiKey });
+  async ({
+    api_key,
+    fly_from = null,
+    fly_to = null,
+    limit = CREDIT_HISTORY_DEFAULT_LIMIT,
+    offset = 0,
+  },
+    dbClient
+  ) => {
+    const user = await users.fetchUser(dbClient, { apiKey: api_key });
 
     assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
-    assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
+    assertPeer(user.api_key === api_key, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
+    const flyFromFilter = `(ap_from.id::text=$4 OR ap_from.name=$4 OR ap_from.iata_code=$4)`;
+    const flyFromClause = fly_from ? `$4=$4` : flyFromFilter;
+    const flyToFilter = `(ap_to.id::text=$4 OR ap_to.name=$4 OR ap_to.iata_code=$4)`;
+    const flyToClause = fly_to ? `$5=$5` : flyToFilter;
     const { rows: subscrTransfers } = await dbClient.executeQuery(
       `
       SELECT credit_history.id::text, transferred_at, transfer_amount, reason,

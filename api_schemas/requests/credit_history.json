@@ -9,6 +9,22 @@
     },
     "api_key": {
       "type": "string"
+    },
+    "fly_from": {
+      "type": "string"
+    },
+    "fly_to": {
+      "type": "string"
+    },
+    "limit": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 10
+    },
+    "offset": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
     }
   },
   "required": [
