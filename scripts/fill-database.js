@@ -141,10 +141,11 @@ async function insertRandomAirlines(dbClient, amount) {
   const MAX_CODE_LENGTH = 8;
   const MIN_NAME_LENGTH = 2;
   const MAX_NAME_LENGTH = 30;
+  const ROW_VALUES_COUNT = 3;
 
   log.info(`Inserting random airlines... Amount: ${amount}`);
 
-  const { rows: existingAirlines } = await dbClient.executeQuery(`
+  let { rows: existingAirlines } = await dbClient.executeQuery(`
 
     SELECT
       name,
@@ -153,8 +154,10 @@ async function insertRandomAirlines(dbClient, amount) {
 
   `);
 
-  const existingCodes = existingAirlines.map(airline => airline.code);
-  const existingNames = existingAirlines.map(airline => airline.name);
+  const existingCodes = existingAirlines.map((airline) => airline.code);
+  const existingNames = existingAirlines.map((airline) => airline.name);
+
+  existingAirlines = null;
 
   const randomCodes = new Set();
   const randomNames = new Set();
@@ -234,20 +237,20 @@ async function insertRandomAirlines(dbClient, amount) {
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
-    while (queryParamsCounter + 3 < MAX_QUERY_PARAMS && rowsInserted < amount) {
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
 
-      if (queryParamsCounter + 6 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
         insertQueryParameters += ',';
       }
 
-      queryParamsCounter += 3;
+      queryParamsCounter += ROW_VALUES_COUNT;
       rowsInserted++;
     }
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += 3) {
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
       const randomCode = randomCodesIterator.next().value;
       insertQueryValues.push(randomNamesIterator.next().value);
       insertQueryValues.push(randomCode);
@@ -265,14 +268,276 @@ async function insertRandomAirlines(dbClient, amount) {
   log.info(`Insert airlines finished.`);
 }
 
+async function insertRandomSubscriptions (dbClient, amount) {
+  const MAX_FAILED_ATTEMPTS = 50;
+  const ROW_VALUES_COUNT = 2;
+
+  log.info(`Inserting random subscriptions... Amount: ${amount}`);
+
+  const { rows: existingSubscriptions } = await dbClient.executeQuery(`
+
+    SELECT
+      airport_from_id,
+      airport_to_id
+    FROM subscriptions;
+
+  `);
+
+  let { rows: airports } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM airports;
+
+  `);
+  let airportIds = airports.map((airport) => airport.id);
+
+  airports = null;
+
+  const newSubscriptions = [];
+
+  for (let i1 = 0; i1 < airportIds.length && newSubscriptions.length < amount; i1++) {
+    for (let i2 = 0; i2 < airportIds.length && newSubscriptions.length < amount; i2++) {
+      if (i1 === i2) {
+        continue;
+      }
+
+      const existingSubscription = existingSubscriptions.find((s) => {
+        return (
+          airportIds[i1] === s.airport_from_id &&
+          airportIds[i2] === s.airport_to_id
+        );
+      });
+
+      if (existingSubscription) {
+        continue;
+      }
+
+      newSubscriptions.push([
+        airportIds[i1],
+        airportIds[i2],
+      ]);
+    }
+  }
+
+  airportIds = null;
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const newSubscription = newSubscriptions.pop();
+      insertQueryValues.push(newSubscription[0]);
+      insertQueryValues.push(newSubscription[1]);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO subscriptions
+        (airport_from_id, airport_to_id)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert subscriptions finished.`);
+}
+
+async function insertRandomFetches (dbClient, amount) {
+  const ROW_VALUES_COUNT = 1;
+  const START_FETCH_TIME = new Date('2018-01-01');
+  const END_FETCH_TIME = new Date('2018-12-31');
+
+  log.info(`Inserting random fetches... Amount: ${amount}`);
+
+  const fetchTimes = [];
+
+  while (fetchTimes.length < amount) {
+    const timeDuration = END_FETCH_TIME.getTime() - START_FETCH_TIME.getTime();
+    const randomDate = new Date(
+      START_FETCH_TIME.getTime() +
+      Math.random() * timeDuration
+    );
+
+    fetchTimes.push(randomDate);
+  }
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const fetchTime = fetchTimes.pop();
+      insertQueryValues.push(fetchTime);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO fetches
+        (fetch_time)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert fetches finished.`);
+}
+
+async function insertRandomSubscriptionsFetches(dbClient, amount) {
+  const ROW_VALUES_COUNT = 3;
+  const MIN_API_FETCHES_COUNT = 1;
+  const MAX_API_FETCHES_COUNT = 20;
+
+  log.info(`Inserting random subscriptions fetches... Amount: ${amount}`);
+
+  const { rows: existingSubscriptionsFetches } = await dbClient.executeQuery(`
+
+    SELECT
+      subscription_id,
+      fetch_id
+    FROM subscriptions_fetches;
+
+  `);
+
+  let { rows: subscriptions } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM subscriptions;
+
+  `);
+
+  let { rows: fetches } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM fetches;
+
+  `);
+
+  let subscriptionIds = subscriptions.map((subscription) => subscription.id);
+  subscriptions = null;
+
+  let fetchesIds = fetches.map((f) => f.id);
+  fetches = null;
+
+  const newSubscriptionsFetches = [];
+
+  for (let i1 = 0; i1 < subscriptionIds.length && newSubscriptionsFetches.length < amount; i1++) {
+    for (let i2 = 0; i2 < fetchesIds.length && newSubscriptionsFetches.length < amount; i2++) {
+      const existingSubscriptionFetch = existingSubscriptionsFetches.find((sf) => {
+        return (
+          subscriptionIds[i1] === sf.subscription_id &&
+          fetchesIds[i2] === sf.fetch_id
+        );
+      });
+
+      if (existingSubscriptionFetch) {
+        continue;
+      }
+
+      newSubscriptionsFetches.push({
+        subscriptionId: subscriptionIds[i1],
+        fetchId: fetchesIds[i2],
+      });
+    }
+  }
+
+  subscriptionIds = null;
+  fetchesIds = null;
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const newSubscriptionFetch = newSubscriptionsFetches.pop();
+
+      insertQueryValues.push(newSubscriptionFetch.subscriptionId);
+      insertQueryValues.push(newSubscriptionFetch.fetchId);
+
+      const randomAPIFetchesCount = Math.floor(
+        Math.random() * (MAX_API_FETCHES_COUNT - MIN_API_FETCHES_COUNT)
+      ) + MIN_API_FETCHES_COUNT;
+
+      insertQueryValues.push(randomAPIFetchesCount);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO subscriptions_fetches
+        (subscription_id, fetch_id, api_fetches_count)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert subscriptions fetches finished.`);
+}
+
 async function fillDatabase (dbClient) {
   const AIRPORTS_AMOUNT = 10000;
   const AIRLINES_AMOUNT = 100000;
+  const SUBSCRIPTIONS_AMOUNT = 1000000;
+  const FETCHES_AMOUNT = 10000;
+  const SUBSCRIPTIONS_FETCHES_AMOUNT = 2000000;
 
   log.info('Fill database started');
 
   await insertRandomAirports(dbClient, AIRPORTS_AMOUNT);
   await insertRandomAirlines(dbClient, AIRLINES_AMOUNT);
+  await insertRandomSubscriptions(dbClient, SUBSCRIPTIONS_AMOUNT);
+  await insertRandomFetches(dbClient, FETCHES_AMOUNT);
+  await insertRandomSubscriptionsFetches(dbClient, SUBSCRIPTIONS_FETCHES_AMOUNT);
 
   log.info('Fill database finished');
 }
