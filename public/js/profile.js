@@ -1,4 +1,4 @@
-/* eslint-disable prefer-template,prefer-arrow-callback,camelcase,prefer-spread */
+/* eslint-disable prefer-template,prefer-arrow-callback,camelcase,prefer-spread,no-var */
 'use strict';
 
 function start () {
@@ -17,6 +17,8 @@ function start () {
   var subscriptions = []; // eslint-disable-line no-var
   var rowIdSubscriptionMap = {}; // eslint-disable-line no-var
   var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
+  var searchFlyFrom = null;
+  var searchFlyTo = null;
   const CREDIT_HISTORY_PAGE_LIMIT = 5;
   const SUBSCRIPTIONS_PAGE_LIMIT = 5;
   const ALLOWED_SUBSCRIPTION_PLANS = ['daily', 'weekly', 'monthly'];
@@ -538,6 +540,15 @@ function start () {
     $('.airport-select').autocomplete(values);
   }
 
+  function resetSubscriptions () {
+    $('#subscriptions-table tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)')
+      .remove();
+    for (const prop of Object.keys(rowIdSubscriptionMap)) {
+      delete rowIdSubscriptionMap[prop];
+    }
+    subscriptions.length = 0;
+  }
+
   function displaySubscriptions () {
     const rows = $('#subscriptions-table tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)');
 
@@ -557,6 +568,12 @@ function start () {
       offset: offset,
       limit: SUBSCRIPTIONS_PAGE_LIMIT,
     };
+    if (searchFlyFrom) {
+      params.fly_from = searchFlyFrom;
+    }
+    if (searchFlyTo) {
+      params.fly_to = searchFlyTo;
+    }
 
     api.listSubscriptions(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       const newSubscrs = result.subscriptions;
@@ -567,6 +584,8 @@ function start () {
       } else {
         if (newSubscrs.length < SUBSCRIPTIONS_PAGE_LIMIT) {
           $('#subscriptions-load-more-btn').hide();
+        } else {
+          $('#subscriptions-load-more-btn').show();
         }
         renderSubscriptions($subscriptionsTable, newSubscrs);
       }
@@ -738,6 +757,18 @@ function start () {
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
+    $('#search-subscriptions').submit(function (event) {
+      event.preventDefault();
+      return false;
+    });
+    $('#search-subscriptions-btn').click(function (event) {
+      event.preventDefault();
+      resetSubscriptions();
+      searchFlyFrom = $('#search-airport-from').val().trim();
+      searchFlyTo = $('#search-airport-to').val().trim();
+      displaySubscriptions();
+      return false;
+    });
     $('#display-subscriptions-btn').click(displaySubscriptions);
     $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
     $('#display-credit-history-btn').click(displayCreditHistory);
