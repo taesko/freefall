@@ -1,16 +1,26 @@
 const { Client } = require('pg');
+const crypto = require('crypto');
 const log = require('../modules/log');
 const db = require('../modules/db');
 const MAX_QUERY_PARAMS = 30000;
 
 function getRandomString(config) {
+  const allowedCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const { minLength, maxLength } = config;
 
   const stringLength = Math.floor(
     Math.random() * (maxLength - minLength)
   ) + minLength;
 
-  return Math.random().toString(36).substring(stringLength);
+  let result = '';
+
+  for (let i = 0; i < stringLength; i++) {
+    result += allowedCharacters.charAt(
+      Math.floor(Math.random() * allowedCharacters.length)
+    );
+  }
+
+  return result;
 }
 
 async function insertRandomAirports (dbClient, amount) {
@@ -258,10 +268,12 @@ async function insertRandomAirlines(dbClient, amount) {
     }
 
     await dbClient.executeQuery(`
+
       INSERT INTO airlines
         (name, code, logo_url)
       VALUES
         ${insertQueryParameters};
+
     `, insertQueryValues);
   }
 
@@ -313,10 +325,10 @@ async function insertRandomSubscriptions (dbClient, amount) {
         continue;
       }
 
-      newSubscriptions.push([
-        airportIds[i1],
-        airportIds[i2],
-      ]);
+      newSubscriptions.push({
+        airportFromId: airportIds[i1],
+        airportToId: airportIds[i2],
+      });
     }
   }
 
@@ -343,8 +355,8 @@ async function insertRandomSubscriptions (dbClient, amount) {
 
     for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
       const newSubscription = newSubscriptions.pop();
-      insertQueryValues.push(newSubscription[0]);
-      insertQueryValues.push(newSubscription[1]);
+      insertQueryValues.push(newSubscription.airportFromId);
+      insertQueryValues.push(newSubscription.airportToId);
     }
 
     await dbClient.executeQuery(`
@@ -524,12 +536,132 @@ async function insertRandomSubscriptionsFetches(dbClient, amount) {
   log.info(`Insert subscriptions fetches finished.`);
 }
 
+async function insertRandomUsers(dbClient, amount) {
+  const MIN_EMAIL_ADDRESS_LOCAL_PART_LENGTH = 2;
+  const MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH = 40;
+  const MIN_EMAIL_ADDRESS_DOMAIN_PART_LENGTH = 2;
+  const MAX_EMAIL_ADDRESS_DOMAIN_PART_LENGTH = 20;
+  const MIN_PASSWORD_LENGTH = 8;
+  const MAX_PASSWORD_LENGTH = 50;
+  const MAX_FAILED_ATTEMPTS = 50;
+  const ROW_VALUES_COUNT = 6;
+
+  log.info(`Inserting random users... Amount: ${amount}`);
+
+  let { rows: existingUsers } = await dbClient.executeQuery(`
+
+    SELECT
+      email,
+      api_key,
+      verification_token
+    FROM users;
+
+  `);
+
+  let existingEmails = existingUsers.map((user) => user.email);
+
+  existingUsers = null;
+
+  const randomEmails = new Set();
+
+  for (let i = 0; i < amount; i++) {
+    let failedAttempts = 0;
+
+    const randomLocalPart = getRandomString({
+      minLength: MIN_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
+      maxLength: MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
+    });
+
+    const randomDomainPart = getRandomString({
+      minLength: MIN_EMAIL_ADDRESS_DOMAIN_PART_LENGTH,
+      maxLength: MAX_EMAIL_ADDRESS_DOMAIN_PART_LENGTH,
+    });
+
+    const randomEmailAddress = `${randomLocalPart}@${randomDomainPart}`;
+
+    if (existingEmails.includes(randomEmailAddress)) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomCodes set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    randomEmails.add(randomEmailAddress);
+
+    if (randomEmails.size < i + 1) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomEmails set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    failedAttempts = 0;
+  }
+
+  const randomEmailsIterator = randomEmails.values();
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3}, $${queryParamsCounter + 4}, $${queryParamsCounter + 5}, $${queryParamsCounter + 6})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const randomEmail = randomEmailsIterator.next().value;
+      const randomPassword = getRandomString({
+        minLength: MIN_PASSWORD_LENGTH,
+        maxLength: MAX_PASSWORD_LENGTH,
+      });
+
+      const hashedRandomPassword = crypto.createHash('md5').update(randomPassword).digest('hex');
+
+      insertQueryValues.push(randomEmail);
+      insertQueryValues.push(hashedRandomPassword);
+      insertQueryValues.push(crypto.createHash('md5').update(`${randomEmail}:${hashedRandomPassword}`).digest('hex'));
+      insertQueryValues.push(true); // verified
+      insertQueryValues.push(true); // sent verification email
+      insertQueryValues.push(crypto.createHash('md5').update(`${randomEmail}:${hashedRandomPassword}:verification_token`).digest('hex'));
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO users
+        (email, password, api_key, verified, sent_verification_email, verification_token)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert users finished.`);
+}
+
 async function fillDatabase (dbClient) {
   const AIRPORTS_AMOUNT = 10000;
   const AIRLINES_AMOUNT = 100000;
   const SUBSCRIPTIONS_AMOUNT = 1000000;
   const FETCHES_AMOUNT = 10000;
   const SUBSCRIPTIONS_FETCHES_AMOUNT = 2000000;
+  const USERS_AMOUNT = 100000;
 
   log.info('Fill database started');
 
@@ -538,6 +670,7 @@ async function fillDatabase (dbClient) {
   await insertRandomSubscriptions(dbClient, SUBSCRIPTIONS_AMOUNT);
   await insertRandomFetches(dbClient, FETCHES_AMOUNT);
   await insertRandomSubscriptionsFetches(dbClient, SUBSCRIPTIONS_FETCHES_AMOUNT);
+  await insertRandomUsers(dbClient, USERS_AMOUNT);
 
   log.info('Fill database finished');
 }
