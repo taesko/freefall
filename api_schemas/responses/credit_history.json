@@ -55,23 +55,6 @@
           "date_to"
         ]
       }
-    },
-    "deposit_history": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "transferred_at": {
-            "type": "string"
-          },
-          "transfer_amount": {
-            "type": "number"
-          },
-          "reason": {
-            "type": "string"
-          }
-        }
-      }
     }
   },
   "required": [
