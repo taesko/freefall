@@ -113,6 +113,8 @@ function main () { // eslint-disable-line no-unused-vars
     if (error.userMessage) {
       displayUserMessage(error.userMessage, 'error');
     }
+    console.exception(error);
+    console.trace();
   };
 
   const getElementUniqueId = function (element, idPrefix) {
