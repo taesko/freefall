@@ -19,6 +19,8 @@ function start () {
   var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
   var searchFlyFrom = null;
   var searchFlyTo = null;
+  var fromDepositDate = null;
+  var toDepositDate = null;
   const CREDIT_HISTORY_PAGE_LIMIT = 5;
   const SUBSCRIPTIONS_PAGE_LIMIT = 5;
   const ALLOWED_SUBSCRIPTION_PLANS = ['daily', 'weekly', 'monthly'];
@@ -604,9 +606,13 @@ function start () {
     }
   }
 
+  function resetDepositHistory () {
+    $('#deposit-history-table tbody tr:not(:first)').remove();
+  }
+
   function displayDepositHistory () {
     if ($('#deposit-history-table tbody tr:not(:first)').length === 0) {
-      loadMoreCreditHistory(switchTab.bind({}, '#deposit-history-tab'));
+      loadMoreDepositHistory(switchTab.bind({}, '#deposit-history-tab'));
     } else {
       switchTab('#deposit-history-tab');
     }
@@ -627,10 +633,7 @@ function start () {
   function loadMoreCreditHistory (callbackOnFinish) {
     assertApp(_.isFunction(callbackOnFinish), { msg: `got ${callbackOnFinish}` });
     const $creditsTable = $('#credit-history-table');
-    const $depositsTable = $('#deposit-history-table');
-    const creditsOffset = $creditsTable.find('tbody tr:not(:first)').length;
-    const depositsOffset = $depositsTable.find('tbody tr:not(:first)').length;
-    const offset = Math.max(creditsOffset, depositsOffset);
+    const offset = $creditsTable.find('tbody tr:not(:first)').length;
     const params = {
       limit: CREDIT_HISTORY_PAGE_LIMIT,
       offset: offset,
@@ -640,18 +643,8 @@ function start () {
       assertApp(result.status_code >= '1000', { msg: result.status_code + '' });
       assertApp(result.status_code < '2000', { msg: result.status_code + '' });
 
-      const history = result.credit_history;
-      const deposits = result.deposit_history;
+      const creditHistory = result.credit_history;
 
-      renderCreditHistoryTab(history);
-      renderDepositHistoryTab(deposits);
-
-      if (callbackOnFinish) {
-        callbackOnFinish();
-      }
-    });
-
-    function renderCreditHistoryTab (creditHistory) {
       if (offset === 0 && creditHistory.length === 0) {
         $creditsTable.hide();
         $('#no-credit-history-msg').show();
@@ -662,21 +655,11 @@ function start () {
       } else {
         renderCreditHistoryTable($creditsTable, creditHistory);
       }
-    }
-    function renderDepositHistoryTab (depositHistory) {
-      const $rowTemplate = $depositsTable.find('#deposit-history-template-row');
 
-      if (offset === 0 && depositHistory.length === 0) {
-        $depositsTable.hide();
-        $('#no-deposit-history-msg').show();
-        $('#deposit-history-load-more-btn').hide();
-      } else if (depositHistory.length < CREDIT_HISTORY_PAGE_LIMIT) {
-        renderDepositHistoryTable($depositsTable, $rowTemplate, depositHistory);
-        $('#deposit-history-load-more-btn').hide();
-      } else {
-        renderDepositHistoryTable($depositsTable, $rowTemplate, depositHistory);
+      if (callbackOnFinish) {
+        callbackOnFinish();
       }
-    }
+    });
   }
 
   function renderCreditHistoryTable ($table, history) {
@@ -728,6 +711,52 @@ function start () {
     }
   }
 
+  function loadMoreDepositHistory (callbackOnFinish) {
+    assertApp(_.isFunction(callbackOnFinish), { msg: `got ${callbackOnFinish}` });
+    const $depositsTable = $('#deposit-history-table');
+    const $loadMoreBtn = $('#deposit-history-load-more-btn');
+    const $noMoreResultsMsg = $('#no-deposit-history-msg');
+    const offset = $depositsTable.find('tbody tr:not(:first)').length;
+    const params = {
+      limit: CREDIT_HISTORY_PAGE_LIMIT,
+      offset: offset,
+    };
+    if (fromDepositDate) {
+      params.from = fromDepositDate.toISOString();
+    }
+    if (toDepositDate) {
+      params.to = toDepositDate.toISOString();
+    }
+
+    api.depositHistory(params, PROTOCOL_NAME, function (result) {
+      assertApp(result.status_code >= '1000', { msg: result.status_code + '' });
+      assertApp(result.status_code < '2000', { msg: result.status_code + '' });
+
+      const depositHistory = result.deposit_history;
+      const $rowTemplate = $depositsTable.find('#deposit-history-template-row');
+
+      if (offset === 0 && depositHistory.length === 0) {
+        $depositsTable.hide();
+        $noMoreResultsMsg.show();
+        $loadMoreBtn.hide();
+        return;
+      }
+
+      if (depositHistory.length < CREDIT_HISTORY_PAGE_LIMIT) {
+        $loadMoreBtn.hide();
+      } else {
+        $loadMoreBtn.show();
+      }
+      renderDepositHistoryTable($depositsTable, $rowTemplate, depositHistory);
+      $depositsTable.show();
+      $noMoreResultsMsg.hide();
+
+      if (callbackOnFinish) {
+        callbackOnFinish();
+      }
+    });
+  }
+
   function renderDepositHistoryTable ($table, $rowTemplate, history) {
     assertApp($table instanceof jQuery, { msg: `got ${$table}` });
     assertApp($rowTemplate instanceof jQuery, { msg: `got ${$rowTemplate}` });
@@ -757,24 +786,37 @@ function start () {
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
+    $('#display-subscriptions-btn').click(displaySubscriptions);
+    $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
     $('#search-subscriptions').submit(function (event) {
       event.preventDefault();
       return false;
     });
-    $('#search-subscriptions-btn').click(function (event) {
-      event.preventDefault();
+    $('#search-subscriptions-btn').click(function () {
       resetSubscriptions();
       searchFlyFrom = $('#search-airport-from').val().trim();
       searchFlyTo = $('#search-airport-to').val().trim();
       displaySubscriptions();
-      return false;
     });
-    $('#display-subscriptions-btn').click(displaySubscriptions);
-    $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
+
     $('#display-credit-history-btn').click(displayCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
+
     $('#display-deposit-history-btn').click(displayDepositHistory);
-    $('#deposit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayDepositHistory));
+    $('#deposit-history-load-more-btn').click(loadMoreDepositHistory.bind({}, displayDepositHistory));
+    $('#search-deposit-history').submit(function (event) {
+      event.preventDefault();
+      return false;
+    });
+    $('#search-deposit-history-btn').click(function () {
+      resetDepositHistory();
+      fromDepositDate = $('#from-deposit-date').val().trim();
+      fromDepositDate = fromDepositDate === '' ? null : new Date(fromDepositDate);
+      toDepositDate = $('#to-deposit-date').val().trim();
+      toDepositDate = toDepositDate === '' ? null : new Date(toDepositDate);
+      displayDepositHistory();
+    });
+
     $('#subscribe-submit-btn').click(onSubscribeSubmitClick);
     $('#subscribe-clear-btn').click(function () {
       mainUtils.clearFormData('#subscribe-form');
