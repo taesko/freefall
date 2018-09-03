@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Log in</title>
-  <link href="css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ routes.static }}/css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 	<div class="container">
@@ -28,8 +28,8 @@
           {{#if errors}}
             <p class="text-center text-danger">
               {{#if errors.LOGIN_UNVERIFIED_EMAIL }}
-                Your account is not verified. We sent verification email to <b>{{ email }}</b>.
-                If you haven't received it please click <a href="{{link}}">here</a> to resend it.`
+                Your account is not verified. We sent verification email to <b>{{ errors.LOGIN_UNVERIFIED_EMAIL.email }}</b>.
+                If you haven't received it please click <a href="{{errors.LOGIN_UNVERIFIED_EMAIL.link}}">here</a> to resend it.`
               {{else if errors.LOGIN_SUSPENDED_USER }}
                 Your account <b>{{ email }}</b> has been suspended.
               {{else if errors.LOGIN_INVALID_CREDENTIALS }}
@@ -38,18 +38,17 @@
                 An unknown error occurred, please refresh the page.
               {{/if}}
             </p>
-          {{else}}
-            <p class="text-center text-success">{{ success_message }}</p>
           {{/if}}
-          {{> auth_message_success }}
-          {{> auth_message_error }}
+          {{#each login_messages}}
+            <p class="text-center text-success">{{this}}</p>
+          {{/each}}
         </div>
       </form>
-      <p class="text-center"><a href="/register">Don't have an account? Register -></a></p>
-      <p class="text-center"><a href="/register/password-reset">Forgotten password?</a></p>
+      <p class="text-center"><a href="{{routes.register}}">Don't have an account? Register -></a></p>
+      <p class="text-center"><a href="{{routes.reset_password}}">Forgotten password?</a></p>
     </div>
   </div>
-  <script src="js/jquery/jquery-2.2.4.js"></script>
-  <script src="css/bootstrap/js/bootstrap.min.js"></script>
+  <script src="{{routes.static}}/js/jquery/jquery-2.2.4.js"></script>
+  <script src="{{routes.static}}/css/bootstrap/js/bootstrap.min.js"></script>
 </body>
 </html>

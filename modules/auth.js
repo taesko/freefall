@@ -1,10 +1,9 @@
-const moment = require('moment');
 const url = require('url');
 
 const users = require('./users');
 const log = require('./log');
 const config = require('./config');
-const { SESSION_CACHE, USER_CACHE } = require('./caching');
+const { SESSION_CACHE } = require('./caching');
 const { AppError, assertApp, assertUser } = require('./error-handling');
 
 class InvalidCredentialsDepreciated extends AppError {}
@@ -152,14 +151,13 @@ async function isLoggedIn (ctx) {
 
 async function getLoggedInUser (ctx) {
   if (ctx.session.login_token == null) {
-    return undefined;
+    return null;
   }
 
   log.info('Getting logged in user information. login_token=', ctx.session.login_token);
 
-  const cachedUser = USER_CACHE.retrieve(ctx.session.login_token);
-  if (cachedUser && SESSION_CACHE.retrieve(ctx.session.login_token)) {
-    return cachedUser;
+  if (!SESSION_CACHE.retrieve(ctx.session.login_token)) {
+    return null;
   }
 
   log.info('Cache miss on logged in user');
@@ -184,7 +182,6 @@ async function getLoggedInUser (ctx) {
 
   if (user) {
     log.info('User with login token exists. Storing in cache');
-    USER_CACHE.store(ctx.session.login_token, moment().add('1', 'hour').toDate(), user);
   }
 
   return user;

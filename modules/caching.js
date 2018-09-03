@@ -164,10 +164,10 @@ function SyncedCache (name, maxSize = 2000) {
 }
 
 const SESSION_CACHE = SyncedCache('login-sessions', MAX_CACHED_SESSIONS);
-const USER_CACHE = Cache('users', MAX_CACHED_USERS);
+const USER_CACHE_DEPRECATED = Cache('users', MAX_CACHED_USERS);
 
 module.exports = {
   Cache,
   SESSION_CACHE,
-  USER_CACHE,
+  USER_CACHE_DEPRECATED: USER_CACHE_DEPRECATED,
 };
