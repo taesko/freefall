@@ -662,8 +662,8 @@ async function insertRandomUsers(dbClient, amount) {
 
 async function insertRandomUsersSubscriptions (dbClient, amount) {
   const MAX_FAILED_ATTEMPTS = 50;
-  const START_DATE_FROM = new Date('2018-01-01');
-  const END_DATE_FROM = new Date('2018-12-31');
+  const START_DATE = new Date('2018-01-01');
+  const END_DATE = new Date('2018-12-31');
   const ROW_VALUES_COUNT = 5;
 
   log.info(`Inserting random users subscriptions... Amount: ${amount}`);
@@ -742,8 +742,8 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
     const insertQueryValues = [];
 
     for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
-      const dateFrom = getRandomDate(START_DATE_FROM, END_DATE_FROM);
-      const dateTo = getRandomDate(dateFrom, END_DATE_FROM);
+      const dateFrom = getRandomDate(START_DATE, END_DATE);
+      const dateTo = getRandomDate(dateFrom, END_DATE);
 
       if (
         dateFrom.getDate() === dateTo.getDate() &&
@@ -774,6 +774,138 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
   log.info(`Insert user subscriptions finished.`);
 }
 
+async function insertRandomRoutes (dbClient, amount) {
+  const MIN_BOOKING_TOKEN_LENGTH = 20;
+  const MAX_BOOKING_TOKEN_LENGTH = 100;
+  const MIN_PRICE = 30;
+  const MAX_PRICE = 3000;
+  const MAX_FAILED_ATTEMPTS = 50;
+  const ROW_VALUES_COUNT = 3;
+
+  log.info(`Inserting random routes... Amount: ${amount}`);
+
+  let { rows: existingRoutes } = await dbClient.executeQuery(`
+
+    SELECT
+      booking_token
+    FROM routes;
+
+  `);
+  const existingBookingTokens = existingRoutes.map((route) => route.booking_token);
+
+  existingRoutes = null;
+
+  let { rows: subscriptionsFetches } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM subscriptions_fetches;
+
+  `);
+  const subscriptionsFetchesIds = subscriptionsFetches.map((sf) => sf.id);
+
+  subscriptionsFetches = null;
+
+  const randomBookingTokens = new Set();
+
+  for (let i = 0; i < amount; i++) {
+    let failedAttempts = 0;
+
+    const randomBookingToken = getRandomString({
+      minLength: MIN_BOOKING_TOKEN_LENGTH,
+      maxLength: MAX_BOOKING_TOKEN_LENGTH,
+    });
+
+    if (existingBookingTokens.includes(randomBookingToken)) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomCodes set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    randomBookingTokens.add(randomBookingToken);
+
+    if (randomBookingTokens.size < i + 1) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomCodes set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    failedAttempts = 0;
+  }
+
+  const randomBookingTokensIterator = randomBookingTokens.values();
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamCounter = 0;
+
+    while (queryParamCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamCounter + 1}, $${queryParamCounter + 2}, $${queryParamCounter + 3})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const randomIndex = Math.floor(
+        Math.random() * subscriptionsFetchesIds.length
+      );
+      const randomSubscriptionFetchId = subscriptionsFetchesIds[randomIndex];
+      const randomPrice = Math.floor(
+        Math.random() * (MAX_PRICE - MIN_PRICE)
+      ) + MIN_PRICE;
+
+      insertQueryValues.push(randomBookingTokensIterator.next().value);
+      insertQueryValues.push(randomSubscriptionFetchId);
+      insertQueryValues.push(randomPrice);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO routes
+        (booking_token, subscription_fetch_id, price)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert routes finished.`);
+}
+
+async function insertRandomFlights (dbClient, amount) {
+  const MIN_REMOTE_ID_LENGTH = 20;
+  const MAX_REMOTE_ID_LENGTH = 20;
+  const MIN_FLIGHT_NUMBER_LENGTH = 4;
+  const MAX_FLIGHT_NUMBER_LENGTH = 4;
+  const START_DATE = new Date('2018-01-01');
+  const END_DATE = new Date('2018-12-31');
+  const MAX_FAILED_ATTEMPTS = 50;
+  const ROW_VALUES_COUNT = 5;
+
+  log.info(`Inserting random flights... Amount: ${amount}`);
+
+  // TODO
+
+  log.info(`Insert flights finished`);
+}
+
 async function fillDatabase (dbClient) {
   const AIRPORTS_AMOUNT = 10000;
   const AIRLINES_AMOUNT = 100000;
@@ -782,6 +914,8 @@ async function fillDatabase (dbClient) {
   const SUBSCRIPTIONS_FETCHES_AMOUNT = 2000000;
   const USERS_AMOUNT = 100000;
   const USERS_SUBSCRIPTIONS_AMOUNT = 2000000;
+  const ROUTES_AMOUNT = 1000000;
+  const FLIGHTS_AMOUNT = 500000;
 
   log.info('Fill database started');
 
@@ -792,7 +926,8 @@ async function fillDatabase (dbClient) {
   await insertRandomSubscriptionsFetches(dbClient, SUBSCRIPTIONS_FETCHES_AMOUNT);
   await insertRandomUsers(dbClient, USERS_AMOUNT);
   await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
-
+  await insertRandomRoutes(dbClient, ROUTES_AMOUNT);
+  await insertRandomFlights(dbClient, FLIGHTS_AMOUNT);
   log.info('Fill database finished');
 }
 
