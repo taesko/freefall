@@ -23,6 +23,17 @@ function getRandomString(config) {
   return result;
 }
 
+function getRandomDate(minDate, maxDate) {
+  const timeDuration = maxDate.getTime() - minDate.getTime();
+
+  const randomDate = new Date(
+    minDate.getTime() +
+    Math.random() * timeDuration
+  );
+
+  return randomDate;
+}
+
 async function insertRandomAirports (dbClient, amount) {
   const MAX_FAILED_ATTEMPTS = 50;
   const IATA_CODE_LENGTH = 3;
@@ -382,13 +393,7 @@ async function insertRandomFetches (dbClient, amount) {
   const fetchTimes = [];
 
   while (fetchTimes.length < amount) {
-    const timeDuration = END_FETCH_TIME.getTime() - START_FETCH_TIME.getTime();
-    const randomDate = new Date(
-      START_FETCH_TIME.getTime() +
-      Math.random() * timeDuration
-    );
-
-    fetchTimes.push(randomDate);
+    fetchTimes.push(getRandomDate(START_FETCH_TIME, END_FETCH_TIME));
   }
 
   let rowsInserted = 0;
@@ -655,6 +660,120 @@ async function insertRandomUsers(dbClient, amount) {
   log.info(`Insert users finished.`);
 }
 
+async function insertRandomUsersSubscriptions (dbClient, amount) {
+  const MAX_FAILED_ATTEMPTS = 50;
+  const START_DATE_FROM = new Date('2018-01-01');
+  const END_DATE_FROM = new Date('2018-12-31');
+  const ROW_VALUES_COUNT = 5;
+
+  log.info(`Inserting random users subscriptions... Amount: ${amount}`);
+
+  const { rows: existingUsersSubscriptions } = await dbClient.executeQuery(`
+
+    SELECT
+      user_id,
+      subscription_id
+    FROM users_subscriptions;
+
+  `);
+
+  let { rows: users } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM users;
+
+  `);
+  let userIds = users.map((user) => user.id);
+  users = null;
+
+  let { rows: subscriptions } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM subscriptions;
+
+  `);
+  let subscriptionIds = subscriptions.map((subscription) => subscription.id);
+  subscriptions = null;
+
+  const newUserSubscriptions = [];
+
+  for (let i1 = 0; i1 < userIds.length && newUserSubscriptions.length < amount; i1++) {
+    for (let i2 = 0; i2 < subscriptionIds.length && newUserSubscriptions.length < amount; i2++) {
+      const existingUserSubscription = existingUsersSubscriptions.find((us) => {
+        return (
+          userIds[i1] === us.user_id &&
+          subscriptionIds[i2] === us.subscription_id
+        );
+      });
+
+      if (existingUserSubscription) {
+        continue;
+      }
+
+      newUserSubscriptions.push({
+        userId: userIds[i1],
+        subscriptionId: subscriptionIds[i2],
+      });
+    }
+  }
+
+  userIds = null;
+  subscriptionIds = null;
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3}, $${queryParamsCounter + 4}, $${queryParamsCounter + 5})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const dateFrom = getRandomDate(START_DATE_FROM, END_DATE_FROM);
+      const dateTo = getRandomDate(dateFrom, END_DATE_FROM);
+
+      if (
+        dateFrom.getDate() === dateTo.getDate() &&
+        dateFrom.getMonth() === dateTo.getMonth()
+      ) { // avoid check constraint violation
+        dateTo.setDate(dateTo.getDate() + 1);
+      }
+
+      const newUserSubscription = newUserSubscriptions.pop();
+
+      insertQueryValues.push(newUserSubscription.userId);
+      insertQueryValues.push(newUserSubscription.subscriptionId);
+      insertQueryValues.push(dateFrom);
+      insertQueryValues.push(dateTo);
+      insertQueryValues.push(1); // daily subscription plan
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO users_subscriptions
+        (user_id, subscription_id, date_from, date_to, subscription_plan_id)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert user subscriptions finished.`);
+}
+
 async function fillDatabase (dbClient) {
   const AIRPORTS_AMOUNT = 10000;
   const AIRLINES_AMOUNT = 100000;
@@ -662,6 +781,7 @@ async function fillDatabase (dbClient) {
   const FETCHES_AMOUNT = 10000;
   const SUBSCRIPTIONS_FETCHES_AMOUNT = 2000000;
   const USERS_AMOUNT = 100000;
+  const USERS_SUBSCRIPTIONS_AMOUNT = 2000000;
 
   log.info('Fill database started');
 
@@ -671,6 +791,7 @@ async function fillDatabase (dbClient) {
   await insertRandomFetches(dbClient, FETCHES_AMOUNT);
   await insertRandomSubscriptionsFetches(dbClient, SUBSCRIPTIONS_FETCHES_AMOUNT);
   await insertRandomUsers(dbClient, USERS_AMOUNT);
+  await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
 
   log.info('Fill database finished');
 }
