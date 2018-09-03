@@ -13,6 +13,7 @@
     {{> heading }}
     {{> menu }}
     {{> messages }}
+    <form id="edit-user"></form>
     <table id="users-table" class="table table-bordered">
       <thead>
         <tr>
@@ -29,16 +30,16 @@
             <span id="user-edit-mode-id"></span>
           </td>
           <td>
-            <input id="user-edit-mode-email" class="form-control" name="user-email" type="email" placeholder="Email" value="" required>
+            <input id="user-edit-mode-email" class="form-control" name="user-email" type="email" placeholder="Email" value="" form="edit-user">
           </td>
           <td>
-            <input id="user-edit-mode-password" name="user-password" class="form-control" type="password" autocomplete="new-password" placeholder="Password" value="" required>
+            <input id="user-edit-mode-password" name="user-password" class="form-control" type="password" autocomplete="new-password" placeholder="Password" value="" form="edit-user">
           </td>
           <td class="text-right">
             <span id="user-edit-mode-credits"></span>
           </td>
           <td>
-            <button id="user-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
+            <input id="user-edit-mode-save-btn" type="submit" form="edit-user" class="btn btn-primary">
             <button id="user-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
           </td>
         </tr>
@@ -67,11 +68,11 @@
     </div>
     <div id="user-credits-options">
       <h3>User's credits</h3>
-      <div class="form-inline">
-        <label>Change by: <input id="user-credits-change" class="form-control" type="number" value="0"></label>
-        <button id="user-credits-submit-btn" class="btn btn-default">Submit</button>
+      <form id="change-credits" class="form-inline">
+        <label>Change by: <input id="user-credits-change" class="form-control" type="number" name="credits-difference" value="0"></label>
+        <input type="submit" id="user-credits-submit-btn" class="btn btn-default">
         <p>(value &gt; 0 to add credits or value &lt; 0 to remove credits)</p>
-      </div>
+      </form>
     </div>
     <div id="user-subscriptions-section">
       <h3>User's subscriptions:</h3>

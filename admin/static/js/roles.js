@@ -1,5 +1,6 @@
 function start () {
   const mainUtils = main();
+  const ApplicationError = mainUtils.ApplicationError;
   const assertApp = mainUtils.assertApp;
   const assertUser = mainUtils.assertUser;
   const assertPeer = mainUtils.assertPeer;
@@ -368,10 +369,39 @@ function start () {
     $('#roles-tab').parent().removeClass('active');
   };
 
-  const onNewRolePermissionSubmitClick = function () {
+  const onNewRolePermissionSubmitClick = function (event) {
     mainUtils.trace('onNewRolePermissionSubmitClick');
+    event.preventDefault();
 
-    const newRolePermissionName = $('#new-role-permission-input').val().trim();
+    const form = event.target;
+    const formData = $(form).serializeArray();
+
+    var i; // eslint-disable-line no-var
+    var newRolePermissionName; // eslint-disable-line no-var
+
+    for (i = 0; i < formData.length; i++) {
+      assertApp(_.isObject(formData[i]), {
+        msg: 'Expected each item in formData to be an object, but current item=' + formData[i], // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].name === 'string', {
+        msg: 'Expected item in formData to have property "name" of type string, but property "name" =' + formData[i].name, // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].value === 'string', {
+        msg: 'Expected item in formData to have property "value" of type string, but property "value" =' + formData[i].value, // eslint-disable-line prefer-template
+      });
+
+      if (formData[i].name === 'permission-select') {
+        newRolePermissionName = formData[i].value.trim();
+      } else {
+        throw new ApplicationError({
+          msg: 'Unknown formData name: ' + formData[i].name, // eslint-disable-line prefer-template
+        });
+      }
+    }
+
+    assertApp(typeof newRolePermissionName === 'string', {
+      msg: 'Expected newRolePermissionName to be string, but newRolePermissionName=' + newRolePermissionName, // eslint-disable-line prefer-template
+    });
 
     assertUser(newRolePermissionName.length > 0, {
       msg: 'New role permission name was empty when user clicked button Add permission',
@@ -379,7 +409,6 @@ function start () {
     });
 
     var permission; // eslint-disable-line no-var
-    var i; // eslint-disable-line no-var
 
     for (i = 0; i < permissions.length; i++) {
       if (permissions[i].name === newRolePermissionName) {
@@ -402,6 +431,8 @@ function start () {
 
     newRolePermissions.push(permission);
     renderNewRolePermissionRow('edit', permission);
+
+    return false;
   };
 
   const onRemoveNewRolePermissionClick = function (event) {
@@ -422,9 +453,37 @@ function start () {
 
   const onNewRoleSubmitClick = function (event) {
     mainUtils.trace('onNewRoleSubmitClick');
+    event.preventDefault();
 
-    const submitButton = event.target;
-    const newRoleName = $('#new-role-name').val().trim();
+    const form = event.target;
+    const formData = $(form).serializeArray();
+
+    var i; // eslint-disable-line no-var
+    var newRoleName; // eslint-disable-line no-var
+
+    for (i = 0; i < formData.length; i++) {
+      assertApp(_.isObject(formData[i]), {
+        msg: 'Expected each item in formData to be an object, but current item=' + formData[i], // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].name === 'string', {
+        msg: 'Expected item in formData to have property "name" of type string, but property "name" =' + formData[i].name, // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].value === 'string', {
+        msg: 'Expected item in formData to have property "value" of type string, but property "value" =' + formData[i].value, // eslint-disable-line prefer-template
+      });
+
+      if (formData[i].name === 'role-name') {
+        newRoleName = formData[i].value.trim();
+      } else {
+        throw new ApplicationError({
+          msg: 'Unknown formData name: ' + formData[i].name, // eslint-disable-line prefer-template
+        });
+      }
+    }
+
+    assertApp(typeof newRoleName === 'string', {
+      msg: 'Expected newRoleName to be string, but newRoleName=' + newRoleName, // eslint-disable-line prefer-template
+    });
 
     assertUser(newRoleName.length > 0, {
       msg: 'New role name was empty when user clicked button Submit',
@@ -435,8 +494,6 @@ function start () {
       msg: 'Expected newRolePermissions to be array, but newRolePermissions=' + newRolePermissions, // eslint-disable-line prefer-template
     });
 
-    submitButton.disabled = true;
-
     const addRoleParams = {
       v: '2.0',
       api_key: APIKeyRef.APIKey,
@@ -446,11 +503,16 @@ function start () {
       }),
     };
 
+    $(form).off('submit').submit(function (event) { // eslint-disable-line prefer-arrow-callback
+      event.preventDefault();
+      return false;
+    });
+
     adminAPI.adminAddRole(
       addRoleParams,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
-        submitButton.disabled = false;
+        $(form).off('submit').submit(onNewRoleSubmitClick);
         newRolePermissions = [];
 
         const messages = {
@@ -516,16 +578,16 @@ function start () {
         mainUtils.displayUserMessage('Successfully added new role!', 'success');
       }
     );
+
+    return false;
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $rolesTab = $('#roles-tab');
     const $permissionsTab = $('#permissions-tab');
-    const $newRolePermissionSubmitBtn = $('#new-role-permission-submit-btn');
-    const $newRoleSubmitBtn = $('#new-role-submit-btn');
 
-    $newRolePermissionSubmitBtn.click(onNewRolePermissionSubmitClick);
-    $newRoleSubmitBtn.click(onNewRoleSubmitClick);
+    $('#new-role-permission-form').submit(onNewRolePermissionSubmitClick);
+    $('#new-role-form').submit(onNewRoleSubmitClick);
 
     adminAPI.adminGetAPIKey({
       v: '2.0',

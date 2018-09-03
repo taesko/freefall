@@ -6,6 +6,7 @@ function start () {
   const assertPeer = mainUtils.assertPeer;
   const assertUser = mainUtils.assertUser;
   const UserError = mainUtils.UserError;
+  const ApplicationError = mainUtils.ApplicationError;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const RESULTS_LIMIT = 20;
   const APIKeyRef = mainUtils.APIKeyRef;
@@ -115,11 +116,43 @@ function start () {
 
   const onSaveUserClick = function (event) {
     mainUtils.trace('onSaveUserClick');
+    event.preventDefault();
 
-    const saveButton = event.target;
+    const form = event.target;
+    const formData = $(form).serializeArray();
 
-    const newEmail = $('#user-edit-mode-email').val().trim();
-    const newPassword = $('#user-edit-mode-password').val().trim();
+    var i; // eslint-disable-line no-var
+    var newEmail, newPassword; // eslint-disable-line no-var
+
+    for (i = 0; i < formData.length; i++) {
+      assertApp(_.isObject(formData[i]), {
+        msg: 'Expected each item in formData to be an object, but current item=' + formData[i], // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].name === 'string', {
+        msg: 'Expected item in formData to have property "name" of type string, but property "name" =' + formData[i].name, // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].value === 'string', {
+        msg: 'Expected item in formData to have property "value" of type string, but property "value" =' + formData[i].value, // eslint-disable-line prefer-template
+      });
+
+      if (formData[i].name === 'user-email') {
+        newEmail = formData[i].value.trim();
+      } else if (formData[i].name === 'user-password') {
+        newPassword = formData[i].value.trim();
+      } else {
+        throw new ApplicationError({
+          msg: 'Unknown formData name: ' + formData[i].name, // eslint-disable-line prefer-template
+        });
+      }
+    }
+
+    assertApp(typeof newEmail === 'string', {
+      msg: 'Expected newEmail to be string, but newEmail=' + newEmail, // eslint-disable-line prefer-template
+    });
+
+    assertApp(typeof newPassword === 'string', {
+      msg: 'Expected newPassword to be string, but newPassword=' + newPassword, // eslint-disable-line prefer-template
+    });
 
     const params = {
       v: '2.0',
@@ -128,17 +161,35 @@ function start () {
     };
 
     if (newEmail.length > 0) {
+      assertUser(newEmail.length >= 3, {
+        userMessage: 'Invalid email!',
+        msg: 'User entered a string that is less than three symbols long.',
+      });
+
+      assertUser(newEmail.indexOf('@') !== -1, {
+        userMessage: 'Invalid email!',
+        msg: 'User entered an email that does not contain the symbol "@".',
+      });
+
       params.email = newEmail;
     }
 
     if (newPassword.length > 0) {
+      assertUser(newPassword.length >= 8, {
+        userMessage: 'Password too short! It must be at least 8 symbols long!',
+        msg: 'User entered a password that is less than eight symbols long.',
+      });
+
       params.password = newPassword;
     }
 
-    saveButton.disabled = true;
+    $(form).off('submit').submit(function (event) { // eslint-disable-line prefer-arrow-callback
+      event.preventDefault();
+      return false;
+    });
 
     adminAPI.adminEditUser(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      saveButton.disabled = false;
+      $(form).off('submit').submit(onSaveUserClick);
 
       const messages = {
         '1000': 'Successfully updated user!',
@@ -167,6 +218,8 @@ function start () {
       renderUserRow('view', userGlobal);
       mainUtils.displayUserMessage('Successfully updated user!', 'success');
     });
+
+    return false;
   };
 
   const onCancelEditUserClick = function (event) {
@@ -417,33 +470,63 @@ function start () {
   const onUserCreditsSubmitClick = function (event) {
     mainUtils.trace('onUserCreditsSubmitClick');
 
-    const submitButton = event.target;
-    const userCreditsChange = $('#user-credits-change').val().trim();
+    const form = event.target;
+    const formData = $(form).serializeArray();
 
-    assertUser(userCreditsChange.length > 0, {
+    var i; // eslint-disable-line no-var
+    var creditsDifference; // eslint-disable-line no-var
+
+    for (i = 0; i < formData.length; i++) {
+      assertApp(_.isObject(formData[i]), {
+        msg: 'Expected each item in formData to be an object, but current item=' + formData[i], // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].name === 'string', {
+        msg: 'Expected item in formData to have property "name" of type string, but property "name" =' + formData[i].name, // eslint-disable-line prefer-template
+      });
+      assertApp(typeof formData[i].value === 'string', {
+        msg: 'Expected item in formData to have property "value" of type string, but property "value" =' + formData[i].value, // eslint-disable-line prefer-template
+      });
+
+      if (formData[i].name === 'credits-difference') {
+        creditsDifference = formData[i].value.trim();
+      } else {
+        throw new ApplicationError({
+          msg: 'Unknown formData name: ' + formData[i].name, // eslint-disable-line prefer-template
+        });
+      }
+    }
+
+    assertApp(typeof creditsDifference === 'string', {
+      msg: 'Expected creditsDifference to be string, but creditsDifference=' + creditsDifference, // eslint-disable-line prefer-template
+    });
+
+    assertUser(creditsDifference.length > 0, {
       userMessage: 'Please choose a value for credit change!',
-      msg: 'User submitted "' + userCreditsChange + '", which was recognised as an empty input.', // eslint-disable-line prefer-template
+      msg: 'User submitted "' + creditsDifference + '", which was recognised as an empty input.', // eslint-disable-line prefer-template
     });
 
-    assertUser(Number.isInteger(Number(userCreditsChange)), {
+    assertUser(Number.isInteger(Number(creditsDifference)), {
       userMessage: 'Change credit value is not an integer (2, 200, -16, etc..)!',
-      msg: 'User submitted "' + userCreditsChange + '", which was not recognised as an integer.', // eslint-disable-line prefer-template
+      msg: 'User submitted "' + creditsDifference + '", which was not recognised as an integer.', // eslint-disable-line prefer-template
     });
-
-    submitButton.disabled = true;
 
     const alterUserCreditsParams = {
       v: '2.0',
       api_key: APIKeyRef.APIKey,
       user_id: userGlobal.id,
-      credits_difference: Number(userCreditsChange),
+      credits_difference: Number(creditsDifference),
     };
+
+    $(form).off('submit').submit(function (event) { // eslint-disable-line prefer-arrow-callback
+      event.preventDefault();
+      return false;
+    });
 
     adminAPI.adminAlterUserCredits(
       alterUserCreditsParams,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
-        submitButton.disabled = false;
+        $(form).off('submit').submit(onUserCreditsSubmitClick);
         $('#user-credits-change').val(0);
 
         const messages = {
@@ -451,7 +534,8 @@ function start () {
           '2100': 'Invalid api key!',
           '2101': 'User does not have enough credits for this transaction!',
           '2102': 'User not found',
-          '2103': 'Invalid credits value.',
+          '2103': 'The form you have submitted was not in expected format. Please correct any wrong inputs and try again!',
+          '2104': 'Invalid credits value!',
         };
 
         assertPeer(typeof messages[result.status_code] === 'string', {
@@ -464,11 +548,13 @@ function start () {
           msg: 'Edit user failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
         });
 
-        userGlobal.credits += Number(userCreditsChange);
+        userGlobal.credits += Number(creditsDifference);
         renderUserRow('view', userGlobal);
         mainUtils.displayUserMessage('Successfully altered user credits!', 'success');
       }
     );
+
+    return false;
   };
 
   const onPreviousPageClick = function (event) {
@@ -603,11 +689,11 @@ function start () {
 
     renderUserRow('view', userGlobal);
 
+    $('#edit-user').submit(onSaveUserClick);
+    $('#change-credits').submit(onUserCreditsSubmitClick);
     $('#user-view-mode-edit-btn').click(onEditUserClick);
     $('#user-view-mode-remove-btn').click(onRemoveUserClick);
-    $('#user-edit-mode-save-btn').click(onSaveUserClick);
     $('#user-edit-mode-cancel-btn').click(onCancelEditUserClick);
-    $('#user-credits-submit-btn').click(onUserCreditsSubmitClick);
     $('#prev-page-btn-top').click(onPreviousPageClick);
     $('#next-page-btn-top').click(onNextPageClick);
     $('#prev-page-btn-bottom').click(onPreviousPageClick);

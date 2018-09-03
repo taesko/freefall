@@ -33,23 +33,25 @@
         </div>
         <div id="role-edit-mode" hidden>
           <div class="row">
-            <div class="col-md-6">
-              <p class="text-left">Role name: <input id="role-name-edit-mode" type="text" placeholder="" value="" class="form-control"></p>
-              <p class="text-left">Created at: <label id="role-created-at-edit-mode"></label></p>
-              <p class="text-left">Updated at: <label id="role-updated-at-edit-mode"></label></p>
-            </div>
-            <div class="col-md-6">
-              <p class="text-right">
-                <button id="role-save-btn-edit-mode" class="btn btn-primary">Save</button>
-                <button id="role-cancel-btn-edit-mode" class="btn btn-default">Cancel</button>
-              </p>
-            </div>
+            <form id="edit-role-form">
+              <div class="col-md-6">
+                <p class="text-left">Role name: <input id="role-name-edit-mode" type="text" placeholder="" name="role-name" value="" class="form-control"></p>
+                <p class="text-left">Created at: <label id="role-created-at-edit-mode"></label></p>
+                <p class="text-left">Updated at: <label id="role-updated-at-edit-mode"></label></p>
+              </div>
+              <div class="col-md-6">
+                <p class="text-right">
+                  <input id="role-save-btn-edit-mode" type="submit" class="btn btn-primary">
+                  <button type="button" id="role-cancel-btn-edit-mode" class="btn btn-default">Cancel</button>
+                </p>
+              </div>
+            </form>
           </div>
           <h4>Add permission:</h4>
-          <div class="form-inline">
+          <form id="role-permission-form" class="form-inline">
             <input id="add-role-permission" type="text" placeholder="Add permission" name="permission-select" class="form-control permission-select">
-            <button id="add-role-permission-submit-btn" class="btn btn-default">Add permission</button>
-          </div>
+            <input id="add-role-permission-submit-btn" type="submit" class="btn btn-default">
+          </form>
         </div>
       </div>
       <div>

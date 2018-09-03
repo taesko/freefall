@@ -197,10 +197,13 @@ function start () {
       params.role_id = editedRole.id;
     }
 
-    form.disabled = true;
+    $(form).off('submit').submit(function (event) { // eslint-disable-line prefer-arrow-callback
+      event.preventDefault();
+      return false;
+    });
 
     adminAPI.adminEditEmployee(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      form.disabled = false;
+      $(form).off('submit').submit(onSaveEmployee);
 
       const messages = {
         '1000': 'Successfully updated employee!',

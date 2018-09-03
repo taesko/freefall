@@ -4,21 +4,74 @@
   <meta charset="UTF-8">
   <title>Account transfers reports</title>
   <link href="../css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-<!--   <link href="../css/style.css" rel="stylesheet"> -->
+  <link href="./css/jquery-ui.css" rel="stylesheet">
+  <!--   <link href="../css/style.css" rel="stylesheet"> -->
 </head>
 <body>
   <div class="container">
     {{> heading }}
     {{> menu }}
-    <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
-    <p><label>Credits owned by all users:</label> {{users_total_credits}}</p>
-    <p><label>Credits loaded into system:</label> {{total_credits_loaded}}</p>
-    <p><label>Amount of requests to Dalipeche:</label> {{dalipeche_api_total_requests}}</p>
+    <div class="row">
+      <h3>Filter:</h3>
+      <form action="/transfers" method="get">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>User email:</label>
+            <input class="form-control" type="email" name="user-email" placeholder="Email" value="{{ filters.user_email }}">
+          </div>
+          <div class="form-group">
+            <label>Type of transaction</label>
+            <select name="type" class="form-control">
+              <option value="all" {{ is_selected transaction_type "all" }}>All</option>
+              <option value="deposits" {{ is_selected transaction_type "deposits" }}>Only deposits</option>
+              <option value="withdrawals" {{ is_selected transaction_type "withdrawals" }}>Only withdrawals</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Reason for transaction:</label>
+            <select name="reason" class="form-control">
+              <option value="all" {{ is_selected transaction_reason "all" }}>All</option>
+              <option value="employee" {{ is_selected transaction_reason "employee" }}>Only transfers by employes</option>
+              <option value="new-subscription" {{ is_selected transaction_reason "new-subscription" }}>Only new subscription taxes</option>
+              <option value="fetch" {{ is_selected transaction_reason "fetch" }}>Only fetch taxes</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>Date from:</label>
+            <input id="date-from" name="date-from" class="form-control" type="text" value="{{ filters.date_from }}">
+          </div>
+          <div class="form-group">
+            <label>Date to:</label>
+            <input id="date-to" name="date-to" class="form-control" type="text" value="{{ filters.date_to }}">
+          </div>
+          <div class="form-group">
+            <input class="btn btn-primary" type="submit">
+          </div>
+        </div>
+      </form>
+    </div>
+    <hr>
+    <div class="row">
+      <div class="col-md-6">
+        <h3>Current filter data:</h3>
+        <p><label>Total deposited:</label> {{filter_total_deposited}}</p>
+        <p><label>Total withdrawn:</label> {{filter_total_withdrawn}}</p>
+      </div>
+      <div class="col-md-6">
+        <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
+        <p><label>Credits owned by all users:</label> {{users_total_credits}}</p>
+        <p><label>Credits loaded into system:</label> {{total_credits_loaded}}</p>
+        <p><label>Amount of requests to Dalipeche:</label> {{dalipeche_api_total_requests}}</p>
+      </div>
+    </div>
+    <hr>
     <div class="row">
       <div class="col-md-4">
         {{#if prev_page}}
         <p class="text-left">
-          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}';">Previous page</button>
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}{{query_string_without_page}}';">Previous page</button>
         </p>
         {{/if}}
       </div>
@@ -31,7 +84,7 @@
       <div class="col-md-4">
         {{#if next_page}}
         <p class="text-right">
-          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}';">Next page</button>
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}{{query_string_without_page}}';">Next page</button>
         </p>
         {{/if}}
       </div>
@@ -93,7 +146,7 @@
       <div class="col-md-4">
         {{#if prev_page}}
         <p class="text-left">
-          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}';">Previous page</button>
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}{{query_string_without_page}}';">Previous page</button>
         </p>
         {{/if}}
       </div>
@@ -106,11 +159,14 @@
       <div class="col-md-4">
         {{#if next_page}}
         <p class="text-right">
-          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}';">Next page</button>
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}{{query_string_without_page}}';">Next page</button>
         </p>
         {{/if}}
       </div>
     </div>
   </div>
+  <script src="./js/jquery/jquery-2.2.4.js"></script>
+  <script src="./js/jquery-ui.min.js"></script>
+  <script src="./js/account-transfers.js"></script>
 </body>
 </html>
