@@ -8,6 +8,7 @@ const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
 const session = require('koa-session');
+const mount = require('koa-mount');
 
 const { assertApp, UserError } = require('./modules/error-handling');
 const db = require('./modules/db');
@@ -76,7 +77,7 @@ app.use(bodyParser({ // TODO crashes on bad json, best avoid the inner parser
   enableTypes: ['json', 'form', 'text'],
 }));
 
-app.use(serve(path.join(__dirname, 'public')));
+app.use(mount('/static', serve(path.join(__dirname, 'public'))));
 app.use(views(path.join(__dirname, 'templates/'), {
   map: {
     html: 'handlebars',

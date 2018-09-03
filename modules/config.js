@@ -10,7 +10,7 @@ module.exports = {
     password_reset_email_link: '/register/password-reset/reset',
     profile: '/profile',
     settings: '/profile/settings',
-    static: '',
+    static: '/static',
     api: '/',
   },
 };
