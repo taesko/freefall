@@ -59,7 +59,7 @@ function unsubscribePageContext () {
 function loginPageContext (appCtx) {
   return {
     item: 'login',
-    error_message: appCtx.state.login_error_message || '',
+    errors: appCtx.errors,
   };
 }
 

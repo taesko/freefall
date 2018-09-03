@@ -28,8 +28,8 @@
           {{#if errors}}
             <p class="text-center text-danger">
               {{#if errors.LOGIN_UNVERIFIED_EMAIL }}
-                Your account is not verified. We sent verification email to <b>{{ email }}</b>.
-                If you haven't received it please click <a href="{{link}}">here</a> to resend it.`
+                Your account is not verified. We sent verification email to <b>{{ errors.LOGIN_UNVERIFIED_EMAIL.email }}</b>.
+                If you haven't received it please click <a href="{{errors.LOGIN_UNVERIFIED_EMAIL.link}}">here</a> to resend it.`
               {{else if errors.LOGIN_SUSPENDED_USER }}
                 Your account <b>{{ email }}</b> has been suspended.
               {{else if errors.LOGIN_INVALID_CREDENTIALS }}
@@ -41,8 +41,6 @@
           {{else}}
             <p class="text-center text-success">{{ success_message }}</p>
           {{/if}}
-          {{> auth_message_success }}
-          {{> auth_message_error }}
         </div>
       </form>
       <p class="text-center"><a href="/register">Don't have an account? Register -></a></p>

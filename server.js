@@ -121,13 +121,16 @@ router.get('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
 
 router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
   const { email, password } = ctx.request.body;
+
+  ctx.state.errors = ctx.state.errors || {};
+
   // TODO if typeof email or password is not string this is a peer error
   // application currently does not support peer errors thrown from here
   if (
     email.length < MIN_EMAIL_LENGTH ||
     password.length < MIN_PASSWORD_LENGTH
   ) {
-    ctx.state.login_error_message = 'Invalid username or password.';
+    ctx.state.errors['LOGIN_INVALID_CREDENTIALS'] = {};
     await ctx.render('login.html', await getContextForRoute(ctx, 'post', '/login'));
     return;
   }
@@ -149,10 +152,15 @@ router.post('/login', auth.redirectWhenLoggedIn('/profile'), async (ctx) => {
         const relUrl = url.resolve(config.address, config.routes.verify_email);
         const query = `?token=${encodeURIComponent(user.verification_token)}&resend=true`;
         const link = relUrl + query;
-        const resendVerificationLinkMsg = `Your account is not verified. We sent verification email to ${user.email}. If you haven't received it please click <a href="${link}">here</a> to resend it.`;
+        ctx.state.errors['LOGIN_UNVERIFIED_EMAIL'] = {
+          email,
+          link,
+        };
+      } else {
+        ctx.state.errors[e.code] = {};
       }
-      log.info('Login failed. Setting ctx.state.login_error_message');
-      ctx.state.login_error_message = e.message;
+
+      log.info(`Login failed with code ${e.code}. Setting ctx.state.errors`);
     } else {
       throw e;
     }
