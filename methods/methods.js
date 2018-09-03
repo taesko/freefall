@@ -677,10 +677,12 @@ async function listAirports (params, dbClient) {
 
 const listSubscriptions = defineAPIMethod(
   {
-    'LIST_SUBSCR_INVALID_API_KEY': { subscriptions: [] }, // TODO add status codes ?
+    'LIST_SUBSCR_INVALID_API_KEY': { subscriptions: [], status_code: '2200' },
   },
   async (
     {
+      fly_from = null,
+      fly_to = null,
       limit = LIST_SUBSCRIPTIONS_DEFAULT_LIMIT,
       offset = 0,
       api_key: apiKey,
@@ -690,6 +692,24 @@ const listSubscriptions = defineAPIMethod(
     const user = await users.fetchUser(dbClient, { apiKey });
 
     assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_API_KEY');
+
+    let flyFromClause;
+
+    if (fly_from) {
+      flyFromClause = `(ap_from.name=$4 OR ap_from.iata_code=$4)`;
+    } else {
+      fly_from = '';
+      flyFromClause = `$4=$4`;
+    }
+
+    let flyToClause;
+
+    if (fly_to) {
+      flyToClause = `(ap_to.name=$5 OR ap_to.iata_code=$5)`;
+    } else {
+      fly_to = '';
+      flyToClause = `$5=$5`;
+    }
 
     const { rows: subRows } = await dbClient.executeQuery(
       `
@@ -706,12 +726,15 @@ const listSubscriptions = defineAPIMethod(
       JOIN airports ap_from ON sub.airport_from_id=ap_from.id
       JOIN airports ap_to ON sub.airport_to_id=ap_to.id
       JOIN subscription_plans ON user_sub.subscription_plan_id=subscription_plans.id
-      WHERE user_id=$1 AND user_sub.active=true
+      WHERE user_id=$1 AND
+        user_sub.active=true AND
+        ${flyFromClause} AND
+        ${flyToClause}
       ORDER BY user_sub.updated_at DESC
       LIMIT $2
       OFFSET $3
       `,
-      [user.id, limit, offset],
+      [user.id, limit, offset, fly_from, fly_to],
     );
 
     return {
