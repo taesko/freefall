@@ -668,7 +668,7 @@ const depositHistory = defineAPIMethod(
     assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
     const fromClause = from ? 'transferred_at > $4::timestamp' : '$4=$4';
-    const toClause = to ? 'transferred_at > $5::timestamp' : '$5=$5';
+    const toClause = to ? 'transferred_at < $5::timestamp' : '$5=$5';
 
     from = from || '';
     to = to || '';
@@ -696,6 +696,7 @@ const depositHistory = defineAPIMethod(
   },
 );
 
+// eslint-disable-next-line no-unused-vars
 const fullCreditHistory = defineAPIMethod(
   {
     'TH_BAD_LIMIT': { status_code: '2100' },
