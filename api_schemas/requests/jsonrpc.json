@@ -24,6 +24,8 @@
         "edit_subscription",
         "list_airports",
         "credit_history",
+        "deposit_history",
+        "tax_history",
         "list_subscriptions",
         "modify_credentials",
         "get_api_key",
