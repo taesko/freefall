@@ -4,7 +4,7 @@ const log = require('../modules/log');
 const db = require('../modules/db');
 const MAX_QUERY_PARAMS = 30000;
 
-function getRandomString(config) {
+function getRandomString (config) {
   const allowedCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const { minLength, maxLength } = config;
 
@@ -23,7 +23,7 @@ function getRandomString(config) {
   return result;
 }
 
-function getRandomDate(minDate, maxDate) {
+function getRandomDate (minDate, maxDate) {
   const timeDuration = maxDate.getTime() - minDate.getTime();
 
   const randomDate = new Date(
@@ -156,7 +156,7 @@ async function insertRandomAirports (dbClient, amount) {
   log.info(`Insert airports finished.`);
 }
 
-async function insertRandomAirlines(dbClient, amount) {
+async function insertRandomAirlines (dbClient, amount) {
   const MAX_FAILED_ATTEMPTS = 50;
   const MIN_CODE_LENGTH = 2;
   const MAX_CODE_LENGTH = 8;
@@ -292,7 +292,6 @@ async function insertRandomAirlines(dbClient, amount) {
 }
 
 async function insertRandomSubscriptions (dbClient, amount) {
-  const MAX_FAILED_ATTEMPTS = 50;
   const ROW_VALUES_COUNT = 2;
 
   log.info(`Inserting random subscriptions... Amount: ${amount}`);
@@ -433,7 +432,7 @@ async function insertRandomFetches (dbClient, amount) {
   log.info(`Insert fetches finished.`);
 }
 
-async function insertRandomSubscriptionsFetches(dbClient, amount) {
+async function insertRandomSubscriptionsFetches (dbClient, amount) {
   const ROW_VALUES_COUNT = 3;
   const MIN_API_FETCHES_COUNT = 1;
   const MAX_API_FETCHES_COUNT = 20;
@@ -661,7 +660,6 @@ async function insertRandomUsers(dbClient, amount) {
 }
 
 async function insertRandomUsersSubscriptions (dbClient, amount) {
-  const MAX_FAILED_ATTEMPTS = 50;
   const START_DATE = new Date('2018-01-01');
   const END_DATE = new Date('2018-12-31');
   const ROW_VALUES_COUNT = 5;
@@ -1597,6 +1595,253 @@ async function insertRandomEmployees (dbClient, amount) {
   log.info(`Insert employees finished.`);
 }
 
+async function insertRandomEmployeesRoles (dbClient, amount) {
+  const ROW_VALUES_COUNT = 2;
+
+  log.info(`Inserting random employees roles... Amount: ${amount}`);
+
+  let { rows: existingEmployeesRoles } = await dbClient.executeQuery(`
+
+    SELECT
+      employee_id
+    FROM employees_roles;
+
+  `);
+  let existingEmployeesRolesEmployeeIds = existingEmployeesRoles.map((er) => er.employee_id);
+  existingEmployeesRoles = null;
+
+  let { rows: employees } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM employees;
+
+  `);
+  let employeeIds = employees.map((employee) => employee.id);
+  employees = null;
+
+  let { rows: roles } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM roles;
+
+  `);
+  let roleIds = roles.map((role) => role.id);
+  roles = null;
+
+  const newEmployeesRoles = [];
+
+  for (let i1 = 0; i1 < employeeIds.length && newEmployeesRoles.length < amount; i1++) {
+    if (existingEmployeesRolesEmployeeIds.includes(employeeIds[i1])) {
+      continue;
+    }
+
+    const randomIndex = Math.floor(Math.random() * roleIds.length);
+    const randomRoleId = roleIds[randomIndex];
+
+    newEmployeesRoles.push({
+      employeeId: employeeIds[i1],
+      roleId: randomRoleId,
+    });
+  }
+
+  employeeIds = null;
+  roleIds = null;
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const newEmployeeRole = newEmployeesRoles.pop();
+
+      insertQueryValues.push(newEmployeeRole.employeeId);
+      insertQueryValues.push(newEmployeeRole.roleId);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO employees_roles
+        (employee_id, role_id)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert employees roles finished.`);
+}
+
+async function insertRandomLoginSessions (dbClient, amount) {
+  const ROW_VALUES_COUNT = 1;
+
+  log.info(`Inserting random login sessions... Amount: ${amount}`);
+
+  let { rows: existingLoginSessions } = await dbClient.executeQuery(`
+
+    SELECT
+      user_id
+    FROM login_sessions;
+
+  `);
+  let existingLoginSessionsUserIds = existingLoginSessions.map((ls) => ls.user_id);
+  existingLoginSessions = null;
+
+  let { rows: users } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM users;
+
+  `);
+  let userIds = users.map((user) => user.id);
+  users = null;
+
+  const newLoginSessionsUserIds = [];
+
+  for (let i = 0; i < userIds.length; i++) {
+    if (existingLoginSessionsUserIds.includes(userIds[i])) {
+      continue;
+    }
+
+    newLoginSessionsUserIds.push(userIds[i]);
+  }
+
+  existingLoginSessionsUserIds = null;
+  userIds = null;
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      insertQueryValues.push(newLoginSessionsUserIds.pop());
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO login_sessions
+        (user_id)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert login sessions finished`);
+}
+
+async function insertRandomPasswordResets (dbClient, amount) {
+  const ROW_VALUES_COUNT = 1;
+
+  log.info(`Inserting random password resets... Amount: ${amount}`);
+
+  let { rows: existingPasswordResets } = await dbClient.executeQuery(`
+
+    SELECT
+      user_id
+    FROM password_resets;
+
+  `);
+  let existingPasswordResetsUserIds = existingPasswordResets.map((ls) => ls.user_id);
+  existingPasswordResets = null;
+
+  let { rows: users } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM users;
+
+  `);
+  let userIds = users.map((user) => user.id);
+  users = null;
+
+  const newPasswordResetsUserIds = [];
+
+  for (let i = 0; i < userIds.length; i++) {
+    if (existingPasswordResetsUserIds.includes(userIds[i])) {
+      continue;
+    }
+
+    newPasswordResetsUserIds.push(userIds[i]);
+  }
+
+  existingPasswordResetsUserIds = null;
+  userIds = null;
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      insertQueryValues.push(newPasswordResetsUserIds.pop());
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO password_resets
+        (user_id)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert password resets finished`);
+}
+
+async function insertRandomAccountTransfers (dbClient, amount) {
+  log.info(`Inserting random account transfers... Amount: {amount}`);
+
+  log.info(`Insert random account transfers finished`);
+}
+
 async function fillDatabase (dbClient) {
   const AIRPORTS_AMOUNT = 1000;
   const AIRLINES_AMOUNT = 1000;
@@ -1613,6 +1858,7 @@ async function fillDatabase (dbClient) {
   const ROLES_PERMISSIONS_AMOUNT = 10000;
   const DALIPECHE_FETCHES_AMOUNT = 1000;
   const EMPLOYEES_AMOUNT = 1000;
+  const ACCOUNT_TRANSFERS_AMOUNT = 1000;
 
   log.info('Fill database started');
 
@@ -1621,16 +1867,20 @@ async function fillDatabase (dbClient) {
   await insertRandomSubscriptions(dbClient, SUBSCRIPTIONS_AMOUNT);
   await insertRandomFetches(dbClient, FETCHES_AMOUNT);
   await insertRandomSubscriptionsFetches(dbClient, SUBSCRIPTIONS_FETCHES_AMOUNT);
-  //await insertRandomUsers(dbClient, USERS_AMOUNT);
-  //await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
+  await insertRandomUsers(dbClient, USERS_AMOUNT);
+  await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
   await insertRandomRoutes(dbClient, ROUTES_AMOUNT);
   await insertRandomFlights(dbClient, FLIGHTS_AMOUNT);
   await insertRandomRoutesFlights(dbClient, ROUTES_FLIGHTS_AMOUNT);
   await insertRandomRoles(dbClient, ROLES_AMOUNT);
   await insertRandomPermissions(dbClient, PERMISSIONS_AMOUNT);
   await insertRandomRolesPermissions(dbClient, ROLES_PERMISSIONS_AMOUNT);
-  await insertRandomDalipecheFetches(dbClient, DALIPECHE_FETCHES_AMOUNT); 
+  await insertRandomDalipecheFetches(dbClient, DALIPECHE_FETCHES_AMOUNT);
   await insertRandomEmployees(dbClient, EMPLOYEES_AMOUNT);
+  await insertRandomEmployeesRoles(dbClient, EMPLOYEES_AMOUNT);
+  await insertRandomLoginSessions(dbClient, USERS_AMOUNT);
+  await insertRandomPasswordResets(dbClient, USERS_AMOUNT);
+  await insertRandomAccountTransfers(dbClient, ACCOUNT_TRANSFERS_AMOUNT);
 
   log.info('Fill database finished');
 }
