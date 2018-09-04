@@ -25,6 +25,11 @@ function start () {
   const CREDIT_HISTORY_PAGE_LIMIT = 5;
   const SUBSCRIPTIONS_PAGE_LIMIT = 5;
   const ALLOWED_SUBSCRIPTION_PLANS = ['daily', 'weekly', 'monthly'];
+  const SUBSCRIPTION_PLANS = {
+    daily: { initialTax: 50 },
+    weekly: { initialTax: 50 },
+    monthly: { initialTax: 50 },
+  };
 
   function getAirportName (airports, id) {
     mainUtils.trace('getAirportName(airports, ' + id + '), typeof arg=' + typeof id + ''); // eslint-disable-line prefer-template
@@ -403,12 +408,23 @@ function start () {
         date_to: dateTo,
         plan: plan,
       };
-
-      subscriptions = subscriptions.concat([newSubscription]);
+      const newHistory = {
+        airport_from_id: airportFromId,
+        airport_to_id: airportToId,
+        date_from: dateFrom,
+        date_to: dateTo,
+        subscription_status: true,
+        transferred_at: new Date().toLocaleString(),
+        transfer_amount: SUBSCRIPTION_PLANS[plan].initialTax,
+        reason: 'initial tax',
+      };
       const rowId = String(mainUtils.getUniqueId());
+      subscriptions = subscriptions.concat([newSubscription]);
 
       rowIdSubscriptionMap[rowId] = newSubscription;
       renderSubscriptionRow('view', newSubscription);
+
+      renderCreditHistoryTable($('#credit-history-table'), [newHistory]);
       mainUtils.displayUserMessage('Successfully subscribed!', 'success');
     });
   };
