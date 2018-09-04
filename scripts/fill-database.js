@@ -56,10 +56,9 @@ async function insertRandomAirports (dbClient, amount) {
 
   const randomIATACodes = new Set();
   const randomAirportNames = new Set();
+  let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomIATACode = getRandomString({
       minLength: IATA_CODE_LENGTH,
       maxLength: IATA_CODE_LENGTH,
@@ -91,8 +90,6 @@ async function insertRandomAirports (dbClient, amount) {
   }
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomAirportName = getRandomString({
       minLength: MIN_AIRPORT_NAME_LENGTH,
       maxLength: MAX_AIRPORT_NAME_LENGTH,
@@ -182,10 +179,9 @@ async function insertRandomAirlines (dbClient, amount) {
 
   const randomCodes = new Set();
   const randomNames = new Set();
+  let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomCode = getRandomString({
       minLength: MIN_CODE_LENGTH,
       maxLength: MAX_CODE_LENGTH,
@@ -217,8 +213,6 @@ async function insertRandomAirlines (dbClient, amount) {
   }
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomName = getRandomString({
       minLength: MIN_NAME_LENGTH,
       maxLength: MAX_NAME_LENGTH,
@@ -567,10 +561,9 @@ async function insertRandomUsers(dbClient, amount) {
   existingUsers = null;
 
   const randomEmails = new Set();
+  let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomLocalPart = getRandomString({
       minLength: MIN_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
       maxLength: MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
@@ -805,10 +798,9 @@ async function insertRandomRoutes (dbClient, amount) {
   subscriptionsFetches = null;
 
   const randomBookingTokens = new Set();
+  let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomBookingToken = getRandomString({
       minLength: MIN_BOOKING_TOKEN_LENGTH,
       maxLength: MAX_BOOKING_TOKEN_LENGTH,
@@ -930,10 +922,9 @@ async function insertRandomFlights (dbClient, amount) {
   airports = null;
 
   const randomRemoteIds = new Set();
+  let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomRemoteId = getRandomString({
       minLength: MIN_REMOTE_ID_LENGTH,
       maxLength: MAX_REMOTE_ID_LENGTH,
@@ -1159,10 +1150,9 @@ async function insertRandomRoles (dbClient, amount) {
   existingRoles = null;
 
   const randomRoleNames = new Set();
+  let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomRoleName = getRandomString({
       minLength: MIN_ROLE_NAME_LENGTH,
       maxLength: MAX_ROLE_NAME_LENGTH,
@@ -1249,10 +1239,9 @@ async function insertRandomPermissions (dbClient, amount) {
   existingPermissions = null;
 
   const randomPermissionNames = new Set();
+  let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomPermissionName = getRandomString({
       minLength: MIN_PERMISSION_NAME_LENGTH,
       maxLength: MAX_PERMISSION_NAME_LENGTH,
@@ -1506,10 +1495,9 @@ async function insertRandomEmployees (dbClient, amount) {
   existingEmployees = null;
 
   const randomEmails = new Set();
+  let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
-    let failedAttempts = 0;
-
     const randomLocalPart = getRandomString({
       minLength: MIN_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
       maxLength: MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
@@ -1836,7 +1824,278 @@ async function insertRandomPasswordResets (dbClient, amount) {
   log.info(`Insert password resets finished`);
 }
 
-async function insertRandomAccountTransfers (dbClient, amount) {
+async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
+  const TRANSFER_AMOUNT = 1000;
+  const ACCOUNT_TRANSFERS_ROW_VALUES_COUNT = 3;
+  const ACCOUNT_TRANSFERS_BY_EMPLOYEES_ROW_VALUES_COUNT = 2;
+
+  log.info(`Inserting random account transfers by employees... Amount: ${amount}`);
+
+  let { rows: users } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM users;
+
+  `);
+  let userIds = users.map((user) => user.id);
+  users = null;
+
+  let { rows: employees } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM employees;
+
+  `);
+  let employeeIds = employees.map((employee) => employee.id);
+  employees = null;
+
+  console.log(employeeIds);
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ACCOUNT_TRANSFERS_ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
+
+      if (queryParamsCounter + ACCOUNT_TRANSFERS_ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    let insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT) {
+      const randomIndex = Math.floor(Math.random() * userIds.length);
+      const randomUserId = userIds[randomIndex];
+
+      insertQueryValues.push(randomUserId);
+      insertQueryValues.push(TRANSFER_AMOUNT);
+      insertQueryValues.push((new Date()).toISOString());
+    }
+
+    let { rows: insertedAccountTransfers } = await dbClient.executeQuery(`
+
+      INSERT INTO account_transfers
+        (user_id, transfer_amount, transferred_at)
+      VALUES
+        ${insertQueryParameters}
+      RETURNING *;
+
+    `, insertQueryValues);
+
+    insertQueryParameters = '';
+    insertQueryValues = [];
+
+    for (let i = 0; i < insertedAccountTransfers.length; i++) {
+      const insertedQueryValues = i * ACCOUNT_TRANSFERS_BY_EMPLOYEES_ROW_VALUES_COUNT;
+      insertQueryParameters += `($${insertedQueryValues + 1}, $${insertedQueryValues + 2})`;
+
+      if (i < insertedAccountTransfers.length - 1) {
+        insertQueryParameters += ',';
+      }
+
+      insertQueryValues.push(insertedAccountTransfers[i].id);
+
+      const randomIndex = Math.floor(Math.random() * employeeIds.length);
+      const randomEmployeeId = employeeIds[randomIndex];
+
+      insertQueryValues.push(randomEmployeeId);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO account_transfers_by_employees
+        (account_transfer_id, employee_id)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+
+    insertQueryValues = insertedAccountTransfers.map((at) => at.user_id);
+    insertQueryParameters = '(';
+
+    for (let i = 0; i < insertQueryValues.length; i++) {
+      insertQueryParameters += `$${i + 2}`; // +2 because first param is transfer amount
+
+      if (i < insertQueryValues.length - 1) {
+        insertQueryParameters += ',';
+      }
+    }
+
+    insertQueryParameters += ')';
+
+    await dbClient.executeQuery(`
+
+      UPDATE users
+      SET credits = credits + $1
+      WHERE id IN ${insertQueryParameters};
+
+    `, [TRANSFER_AMOUNT, ...insertQueryValues]);
+  }
+
+  log.info(`Insert account transfers by employees finished.`);
+}
+
+async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
+  const ACCOUNT_TRANSFERS_ROW_VALUES_COUNT = 3;
+  const USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_ROW_VALUES_COUNT = 2;
+  const TRANSFER_AMOUNT = -20;
+  const MAX_FAILED_ATTEMPTS = 50;
+
+  log.info(`Inserting random user subscription account transfers... Amount: ${amount}`);
+
+  let { rows: userSubscriptionAccountTransfers } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM user_subscription_account_transfers;
+
+  `);
+  let userSubscriptionAccountTransfersIds = userSubscriptionAccountTransfers.map((usat) => usat.id);
+  userSubscriptionAccountTransfers = null;
+
+  let { rows: users } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM users;
+
+  `);
+
+  let { rows: usersSubscriptions } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM users_subscriptions;
+
+  `);
+  let usersSubscriptionsIds = usersSubscriptions.map((us) => us.id);
+  usersSubscriptions = null;
+
+  let rowsInserted = 0;
+
+  const randomUserSubscriptionIds = new Set();
+
+  for (let i = 0; i < usersSubscriptionsIds.length; i++) {
+    if (userSubscriptionAccountTransfersIds.includes(usersSubscriptionsIds[i])) {
+      continue;
+    }
+
+    randomUserSubscriptionIds.add(usersSubscriptionsIds[i]);
+  }
+
+  const randomUserSubscriptionIdsIterator = randomUserSubscriptionIds.values();
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ACCOUNT_TRANSFERS_ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
+
+      if (queryParamsCounter + ACCOUNT_TRANSFERS_ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    let insertQueryValues = [];
+    let failedAttempts = 0;
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT) {
+      const randomIndex = Math.floor(Math.random() * users.length);
+      const randomUser = users[randomIndex];
+
+      if (randomUser.credits <= Math.abs(TRANSFER_AMOUNT)) {
+        if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+          throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomAirportNames set');
+        }
+
+        failedAttempts++;
+        insertedQueryValues -= ACCOUNT_TRANSFERS_ROW_VALUES_COUNT; // try again
+        continue;
+      }
+
+      randomUser.credits += TRANSFER_AMOUNT;
+
+      insertQueryValues.push(randomUser.id);
+      insertQueryValues.push(TRANSFER_AMOUNT);
+      insertQueryValues.push((new Date()).toISOString());
+
+      failedAttempts = 0;
+    }
+
+    let { rows: insertedAccountTransfers } = await dbClient.executeQuery(`
+
+      INSERT INTO account_transfers
+        (user_id, transfer_amount, transferred_at)
+      VALUES
+        ${insertQueryParameters}
+      RETURNING *;
+
+    `, insertQueryValues);
+
+    insertQueryParameters = '';
+    insertQueryValues = [];
+
+    for (let i = 0; i < insertedAccountTransfers.length; i++) {
+      const insertedQueryValues = i * USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_ROW_VALUES_COUNT;
+      insertQueryParameters += `($${insertedQueryValues + 1}, $${insertedQueryValues + 2})`;
+
+      if (i < insertedAccountTransfers.length - 1) {
+        insertQueryParameters += ',';
+      }
+
+      insertQueryValues.push(insertedAccountTransfers[i].id);
+
+      insertQueryValues.push(randomUserSubscriptionIdsIterator.next().value);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO user_subscription_account_transfers
+        (account_transfer_id, user_subscription_id)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+
+    insertQueryValues = insertedAccountTransfers.map((at) => at.user_id);
+    insertQueryParameters = '(';
+
+    for (let i = 0; i < insertQueryValues.length; i++) {
+      insertQueryParameters += `$${i + 2}`; // +2 because first param is transfer amount
+
+      if (i < insertQueryValues.length - 1) {
+        insertQueryParameters += ',';
+      }
+    }
+
+    insertQueryParameters += ')';
+
+    await dbClient.executeQuery(`
+
+      UPDATE users
+      SET credits = credits + $1
+      WHERE id IN ${insertQueryParameters};
+
+    `, [TRANSFER_AMOUNT, ...insertQueryValues]);
+  }
+
+  log.info(`Insert user subscription account transfers finished.`);
+}
+
+/*async function insertRandomAccountTransfers (dbClient, amount) {
   const MAX_FAILED_ATTEMPTS = 50;
   const TRANSFER_TYPES = [
     {
@@ -1933,7 +2192,7 @@ async function insertRandomAccountTransfers (dbClient, amount) {
   }
 
   log.info(`Insert random account transfers finished`);
-}
+}*/
 
 async function fillDatabase (dbClient) {
   const AIRPORTS_AMOUNT = 1000;
@@ -1950,8 +2209,9 @@ async function fillDatabase (dbClient) {
   const PERMISSIONS_AMOUNT = 1000;
   const ROLES_PERMISSIONS_AMOUNT = 10000;
   const DALIPECHE_FETCHES_AMOUNT = 1000;
-  const EMPLOYEES_AMOUNT = 1000;
-  const ACCOUNT_TRANSFERS_AMOUNT = 1000;
+  const EMPLOYEES_AMOUNT = 10000;
+  const ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT = 1000;
+  const USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT = 1000;
 
   log.info('Fill database started');
 
@@ -1973,7 +2233,8 @@ async function fillDatabase (dbClient) {
   await insertRandomEmployeesRoles(dbClient, EMPLOYEES_AMOUNT);
   await insertRandomLoginSessions(dbClient, USERS_AMOUNT);
   await insertRandomPasswordResets(dbClient, USERS_AMOUNT);
-  await insertRandomAccountTransfers(dbClient, ACCOUNT_TRANSFERS_AMOUNT);
+  await insertRandomAccountTransfersByEmployees(dbClient, ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT);
+  await insertRandomUserSubscriptionAccountTransfers(dbClient, USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT);
 
   log.info('Fill database finished');
 }
