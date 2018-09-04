@@ -21,9 +21,15 @@ function start () {
   var searchFlyTo = null;
   var fromDepositDate = null;
   var toDepositDate = null;
+  var creditHistoryFilters = {};
   const CREDIT_HISTORY_PAGE_LIMIT = 5;
   const SUBSCRIPTIONS_PAGE_LIMIT = 5;
   const ALLOWED_SUBSCRIPTION_PLANS = ['daily', 'weekly', 'monthly'];
+  const SUBSCRIPTION_PLANS = {
+    daily: { initialTax: 50 },
+    weekly: { initialTax: 50 },
+    monthly: { initialTax: 50 },
+  };
 
   function getAirportName (airports, id) {
     mainUtils.trace('getAirportName(airports, ' + id + '), typeof arg=' + typeof id + ''); // eslint-disable-line prefer-template
@@ -242,6 +248,23 @@ function start () {
 
     const removeButton = event.target;
     const rowId = mainUtils.getElementUniqueId(removeButton, 'subscription-edit-mode-remove-btn-');
+    const subscription = rowIdSubscriptionMap[rowId];
+
+    const $modal = $('#confirm-unsubscribe-modal');
+    $modal.find('#cu-modal-fly-from').text(subscription.fly_from);
+    $modal.find('#cu-modal-fly-to').text(subscription.fly_to);
+    $modal.find('#cu-modal-date-from').text(subscription.date_from);
+    $modal.find('#cu-modal-date-to').text(subscription.date_to);
+    $modal.find('#cu-modal-confirm-btn').unbind('click')
+      .click(() => onConfirmRemoveClick(event));
+    $modal.modal();
+  };
+
+  const onConfirmRemoveClick = function (event) {
+    mainUtils.trace('remove button click');
+
+    const removeButton = event.target;
+    const rowId = mainUtils.getElementUniqueId(removeButton, 'subscription-edit-mode-remove-btn-');
     const oldSubscription = rowIdSubscriptionMap[rowId];
 
     // TODO asserts
@@ -385,12 +408,23 @@ function start () {
         date_to: dateTo,
         plan: plan,
       };
-
-      subscriptions = subscriptions.concat([newSubscription]);
+      const newHistory = {
+        airport_from_id: airportFromId,
+        airport_to_id: airportToId,
+        date_from: dateFrom,
+        date_to: dateTo,
+        subscription_status: true,
+        transferred_at: new Date().toLocaleString(),
+        transfer_amount: SUBSCRIPTION_PLANS[plan].initialTax,
+        reason: 'initial tax',
+      };
       const rowId = String(mainUtils.getUniqueId());
+      subscriptions = subscriptions.concat([newSubscription]);
 
       rowIdSubscriptionMap[rowId] = newSubscription;
       renderSubscriptionRow('view', newSubscription);
+
+      renderCreditHistoryTable($('#credit-history-table'), [newHistory]);
       mainUtils.displayUserMessage('Successfully subscribed!', 'success');
     });
   };
@@ -598,6 +632,10 @@ function start () {
     });
   }
 
+  function resetCreditHistory () {
+    $('#credit-history-table tbody tr:not(:first)').remove();
+  }
+
   function displayCreditHistory () {
     if ($('#credit-history-table tbody tr:not(:first)').length === 0) {
       loadMoreCreditHistory(switchTab.bind({}, '#credit-history-tab'));
@@ -633,10 +671,13 @@ function start () {
   function loadMoreCreditHistory (callbackOnFinish) {
     assertApp(_.isFunction(callbackOnFinish), { msg: `got ${callbackOnFinish}` });
     const $creditsTable = $('#credit-history-table');
+    const $noContentMsg = $('#no-credit-history-msg');
+    const $loadMoreBtn = $('#credit-history-load-more-btn');
     const offset = $creditsTable.find('tbody tr:not(:first)').length;
     const params = {
       limit: CREDIT_HISTORY_PAGE_LIMIT,
       offset: offset,
+      ...creditHistoryFilters,
     };
 
     api.creditHistory(params, PROTOCOL_NAME, function (result) {
@@ -647,13 +688,15 @@ function start () {
 
       if (offset === 0 && creditHistory.length === 0) {
         $creditsTable.hide();
-        $('#no-credit-history-msg').show();
-        $('#credit-history-load-more-btn').hide();
+        $noContentMsg.show();
+        $loadMoreBtn.hide();
       } else if (creditHistory.length < CREDIT_HISTORY_PAGE_LIMIT) {
         renderCreditHistoryTable($creditsTable, creditHistory);
-        $('#credit-history-load-more-btn').hide();
+        $noContentMsg.hide();
+        $loadMoreBtn.hide();
       } else {
         renderCreditHistoryTable($creditsTable, creditHistory);
+        $loadMoreBtn.show();
       }
 
       if (callbackOnFinish) {
@@ -664,6 +707,7 @@ function start () {
 
   function renderCreditHistoryTable ($table, history) {
     // $table.find('tr:not(:first)').remove();
+    $table.show();
     const $tableRowTemplate = $table.find('#credit-history-template-row');
 
     for (const historyHash of history) {
@@ -801,6 +845,24 @@ function start () {
 
     $('#display-credit-history-btn').click(displayCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
+    $('#search-credit-history').submit(function (event) {
+      event.preventDefault();
+      resetCreditHistory();
+
+      creditHistoryFilters.fly_from = $('#search-ch-fly-from').val().trim();
+      creditHistoryFilters.fly_to = $('#search-ch-fly-to').val().trim();
+      creditHistoryFilters.date_from = $('#search-ch-date-from').val().trim();
+      creditHistoryFilters.date_to = $('#search-ch-date-to').val().trim();
+
+      for (const key of Object.keys(creditHistoryFilters)) {
+        if (creditHistoryFilters[key].length === 0) {
+          delete creditHistoryFilters[key];
+        }
+      }
+
+      displayCreditHistory();
+      return false;
+    });
 
     $('#display-deposit-history-btn').click(displayDepositHistory);
     $('#deposit-history-load-more-btn').click(loadMoreDepositHistory.bind({}, displayDepositHistory));

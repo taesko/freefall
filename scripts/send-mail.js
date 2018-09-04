@@ -161,7 +161,7 @@ async function sendVerificationTokens (client) {
     DELETE FROM users
     WHERE verified=false AND created_at < $1
     `,
-    [tokensExpiredBefore]
+    [tokensExpiredBefore],
   );
   const { rows } = await client.executeQuery(
     `
@@ -171,29 +171,31 @@ async function sendVerificationTokens (client) {
     `,
   );
 
-  const sendVerificationEmail = (successful) =>
-    async ({ email, verification_token: token }) => {
-      assertApp(typeof email === 'string', `got ${email}`);
-      assertApp(typeof token === 'string', `got ${token}`);
-      const subject = 'Freefall account activation';
-      const route = url.resolve(config.address, config.routes.verify_email);
-      const query = `?token=${token}`;
-      const link = route + query;
-      const text = `Visit this link here to activate your account:\n${link}.`;
+  const sendVerificationEmail = (successful) => async ({
+    email,
+    verification_token: token,
+  }) => {
+    assertApp(typeof email === 'string', `got ${email}`);
+    assertApp(typeof token === 'string', `got ${token}`);
+    const subject = 'Freefall account activation';
+    const route = url.resolve(config.address, config.routes.verify_email);
+    const query = `?token=${token}`;
+    const link = route + query;
+    const text = `Visit this link here to activate your account:\n${link}.`;
 
-      log.info('Send email for verification of account to', email);
-      await sendEmail(email, { subject, text });
-      successful.push(email);
-    };
+    log.info('Send email for verification of account to', email);
+    await sendEmail(email, { subject, text });
+    successful.push(email);
+  };
 
   const successful = [];
-  const batchGen = utils.batchMap(
+  const sentMailBatchGen = utils.batchMap(
     rows,
     sendVerificationEmail(successful),
-    VERIFICATION_EMAIL_BATCH_COUNT
+    VERIFICATION_EMAIL_BATCH_COUNT,
   );
 
-  for (const batch of batchGen) {
+  for (const batch of sentMailBatchGen) {
     try {
       await Promise.all(batch);
     } catch (e) {
@@ -222,7 +224,7 @@ async function sendPasswordResets (client) {
     `
     DELETE FROM password_resets
     WHERE expires_on < current_timestamp
-    `
+    `,
   );
 
   log.info('Cleaned expired password resets.');
@@ -233,15 +235,15 @@ async function sendPasswordResets (client) {
     FROM password_resets
     JOIN users ON users.id=password_resets.user_id
     WHERE sent_email=false
-    `
+    `,
   );
 
-  for (const {email, new_password, token} of rows) {
+  for (const { email, new_password, token } of rows) {
     log.info('Sending password reset email to', email);
     const subject = 'Freefall password reset';
     const route = url.resolve(
       config.address,
-      config.routes.password_reset_email_link
+      config.routes.password_reset_email_link,
     );
     const query = `?token=${token}`;
     const link = route + query;
@@ -252,7 +254,7 @@ async function sendPasswordResets (client) {
       link,
     ].join('\n');
 
-    await sendEmail(email, {subject, text});
+    await sendEmail(email, { subject, text });
     await client.executeQuery(
       `
       UPDATE password_resets

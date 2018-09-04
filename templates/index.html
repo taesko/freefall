@@ -67,7 +67,7 @@
       </div>
     </div>
     <div id="routes-container" class="row">
-      <div id="route" hidden="true" class="row">
+      <div id="route" hidden class="row">
         <div class="row">
           <div class="col-md-1">
             <p class="text-left">Price: <label id="route-price"></label></p>
@@ -104,7 +104,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr id="route-flight" hidden="true">
+            <tr id="route-flight" hidden>
               <td id="route-flight-step"></td>
               <td>
                 <img id="route-flight-airline-logo" class="airline-logo img-responsive center-block" src="">
@@ -128,7 +128,7 @@
         <hr>
       </div>
     </div>
-    <button id="load-more-btn" class="btn-primary col-xs-12" hidden="true">Load more</button>
+    <button id="load-more-btn" class="btn-primary col-xs-12" hidden>Load more</button>
   </div>
 
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
@@ -143,8 +143,8 @@
   <script src="{{routes.static}}/js/js-yaml/js-yaml.min.js"></script>
   <script src="{{routes.static}}/js/api-methods.js"></script>
   <script src="{{routes.static}}/js/parsers.js"></script>
-  <script src="{{routes.static}}/js/dalipeche.js"></script>
   <script src="{{routes.static}}/js/main.js"></script>
   <script src="{{routes.static}}/js/search.js"></script>
+  <script src="{{routes.static}}/js/dalipeche-plugin/dalipeche.js" type="text/javascript"></script>
 </body>
 </html>
