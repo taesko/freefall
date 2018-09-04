@@ -948,7 +948,7 @@ async function insertRandomFlights (dbClient, amount) {
 
       i--; // try again
       failedAttempts++;
-      continue; 
+      continue;
     }
 
     randomRemoteIds.add(randomRemoteId);
@@ -1142,6 +1142,461 @@ async function insertRandomRoutesFlights (dbClient, amount) {
   log.info(`Insert routes flights finished.`);
 }
 
+async function insertRandomRoles (dbClient, amount) {
+  const ROW_VALUES_COUNT = 1;
+  const MAX_FAILED_ATTEMPTS = 50;
+  const MIN_ROLE_NAME_LENGTH = 3;
+  const MAX_ROLE_NAME_LENGTH = 30;
+
+  log.info(`Inserting random roles... Amount: ${amount}`);
+
+  let { rows: existingRoles } = await dbClient.executeQuery(`
+
+    SELECT
+      name
+    FROM roles;
+
+  `);
+  let existingRoleNames = existingRoles.map((role) => role.name);
+  existingRoles = null;
+
+  const randomRoleNames = new Set();
+
+  for (let i = 0; i < amount; i++) {
+    let failedAttempts = 0;
+
+    const randomRoleName = getRandomString({
+      minLength: MIN_ROLE_NAME_LENGTH,
+      maxLength: MAX_ROLE_NAME_LENGTH,
+    });
+
+    if (existingRoleNames.includes(randomRoleName)) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomRoleNames set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    randomRoleNames.add(randomRoleName);
+
+    if (randomRoleNames.size < i + 1) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomPermissionNames set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    failedAttempts = 0;
+  }
+
+  const randomRoleNamesIterator = randomRoleNames.values();
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      insertQueryValues.push(randomRoleNamesIterator.next().value);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO roles
+        (name)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert roles finished.`);
+}
+
+async function insertRandomPermissions (dbClient, amount) {
+  const ROW_VALUES_COUNT = 1;
+  const MAX_FAILED_ATTEMPTS = 50;
+  const MIN_PERMISSION_NAME_LENGTH = 3;
+  const MAX_PERMISSION_NAME_LENGTH = 30;
+
+  log.info(`Inserting random permissions... Amount: ${amount}`);
+
+  let { rows: existingPermissions } = await dbClient.executeQuery(`
+
+    SELECT
+      name
+    FROM permissions;
+
+  `);
+  let existingPermissionsNames = existingPermissions.map((permission) => permission.name);
+  existingPermissions = null;
+
+  const randomPermissionNames = new Set();
+
+  for (let i = 0; i < amount; i++) {
+    let failedAttempts = 0;
+
+    const randomPermissionName = getRandomString({
+      minLength: MIN_PERMISSION_NAME_LENGTH,
+      maxLength: MAX_PERMISSION_NAME_LENGTH,
+    });
+
+    if (existingPermissionsNames.includes(randomPermissionName)) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomPermissionNames set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    randomPermissionNames.add(randomPermissionName);
+
+    if (randomPermissionNames.size < i + 1) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomPermissionNames set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    failedAttempts = 0;
+  }
+
+  const randomPermissionNamesIterator = randomPermissionNames.values();
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      insertQueryValues.push(randomPermissionNamesIterator.next().value);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO permissions
+        (name)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert permissions finished.`);
+}
+
+async function insertRandomRolesPermissions (dbClient, amount) {
+  const ROW_VALUES_COUNT = 2;
+
+  log.info(`Inserting random roles permissions... Amount: ${amount}`);
+
+  const { rows: existingRolesPermissions } = await dbClient.executeQuery(`
+
+    SELECT
+      role_id,
+      permission_id
+    FROM roles_permissions;
+
+  `);
+
+  let { rows: roles } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM roles;
+
+  `);
+  let roleIds = roles.map((role) => role.id);
+  roles = null;
+
+  let { rows: permissions } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM permissions;
+
+  `);
+  let permissionIds = permissions.map((permission) => permission.id);
+  permissions = null;
+
+  const newRolesPermissions = [];
+
+  for (let i1 = 0; i1 < roleIds.length && newRolesPermissions.length < amount; i1++) {
+    for (let i2 = 0; i2 < permissionIds.length && newRolesPermissions.length < amount; i2++) {
+      const existingRolePermission = existingRolesPermissions.find((rp) => {
+        return (
+          roleIds[i1] === rp.role_id &&
+          permissionIds[i2] === rp.permission_id
+        );
+      });
+
+      if (existingRolePermission) {
+        continue;
+      }
+
+      newRolesPermissions.push({
+        roleId: roleIds[i1],
+        permissionId: permissionIds[i2],
+      });
+    }
+  }
+
+  roleIds = null;
+  permissionIds = null;
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const newRolePermission = newRolesPermissions.pop();
+
+      insertQueryValues.push(newRolePermission.roleId);
+      insertQueryValues.push(newRolePermission.permissionId);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO roles_permissions
+        (role_id, permission_id)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert roles permissions finished`);
+}
+
+async function insertRandomDalipecheFetches (dbClient, amount) {
+  const ROW_VALUES_COUNT = 3;
+  const MIN_API_KEY_LENGTH = 50;
+  const MAX_API_KEY_LENGTH = 50;
+  const START_DATE = new Date('2018-01-01');
+  const END_DATE = new Date('2018-12-31');
+  const DALIPECHE_FETCH_STATUSES = [
+    'pending',
+    'no_response',
+    'bad_response',
+    'free_request',
+    'failed_request',
+    'successful_request',
+  ];
+
+  log.info(`Inserting random dalipeche fetches... Amount: ${amount}`);
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const randomAPIKey = getRandomString({
+        minLength: MIN_API_KEY_LENGTH,
+        maxLength: MAX_API_KEY_LENGTH,
+      });
+
+      const randomIndex = Math.floor(
+        Math.random() * DALIPECHE_FETCH_STATUSES.length
+      );
+
+      insertQueryValues.push(randomAPIKey);
+      insertQueryValues.push(getRandomDate(START_DATE, END_DATE));
+      insertQueryValues.push(DALIPECHE_FETCH_STATUSES[randomIndex]);
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO dalipeche_fetches
+        (api_key, fetch_time, status)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert dalipeche fetches finished.`);
+}
+
+async function insertRandomEmployees (dbClient, amount) {
+  const MIN_EMAIL_ADDRESS_LOCAL_PART_LENGTH = 2;
+  const MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH = 40;
+  const MIN_EMAIL_ADDRESS_DOMAIN_PART_LENGTH = 2;
+  const MAX_EMAIL_ADDRESS_DOMAIN_PART_LENGTH = 20;
+  const MIN_PASSWORD_LENGTH = 8;
+  const MAX_PASSWORD_LENGTH = 50;
+  const MAX_FAILED_ATTEMPTS = 50;
+  const ROW_VALUES_COUNT = 3;
+
+  log.info(`Inserting random employees... Amount: ${amount}`);
+
+  let { rows: existingEmployees } = await dbClient.executeQuery(`
+
+    SELECT
+      email
+    FROM employees;
+
+  `);
+
+  let existingEmails = existingEmployees.map((employee) => employee.email);
+  existingEmployees = null;
+
+  const randomEmails = new Set();
+
+  for (let i = 0; i < amount; i++) {
+    let failedAttempts = 0;
+
+    const randomLocalPart = getRandomString({
+      minLength: MIN_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
+      maxLength: MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
+    });
+
+    const randomDomainPart = getRandomString({
+      minLength: MIN_EMAIL_ADDRESS_DOMAIN_PART_LENGTH,
+      maxLength: MAX_EMAIL_ADDRESS_DOMAIN_PART_LENGTH,
+    });
+
+    const randomEmailAddress = `${randomLocalPart}@${randomDomainPart}`;
+
+    if (existingEmails.includes(randomEmailAddress)) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomCodes set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    randomEmails.add(randomEmailAddress);
+
+    if (randomEmails.size < i + 1) {
+      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomEmails set');
+      }
+
+      i--; // try again
+      failedAttempts++;
+      continue;
+    }
+
+    failedAttempts = 0;
+  }
+
+  const randomEmailsIterator = randomEmails.values();
+
+  let rowsInserted = 0;
+
+  while (rowsInserted < amount) {
+    let insertQueryParameters = '';
+    let queryParamsCounter = 0;
+
+    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
+
+      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+        insertQueryParameters += ',';
+      }
+
+      queryParamsCounter += ROW_VALUES_COUNT;
+      rowsInserted++;
+    }
+
+    const insertQueryValues = [];
+
+    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      const randomEmail = randomEmailsIterator.next().value;
+      const randomPassword = getRandomString({
+        minLength: MIN_PASSWORD_LENGTH,
+        maxLength: MAX_PASSWORD_LENGTH,
+      });
+
+      const hashedRandomPassword = crypto.createHash('md5').update(randomPassword).digest('hex');
+
+      insertQueryValues.push(randomEmail);
+      insertQueryValues.push(hashedRandomPassword);
+      insertQueryValues.push(crypto.createHash('md5').update(`${randomEmail}:${hashedRandomPassword}`).digest('hex'));
+    }
+
+    await dbClient.executeQuery(`
+
+      INSERT INTO employees
+        (email, password, api_key)
+      VALUES
+        ${insertQueryParameters};
+
+    `, insertQueryValues);
+  }
+
+  log.info(`Insert employees finished.`);
+}
+
 async function fillDatabase (dbClient) {
   const AIRPORTS_AMOUNT = 1000;
   const AIRLINES_AMOUNT = 1000;
@@ -1153,6 +1608,11 @@ async function fillDatabase (dbClient) {
   const ROUTES_AMOUNT = 1000;
   const FLIGHTS_AMOUNT = 5000;
   const ROUTES_FLIGHTS_AMOUNT = 10000;
+  const ROLES_AMOUNT = 1000;
+  const PERMISSIONS_AMOUNT = 1000;
+  const ROLES_PERMISSIONS_AMOUNT = 10000;
+  const DALIPECHE_FETCHES_AMOUNT = 1000;
+  const EMPLOYEES_AMOUNT = 1000;
 
   log.info('Fill database started');
 
@@ -1166,6 +1626,12 @@ async function fillDatabase (dbClient) {
   await insertRandomRoutes(dbClient, ROUTES_AMOUNT);
   await insertRandomFlights(dbClient, FLIGHTS_AMOUNT);
   await insertRandomRoutesFlights(dbClient, ROUTES_FLIGHTS_AMOUNT);
+  await insertRandomRoles(dbClient, ROLES_AMOUNT);
+  await insertRandomPermissions(dbClient, PERMISSIONS_AMOUNT);
+  await insertRandomRolesPermissions(dbClient, ROLES_PERMISSIONS_AMOUNT);
+  await insertRandomDalipecheFetches(dbClient, DALIPECHE_FETCHES_AMOUNT); 
+  await insertRandomEmployees(dbClient, EMPLOYEES_AMOUNT);
+
   log.info('Fill database finished');
 }
 
