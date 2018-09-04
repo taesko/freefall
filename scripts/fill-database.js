@@ -1837,7 +1837,100 @@ async function insertRandomPasswordResets (dbClient, amount) {
 }
 
 async function insertRandomAccountTransfers (dbClient, amount) {
+  const MAX_FAILED_ATTEMPTS = 50;
+  const TRANSFER_TYPES = [
+    {
+      reason: 'employee',
+      amount: 1000,
+    },
+    {
+      reason: 'new-subscription',
+      amount: -20,
+    },
+    {
+      reason: 'new-fetch',
+      amount: -50,
+    }
+  ];
+
   log.info(`Inserting random account transfers... Amount: {amount}`);
+
+  let { rows: users } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM users;
+
+  `);
+  let userIds = users.map((user) => user.id);
+  users = null;
+
+  let { rows: usersSubscriptions } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM users_subscriptions;
+
+  `);
+  let usersSubscriptionsIds = usersSubscriptions.map((us) => us.id);
+  usersSubscriptions = null;
+
+  let { rows: subscriptionsFetches } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM subscriptions_fetches;
+
+  `);
+  let subscriptionsFetchesIds = subscriptionsFetches.map((sf) => sf.id);
+  subscriptionsFetches = null;
+
+  let { rows: userSubscriptionAccountTransfers } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM user_subscription_account_transfers;
+
+  `);
+  let userSubscriptionAccountTransfersIds = userSubscriptionAccountTransfers.map((usat) => usat.id);
+  userSubscriptionAccountTransfers = null;
+
+  let { rows: subscriptionsFetchesAccountTransfers } = await dbClient.executeQuery(`
+
+    SELECT
+      id
+    FROM subscriptions_fetches_account_transfers;
+
+  `);
+  let subscriptionsFetchesAccountTransfersIds = subscriptionsFetchesAccountTransfers.map((sfat) => sfat.id);
+  subscriptionsFetchesAccountTransfers = null;
+
+  let { rows: accountTransfersByEmployees } = await dbClient.executeQuery(`
+    SELECT
+      id
+    FROM account_transfers_by_employees;
+
+  `);
+  let accountTransfersByEmployeesIds = accountTransfersByEmployees.map((atbe) => atbe.id);
+  accountTransfersByEmployees = null;
+
+  const accountTransfers = [];
+
+  for (let i = 0; i < amount.length; i++) {
+    const randomTransferTypeIndex = Math.floor(
+      Math.random() * TRANSFER_TYPES.length
+    );
+
+    const randomTransferType = TRANSFER_TYPES[randomTransferTypeIndex];
+
+    const randomUserIdIndex = Math.floor(
+      Math.random() * userIds
+    );
+
+    const randomUserId = userIds[randomUserIdIndex];
+
+
+  }
 
   log.info(`Insert random account transfers finished`);
 }
