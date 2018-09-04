@@ -64,7 +64,7 @@ function getParserGetter (errorHandlers) { // eslint-disable-line no-unused-vars
         return jsyaml.safeDump(yaml);
       } catch (error) {
         throw new ApplicationError({
-          msg: error,
+          msg: JSON.stringify(error),
         });
       }
     };
