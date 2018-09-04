@@ -243,6 +243,23 @@ function start () {
 
     const removeButton = event.target;
     const rowId = mainUtils.getElementUniqueId(removeButton, 'subscription-edit-mode-remove-btn-');
+    const subscription = rowIdSubscriptionMap[rowId];
+
+    const $modal = $('#confirm-unsubscribe-modal');
+    $modal.find('#cu-modal-fly-from').text(subscription.fly_from);
+    $modal.find('#cu-modal-fly-to').text(subscription.fly_to);
+    $modal.find('#cu-modal-date-from').text(subscription.date_from);
+    $modal.find('#cu-modal-date-to').text(subscription.date_to);
+    $modal.find('#cu-modal-confirm-btn').unbind('click')
+      .click(() => onConfirmRemoveClick(event));
+    $modal.modal();
+  };
+
+  const onConfirmRemoveClick = function (event) {
+    mainUtils.trace('remove button click');
+
+    const removeButton = event.target;
+    const rowId = mainUtils.getElementUniqueId(removeButton, 'subscription-edit-mode-remove-btn-');
     const oldSubscription = rowIdSubscriptionMap[rowId];
 
     // TODO asserts

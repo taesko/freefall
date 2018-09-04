@@ -222,6 +222,29 @@
     </div>
   </div>
 </div>
+<div id='confirm-unsubscribe-modal' class="modal fade" tabindex="-1" role="dialog" aria-labelledby="cu-modal-label">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 id="cu-modal-label" class="modal-title">Unsubscribe</h4>
+      </div>
+      <div class="modal-body">
+        <p>
+          Are you sure you want to unsubscribe from subscription between airports:<br>
+          <b id="cu-modal-fly-from"></b> and <b id="cu-modal-fly-to"></b><br>
+          on dates <time id="cu-modal-date-from" datetime=""></time> - <time id="cu-modal-date-to" datetime=""></time>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        <button id="cu-modal-confirm-btn" type="button" class="btn btn-primary" data-dismiss="modal">Unsubscribe</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script src="{{routes.static}}/js/lodash/index.min.js"></script>
 <script src="{{routes.static}}/js/jquery/jquery-2.2.4.js"></script>
 <script src="{{routes.static}}/css/bootstrap/js/bootstrap.min.js"></script>
