@@ -431,7 +431,7 @@ const subscribe = defineAPIMethod(
 
     const planRecord = await subscriptions.fetchSubscriptionPlan(
       dbClient,
-      plan
+      plan,
     );
     const { initial_tax: initialTax } = planRecord;
     log.info(`Taxing user ${userId} for subscription ${subscriptionId}`);
@@ -581,25 +581,39 @@ const editSubscription = defineAPIMethod(
 
 const creditHistory = defineAPIMethod(
   {
-    'TH_BAD_LIMIT': { status_code: '2100' },
-    'TH_BAD_OFFSET': { status_code: '2100' },
-    'TH_INVALID_LIMIT': { status_code: '2100' },
     'TH_INVALID_API_KEY': { status_code: '2200' },
     'TH_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
   },
-  async (params, dbClient) => {
-    const apiKey = params.api_key;
-    const limit = +params.limit || CREDIT_HISTORY_DEFAULT_LIMIT;
-    const offset = +params.offset || 0;
-
-    assertPeer(Number.isSafeInteger(limit), `got ${limit}`, 'TH_BAD_LIMIT');
-    assertPeer(Number.isSafeInteger(offset), `got ${offset}`, 'TH_BAD_OFFSET');
-    assertPeer(limit <= CREDIT_HISTORY_MAX_LIMIT, `got ${limit}`, 'TH_INVALID_LIMIT');
-
-    const user = await users.fetchUser(dbClient, { apiKey });
+  async (
+    {
+      api_key,
+      fly_from = null,
+      fly_to = null,
+      date_from = null,
+      date_to = null,
+      limit = CREDIT_HISTORY_DEFAULT_LIMIT,
+      offset = 0,
+    },
+    dbClient,
+  ) => {
+    const user = await users.fetchUser(dbClient, { apiKey: api_key });
 
     assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
-    assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
+    assertPeer(user.api_key === api_key, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
+
+    // TODO ask if complex queries with optional filters should be written like this ?
+    const flyFromFilter = `(ap_from.id::text=$4 OR ap_from.name=$4 OR ap_from.iata_code=$4)`;
+    const flyFromClause = fly_from ? flyFromFilter : `$4=$4`;
+    fly_from = fly_from || '';
+
+    const flyToFilter = `(ap_to.id::text=$5 OR ap_to.name=$5 OR ap_to.iata_code=$5)`;
+    const flyToClause = fly_to ? flyToFilter : `$5=$5`;
+    fly_to = fly_to || '';
+
+    const dateFromClause = date_from ? `date_from >= $6::date` : `$6=$6`;
+    date_from = date_from || '';
+    const dateToClause = date_to ? `date_to <= $7::date` : `$7=$7`;
+    date_to = date_to || '';
 
     const { rows: subscrTransfers } = await dbClient.executeQuery(
       `
@@ -628,12 +642,20 @@ const creditHistory = defineAPIMethod(
         ON credit_history.id=users_subscriptions.id
       JOIN subscriptions 
         ON users_subscriptions.subscription_id=subscriptions.id
-      WHERE users_subscriptions.user_id=$1
+      JOIN airports AS ap_from
+        ON subscriptions.airport_from_id=ap_from.id AND
+          ${flyFromClause}
+      JOIN airports AS ap_to
+        ON subscriptions.airport_to_id=ap_to.id AND
+          ${flyToClause}
+      WHERE users_subscriptions.user_id=$1 AND
+        ${dateFromClause} AND
+        ${dateToClause}
       ORDER BY transferred_at DESC, id ASC
       LIMIT $2
       OFFSET $3
       `,
-      [user.id, limit, offset],
+      [user.id, limit, offset, fly_from, fly_to, date_from, date_to],
     );
 
     for (const transfer of subscrTransfers) {
@@ -798,7 +820,7 @@ const fullCreditHistory = defineAPIMethod(
       LIMIT $2
       OFFSET $3
       `,
-      [user.id, limit, offset]
+      [user.id, limit, offset],
     );
 
     for (const transfer of history) {
@@ -816,6 +838,7 @@ const fullCreditHistory = defineAPIMethod(
     };
   },
 );
+
 async function listAirports (params, dbClient) {
   const airports = await dbClient.select('airports');
 
@@ -840,7 +863,7 @@ const listSubscriptions = defineAPIMethod(
       offset = 0,
       api_key: apiKey,
     },
-    dbClient
+    dbClient,
   ) => {
     const user = await users.fetchUser(dbClient, { apiKey });
 
@@ -908,14 +931,14 @@ const modifyCredentials = defineAPIMethod(
     assertUser(
       password.length >= 8,
       `password needs to be at least of length 8`,
-      'MC_SHORT_PASSWORD'
+      'MC_SHORT_PASSWORD',
     );
 
     password = users.hashPassword(password);
     await users.editUser(dbClient, user.id, { password });
 
     return { status_code: '1000' };
-  }
+  },
 );
 
 async function getAPIKey (params, db, ctx) {

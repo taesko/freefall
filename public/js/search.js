@@ -56,7 +56,8 @@ function start () {
       msg: 'Expected only one element in jQuery object, but got ' + $routesContainer.length, // eslint-disable-line prefer-template
     });
     assertApp($routesContainer[0] instanceof window.HTMLDivElement, {
-      msg: 'Expected element in jQuery object to be HTMLDivElement, but got ' + typeof $routesContainer[0], // eslint-disable-line prefer-template
+      msg: 'Expected element in jQuery object to be HTMLDivElement, but got ' +
+           typeof $routesContainer[0], // eslint-disable-line prefer-template
     });
     assertApp(routes instanceof Array, {
       msg: 'Expected routes to be instance of array, but was ' + typeof routes, // eslint-disable-line prefer-template
@@ -65,7 +66,8 @@ function start () {
     if (routes.length > 0) {
       showRoutesContainer();
     } else {
-      mainUtils.displayUserMessage('There is no information about such route at the moment. Please try again later!');
+      mainUtils.displayUserMessage(
+        'There is no information about such route at the moment. Please try again later!');
       hideRoutesContainer();
     }
 
@@ -212,13 +214,15 @@ function start () {
   }
 
   function objectifyForm (formArray) {
-    return formArray.reduce(function (obj, entry) { // eslint-disable-line prefer-arrow-callback
-      if (entry.value != null && entry.value !== '') { // '' check not needed
-        obj[entry.name] = entry.value; // overwrites similar names
-      }
-      return obj;
-    },
-    {});
+    return formArray.reduce(
+      function (obj, entry) { // eslint-disable-line prefer-arrow-callback
+        if (entry.value != null && entry.value !== '') { // '' check not needed
+          obj[entry.name] = entry.value; // overwrites similar names
+        }
+        return obj;
+      },
+      {},
+    );
   }
 
   function timeStringFromDate (date) {
@@ -276,7 +280,7 @@ function start () {
     assertApp(
       _.isObject(formData), {
         msg: 'formData is not an object',
-      }
+      },
     );
 
     assertUser(
@@ -284,7 +288,7 @@ function start () {
       typeof formData.to === 'string', {
         userMessage: 'Please choose your departure airport and arrival airport.',
         msg: 'User did not select flight from or flight to.',
-      }
+      },
     );
 
     const airportFrom = getAirport(formData.from, airports); // eslint-disable-line no-var
@@ -357,9 +361,26 @@ function start () {
   }
 
   function showWeather (airportFromIATACode, airportToIATACode) {
-    $('#weather-container').removeAttr('hidden');
-    $('#dalipeche-airport-from').getForecastByIATACode(airportFromIATACode);
-    $('#dalipeche-airport-to').getForecastByIATACode(airportToIATACode);
+    function onError () {
+      const errMsg = `There was a problem with the weather service DaliPeche and we cannot display weather information.`;
+      mainUtils.displayUserMessage(errMsg, 'info');
+      $container.hide();
+    }
+
+    const $container = $('#weather-container');
+
+    if (Object.prototype.hasOwnProperty.call($.fn, 'getForecast')) {
+      $container.removeAttr('hidden');
+      $('#dalipeche-airport-from').getForecast({ iataCode: airportFromIATACode })
+        .catch(onError);
+      $('#dalipeche-airport-to').getForecast({ iataCode: airportToIATACode })
+        .catch(onError);
+    } else {
+      mainUtils.displayUserMessage(
+        `Your browser version is too old and we cannot show you information about the weather. Please, consider updating.`,
+        'info',
+      );
+    }
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
@@ -412,7 +433,8 @@ function start () {
           msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
         });
 
-        const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
+        const userMessage = messages[result.status_code] ||
+                            'An error has occurred. Please refresh the page and try again later.';
         assertUser(result.status_code === '1000', {
           userMessage: userMessage,
           msg: 'Search failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
@@ -451,7 +473,8 @@ function start () {
           msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
         });
 
-        const userMessage = messages[result.status_code] || 'An error has occurred. Please refresh the page and try again later.';
+        const userMessage = messages[result.status_code] ||
+                            'An error has occurred. Please refresh the page and try again later.';
         assertUser(result.status_code === '1000' || result.status_code === '1002', {
           userMessage: userMessage,
           msg: 'Search failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template

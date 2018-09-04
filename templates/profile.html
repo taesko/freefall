@@ -87,7 +87,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr id="subscription-edit-mode" hidden="true">
+        <tr id="subscription-edit-mode" hidden>
           <td>
             <input id="subscription-edit-mode-airport-from" class="form-control" name="from" type="text"
                    placeholder="Airport from" required>
@@ -114,7 +114,7 @@
             <button id="subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
           </td>
         </tr>
-        <tr id="subscription-view-mode" hidden="true">
+        <tr id="subscription-view-mode" hidden>
           <td>
             <span id="subscription-view-mode-airport-from"></span>
           </td>
@@ -140,6 +140,24 @@
       <p id="no-subscriptions-msg" class="text-center collapse">No subscriptions found</p>
     </div>
     <div id="credit-history-tab" class="container collapse">
+      <form id="search-credit-history">
+        <div class="form-group">
+          <input id="search-ch-fly-from" class="form-control airport-select" name="from" type="text"
+                 placeholder="Airport from" list="from-airports">
+        </div>
+        <div class="form-group">
+          <input id="search-ch-fly-to" name="to" class="form-control airport-select" type="text"
+                 placeholder="Airport to" list="to-airports">
+        </div>
+        <div class="form-group">
+          <input id="search-ch-date-from" class="form-control date-select" name="date-from" type="text"
+                 placeholder="Date from">
+        </div>
+        <div class="form-group">
+          <input id="search-ch-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to">
+        </div>
+        <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Search</button>
+      </form>
       <table id="credit-history-table" class="table table-bordered">
         <thead>
         <tr>
@@ -201,6 +219,29 @@
       </table>
       <button id="deposit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
       <p id="no-deposit-history-msg" class="text-center collapse">No deposits found.</p>
+    </div>
+  </div>
+</div>
+<div id='confirm-unsubscribe-modal' class="modal fade" tabindex="-1" role="dialog" aria-labelledby="cu-modal-label">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 id="cu-modal-label" class="modal-title">Unsubscribe</h4>
+      </div>
+      <div class="modal-body">
+        <p>
+          Are you sure you want to unsubscribe from subscription between airports:<br>
+          <b id="cu-modal-fly-from"></b> and <b id="cu-modal-fly-to"></b><br>
+          on dates <time id="cu-modal-date-from" datetime=""></time> - <time id="cu-modal-date-to" datetime=""></time>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        <button id="cu-modal-confirm-btn" type="button" class="btn btn-primary" data-dismiss="modal">Unsubscribe</button>
+      </div>
     </div>
   </div>
 </div>
