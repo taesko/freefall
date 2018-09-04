@@ -140,6 +140,24 @@
       <p id="no-subscriptions-msg" class="text-center collapse">No subscriptions found</p>
     </div>
     <div id="credit-history-tab" class="container collapse">
+      <form id="search-credit-history">
+        <div class="form-group">
+          <input id="search-ch-fly-from" class="form-control airport-select" name="from" type="text"
+                 placeholder="Airport from" list="from-airports">
+        </div>
+        <div class="form-group">
+          <input id="search-ch-fly-to" name="to" class="form-control airport-select" type="text"
+                 placeholder="Airport to" list="to-airports">
+        </div>
+        <div class="form-group">
+          <input id="search-ch-date-from" class="form-control date-select" name="date-from" type="text"
+                 placeholder="Date from">
+        </div>
+        <div class="form-group">
+          <input id="search-ch-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to">
+        </div>
+        <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Search</button>
+      </form>
       <table id="credit-history-table" class="table table-bordered">
         <thead>
         <tr>

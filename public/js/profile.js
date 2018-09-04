@@ -21,6 +21,7 @@ function start () {
   var searchFlyTo = null;
   var fromDepositDate = null;
   var toDepositDate = null;
+  var creditHistoryFilters = {};
   const CREDIT_HISTORY_PAGE_LIMIT = 5;
   const SUBSCRIPTIONS_PAGE_LIMIT = 5;
   const ALLOWED_SUBSCRIPTION_PLANS = ['daily', 'weekly', 'monthly'];
@@ -598,6 +599,10 @@ function start () {
     });
   }
 
+  function resetCreditHistory () {
+    $('#credit-history-table tbody tr:not(:first)').remove();
+  }
+
   function displayCreditHistory () {
     if ($('#credit-history-table tbody tr:not(:first)').length === 0) {
       loadMoreCreditHistory(switchTab.bind({}, '#credit-history-tab'));
@@ -633,10 +638,13 @@ function start () {
   function loadMoreCreditHistory (callbackOnFinish) {
     assertApp(_.isFunction(callbackOnFinish), { msg: `got ${callbackOnFinish}` });
     const $creditsTable = $('#credit-history-table');
+    const $noContentMsg = $('#no-credit-history-msg');
+    const $loadMoreBtn = $('#credit-history-load-more-btn');
     const offset = $creditsTable.find('tbody tr:not(:first)').length;
     const params = {
       limit: CREDIT_HISTORY_PAGE_LIMIT,
       offset: offset,
+      ...creditHistoryFilters,
     };
 
     api.creditHistory(params, PROTOCOL_NAME, function (result) {
@@ -647,13 +655,15 @@ function start () {
 
       if (offset === 0 && creditHistory.length === 0) {
         $creditsTable.hide();
-        $('#no-credit-history-msg').show();
-        $('#credit-history-load-more-btn').hide();
+        $noContentMsg.show();
+        $loadMoreBtn.hide();
       } else if (creditHistory.length < CREDIT_HISTORY_PAGE_LIMIT) {
         renderCreditHistoryTable($creditsTable, creditHistory);
-        $('#credit-history-load-more-btn').hide();
+        $noContentMsg.hide();
+        $loadMoreBtn.hide();
       } else {
         renderCreditHistoryTable($creditsTable, creditHistory);
+        $loadMoreBtn.show();
       }
 
       if (callbackOnFinish) {
@@ -664,6 +674,7 @@ function start () {
 
   function renderCreditHistoryTable ($table, history) {
     // $table.find('tr:not(:first)').remove();
+    $table.show();
     const $tableRowTemplate = $table.find('#credit-history-template-row');
 
     for (const historyHash of history) {
@@ -801,6 +812,24 @@ function start () {
 
     $('#display-credit-history-btn').click(displayCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
+    $('#search-credit-history').submit(function (event) {
+      event.preventDefault();
+      resetCreditHistory();
+
+      creditHistoryFilters.fly_from = $('#search-ch-fly-from').val().trim();
+      creditHistoryFilters.fly_to = $('#search-ch-fly-to').val().trim();
+      creditHistoryFilters.date_from = $('#search-ch-date-from').val().trim();
+      creditHistoryFilters.date_to = $('#search-ch-date-to').val().trim();
+
+      for (const key of Object.keys(creditHistoryFilters)) {
+        if (creditHistoryFilters[key].length === 0) {
+          delete creditHistoryFilters[key];
+        }
+      }
+
+      displayCreditHistory();
+      return false;
+    });
 
     $('#display-deposit-history-btn').click(displayDepositHistory);
     $('#deposit-history-load-more-btn').click(loadMoreDepositHistory.bind({}, displayDepositHistory));
