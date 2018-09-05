@@ -869,24 +869,6 @@ const listSubscriptions = defineAPIMethod(
 
     assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_API_KEY');
 
-    let flyFromClause;
-
-    if (fly_from) {
-      flyFromClause = `(ap_from.name=$4 OR ap_from.iata_code=$4)`;
-    } else {
-      fly_from = '';
-      flyFromClause = `$4=$4`;
-    }
-
-    let flyToClause;
-
-    if (fly_to) {
-      flyToClause = `(ap_to.name=$5 OR ap_to.iata_code=$5)`;
-    } else {
-      fly_to = '';
-      flyToClause = `$5=$5`;
-    }
-
     const { rows: subRows } = await dbClient.executeQuery(
       `
       SELECT 
@@ -904,8 +886,8 @@ const listSubscriptions = defineAPIMethod(
       JOIN subscription_plans ON user_sub.subscription_plan_id=subscription_plans.id
       WHERE user_id=$1 AND
         user_sub.active=true AND
-        ${flyFromClause} AND
-        ${flyToClause}
+        ($4::text IS NULL OR ap_from.name=$4 OR ap_from.iata_code=$4) AND
+        ($5::text IS NULL OR ap_to.name=$5 OR ap_to.iata_code=$5)
       ORDER BY user_sub.updated_at DESC
       LIMIT $2
       OFFSET $3
