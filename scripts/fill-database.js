@@ -34,6 +34,12 @@ function getRandomDate (minDate, maxDate) {
   return randomDate;
 }
 
+function updateProgess (current, goal) {
+  process.stdout.clearLine();
+  process.stdout.cursorTo(0);
+  process.stdout.write(`${current / goal * 100}%`);
+}
+
 async function insertRandomAirports (dbClient, amount) {
   const MAX_FAILED_ATTEMPTS = 50;
   const IATA_CODE_LENGTH = 3;
@@ -269,6 +275,8 @@ async function insertRandomAirlines (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -362,6 +370,8 @@ async function insertRandomSubscriptions (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -413,6 +423,8 @@ async function insertRandomFetches (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -513,6 +525,8 @@ async function insertRandomSubscriptionsFetches (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -627,6 +641,8 @@ async function insertRandomUsers(dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -738,6 +754,8 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -860,6 +878,8 @@ async function insertRandomRoutes (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1007,6 +1027,8 @@ async function insertRandomFlights (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1125,6 +1147,8 @@ async function insertRandomRoutesFlights (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1220,6 +1244,8 @@ async function insertRandomRoles (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1311,6 +1337,8 @@ async function insertRandomPermissions (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1407,6 +1435,8 @@ async function insertRandomRolesPermissions (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1463,6 +1493,8 @@ async function insertRandomDalipecheFetches (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1578,6 +1610,8 @@ async function insertRandomEmployees (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1679,6 +1713,8 @@ async function insertRandomEmployeesRoles (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1756,6 +1792,8 @@ async function insertRandomLoginSessions (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1830,6 +1868,8 @@ async function insertRandomPasswordResets (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -1893,6 +1933,8 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -2035,6 +2077,8 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
   randomUserSubscriptionIds = null;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -2175,6 +2219,8 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
+    updateProgess(rowsInserted, amount);
+
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
@@ -2283,24 +2329,24 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
 }
 
 async function fillDatabase (dbClient) {
-  const AIRPORTS_AMOUNT = 1000;
-  const AIRLINES_AMOUNT = 1000;
-  const SUBSCRIPTIONS_AMOUNT = 1000;
-  const FETCHES_AMOUNT = 1000;
-  const SUBSCRIPTIONS_FETCHES_AMOUNT = 2000;
-  const USERS_AMOUNT = 1000;
-  const USERS_SUBSCRIPTIONS_AMOUNT = 2000;
-  const ROUTES_AMOUNT = 1000;
-  const FLIGHTS_AMOUNT = 5000;
-  const ROUTES_FLIGHTS_AMOUNT = 10000;
+  const AIRPORTS_AMOUNT = 10000;
+  const AIRLINES_AMOUNT = 10000;
+  const SUBSCRIPTIONS_AMOUNT = 100000;
+  const FETCHES_AMOUNT = 10000;
+  const SUBSCRIPTIONS_FETCHES_AMOUNT = 200000;
+  const USERS_AMOUNT = 100000;
+  const USERS_SUBSCRIPTIONS_AMOUNT = 500000;
+  const ROUTES_AMOUNT = 100000;
+  const FLIGHTS_AMOUNT = 1000000;
+  const ROUTES_FLIGHTS_AMOUNT = 2000000;
   const ROLES_AMOUNT = 1000;
-  const PERMISSIONS_AMOUNT = 1000;
-  const ROLES_PERMISSIONS_AMOUNT = 10000;
+  const PERMISSIONS_AMOUNT = 10000;
+  const ROLES_PERMISSIONS_AMOUNT = 100000;
   const DALIPECHE_FETCHES_AMOUNT = 1000;
-  const EMPLOYEES_AMOUNT = 10000;
-  const ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT = 1000;
-  const USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT = 1000;
-  const SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT = 1000;
+  const EMPLOYEES_AMOUNT = 5000;
+  const ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT = 500000;
+  const USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT = 100000;
+  const SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT = 1000000;
 
   log.info('Fill database started');
 
@@ -2341,16 +2387,17 @@ async function start () {
   try {
     await dbClient.executeQuery('BEGIN');
     await fillDatabase(dbClient);
-    await dbClient.executeQuery('ROLLBACK');
+    await dbClient.executeQuery('COMMIT');
+    log.info('Success.');
   } catch (error) {
     await dbClient.executeQuery('ROLLBACK');
     log.error(error);
   } finally {
     log.info('Releasing db client..');
-    client.end();
+    await client.end();
   }
 }
 
 start().then(() => {
-  log.info('Success.');
+  log.info('Finished.');
 }).catch(log.error);
