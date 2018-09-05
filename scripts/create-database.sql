@@ -471,7 +471,7 @@ VALUES
   ('subscribe'),
   ('unsubscribe'),
   ('admin_list_user_info'),
-  ('admin_list_transfers')
+  ('admin_list_transfers'),
   ('admin_list_employees'),
   ('admin_list_employee_info'),
   ('admin_add_employee'),
@@ -531,6 +531,15 @@ VALUES
   (1, 28),
   (1, 29),
   (1, 30);
+
+INSERT INTO employees
+  (email, password, api_key)
+VALUES
+  ('admin@freefall.org', '6db49c57fdd2fb00650e06d2661e6d4e', 'admin_api_key_magical_uncrackable_string');
+
+INSERT INTO employees_roles
+  (employee_id, role_id)
+VALUES (1, 1);
 
 END;
 
