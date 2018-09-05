@@ -598,6 +598,8 @@ function start () {
   function loadMoreSubscriptions (callbackOnFinish) {
     assertApp(_.isFunction(callbackOnFinish), { msg: `got ${callbackOnFinish}` });
     const $subscriptionsTable = $('#subscriptions-table');
+    const $loadMoreBtn = $('#subscriptions-load-more-btn');
+    const $noContentMsg = $('#no-subscriptions-msg');
     const rows = $subscriptionsTable.find('tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)');
     const offset = rows.length;
     const params = {
@@ -614,18 +616,23 @@ function start () {
     api.listSubscriptions(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       const newSubscrs = result.subscriptions;
       if (newSubscrs.length === 0 && offset === 0) {
-        hideSubscriptionTable();
-        $('#subscriptions-load-more-btn').hide();
-        $('#no-subscriptions-msg').show();
-      } else {
-        if (newSubscrs.length < SUBSCRIPTIONS_PAGE_LIMIT) {
-          $('#subscriptions-load-more-btn').hide();
-        } else {
-          $('#subscriptions-load-more-btn').show();
-        }
+        $subscriptionsTable.hide();
+        $loadMoreBtn.hide();
+        $noContentMsg.show();
+      } else if (newSubscrs.length < SUBSCRIPTIONS_PAGE_LIMIT) {
         renderSubscriptions($subscriptionsTable, newSubscrs);
+        $subscriptionsTable.show();
+        $loadMoreBtn.hide();
+        $noContentMsg.hide();
+      } else {
+        renderSubscriptions($subscriptionsTable, newSubscrs);
+        $subscriptionsTable.show();
+        $loadMoreBtn.show();
+        $noContentMsg.hide();
       }
+
       subscriptions.push.apply(subscriptions, newSubscrs);
+
       if (callbackOnFinish) {
         callbackOnFinish();
       }
