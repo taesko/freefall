@@ -42,7 +42,7 @@ async function insertRandomAirports (dbClient, amount) {
 
   log.info(`Inserting random airports... Amount: ${amount}`);
 
-  const { rows: existingAirports } = await dbClient.executeQuery(`
+  let { rows: existingAirports } = await dbClient.executeQuery(`
 
     SELECT
       iata_code,
@@ -51,11 +51,13 @@ async function insertRandomAirports (dbClient, amount) {
 
   `);
 
-  const existingIATACodes = existingAirports.map(airport => airport.iata_code);
-  const existingAirportNames = existingAirports.map(airport => airport.name);
+  let existingIATACodes = existingAirports.map(airport => airport.iata_code);
+  let existingAirportNames = existingAirports.map(airport => airport.name);
 
-  const randomIATACodes = new Set();
-  const randomAirportNames = new Set();
+  existingAirports = null;
+
+  let randomIATACodes = new Set();
+  let randomAirportNames = new Set();
   let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
@@ -89,6 +91,8 @@ async function insertRandomAirports (dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingIATACodes = null;
+
   for (let i = 0; i < amount; i++) {
     const randomAirportName = getRandomString({
       minLength: MIN_AIRPORT_NAME_LENGTH,
@@ -120,6 +124,8 @@ async function insertRandomAirports (dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingAirportNames = null;
+
   let insertQueryParameters = '';
   let queryParamsCounter = 0;
 
@@ -132,14 +138,21 @@ async function insertRandomAirports (dbClient, amount) {
     }
   }
 
-  const randomIATACodesIterator = randomIATACodes.values();
-  const randomAirportNamesIterator = randomAirportNames.values();
+  let randomIATACodesIterator = randomIATACodes.values();
+  let randomAirportNamesIterator = randomAirportNames.values();
+
+  randomIATACodes = null;
+  randomAirportNames = null;
+
   const insertQueryValues = [];
 
   for (let i = 0; i < amount; i++) {
     insertQueryValues.push(randomIATACodesIterator.next().value);
     insertQueryValues.push(randomAirportNamesIterator.next().value);
   }
+
+  randomIATACodesIterator = null;
+  randomAirportNamesIterator = null;
 
   await dbClient.executeQuery(`
 
@@ -172,13 +185,13 @@ async function insertRandomAirlines (dbClient, amount) {
 
   `);
 
-  const existingCodes = existingAirlines.map((airline) => airline.code);
-  const existingNames = existingAirlines.map((airline) => airline.name);
+  let existingCodes = existingAirlines.map((airline) => airline.code);
+  let existingNames = existingAirlines.map((airline) => airline.name);
 
   existingAirlines = null;
 
-  const randomCodes = new Set();
-  const randomNames = new Set();
+  let randomCodes = new Set();
+  let randomNames = new Set();
   let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
@@ -212,6 +225,8 @@ async function insertRandomAirlines (dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingCodes = null;
+
   for (let i = 0; i < amount; i++) {
     const randomName = getRandomString({
       minLength: MIN_NAME_LENGTH,
@@ -243,8 +258,13 @@ async function insertRandomAirlines (dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingNames = null;
+
   const randomCodesIterator = randomCodes.values();
   const randomNamesIterator = randomNames.values();
+
+  randomCodes = null;
+  randomNames = null;
 
   let rowsInserted = 0;
 
@@ -290,7 +310,7 @@ async function insertRandomSubscriptions (dbClient, amount) {
 
   log.info(`Inserting random subscriptions... Amount: ${amount}`);
 
-  const { rows: existingSubscriptions } = await dbClient.executeQuery(`
+  let { rows: existingSubscriptions } = await dbClient.executeQuery(`
 
     SELECT
       airport_from_id,
@@ -336,6 +356,7 @@ async function insertRandomSubscriptions (dbClient, amount) {
     }
   }
 
+  existingSubscriptions = null;
   airportIds = null;
 
   let rowsInserted = 0;
@@ -433,7 +454,7 @@ async function insertRandomSubscriptionsFetches (dbClient, amount) {
 
   log.info(`Inserting random subscriptions fetches... Amount: ${amount}`);
 
-  const { rows: existingSubscriptionsFetches } = await dbClient.executeQuery(`
+  let { rows: existingSubscriptionsFetches } = await dbClient.executeQuery(`
 
     SELECT
       subscription_id,
@@ -449,6 +470,8 @@ async function insertRandomSubscriptionsFetches (dbClient, amount) {
     FROM subscriptions;
 
   `);
+  let subscriptionIds = subscriptions.map((subscription) => subscription.id);
+  subscriptions = null;
 
   let { rows: fetches } = await dbClient.executeQuery(`
 
@@ -457,9 +480,6 @@ async function insertRandomSubscriptionsFetches (dbClient, amount) {
     FROM fetches;
 
   `);
-
-  let subscriptionIds = subscriptions.map((subscription) => subscription.id);
-  subscriptions = null;
 
   let fetchesIds = fetches.map((f) => f.id);
   fetches = null;
@@ -486,6 +506,7 @@ async function insertRandomSubscriptionsFetches (dbClient, amount) {
     }
   }
 
+  existingSubscriptionsFetches = null;
   subscriptionIds = null;
   fetchesIds = null;
 
@@ -549,18 +570,15 @@ async function insertRandomUsers(dbClient, amount) {
   let { rows: existingUsers } = await dbClient.executeQuery(`
 
     SELECT
-      email,
-      api_key,
-      verification_token
+      email
     FROM users;
 
   `);
 
   let existingEmails = existingUsers.map((user) => user.email);
-
   existingUsers = null;
 
-  const randomEmails = new Set();
+  let randomEmails = new Set();
   let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
@@ -601,7 +619,10 @@ async function insertRandomUsers(dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingEmails = null;
+
   const randomEmailsIterator = randomEmails.values();
+  randomEmails = null;
 
   let rowsInserted = 0;
 
@@ -659,7 +680,7 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
 
   log.info(`Inserting random users subscriptions... Amount: ${amount}`);
 
-  const { rows: existingUsersSubscriptions } = await dbClient.executeQuery(`
+  let { rows: existingUsersSubscriptions } = await dbClient.executeQuery(`
 
     SELECT
       user_id,
@@ -710,6 +731,7 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
     }
   }
 
+  existingUserSubscription = null;
   userIds = null;
   subscriptionIds = null;
 
@@ -782,7 +804,7 @@ async function insertRandomRoutes (dbClient, amount) {
     FROM routes;
 
   `);
-  const existingBookingTokens = existingRoutes.map((route) => route.booking_token);
+  let existingBookingTokens = existingRoutes.map((route) => route.booking_token);
 
   existingRoutes = null;
 
@@ -797,7 +819,7 @@ async function insertRandomRoutes (dbClient, amount) {
 
   subscriptionsFetches = null;
 
-  const randomBookingTokens = new Set();
+  let randomBookingTokens = new Set();
   let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
@@ -831,7 +853,9 @@ async function insertRandomRoutes (dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingBookingTokens = null;
   const randomBookingTokensIterator = randomBookingTokens.values();
+  randomBookingTokens = null;
 
   let rowsInserted = 0;
 
@@ -898,7 +922,7 @@ async function insertRandomFlights (dbClient, amount) {
     FROM flights;
 
   `);
-  const existingRemoteIds = existingFlights.map((flight) => flight.remote_id);
+  let existingRemoteIds = existingFlights.map((flight) => flight.remote_id);
   existingFlights = null;
 
   let { rows: airlines } = await dbClient.executeQuery(`
@@ -908,7 +932,7 @@ async function insertRandomFlights (dbClient, amount) {
     FROM airlines;
 
   `);
-  const airlineIds = airlines.map((airline) => airline.id);
+  let airlineIds = airlines.map((airline) => airline.id);
   airlines = null;
 
   let { rows: airports } = await dbClient.executeQuery(`
@@ -918,10 +942,10 @@ async function insertRandomFlights (dbClient, amount) {
     FROM airports;
 
   `);
-  const airportIds = airports.map((airport) => airport.id);
+  let airportIds = airports.map((airport) => airport.id);
   airports = null;
 
-  const randomRemoteIds = new Set();
+  let randomRemoteIds = new Set();
   let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
@@ -955,7 +979,9 @@ async function insertRandomFlights (dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingRemoteIds = null;
   const randomRemoteIdsIterator = randomRemoteIds.values();
+  randomRemoteIds = null;
 
   const newFlights = [];
 
@@ -974,6 +1000,9 @@ async function insertRandomFlights (dbClient, amount) {
       }
     }
   }
+
+  airlineIds = null;
+  airportIds = null;
 
   let rowsInserted = 0;
 
@@ -1038,7 +1067,7 @@ async function insertRandomRoutesFlights (dbClient, amount) {
 
   log.info(`Inserting random routes flights... Amount: ${amount}`);
 
-  const { rows: existingRoutesFlights } = await dbClient.executeQuery(`
+  let { rows: existingRoutesFlights } = await dbClient.executeQuery(`
 
     SELECT
       route_id,
@@ -1089,6 +1118,7 @@ async function insertRandomRoutesFlights (dbClient, amount) {
     }
   }
 
+  existingRoutesFlights = null;
   routeIds = null;
   flightIds = null;
 
@@ -1149,7 +1179,7 @@ async function insertRandomRoles (dbClient, amount) {
   let existingRoleNames = existingRoles.map((role) => role.name);
   existingRoles = null;
 
-  const randomRoleNames = new Set();
+  let randomRoleNames = new Set();
   let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
@@ -1183,7 +1213,10 @@ async function insertRandomRoles (dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingRoleNames = null;
   const randomRoleNamesIterator = randomRoleNames.values();
+  randomRoleNames = null;
+
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
@@ -1238,7 +1271,7 @@ async function insertRandomPermissions (dbClient, amount) {
   let existingPermissionsNames = existingPermissions.map((permission) => permission.name);
   existingPermissions = null;
 
-  const randomPermissionNames = new Set();
+  let randomPermissionNames = new Set();
   let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
@@ -1272,7 +1305,9 @@ async function insertRandomPermissions (dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingPermissionsNames = null;
   const randomPermissionNamesIterator = randomPermissionNames.values();
+  randomPermissionNames = null;
   let rowsInserted = 0;
 
   while (rowsInserted < amount) {
@@ -1314,7 +1349,7 @@ async function insertRandomRolesPermissions (dbClient, amount) {
 
   log.info(`Inserting random roles permissions... Amount: ${amount}`);
 
-  const { rows: existingRolesPermissions } = await dbClient.executeQuery(`
+  let { rows: existingRolesPermissions } = await dbClient.executeQuery(`
 
     SELECT
       role_id,
@@ -1365,6 +1400,7 @@ async function insertRandomRolesPermissions (dbClient, amount) {
     }
   }
 
+  existingRolesPermissions = null;
   roleIds = null;
   permissionIds = null;
 
@@ -1494,7 +1530,7 @@ async function insertRandomEmployees (dbClient, amount) {
   let existingEmails = existingEmployees.map((employee) => employee.email);
   existingEmployees = null;
 
-  const randomEmails = new Set();
+  let randomEmails = new Set();
   let failedAttempts = 0;
 
   for (let i = 0; i < amount; i++) {
@@ -1535,7 +1571,9 @@ async function insertRandomEmployees (dbClient, amount) {
     failedAttempts = 0;
   }
 
+  existingEmails = null;
   const randomEmailsIterator = randomEmails.values();
+  randomEmails = null;
 
   let rowsInserted = 0;
 
@@ -1634,6 +1672,7 @@ async function insertRandomEmployeesRoles (dbClient, amount) {
     });
   }
 
+  existingEmployeesRolesEmployeeIds = null;
   employeeIds = null;
   roleIds = null;
 
@@ -1838,7 +1877,7 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
     FROM users;
 
   `);
-  let userIds = users.map((user) => user.id);
+  const userIds = users.map((user) => user.id);
   users = null;
 
   let { rows: employees } = await dbClient.executeQuery(`
@@ -1848,7 +1887,7 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
     FROM employees;
 
   `);
-  let employeeIds = employees.map((employee) => employee.id);
+  const employeeIds = employees.map((employee) => employee.id);
   employees = null;
 
   let rowsInserted = 0;
@@ -1960,7 +1999,7 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
   let userSubscriptionAccountTransfersIds = userSubscriptionAccountTransfers.map((usat) => usat.id);
   userSubscriptionAccountTransfers = null;
 
-  let { rows: users } = await dbClient.executeQuery(`
+  const { rows: users } = await dbClient.executeQuery(`
 
     SELECT
       id,
@@ -1980,8 +2019,7 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
   usersSubscriptions = null;
 
   let rowsInserted = 0;
-
-  const randomUserSubscriptionIds = new Set();
+  let randomUserSubscriptionIds = new Set();
 
   for (let i = 0; i < usersSubscriptionsIds.length; i++) {
     if (userSubscriptionAccountTransfersIds.includes(usersSubscriptionsIds[i])) {
@@ -1991,7 +2029,10 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
     randomUserSubscriptionIds.add(usersSubscriptionsIds[i]);
   }
 
+  usersSubscriptionsIds = null;
+  userSubscriptionAccountTransfersIds = null;
   const randomUserSubscriptionIdsIterator = randomUserSubscriptionIds.values();
+  randomUserSubscriptionIds = null;
 
   while (rowsInserted < amount) {
     let insertQueryParameters = '';
@@ -2104,105 +2145,6 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
   log.info(`Insert user subscription account transfers finished.`);
 }
 
-/*async function insertRandomAccountTransfers (dbClient, amount) {
-  const MAX_FAILED_ATTEMPTS = 50;
-  const TRANSFER_TYPES = [
-    {
-      reason: 'employee',
-      amount: 1000,
-    },
-    {
-      reason: 'new-subscription',
-      amount: -20,
-    },
-    {
-      reason: 'new-fetch',
-      amount: -50,
-    }
-  ];
-
-  log.info(`Inserting random account transfers... Amount: {amount}`);
-
-  let { rows: users } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM users;
-
-  `);
-  let userIds = users.map((user) => user.id);
-  users = null;
-
-  let { rows: usersSubscriptions } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM users_subscriptions;
-
-  `);
-  let usersSubscriptionsIds = usersSubscriptions.map((us) => us.id);
-  usersSubscriptions = null;
-
-  let { rows: subscriptionsFetches } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM subscriptions_fetches;
-
-  `);
-  let subscriptionsFetchesIds = subscriptionsFetches.map((sf) => sf.id);
-  subscriptionsFetches = null;
-
-  let { rows: userSubscriptionAccountTransfers } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM user_subscription_account_transfers;
-
-  `);
-  let userSubscriptionAccountTransfersIds = userSubscriptionAccountTransfers.map((usat) => usat.id);
-  userSubscriptionAccountTransfers = null;
-
-  let { rows: subscriptionsFetchesAccountTransfers } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM subscriptions_fetches_account_transfers;
-
-  `);
-  let subscriptionsFetchesAccountTransfersIds = subscriptionsFetchesAccountTransfers.map((sfat) => sfat.id);
-  subscriptionsFetchesAccountTransfers = null;
-
-  let { rows: accountTransfersByEmployees } = await dbClient.executeQuery(`
-    SELECT
-      id
-    FROM account_transfers_by_employees;
-
-  `);
-  let accountTransfersByEmployeesIds = accountTransfersByEmployees.map((atbe) => atbe.id);
-  accountTransfersByEmployees = null;
-
-  const accountTransfers = [];
-
-  for (let i = 0; i < amount.length; i++) {
-    const randomTransferTypeIndex = Math.floor(
-      Math.random() * TRANSFER_TYPES.length
-    );
-
-    const randomTransferType = TRANSFER_TYPES[randomTransferTypeIndex];
-
-    const randomUserIdIndex = Math.floor(
-      Math.random() * userIds
-    );
-
-    const randomUserId = userIds[randomUserIdIndex];
-
-
-  }
-
-  log.info(`Insert random account transfers finished`);
-}*/
-
 async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amount) {
   const ACCOUNT_TRANSFERS_ROW_VALUES_COUNT = 3;
   const SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_ROW_VALUES_COUNT = 2;
@@ -2211,17 +2153,7 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
 
   log.info(`Inserting random subscription fetches account transfers... Amount: ${amount}`);
 
-  /*let { rows: subscriptionsFetchesAccountTransfers } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM subscriptions_fetches_account_transfers;
-
-  `);
-  let subscriptionsFetchesAccountTransfersIds = subscriptionsFetchesAccountTransfers.map((sfat) => sfat.id);
-  subscriptionsFetchesAccountTransfers = null;
-*/
-  let { rows: users } = await dbClient.executeQuery(`
+  const { rows: users } = await dbClient.executeQuery(`
 
     SELECT
       id,
@@ -2237,7 +2169,7 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
     FROM subscriptions_fetches;
 
   `);
-  let subscriptionsFetchesIds = subscriptionsFetches.map((sf) => sf.id);
+  const subscriptionsFetchesIds = subscriptionsFetches.map((sf) => sf.id);
   subscriptionsFetches = null;
 
   let rowsInserted = 0;
