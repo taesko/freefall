@@ -86,7 +86,7 @@ function run_profile_benchmark {
     done
 }
 
-logged_in_cookie="koa:sess=eyJ1c2VySUQiOjE0LCJsb2dpbl90b2tlbiI6IjBhYzRkZjFmMmE5N2FlOWQzZWZlNTkwNDJhZjk1MTY3IiwiX2V4cGlyZSI6MTUzNTExNjI5ODgzNSwiX21heEFnZSI6ODY0MDAwMDB9; koa:sess.sig=sNM_Q84qIdHpAtnCh643S-Ahil0; koa:sess:admin=eyJ1c2VySUQiOm51bGwsImxvZ2luX3Rva2VuIjoiYWYwOTc5YzU5YTc3YzdiZGUyNDVlZTZkMWJmNDU2YjMiLCJfZXhwaXJlIjoxNTM1MDM0OTgxNTYwLCJfbWF4QWdlIjo4NjQwMDAwMH0=; koa:sess:admin.sig=7a8PxxQaPF2JK_UBVvXQ6Xsn96E; io=VDGBWa4Xpw-hIXYAAACs"
+logged_in_cookie="koa:sess:admin=eyJlbXBsb3llZUlEIjoxLCJfZXhwaXJlIjoxNTM2MjQzMzU2MTk1LCJfbWF4QWdlIjo4NjQwMDAwMH0=; koa:sess:admin.sig=FwqF6SZ7gU6QWWiao2WIuVbIy5Q; koa:sess=eyJsb2dpbl90b2tlbiI6ImFkYjZkY2JlOWNiYTMxMjU5NWU3NDYyMTJlYTZmZWVlIiwiX2V4cGlyZSI6MTUzNjI0OTMxMDc5MywiX21heEFnZSI6ODY0MDAwMDB9; koa:sess.sig=5LeMrvUL9XNIcA-ON_-se_0Zn6U"
 
 run_get_benchmark "" ${logged_in_cookie}
 run_get_benchmark "profile" "${logged_in_cookie}"
