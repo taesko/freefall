@@ -601,20 +601,6 @@ const creditHistory = defineAPIMethod(
     assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
     assertPeer(user.api_key === api_key, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
-    // TODO ask if complex queries with optional filters should be written like this ?
-    const flyFromFilter = `(ap_from.id::text=$4 OR ap_from.name=$4 OR ap_from.iata_code=$4)`;
-    const flyFromClause = fly_from ? flyFromFilter : `$4=$4`;
-    fly_from = fly_from || '';
-
-    const flyToFilter = `(ap_to.id::text=$5 OR ap_to.name=$5 OR ap_to.iata_code=$5)`;
-    const flyToClause = fly_to ? flyToFilter : `$5=$5`;
-    fly_to = fly_to || '';
-
-    const dateFromClause = date_from ? `date_from >= $6::date` : `$6=$6`;
-    date_from = date_from || '';
-    const dateToClause = date_to ? `date_to <= $7::date` : `$7=$7`;
-    date_to = date_to || '';
-
     const { rows: subscrTransfers } = await dbClient.executeQuery(
       `
       SELECT credit_history.id::text, transferred_at, transfer_amount, reason,
@@ -644,13 +630,13 @@ const creditHistory = defineAPIMethod(
         ON users_subscriptions.subscription_id=subscriptions.id
       JOIN airports AS ap_from
         ON subscriptions.airport_from_id=ap_from.id AND
-          ${flyFromClause}
+          ($4::text IS NULL OR (ap_from.id::text=$4 OR ap_from.name=$4 OR ap_from.iata_code=$4))
       JOIN airports AS ap_to
         ON subscriptions.airport_to_id=ap_to.id AND
-          ${flyToClause}
+          ($5::text IS NULL OR (ap_to.id::text=$5 OR ap_to.name=$5 OR ap_to.iata_code=$5))
       WHERE users_subscriptions.user_id=$1 AND
-        ${dateFromClause} AND
-        ${dateToClause}
+        ($6::date IS NULL OR date_from >= $6::date) AND
+        ($7::date IS NULL OR date_to <= $7::date)
       ORDER BY transferred_at DESC, id ASC
       LIMIT $2
       OFFSET $3
@@ -689,12 +675,6 @@ const depositHistory = defineAPIMethod(
     assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
     assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
-    const fromClause = from ? 'transferred_at > $4::timestamp' : '$4=$4';
-    const toClause = to ? 'transferred_at < $5::timestamp' : '$5=$5';
-
-    from = from || '';
-    to = to || '';
-
     const { rows: depositHistory } = await dbClient.executeQuery(
       `
         SELECT transferred_at::text, transfer_amount, 'Freefall deposit' AS reason
@@ -702,12 +682,12 @@ const depositHistory = defineAPIMethod(
         WHERE 
           user_id=$1 AND
           id IN (SELECT account_transfer_id FROM account_transfers_by_employees) AND
-          ${fromClause} AND
-          ${toClause}
+          ($4::text IS NULL OR (transferred_at > $4::timestamp)) AND
+          ($5::text IS NULL OR (transferred_at < $5::timestamp))
         ORDER BY transferred_at DESC, id ASC
         LIMIT $2
         OFFSET $3
-        `,
+      `,
       [user.id, limit, offset, from, to],
     );
 
@@ -869,24 +849,6 @@ const listSubscriptions = defineAPIMethod(
 
     assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_API_KEY');
 
-    let flyFromClause;
-
-    if (fly_from) {
-      flyFromClause = `(ap_from.name=$4 OR ap_from.iata_code=$4)`;
-    } else {
-      fly_from = '';
-      flyFromClause = `$4=$4`;
-    }
-
-    let flyToClause;
-
-    if (fly_to) {
-      flyToClause = `(ap_to.name=$5 OR ap_to.iata_code=$5)`;
-    } else {
-      fly_to = '';
-      flyToClause = `$5=$5`;
-    }
-
     const { rows: subRows } = await dbClient.executeQuery(
       `
       SELECT 
@@ -904,8 +866,8 @@ const listSubscriptions = defineAPIMethod(
       JOIN subscription_plans ON user_sub.subscription_plan_id=subscription_plans.id
       WHERE user_id=$1 AND
         user_sub.active=true AND
-        ${flyFromClause} AND
-        ${flyToClause}
+        ($4::text IS NULL OR ap_from.name=$4 OR ap_from.iata_code=$4) AND
+        ($5::text IS NULL OR ap_to.name=$5 OR ap_to.iata_code=$5)
       ORDER BY user_sub.updated_at DESC
       LIMIT $2
       OFFSET $3
