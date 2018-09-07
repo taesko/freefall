@@ -21,7 +21,8 @@ else
     admin_url="http://${2}:3001"
 fi
 
-number_of_requests=2000
+number_of_requests=500
+concurrency_levels=(5 10 50)
 
 function run_post_benchmark {
     if [ "$2" = "admin" ]; then
@@ -30,7 +31,7 @@ function run_post_benchmark {
         target_url="${url}/"
     fi
 
-    for concurrency in 5 20 50 100 500 1000; do
+    for concurrency in "${concurrency_levels[@]}"; do
         output_file="${output_dir}/${1}-${concurrency}.stdout"
         echo "Benchmarking $1 with ${concurrency} concurrency on url ${target_url}."
         echo "Output file is ${output_file}"
@@ -54,7 +55,7 @@ function run_get_benchmark {
     fi
 
     echo "Target url is ${target_url}"
-    for concurrency in 10 50 100 500 1000; do
+    for concurrency in "${concurrency_levels[@]}"; do
         output_file="${output_dir}/${rel}-${concurrency}.stdout"
         echo "Benchmarking ${rel} with ${concurrency} concurrency";
         echo "Output file is ${output_file}"
@@ -66,7 +67,7 @@ function run_dalipeche_benchmark {
     target_url="${url}/api/dalipeche/"
     post_body="./scripts/ab-tests/request-bodies/dalipeche-SOF-body.json"
     echo "Target url is ${target_url}"
-    for concurrency in 10 100 500 1000; do
+    for concurrency in "${concurrency_levels[@]}"; do
         output_file="${output_dir}/dalipeche-${concurrency}.stdout"
         echo "Benchmarking dalipeche with ${concurrency} concurrency";
         echo "Output file is ${output_file}"
@@ -78,7 +79,7 @@ function run_profile_benchmark {
     target_url="${url}/profile"
     post_body="./scripts/ab-tests/request-bodies/login_body.form"
     echo "Target url is ${target_url}"
-    for concurrency in 10 100 500 1000; do
+    for concurrency in "${concurrency_levels[@]}"; do
         output="${output_dir}/login-${concurrency}.stdout"
         echo "Benchmarking GET / profile with ${concurrency} concurrency and ${number_of_requests} number of requests";
         echo "Output file is ${output}"
@@ -98,3 +99,7 @@ run_post_benchmark "list_airports"
 run_post_benchmark "list_subscriptions"
 run_post_benchmark "admin_list_subscriptions" admin
 run_dalipeche_benchmark
+
+commit_hash=$(git log | head -n 1 | cut -d " " -f 2 | cut -c -5)
+zip_file_name="benchmarks-${commit_hash}.zip"
+zip -r $zip_file_name $output_dir

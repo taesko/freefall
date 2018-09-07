@@ -3,7 +3,7 @@ Description=Freefall main portal server
 After=network.target
 
 [Service]
-ExecStart=/bin/bash -ce "exec /usr/bin/node /opt/freefall/server.js > /opt/freefall/logs/server_stdout.log 2> /opt/freefall/logs/server_stderr.log"
+ExecStart=/opt/freefall/scripts/run-server.sh
 Restart=always
 RestartSec=3
 EnvironmentFile=/opt/freefall/freefall.env
