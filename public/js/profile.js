@@ -790,6 +790,7 @@ function start () {
         $depositsTable.hide();
         $noMoreResultsMsg.show();
         $loadMoreBtn.hide();
+        callbackOnFinish();
         return;
       }
 
