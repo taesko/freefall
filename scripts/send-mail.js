@@ -60,24 +60,6 @@ async function sendEmail (destinationEmail, {
 }
 
 async function notifyEmails (client) {
-  const { rows: emailRows } = await client.executeQuery(`
-      SELECT DISTINCT 
-        users.id, users.email,
-        airports_from.name airport_from, airports_to.name airport_to,
-        users_subscriptions.date_from
-      FROM users_subscriptions
-      JOIN users ON users_subscriptions.user_id = users.id
-      JOIN subscriptions ON users_subscriptions.subscription_id = subscriptions.id
-      JOIN subscriptions_fetches ON  subscriptions.id = subscriptions_fetches.subscription_id
-      JOIN fetches ON subscriptions_fetches.fetch_id = fetches.id
-      JOIN airports airports_from ON subscriptions.airport_from_id = airports_from.id
-      JOIN airports airports_to ON subscriptions.airport_to_id = airports_to.id
-      WHERE 
-        fetch_id_of_last_send IS NULL OR
-        fetch_id_of_last_send < fetches.id
-      ;
-  `);
-
   const { rows: fetchIdRows } = await client.executeQuery(
     `
       SELECT id
@@ -95,6 +77,26 @@ async function notifyEmails (client) {
   assertApp(fetchIdRows.length === 1, `got ${fetchIdRows}`);
   const currentFetchId = fetchIdRows[0].id;
   log.info('Most recent fetch id is: ', currentFetchId);
+
+  const { rows: emailRows } = await client.executeQuery(
+    `
+      SELECT DISTINCT 
+        users.id, users.email,
+        airports_from.name airport_from, airports_to.name airport_to,
+        users_subscriptions.date_from
+      FROM users_subscriptions
+      JOIN users ON users_subscriptions.user_id = users.id
+      JOIN subscriptions ON users_subscriptions.subscription_id = subscriptions.id
+      JOIN subscriptions_fetches ON  subscriptions.id = subscriptions_fetches.subscription_id
+      JOIN fetches ON subscriptions_fetches.fetch_id = fetches.id
+      JOIN airports airports_from ON subscriptions.airport_from_id = airports_from.id
+      JOIN airports airports_to ON subscriptions.airport_to_id = airports_to.id
+      WHERE 
+        fetch_id_of_last_send != $1
+      ;
+    `,
+    [currentFetchId],
+  );
 
   const emailsToSend = {};
 
@@ -114,7 +116,6 @@ async function notifyEmails (client) {
     const email = subscriptions[0].email;
     const content = generateMailContent(subscriptions);
 
-    await client.executeQuery('BEGIN');
     try {
       await sendEmail(email, { text: content });
       log.info(
@@ -131,10 +132,8 @@ async function notifyEmails (client) {
         `,
         [currentFetchId, id],
       );
-      await client.executeQuery('COMMIT');
     } catch (e) {
       log.critical(`Couldn't send notification to email ${email}. Reason:`, e);
-      await client.executeQuery('ROLLBACK');
     }
   }
 }
