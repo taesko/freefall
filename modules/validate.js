@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const Ajv = require('ajv');
 const ajv = new Ajv();
-const { assertApp, assertPeer } = require('./error-handling');
+const { assertApp, assertPeer, UserError } = require('./error-handling');
 const log = require('./log');
 
 const SCHEMAS_DIR = path.join(__dirname, '..', 'api_schemas');
@@ -14,6 +14,16 @@ const FORMATS = {
 
 const REQUESTS_SCHEMAS_DIR = path.join(SCHEMAS_DIR, 'requests');
 const RESPONSE_SCHEMAS_DIR = path.join(SCHEMAS_DIR, 'responses');
+const USER_ERROR_KEYWORDS = [
+  'format',
+  'minimum',
+  'maximum',
+  'multipleOf',
+  'multipleOf',
+  'pattern',
+  'enum',
+  'const',
+];
 
 (function registerSchemas () { // TODO check if read file is .json
   const schemas = discoverSchemaPaths() // TODO log what schema is being parsed
@@ -98,9 +108,20 @@ function validateAPIRequest (method, params) {
 
   log.debug('Using schema', schemaName);
 
-  assertPeer(ajv.validate(schemaName, params),
-    `Invalid params for method ${method}. Error: ${ajv.errorsText()}`,
+  const isValid = ajv.validate(schemaName, params);
+
+  if (isValid) {
+    return;
+  }
+
+  const isUserError = ajv.errors.some(
+    error => USER_ERROR_KEYWORDS.includes(error.keyword)
   );
+
+  log.debug('AJV errors are: ', ajv.errors);
+  assertPeer(isUserError, `Invalid params for method ${method}. Error: ${ajv.errorsText()}`);
+
+  throw new UserError(`Invalid data for method ${method}. Error: ${ajv.errorsText()}`);
 }
 
 function validateAPIResponse (apiResult, method) {

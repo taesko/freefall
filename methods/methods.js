@@ -398,7 +398,6 @@ const subscribe = defineAPIMethod(
     assertPeer(flyFromExists, `got ${flyFrom}`, 'SUBSCR_INVALID_FLY_FROM_ID');
     assertPeer(flyToExists, `got ${flyTo}`, 'SUBSCR_INVALID_FLY_TO_ID');
 
-    // TODO maybe this should be part of the transaction ?
     const { id: userId } = await users.fetchUser(dbClient, { apiKey: apiKey });
     const { id: subscriptionId } = await subscriptions.subscribeUser(
       dbClient,
