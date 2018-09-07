@@ -280,7 +280,10 @@ async function insertRandomAirlines (dbClient, amount) {
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+    while (
+      queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
+      rowsInserted < amount
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
 
       if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
@@ -569,7 +572,7 @@ async function insertRandomSubscriptionsFetches (dbClient, amount) {
   log.info(`Insert subscriptions fetches finished.`);
 }
 
-async function insertRandomUsers(dbClient, amount) {
+async function insertRandomUsers (dbClient, amount) {
   const MIN_EMAIL_ADDRESS_LOCAL_PART_LENGTH = 2;
   const MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH = 40;
   const MIN_EMAIL_ADDRESS_DOMAIN_PART_LENGTH = 2;
@@ -747,7 +750,7 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
     }
   }
 
-  existingUserSubscription = null;
+  existingUsersSubscriptions = null;
   userIds = null;
   subscriptionIds = null;
 
@@ -822,7 +825,9 @@ async function insertRandomRoutes (dbClient, amount) {
     FROM routes;
 
   `);
-  let existingBookingTokens = existingRoutes.map((route) => route.booking_token);
+  let existingBookingTokens = existingRoutes.map((route) => {
+    return route.booking_token;
+  });
 
   existingRoutes = null;
 
@@ -883,10 +888,16 @@ async function insertRandomRoutes (dbClient, amount) {
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+    while (
+      queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
+      rowsInserted < amount
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
 
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+      if (
+        queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS &&
+        rowsInserted + 1 < amount
+      ) {
         insertQueryParameters += ',';
       }
 
@@ -896,7 +907,11 @@ async function insertRandomRoutes (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       const randomIndex = Math.floor(
         Math.random() * subscriptionsFetchesIds.length
       );
@@ -1005,9 +1020,21 @@ async function insertRandomFlights (dbClient, amount) {
 
   const newFlights = [];
 
-  for (let i1 = 0; i1 < airportIds.length && newFlights.length < amount; i1++) {
-    for (let i2 = 0; i2 < airportIds.length && newFlights.length < amount; i2++) {
-      for (let i3 = 0; i3 < airlineIds.length && newFlights.length < amount; i3++) {
+  for (
+    let i1 = 0;
+    i1 < airportIds.length && newFlights.length < amount;
+    i1++
+  ) {
+    for (
+      let i2 = 0;
+      i2 < airportIds.length && newFlights.length < amount;
+      i2++
+    ) {
+      for (
+        let i3 = 0;
+        i3 < airlineIds.length && newFlights.length < amount;
+        i3++
+      ) {
         if (i1 === i2) {
           continue;
         }
@@ -1032,10 +1059,16 @@ async function insertRandomFlights (dbClient, amount) {
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+    while (
+      queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
+      rowsInserted < amount
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3}, $${queryParamsCounter + 4}, $${queryParamsCounter + 5}, $${queryParamsCounter + 6}, $${queryParamsCounter + 7})`;
 
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+      if (
+        queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS &&
+        rowsInserted + 1 < amount
+      ) {
         insertQueryParameters += ',';
       }
 
@@ -1045,7 +1078,11 @@ async function insertRandomFlights (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       const departureTime = getRandomDate(START_DATE, END_DATE);
       const arrivalTime = getRandomDate(departureTime, END_DATE);
       const flightNumber = getRandomString({
@@ -1120,8 +1157,16 @@ async function insertRandomRoutesFlights (dbClient, amount) {
 
   const newRoutesFlights = [];
 
-  for (let i1 = 0; i1 < routeIds.length && newRoutesFlights.length < amount; i1++) {
-    for (let i2 = 0; i2 < flightIds.length && newRoutesFlights.length < amount; i2++) {
+  for (
+    let i1 = 0;
+    i1 < routeIds.length && newRoutesFlights.length < amount;
+    i1++
+  ) {
+    for (
+      let i2 = 0;
+      i2 < flightIds.length && newRoutesFlights.length < amount;
+      i2++
+    ) {
       const existingRouteFlight = existingRoutesFlights.find((rf) => {
         return (
           routeIds[i1] === rf.route_id &&
@@ -1152,10 +1197,16 @@ async function insertRandomRoutesFlights (dbClient, amount) {
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+    while (
+      queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
+      rowsInserted < amount
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2})`;
 
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+      if (
+        queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS &&
+        rowsInserted + 1 < amount
+      ) {
         insertQueryParameters += ',';
       }
 
@@ -1165,7 +1216,11 @@ async function insertRandomRoutesFlights (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       const newRouteFlight = newRoutesFlights.pop();
 
       insertQueryValues.push(newRouteFlight.routeId);
@@ -1249,10 +1304,16 @@ async function insertRandomRoles (dbClient, amount) {
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+    while (
+      queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
+      rowsInserted < amount
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1})`;
 
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+      if (
+        queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS &&
+        rowsInserted + 1 < amount
+      ) {
         insertQueryParameters += ',';
       }
 
@@ -1262,7 +1323,11 @@ async function insertRandomRoles (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       insertQueryValues.push(randomRoleNamesIterator.next().value);
     }
 
@@ -1294,7 +1359,9 @@ async function insertRandomPermissions (dbClient, amount) {
     FROM permissions;
 
   `);
-  let existingPermissionsNames = existingPermissions.map((permission) => permission.name);
+  let existingPermissionsNames = existingPermissions.map((permission) => {
+    return permission.name;
+  });
   existingPermissions = null;
 
   let randomPermissionNames = new Set();
@@ -1342,10 +1409,16 @@ async function insertRandomPermissions (dbClient, amount) {
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+    while (
+      queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
+      rowsInserted < amount
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1})`;
 
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+      if (
+        queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS &&
+        rowsInserted + 1 < amount
+      ) {
         insertQueryParameters += ',';
       }
 
@@ -1355,7 +1428,11 @@ async function insertRandomPermissions (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       insertQueryValues.push(randomPermissionNamesIterator.next().value);
     }
 
@@ -1408,8 +1485,16 @@ async function insertRandomRolesPermissions (dbClient, amount) {
 
   const newRolesPermissions = [];
 
-  for (let i1 = 0; i1 < roleIds.length && newRolesPermissions.length < amount; i1++) {
-    for (let i2 = 0; i2 < permissionIds.length && newRolesPermissions.length < amount; i2++) {
+  for (
+    let i1 = 0;
+    i1 < roleIds.length && newRolesPermissions.length < amount;
+    i1++
+  ) {
+    for (
+      let i2 = 0;
+      i2 < permissionIds.length && newRolesPermissions.length < amount;
+      i2++
+    ) {
       const existingRolePermission = existingRolesPermissions.find((rp) => {
         return (
           roleIds[i1] === rp.role_id &&
@@ -1440,10 +1525,16 @@ async function insertRandomRolesPermissions (dbClient, amount) {
     let insertQueryParameters = '';
     let queryParamsCounter = 0;
 
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
+    while (
+      queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
+      rowsInserted < amount
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2})`;
 
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+      if (
+        queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS &&
+        rowsInserted + 1 < amount
+      ) {
         insertQueryParameters += ',';
       }
 
@@ -1453,7 +1544,11 @@ async function insertRandomRolesPermissions (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       const newRolePermission = newRolesPermissions.pop();
 
       insertQueryValues.push(newRolePermission.roleId);
@@ -1511,7 +1606,11 @@ async function insertRandomDalipecheFetches (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       const randomAPIKey = getRandomString({
         minLength: MIN_API_KEY_LENGTH,
         maxLength: MAX_API_KEY_LENGTH,
@@ -1628,7 +1727,11 @@ async function insertRandomEmployees (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       const randomEmail = randomEmailsIterator.next().value;
       const randomPassword = getRandomString({
         minLength: MIN_PASSWORD_LENGTH,
@@ -1667,7 +1770,9 @@ async function insertRandomEmployeesRoles (dbClient, amount) {
     FROM employees_roles;
 
   `);
-  let existingEmployeesRolesEmployeeIds = existingEmployeesRoles.map((er) => er.employee_id);
+  let existingEmployeesRolesEmployeeIds = existingEmployeesRoles.map((er) => {
+    return er.employee_id;
+  });
   existingEmployeesRoles = null;
 
   let { rows: employees } = await dbClient.executeQuery(`
@@ -1692,8 +1797,12 @@ async function insertRandomEmployeesRoles (dbClient, amount) {
 
   const newEmployeesRoles = [];
 
-  for (let i1 = 0; i1 < employeeIds.length && newEmployeesRoles.length < amount; i1++) {
-    if (existingEmployeesRolesEmployeeIds.includes(employeeIds[i1])) {
+  for (
+    let i = 0;
+    i < employeeIds.length && newEmployeesRoles.length < amount;
+    i++
+  ) {
+    if (existingEmployeesRolesEmployeeIds.includes(employeeIds[i])) {
       continue;
     }
 
@@ -1701,7 +1810,7 @@ async function insertRandomEmployeesRoles (dbClient, amount) {
     const randomRoleId = roleIds[randomIndex];
 
     newEmployeesRoles.push({
-      employeeId: employeeIds[i1],
+      employeeId: employeeIds[i],
       roleId: randomRoleId,
     });
   }
@@ -1731,7 +1840,11 @@ async function insertRandomEmployeesRoles (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       const newEmployeeRole = newEmployeesRoles.pop();
 
       insertQueryValues.push(newEmployeeRole.employeeId);
@@ -1763,7 +1876,9 @@ async function insertRandomLoginSessions (dbClient, amount) {
     FROM login_sessions;
 
   `);
-  let existingLoginSessionsUserIds = existingLoginSessions.map((ls) => ls.user_id);
+  let existingLoginSessionsUserIds = existingLoginSessions.map((ls) => {
+    return ls.user_id;
+  });
   existingLoginSessions = null;
 
   let { rows: users } = await dbClient.executeQuery(`
@@ -1810,7 +1925,11 @@ async function insertRandomLoginSessions (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       insertQueryValues.push(newLoginSessionsUserIds.pop());
     }
 
@@ -1839,7 +1958,9 @@ async function insertRandomPasswordResets (dbClient, amount) {
     FROM password_resets;
 
   `);
-  let existingPasswordResetsUserIds = existingPasswordResets.map((ls) => ls.user_id);
+  let existingPasswordResetsUserIds = existingPasswordResets.map((ls) => {
+    return ls.user_id;
+  });
   existingPasswordResets = null;
 
   let { rows: users } = await dbClient.executeQuery(`
@@ -1876,7 +1997,7 @@ async function insertRandomPasswordResets (dbClient, amount) {
     while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
       insertQueryParameters += `($${queryParamsCounter + 1})`;
 
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
+      if (queryParamsCounter + ROW_VALUES_COUNT * 1 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
         insertQueryParameters += ',';
       }
 
@@ -1886,7 +2007,11 @@ async function insertRandomPasswordResets (dbClient, amount) {
 
     const insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ROW_VALUES_COUNT
+    ) {
       insertQueryValues.push(newPasswordResetsUserIds.pop());
     }
 
@@ -1951,7 +2076,11 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
 
     let insertQueryValues = [];
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT
+    ) {
       const randomIndex = Math.floor(Math.random() * userIds.length);
       const randomUserId = userIds[randomIndex];
 
@@ -1960,7 +2089,7 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
       insertQueryValues.push((new Date()).toISOString());
     }
 
-    let { rows: insertedAccountTransfers } = await dbClient.executeQuery(`
+    const { rows: insertedAccountTransfers } = await dbClient.executeQuery(`
 
       INSERT INTO account_transfers
         (user_id, transfer_amount, transferred_at)
@@ -1974,7 +2103,8 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
     insertQueryValues = [];
 
     for (let i = 0; i < insertedAccountTransfers.length; i++) {
-      const insertedQueryValues = i * ACCOUNT_TRANSFERS_BY_EMPLOYEES_ROW_VALUES_COUNT;
+      const insertedQueryValues =
+        i * ACCOUNT_TRANSFERS_BY_EMPLOYEES_ROW_VALUES_COUNT;
       insertQueryParameters += `($${insertedQueryValues + 1}, $${insertedQueryValues + 2})`;
 
       if (i < insertedAccountTransfers.length - 1) {
@@ -2011,7 +2141,10 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
     }
 
     for (let i = 0; i < uniqueInsertQueryValues.length; i++) {
-      insertQueryValues.splice(insertQueryValues.indexOf(uniqueInsertQueryValues[i]), 1);
+      insertQueryValues.splice(
+        insertQueryValues.indexOf(uniqueInsertQueryValues[i]),
+        1
+      );
     }
 
     while (uniqueInsertQueryValues.length > 0) {
@@ -2045,11 +2178,11 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
         }
       }
       for (let i = 0; i < uniqueInsertQueryValues.length; i++) {
-        insertQueryValues.splice(insertQueryValues.indexOf(uniqueInsertQueryValues[i]), 1);
+        insertQueryValues.splice(
+          insertQueryValues.indexOf(uniqueInsertQueryValues[i]),
+          1
+        );
       }
-
-
-
     }
   }
 
@@ -2097,7 +2230,9 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
   let randomUserSubscriptionIds = new Set();
 
   for (let i = 0; i < usersSubscriptionsIds.length; i++) {
-    if (userSubscriptionAccountTransfersIds.includes(usersSubscriptionsIds[i])) {
+    if (
+      userSubscriptionAccountTransfersIds.includes(usersSubscriptionsIds[i])
+    ) {
       continue;
     }
 
@@ -2129,9 +2264,12 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
     let insertQueryValues = [];
     let failedAttempts = 0;
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT
+    ) {
       const randomIndex = Math.floor(Math.random() * users.length);
-      const randomUser = users[randomIndex];
 
       if (users[randomIndex].credits <= Math.abs(TRANSFER_AMOUNT)) {
         if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
@@ -2152,7 +2290,7 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
       failedAttempts = 0;
     }
 
-    let { rows: insertedAccountTransfers } = await dbClient.executeQuery(`
+    const { rows: insertedAccountTransfers } = await dbClient.executeQuery(`
 
       INSERT INTO account_transfers
         (user_id, transfer_amount, transferred_at)
@@ -2166,7 +2304,8 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
     insertQueryValues = [];
 
     for (let i = 0; i < insertedAccountTransfers.length; i++) {
-      const insertedQueryValues = i * USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_ROW_VALUES_COUNT;
+      const insertedQueryValues =
+        i * USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_ROW_VALUES_COUNT;
       insertQueryParameters += `($${insertedQueryValues + 1}, $${insertedQueryValues + 2})`;
 
       if (i < insertedAccountTransfers.length - 1) {
@@ -2200,7 +2339,10 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
     }
 
     for (let i = 0; i < uniqueInsertQueryValues.length; i++) {
-      insertQueryValues.splice(insertQueryValues.indexOf(uniqueInsertQueryValues[i]), 1);
+      insertQueryValues.splice(
+        insertQueryValues.indexOf(uniqueInsertQueryValues[i]),
+        1
+      );
     }
 
     while (uniqueInsertQueryValues.length > 0) {
@@ -2235,7 +2377,10 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
       }
 
       for (let i = 0; i < uniqueInsertQueryValues.length; i++) {
-        insertQueryValues.splice(insertQueryValues.indexOf(uniqueInsertQueryValues[i]), 1);
+        insertQueryValues.splice(
+          insertQueryValues.indexOf(uniqueInsertQueryValues[i]),
+          1
+        );
       }
     }
   }
@@ -2292,9 +2437,12 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
     let insertQueryValues = [];
     let failedAttempts = 0;
 
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT) {
+    for (
+      let insertedQueryValues = 0;
+      insertedQueryValues < queryParamsCounter;
+      insertedQueryValues += ACCOUNT_TRANSFERS_ROW_VALUES_COUNT
+    ) {
       const randomIndex = Math.floor(Math.random() * users.length);
-      const randomUser = users[randomIndex];
 
       if (users[randomIndex].credits <= Math.abs(TRANSFER_AMOUNT)) {
         if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
@@ -2329,7 +2477,8 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
     insertQueryValues = [];
 
     for (let i = 0; i < insertedAccountTransfers.length; i++) {
-      const insertedQueryValues = i * SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_ROW_VALUES_COUNT;
+      const insertedQueryValues =
+        i * SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_ROW_VALUES_COUNT;
       insertQueryParameters += `($${insertedQueryValues + 1}, $${insertedQueryValues + 2})`;
 
       if (i < insertedAccountTransfers.length - 1) {
@@ -2338,12 +2487,13 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
 
       insertQueryValues.push(insertedAccountTransfers[i].id);
 
-      const randomIndex = Math.floor(Math.random() * subscriptionsFetchesIds.length);
+      const randomIndex = Math.floor(
+        Math.random() * subscriptionsFetchesIds.length
+      );
       const randomSubscriptionFetchId = subscriptionsFetchesIds[randomIndex];
 
       insertQueryValues.push(randomSubscriptionFetchId);
     }
-
 
     await dbClient.executeQuery(`
 
@@ -2367,7 +2517,10 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
     }
 
     for (let i = 0; i < uniqueInsertQueryValues.length; i++) {
-      insertQueryValues.splice(insertQueryValues.indexOf(uniqueInsertQueryValues[i]), 1);
+      insertQueryValues.splice(
+        insertQueryValues.indexOf(uniqueInsertQueryValues[i]),
+        1
+      );
     }
 
     while (uniqueInsertQueryValues.length > 0) {
@@ -2402,7 +2555,10 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
       }
 
       for (let i = 0; i < uniqueInsertQueryValues.length; i++) {
-        insertQueryValues.splice(insertQueryValues.indexOf(uniqueInsertQueryValues[i]), 1);
+        insertQueryValues.splice(
+          insertQueryValues.indexOf(uniqueInsertQueryValues[i]),
+          1
+        );
       }
     }
   }
@@ -2436,7 +2592,10 @@ async function fillDatabase (dbClient) {
   await insertRandomAirlines(dbClient, AIRLINES_AMOUNT);
   await insertRandomSubscriptions(dbClient, SUBSCRIPTIONS_AMOUNT);
   await insertRandomFetches(dbClient, FETCHES_AMOUNT);
-  await insertRandomSubscriptionsFetches(dbClient, SUBSCRIPTIONS_FETCHES_AMOUNT);
+  await insertRandomSubscriptionsFetches(
+    dbClient,
+    SUBSCRIPTIONS_FETCHES_AMOUNT
+  );
   await insertRandomUsers(dbClient, USERS_AMOUNT);
   await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
   await insertRandomRoutes(dbClient, ROUTES_AMOUNT);
@@ -2450,9 +2609,18 @@ async function fillDatabase (dbClient) {
   await insertRandomEmployeesRoles(dbClient, EMPLOYEES_AMOUNT);
   await insertRandomLoginSessions(dbClient, USERS_AMOUNT);
   await insertRandomPasswordResets(dbClient, USERS_AMOUNT);
-  await insertRandomAccountTransfersByEmployees(dbClient, ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT);
-  await insertRandomUserSubscriptionAccountTransfers(dbClient, USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT);
-  await insertRandomSubscriptionsFetchesAccountTransfers(dbClient, SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT);
+  await insertRandomAccountTransfersByEmployees(
+    dbClient,
+    ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT
+  );
+  await insertRandomUserSubscriptionAccountTransfers(
+    dbClient,
+    USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT
+  );
+  await insertRandomSubscriptionsFetchesAccountTransfers(
+    dbClient,
+    SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT
+  );
 
   log.info('Fill database finished');
 }
