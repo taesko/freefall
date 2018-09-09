@@ -3,7 +3,7 @@ Description=Freefall admin portal
 After=network.target
 
 [Service]
-ExecStart=/bin/bash -ce "exec /usr/bin/node /opt/freefall/admin.js > /opt/freefall/logs/admin_stdout.log 2> /opt/freefall/logs/admin_stderr.log"
+ExecStart=/opt/freefall/scripts/run-admin.sh
 Restart=always
 RestartSec=3
 EnvironmentFile=/opt/freefall/freefall-admin.env
