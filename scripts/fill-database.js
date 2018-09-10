@@ -1,8 +1,62 @@
 const { Client } = require('pg');
 const crypto = require('crypto');
+const _ = require('lodash');
+
+const { assertApp } = require('../modules/error-handling');
 const log = require('../modules/log');
 const db = require('../modules/db');
 const MAX_QUERY_PARAMS = 30000;
+
+function randomSequence (collection, sequenceLength) {
+  const index = Math.floor(Math.random() * collection.length);
+  return collection.slice(index, index + sequenceLength);
+}
+
+function * generateProduct (collectionA, collectionB, ratio) {
+  for (const elementOfA of collectionA) {
+    const subscriptionsBatch = randomSequence(collectionB, ratio);
+    for (const elementOfB of subscriptionsBatch) {
+      yield [elementOfA, elementOfB];
+    }
+  }
+}
+
+function * generateInsertBatches (nestedCollection, batchLength) {
+  function computePlaceholders (values, startingIndex = 0) {
+    assertApp(Number.isInteger(startingIndex));
+    const placeholders = Array(values.length).fill('')
+      .map((e, nestedIndex) => `$${startingIndex + nestedIndex + 1}`)
+      .join(',');
+    return `(${placeholders})`;
+  }
+
+  let batch = [];
+  let parameterCount = 0;
+
+  for (const values of nestedCollection) {
+    assertApp(Array.isArray(values));
+    assertApp(values.length !== 0);
+
+    if (batch.length > 0 && batch.length % batchLength === 0) {
+      const insertParameter = _.flatten(batch.map(e => e.values));
+      const insertPlaceholders = batch.map(e => e.placeholders).join(',');
+      yield { values: insertParameter, valuesPlaceholders: insertPlaceholders };
+      parameterCount = 0;
+      batch = [];
+    }
+
+    const placeholders = computePlaceholders(values, parameterCount);
+
+    batch.push({ values, placeholders });
+    parameterCount += values.length;
+  }
+
+  if (batch.length !== 0) {
+    const insertParameter = _.flatten(batch.map(e => e.values));
+    const insertPlaceholders = batch.map(e => e.placeholders).join(',');
+    yield { values: insertParameter, valuesPlaceholders: insertPlaceholders };
+  }
+}
 
 function getRandomString (config) {
   const allowedCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -462,111 +516,83 @@ async function insertRandomFetches (dbClient, amount) {
   log.info(`Insert fetches finished.`);
 }
 
-async function insertRandomSubscriptionsFetches (dbClient, amount) {
-  const ROW_VALUES_COUNT = 3;
+async function insertRandomSubscriptionsFetches (dbClient) {
   const MIN_API_FETCHES_COUNT = 1;
   const MAX_API_FETCHES_COUNT = 20;
+  const SUBSCRIPTIONS_PER_FETCH = 10;
 
-  log.info(`Inserting random subscriptions fetches... Amount: ${amount}`);
+  log.info(`Inserting random subscriptions fetches...`);
 
-  let { rows: existingSubscriptionsFetches } = await dbClient.executeQuery(`
+  let { rows: existingSubscriptionsFetches } = await dbClient.executeQuery(
+    `SELECT subscription_id, fetch_id FROM subscriptions_fetches;`
+  );
 
-    SELECT
-      subscription_id,
-      fetch_id
-    FROM subscriptions_fetches;
-
-  `);
-
-  let { rows: subscriptions } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM subscriptions;
-
-  `);
+  let { rows: subscriptions } = await dbClient.executeQuery(
+    `SELECT id FROM subscriptions;`
+  );
   let subscriptionIds = subscriptions.map((subscription) => subscription.id);
   subscriptions = null;
 
-  let { rows: fetches } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM fetches;
-
-  `);
+  let { rows: fetches } = await dbClient.executeQuery(
+    `SELECT id FROM fetches;`
+  );
 
   let fetchesIds = fetches.map((f) => f.id);
   fetches = null;
 
   const newSubscriptionsFetches = [];
 
-  for (let i1 = 0; i1 < subscriptionIds.length && newSubscriptionsFetches.length < amount; i1++) {
-    for (let i2 = 0; i2 < fetchesIds.length && newSubscriptionsFetches.length < amount; i2++) {
-      const existingSubscriptionFetch = existingSubscriptionsFetches.find((sf) => {
-        return (
-          subscriptionIds[i1] === sf.subscription_id &&
-          fetchesIds[i2] === sf.fetch_id
-        );
-      });
+  const products = generateProduct(
+    fetchesIds,
+    subscriptionIds,
+    SUBSCRIPTIONS_PER_FETCH
+  );
+  for (const [fetchId, subscriptionId] of products) {
+    const existingSubscriptionFetch = existingSubscriptionsFetches.find(
+      sf => subscriptionId === sf.subscription_id && fetchId === sf.fetch_id
+    );
 
-      if (existingSubscriptionFetch) {
-        continue;
-      }
-
-      newSubscriptionsFetches.push({
-        subscriptionId: subscriptionIds[i1],
-        fetchId: fetchesIds[i2],
-      });
+    if (existingSubscriptionFetch) {
+      continue;
     }
+
+    newSubscriptionsFetches.push({
+      subscriptionId: subscriptionId,
+      fetchId,
+    });
   }
+
+  log.info(`Generated ${newSubscriptionsFetches.length} rows. Inserting...`);
 
   existingSubscriptionsFetches = null;
   subscriptionIds = null;
   fetchesIds = null;
 
-  let rowsInserted = 0;
+  const rows = newSubscriptionsFetches.map(({ subscriptionId, fetchId }) => {
+    const randomAPIFetchesCount = Math.floor(
+      Math.random() * (MAX_API_FETCHES_COUNT - MIN_API_FETCHES_COUNT)
+    ) + MIN_API_FETCHES_COUNT;
 
-  while (rowsInserted < amount) {
-    updateProgess(rowsInserted, amount);
+    return [subscriptionId, fetchId, randomAPIFetchesCount];
+  });
 
-    let insertQueryParameters = '';
-    let queryParamsCounter = 0;
+  const batchLength = 5;
+  const insertBatchesGen = generateInsertBatches(rows, batchLength);
+  let index = -1;
 
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
-      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
+  for (const { values, valuesPlaceholders } of insertBatchesGen) {
+    index += 1;
+    updateProgess(index * batchLength, rows.length);
 
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
-        insertQueryParameters += ',';
-      }
-
-      queryParamsCounter += ROW_VALUES_COUNT;
-      rowsInserted++;
-    }
-
-    const insertQueryValues = [];
-
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
-      const newSubscriptionFetch = newSubscriptionsFetches.pop();
-
-      insertQueryValues.push(newSubscriptionFetch.subscriptionId);
-      insertQueryValues.push(newSubscriptionFetch.fetchId);
-
-      const randomAPIFetchesCount = Math.floor(
-        Math.random() * (MAX_API_FETCHES_COUNT - MIN_API_FETCHES_COUNT)
-      ) + MIN_API_FETCHES_COUNT;
-
-      insertQueryValues.push(randomAPIFetchesCount);
-    }
-
-    await dbClient.executeQuery(`
-
+    await dbClient.executeQuery(
+      `
       INSERT INTO subscriptions_fetches
         (subscription_id, fetch_id, api_fetches_count)
       VALUES
-        ${insertQueryParameters};
-
-    `, insertQueryValues);
+        ${valuesPlaceholders};
+      `,
+      values
+    );
   }
 
   log.info(`Insert subscriptions fetches finished.`);
@@ -696,6 +722,7 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
   const START_DATE = new Date('2018-01-01');
   const END_DATE = new Date('2018-12-31');
   const ROW_VALUES_COUNT = 5;
+  const SUBSCRIPTIONS_PER_USER = 10;
 
   log.info(`Inserting random users subscriptions... Amount: ${amount}`);
 
@@ -730,24 +757,24 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
 
   const newUserSubscriptions = [];
 
-  for (let i1 = 0; i1 < userIds.length && newUserSubscriptions.length < amount; i1++) {
-    for (let i2 = 0; i2 < subscriptionIds.length && newUserSubscriptions.length < amount; i2++) {
-      const existingUserSubscription = existingUsersSubscriptions.find((us) => {
-        return (
-          userIds[i1] === us.user_id &&
-          subscriptionIds[i2] === us.subscription_id
-        );
-      });
+  const products = generateProduct(
+    userIds,
+    subscriptionIds,
+    SUBSCRIPTIONS_PER_USER,
+  );
+  for (const [userId, subscriptionId] of products) {
+    const existingUserSubscription = existingUsersSubscriptions.find(
+      us => userId === us.user_id && subscriptionId === us.subscription_id,
+    );
 
-      if (existingUserSubscription) {
-        continue;
-      }
-
-      newUserSubscriptions.push({
-        userId: userIds[i1],
-        subscriptionId: subscriptionIds[i2],
-      });
+    if (existingUserSubscription) {
+      continue;
     }
+
+    newUserSubscriptions.push({
+      userId,
+      subscriptionId,
+    });
   }
 
   existingUsersSubscriptions = null;
@@ -2463,7 +2490,7 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient, amoun
       failedAttempts = 0;
     }
 
-    let { rows: insertedAccountTransfers } = await dbClient.executeQuery(`
+    const { rows: insertedAccountTransfers } = await dbClient.executeQuery(`
 
       INSERT INTO account_transfers
         (user_id, transfer_amount, transferred_at)
