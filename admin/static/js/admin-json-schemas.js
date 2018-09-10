@@ -1630,6 +1630,210 @@ const adminValidators = { // eslint-disable-line no-unused-vars
     return ajv.compile(adminListEmployeesResponseSchema);
   },
 
+  getValidateAdminListAccountTransfersReq: function () {
+    const adminListAccountTransfersRequestSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'request/admin_list_account_transfers',
+      'title': 'Admin list account transfers request',
+      'type': 'object',
+      'properties': {
+        'v': {
+          'type': 'string',
+          'title': 'API version',
+        },
+        'api_key': {
+          'type': 'string',
+          'title': 'API key',
+        },
+        'user_email': {
+          'title': 'User email',
+          'type': 'string',
+        },
+        'date_from': {
+          'title': 'Date from',
+          'type': 'string',
+        },
+        'date_to': {
+          'title': 'Date to',
+          'type': 'string',
+        },
+        'type': {
+          'title': 'Account transfer type',
+          'type': 'string',
+          'enum': [
+            'all',
+            'deposits',
+            'withdrawals',
+          ],
+        },
+        'reason': {
+          'title': 'Account transfer reason',
+          'type': 'string',
+          'enum': [
+            'all',
+            'employee',
+            'new-subscription',
+            'fetch',
+          ],
+        },
+      },
+      'required': [
+        'v',
+        'api_key',
+        'type',
+        'reason',
+      ],
+    };
+    return ajv.compile(adminListAccountTransfersRequestSchema);
+  },
+
+  getValidateAdminListAccountTransfersRes: function () {
+    const adminListAccountTransfersResponseSchema = {
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      '$id': 'response/admin_list_account_transfers',
+      'title': 'Admin list account transfers response',
+      'type': 'object',
+      'properties': {
+        'status_code': {
+          'title': 'Status code',
+          'type': 'string',
+        },
+        'account_transfers': {
+          'title': 'Account transfers',
+          'type': 'array',
+          'items': {
+            'title': 'Account transfer',
+            'type': 'object',
+            'properties': {
+              'user': {
+                'title': 'User',
+                'type': 'object',
+                'properties': {
+                  'email': {
+                    'title': 'User email',
+                    'type': 'string',
+                  },
+                  'id': {
+                    'title': 'User id',
+                    'type': 'string',
+                  },
+                },
+                'required': [
+                  'email',
+                  'id',
+                ],
+              },
+              'deposit_amount': {
+                'title': 'Deposit amount',
+                'type': [
+                  'null',
+                  'integer',
+                ],
+              },
+              'withdrawal_amount': {
+                'title': 'Withdrawal amount',
+                'type': [
+                  'null',
+                  'integer',
+                ],
+              },
+              'transferred_at': {
+                'title': 'Transferred_at',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'employee_transferrer_id': {
+                'title': 'Employee transferrer id',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'employee_transferrer_email': {
+                'title': 'Employee transferrer email',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'user_subscr_airport_from_name': {
+                'title': 'User subscription airport from name',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'user_subscr_airport_to_name': {
+                'title': 'User subscription airport to name',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'user_subscr_date_from': {
+                'title': 'User subscription date from',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'user_subscr_date_to': {
+                'title': 'User subscription date to',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'subscr_airport_from_name': {
+                'title': 'Subscription airport from name',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'subscr_airport_to_name': {
+                'title': 'Subscription airport to name',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'fetch_time': {
+                'title': 'Fetch time',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+            },
+            'required': [
+              'user',
+              'deposit_amount',
+              'withdrawal_amount',
+              'transferred_at',
+              'employee_transferrer_id',
+              'employee_transferrer_email',
+              'user_subscr_airport_from_name',
+              'user_subscr_airport_to_name',
+              'user_subscr_date_from',
+              'user_subscr_date_to',
+              'subscr_airport_from_name',
+              'subscr_airport_to_name',
+              'fetch_time',
+            ],
+          },
+        },
+      },
+      'required': [
+        'status_code',
+        'account_transfers',
+      ],
+    };
+    return ajv.compile(adminListAccountTransfersResponseSchema);
+  },
+
   getValidateAdminGetAPIKeyReq: function () {
     const adminGetAPIKeyRequestSchema = {
       '$schema': 'http://json-schema.org/draft-07/schema#',

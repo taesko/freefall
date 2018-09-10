@@ -63,18 +63,36 @@ function main () { // eslint-disable-line no-unused-vars
   };
 
   const assertApp = function (condition, errorParams) {
+    if (typeof condition !== 'boolean') {
+      throw new ApplicationError({
+        msg: 'Expected condition to be boolean, but condition=' + condition, // eslint-disable-line prefer-template
+      });
+    }
+
     if (!condition) {
       throw new ApplicationError(errorParams);
     }
   };
 
   const assertPeer = function (condition, errorParams) {
+    if (typeof condition !== 'boolean') {
+      throw new ApplicationError({
+        msg: 'Expected condition to be boolean, but condition=' + condition, // eslint-disable-line prefer-template
+      });
+    }
+
     if (!condition) {
       throw new PeerError(errorParams);
     }
   };
 
   const assertUser = function (condition, errorParams) {
+    if (typeof condition !== 'boolean') {
+      throw new ApplicationError({
+        msg: 'Expected condition to be boolean, but condition=' + condition, // eslint-disable-line prefer-template
+      });
+    }
+
     if (!condition) {
       throw new UserError(errorParams);
     }

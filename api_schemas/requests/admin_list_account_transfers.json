@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "request/admin_list_account_transfers",
+  "title": "Admin list account transfers request",
+  "type": "object",
+  "properties": {
+    "v": {
+      "type": "string",
+      "title": "API version"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API key"
+    },
+    "user_email": {
+      "title": "User email",
+      "type": "string"
+    },
+    "date_from": {
+      "title": "Date from",
+      "type": "string"
+    },
+    "date_to": {
+      "title": "Date to",
+      "type": "string"
+    },
+    "type": {
+      "title": "Account transfer type",
+      "type": "string",
+      "enum": [
+        "all",
+        "deposits",
+        "withdrawals"
+      ]
+    },
+    "reason": {
+      "title": "Account transfer reason",
+      "type": "string",
+      "enum": [
+        "all",
+        "employee",
+        "new-subscription",
+        "fetch"
+      ]
+    }
+  },
+  "required": [
+    "v",
+    "api_key",
+    "type",
+    "reason"
+  ]
+}

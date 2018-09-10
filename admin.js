@@ -7,12 +7,13 @@ const serve = require('koa-static');
 const views = require('koa-views');
 const cors = require('@koa/cors');
 const session = require('koa-session');
-const { each, escape, isObject } = require('lodash');
+const { escape, isObject } = require('lodash');
 const log = require('./modules/log');
 const adminAuth = require('./modules/admin-auth');
 const db = require('./modules/db');
 const users = require('./modules/users');
 const { rpcAPILayer } = require('./modules/api');
+const { getAccountTransfers } = require('./modules/accounting');
 const methods = require('./methods/methods');
 const adminMethods = require('./methods/admin-methods');
 const { getExecuteMethod } = require('./methods/resolve-method');
@@ -795,8 +796,9 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     return;
   }
 
+  // setting default filters
   const filters = {
-    offset: null,
+    offset: 0,
     limit: RESULTS_LIMIT,
     user_email: null,
     deposits: true,
@@ -812,6 +814,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   let page;
 
+  // changing filters according to params
   if (!ctx.query.page) {
     page = 1;
   } else {
@@ -863,133 +866,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   }
 
   const dbClient = ctx.state.dbClient;
-  const selectAccountTransfersResult = await dbClient.executeQuery(`
 
-    SELECT
-      account_transfers.id AS account_transfer_id,
-      transfer_amount,
-      transferred_at,
-      account_transfers.user_id AS account_owner_id,
-      users.email AS account_owner_email,
-      employees.id AS employee_transferrer_id,
-      employees.email AS employee_transferrer_email,
-      a1.name AS user_subscr_airport_from_name,
-      a2.name AS user_subscr_airport_to_name,
-      users_subscriptions.date_from AS user_subscr_date_from,
-      users_subscriptions.date_from AS user_subscr_date_to,
-      a3.name AS subscr_airport_from_name,
-      a4.name AS subscr_airport_to_name,
-      fetch_time
-    FROM account_transfers
-    LEFT JOIN users
-      ON account_transfers.user_id = users.id
-    LEFT JOIN user_subscription_account_transfers
-      ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
-    LEFT JOIN subscriptions_fetches_account_transfers
-      ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
-    LEFT JOIN account_transfers_by_employees
-      ON account_transfers_by_employees.account_transfer_id = account_transfers.id
-    LEFT JOIN employees
-      ON employees.id = account_transfers_by_employees.employee_id
-    LEFT JOIN users_subscriptions
-      ON user_subscription_account_transfers.user_subscription_id = users_subscriptions.id
-    LEFT JOIN subscriptions s1
-      ON users_subscriptions.subscription_id = s1.id
-    LEFT JOIN airports a1
-      ON s1.airport_from_id = a1.id
-    LEFT JOIN airports a2
-      ON s1.airport_to_id = a2.id
-    LEFT JOIN subscriptions_fetches
-      ON subscriptions_fetches_account_transfers.subscription_fetch_id = subscriptions_fetches.id
-    LEFT JOIN subscriptions s2
-      ON subscriptions_fetches.subscription_id = s2.id
-    LEFT JOIN airports a3
-      ON s2.airport_from_id = a3.id
-    LEFT JOIN airports a4
-      ON s2.airport_to_id = a4.id
-    LEFT JOIN fetches
-      ON subscriptions_fetches.fetch_id = fetches.id
-    WHERE
-      (
-        $1::text IS NULL OR
-        users.email = $1
-      ) AND
-      (
-        $2::text IS NULL OR
-        transferred_at::date >= to_date($2, 'YYYY-MM-DD')
-      ) AND
-      (
-        $3::text IS NULL OR
-        transferred_at::date <= to_date($3, 'YYYY-MM-DD')
-      ) AND
-      (
-        (
-          $4 = true AND
-          transfer_amount >= 0
-        ) OR
-        (
-          $5 = true AND
-          transfer_amount <= 0
-        )
-      ) AND
-      (
-        (
-          $6 = true AND
-          employees.id IS NOT NULL
-        ) OR
-        (
-          $7 = true AND
-          users_subscriptions.date_to IS NOT NULL
-        ) OR
-        (
-          $8 = true AND
-          fetch_time IS NOT NULL
-        )
-      )
-    ORDER BY account_transfer_id
-    LIMIT $9
-    OFFSET $10;
-
-  `, [
-    filters.user_email,
-    filters.date_from,
-    filters.date_to,
-    filters.deposits,
-    filters.withdrawals,
-    filters.transfers_by_employees,
-    filters.new_subsctiption_taxes,
-    filters.new_fetch_taxes,
-    filters.limit,
-    filters.offset,
-  ]);
-
-  assertApp(isObject(selectAccountTransfersResult), `Expected selectAccountTransfersResult to be an object, but was ${typeof selectAccountTransfersResult}`);
-  assertApp(Array.isArray(selectAccountTransfersResult.rows), `Expected selectAccountTransfersResult.rows to be array, but was ${typeof selectAccountTransfersResult.rows}`);
-
-  const accountTransfersUsersRows = selectAccountTransfersResult.rows;
-
-  const accountTransfers = accountTransfersUsersRows.map(row => ({
-    account_transfer_id: row.account_transfer_id,
-    user: {
-      email: row.account_owner_email,
-      id: row.account_owner_id,
-    },
-    deposit_amount: (row.transfer_amount > 0) ? row.transfer_amount : null,
-    withdrawal_amount:
-      (row.transfer_amount < 0) ? row.transfer_amount * -1 : null,
-    transferred_at: row.transferred_at.toISOString(),
-    employee_transferrer_id: row.employee_transferrer_id,
-    employee_transferrer_email: row.employee_transferrer_email,
-    user_subscr_airport_from_name: row.user_subscr_airport_from_name,
-    user_subscr_airport_to_name: row.user_subscr_airport_to_name,
-    user_subscr_date_from: row.user_subscr_date_from &&
-      row.user_subscr_date_from.toISOString(),
-    user_subscr_date_to: row.user_subscr_date_to &&
-      row.user_subscr_date_to.toISOString(),
-    subscr_airport_from_name: row.subscr_airport_from_name,
-    subscr_airport_to_name: row.subscr_airport_to_name,
-    fetch_time: row.fetch_time && row.fetch_time.toISOString(),
-  }));
+  const accountTransfers = await getAccountTransfers(dbClient, filters);
 
   const selectAllTransferAmountsResult = await dbClient.executeQuery(`
 
