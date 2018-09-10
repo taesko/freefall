@@ -1748,84 +1748,15 @@ async function insertRandomEmployeesRoles (dbClient, amount) {
 }
 
 async function insertRandomLoginSessions (dbClient, amount) {
-  const ROW_VALUES_COUNT = 1;
-
-  log.info(`Inserting random login sessions... Amount: ${amount}`);
-
-  let { rows: existingLoginSessions } = await dbClient.executeQuery(`
-
-    SELECT
-      user_id
-    FROM login_sessions;
-
-  `);
-  let existingLoginSessionsUserIds = existingLoginSessions.map((ls) => {
-    return ls.user_id;
-  });
-  existingLoginSessions = null;
-
-  let { rows: users } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM users;
-
-  `);
-  let userIds = users.map((user) => user.id);
-  users = null;
-
-  const newLoginSessionsUserIds = [];
-
-  for (let i = 0; i < userIds.length; i++) {
-    if (existingLoginSessionsUserIds.includes(userIds[i])) {
-      continue;
-    }
-
-    newLoginSessionsUserIds.push(userIds[i]);
-  }
-
-  existingLoginSessionsUserIds = null;
-  userIds = null;
-
-  let rowsInserted = 0;
-
-  while (rowsInserted < amount) {
-    updateProgess(rowsInserted, amount);
-
-    let insertQueryParameters = '';
-    let queryParamsCounter = 0;
-
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
-      insertQueryParameters += `($${queryParamsCounter + 1})`;
-
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
-        insertQueryParameters += ',';
-      }
-
-      queryParamsCounter += ROW_VALUES_COUNT;
-      rowsInserted++;
-    }
-
-    const insertQueryValues = [];
-
-    for (
-      let insertedQueryValues = 0;
-      insertedQueryValues < queryParamsCounter;
-      insertedQueryValues += ROW_VALUES_COUNT
-    ) {
-      insertQueryValues.push(newLoginSessionsUserIds.pop());
-    }
-
-    await dbClient.executeQuery(`
-
-      INSERT INTO login_sessions
-        (user_id)
-      VALUES
-        ${insertQueryParameters};
-
-    `, insertQueryValues);
-  }
-
+  await dbClient.executeQuery(
+    `
+    INSERT INTO login_sessions
+      (user_id)
+    SELECT id FROM users LIMIT $1
+    ON CONFLICT DO NOTHING;
+    `,
+    [amount],
+  );
   log.info(`Insert login sessions finished`);
 }
 
@@ -2464,8 +2395,9 @@ async function fillDatabase (dbClient) {
   const ROLES_AMOUNT = 1000;
   const PERMISSIONS_AMOUNT = 10000;
   const ROLES_PERMISSIONS_AMOUNT = 100000;
-  const DALIPECHE_FETCHES_AMOUNT = 1000;
+  const DALIPECHE_FETCHES_AMOUNT = 100000;
   const EMPLOYEES_AMOUNT = 5000;
+  const ACTIVE_LOGIN_SESSIONS = Math.floor(USERS_AMOUNT / 2);
   const ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT = 500000;
   const USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT = 100000;
   const SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT = 1000000;
@@ -2488,7 +2420,7 @@ async function fillDatabase (dbClient) {
   await insertRandomDalipecheFetches(dbClient, DALIPECHE_FETCHES_AMOUNT);
   await insertRandomEmployees(dbClient, EMPLOYEES_AMOUNT);
   await insertRandomEmployeesRoles(dbClient, EMPLOYEES_AMOUNT);
-  await insertRandomLoginSessions(dbClient, USERS_AMOUNT);
+  await insertRandomLoginSessions(dbClient, ACTIVE_LOGIN_SESSIONS);
   await insertRandomPasswordResets(dbClient, USERS_AMOUNT);
   await insertRandomAccountTransfersByEmployees(
     dbClient,
