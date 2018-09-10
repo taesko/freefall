@@ -48,6 +48,7 @@
     "userGlobal": true,
     "employeeGlobal": true,
     "roleIdGlobal": true,
+    "filtersGlobal": true,
     "getAPIMethods": true,
     "getAdminAPIMethods": true,
     "window": true

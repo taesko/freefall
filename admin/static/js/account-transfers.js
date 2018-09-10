@@ -45,7 +45,7 @@ function start () {
     adminAPI.adminListAccountTransfers(
       listAccountTransfersParams,
       PROTOCOL_NAME,
-      function (result) {
+      function (result) { // eslint-disable-line prefer-arrow-callback
         exportButton.disabled = false;
 
         const messages = {
@@ -65,13 +65,21 @@ function start () {
           msg: msg,
         });
 
-        console.log(result.account_transfers);
+        const accountTransfers = result.account_transfers.map(function (at) { // eslint-disable-line prefer-arrow-callback
+          at.user_email = at.user.email;
+          at.user_id = at.user.id;
+          delete at.user;
+          return at;
+        });
+
+        const currentDate = (new Date()).toISOString().replace(':', '-').replace('.', '-');
 
         const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(result.account_transfers);
+        const worksheet = XLSX.utils.json_to_sheet(accountTransfers);
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
 
-        XLSX.writeFile(workbook, 'account_transfers.xlsx')
+        // getMonth() + 1. because months in JS start from 0
+        XLSX.writeFile(workbook, `account_transfers_${currentDate}.xlsx`);
       }
     );
   };
@@ -88,7 +96,6 @@ function start () {
         mainUtils.displayUserMessage('Could not get API key for your account. Please try to log out and log back in your account!', 'error');
       }
     });
-
 
     const datepickerOptions = {
       dateFormat: 'yy-mm-dd',

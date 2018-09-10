@@ -11,3 +11,4 @@ admin/static/css
 admin/static/js/jquery-ui.min.js
 admin/static/js/ajv.min.js
 admin/static/js/lodash
+admin/static/js/xlsx.full.min.js

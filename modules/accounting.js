@@ -301,7 +301,7 @@ async function getAccountTransfers (dbClient, filters) {
       )
     ORDER BY account_transfer_id
     OFFSET $9
-    ${ filters.limit ? 'LIMIT $10' : '' };
+    ${filters.limit ? 'LIMIT $10' : ''};
 
   `, queryValues);
 

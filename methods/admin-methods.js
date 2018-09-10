@@ -8,7 +8,7 @@ const users = require('../modules/users');
 const {
   getAccountTransfers,
   registerTransferByEmployee,
-}= require('../modules/accounting');
+} = require('../modules/accounting');
 const caching = require('../modules/caching');
 
 const MAX_CREDITS_DIFFERENCE = Math.pow(10, 12);
@@ -1422,12 +1422,6 @@ const adminListAccountTransfers = defineAPIMethod(
         filters.new_fetch_taxes = false;
       }
     }
-
-    console.log('here are the filters');
-    console.log(filters);
-
-    console.log('here are the params');
-    console.log(params);
 
     const accountTransfers = await getAccountTransfers(dbClient, filters);
 

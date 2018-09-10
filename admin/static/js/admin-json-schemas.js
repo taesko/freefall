@@ -1696,7 +1696,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
       'properties': {
         'status_code': {
           'title': 'Status code',
-          'type': 'string'
+          'type': 'string',
         },
         'account_transfers': {
           'title': 'Account transfers',
