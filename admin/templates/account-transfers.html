@@ -58,6 +58,7 @@
         <h3>Current filter data:</h3>
         <p><label>Total deposited:</label> {{filter_total_deposited}}</p>
         <p><label>Total withdrawn:</label> {{filter_total_withdrawn}}</p>
+        <button id="export-xlsx-btn" class="btn btn-primary">Export as XLSX</button>
       </div>
       <div class="col-md-6">
         <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
@@ -165,8 +166,27 @@
       </div>
     </div>
   </div>
+  <script src="../js/lodash/index.min.js"></script>
+  <script src="../js/ajv.min.js"></script>
+  <script src="../js/js-yaml/js-yaml.min.js"></script>
+  <script src="../js/json-schemas.js"></script>
+  <script src="../js/admin-json-schemas.js"></script>
+  <script src="../js/parsers.js"></script>
+  <script src="../js/api-methods.js"></script>
+  <script src="../js/admin-api-methods.js"></script>
+  <script src="../js/main.js"></script>
   <script src="./js/jquery/jquery-2.2.4.js"></script>
   <script src="./js/jquery-ui.min.js"></script>
+  <script>
+    var filtersGlobal = {
+      user_email: _.unescape('{{{escape filters.user_email}}}'),
+      date_from: _.unescape('{{{escape filters.date_from}}}'),
+      date_to: _.unescape('{{{escape filters.date_to}}}'),
+      type: _.unescape('{{{escape transaction_type}}}'),
+      reason: _.unescape('{{{escape transaction_reason}}}'),
+    };
+    console.log(filtersGlobal);
+  </script>
   <script src="./js/account-transfers.js"></script>
 </body>
 </html>

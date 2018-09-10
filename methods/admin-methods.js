@@ -5,7 +5,10 @@ const { isObject } = require('lodash');
 const adminAuth = require('../modules/admin-auth');
 const moment = require('moment');
 const users = require('../modules/users');
-const accounting = require('../modules/accounting');
+const {
+  getAccountTransfers,
+  registerTransferByEmployee,
+}= require('../modules/accounting');
 const caching = require('../modules/caching');
 
 const MAX_CREDITS_DIFFERENCE = Math.pow(10, 12);
@@ -523,7 +526,7 @@ const adminAlterUserCredits = defineAPIMethod(
     const employeeId = selectEmployeeResult.rows[0].id;
 
     try {
-      await accounting.registerTransferByEmployee(
+      await registerTransferByEmployee(
         dbClient,
         accountTransferId,
         employeeId,
@@ -1366,6 +1369,75 @@ const adminListEmployees = defineAPIMethod(
   }
 );
 
+const adminListAccountTransfers = defineAPIMethod(
+  {
+    'ALAT_INVALID_ADMIN_API_KEY': { status_code: '2100', account_transfers: [] },
+    'ALAT_BAD_PATAMETERS': { status_code: '2101', account_transfers: [] },
+  },
+  async (params, dbClient) => {
+    assertUser(
+      await adminAuth.hasPermission(dbClient, params.api_key, 'admin_list_transfers'),
+      'You do not have permissions to call admin_list_account_transfers method!',
+      'ALAT_INVALID_ADMIN_API_KEY'
+    );
+
+    // setting default filters
+    const filters = {
+      user_email: null,
+      deposits: true,
+      withdrawals: true,
+      transfers_by_employees: true,
+      new_subsctiption_taxes: true,
+      new_fetch_taxes: true,
+      date_from: null,
+      date_to: null,
+    };
+
+    if (params.user_email) {
+      filters.user_email = params.user_email;
+    }
+
+    // TODO validate dates
+
+    if (params.type && params.type !== 'all') {
+      if (params.type !== 'deposits') {
+        filters.deposits = false;
+      }
+
+      if (params.type !== 'withdrawals') {
+        filters.withdrawals = false;
+      }
+    }
+
+    if (params.reason && params.reason !== 'all') {
+      if (params.reason !== 'employee') {
+        filters.transfers_by_employees = false;
+      }
+
+      if (params.reason !== 'new-subscription') {
+        filters.new_subsctiption_taxes = false;
+      }
+
+      if (params.reason !== 'fetch') {
+        filters.new_fetch_taxes = false;
+      }
+    }
+
+    console.log('here are the filters');
+    console.log(filters);
+
+    console.log('here are the params');
+    console.log(params);
+
+    const accountTransfers = await getAccountTransfers(dbClient, filters);
+
+    return {
+      status_code: '1000',
+      account_transfers: accountTransfers,
+    };
+  }
+);
+
 async function adminGetAPIKey (params, db, ctx) {
   const employee = await adminAuth.getLoggedInEmployee(ctx);
 
@@ -1396,5 +1468,6 @@ module.exports = {
   admin_remove_user: adminRemoveUser,
   admin_edit_user: adminEditUser,
   admin_alter_user_credits: adminAlterUserCredits,
+  admin_list_account_transfers: adminListAccountTransfers,
   admin_get_api_key: adminGetAPIKey,
 };

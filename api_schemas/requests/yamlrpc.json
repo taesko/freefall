@@ -49,6 +49,7 @@
         "admin_edit_user",
         "admin_edit_subscription",
         "admin_alter_user_credits",
+        "admin_list_account_transfers",
         "senderror",
         "admin_get_api_key"
       ]
