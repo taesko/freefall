@@ -701,16 +701,7 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
   const ROW_VALUES_COUNT = 5;
   const SUBSCRIPTIONS_PER_USER = 10;
 
-  log.info(`Inserting random users subscriptions... Amount: ${amount}`);
-
-  let { rows: existingUsersSubscriptions } = await dbClient.executeQuery(`
-
-    SELECT
-      user_id,
-      subscription_id
-    FROM users_subscriptions;
-
-  `);
+  log.info(`Inserting random users subscriptions... Going to insert at most: ${amount}`);
 
   let { rows: users } = await dbClient.executeQuery(`
 
@@ -719,7 +710,7 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
     FROM users;
 
   `);
-  let userIds = users.map((user) => user.id);
+  let userIds = users.map(user => user.id);
   users = null;
 
   let { rows: subscriptions } = await dbClient.executeQuery(`
@@ -729,32 +720,19 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
     FROM subscriptions;
 
   `);
-  let subscriptionIds = subscriptions.map((subscription) => subscription.id);
+  let subscriptionIds = subscriptions.map(subscription => subscription.id);
   subscriptions = null;
-
-  const newUserSubscriptions = [];
 
   const products = generateProduct(
     userIds,
     subscriptionIds,
     SUBSCRIPTIONS_PER_USER,
   );
-  for (const [userId, subscriptionId] of products) {
-    const existingUserSubscription = existingUsersSubscriptions.find(
-      us => userId === us.user_id && subscriptionId === us.subscription_id,
-    );
+  const newUserSubscriptions = Array.from(products)
+    .map(([userId, subscriptionId]) => { return { userId, subscriptionId }; });
 
-    if (existingUserSubscription) {
-      continue;
-    }
+  log.info(`Generated ${newUserSubscriptions.length} new random user subscriptions.`);
 
-    newUserSubscriptions.push({
-      userId,
-      subscriptionId,
-    });
-  }
-
-  existingUsersSubscriptions = null;
   userIds = null;
   subscriptionIds = null;
 
@@ -790,6 +768,9 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
         dateTo.setDate(dateTo.getDate() + 1);
       }
 
+      if (newUserSubscriptions.length === 0) {
+        break;
+      }
       const newUserSubscription = newUserSubscriptions.pop();
 
       insertQueryValues.push(newUserSubscription.userId);
@@ -798,13 +779,17 @@ async function insertRandomUsersSubscriptions (dbClient, amount) {
       insertQueryValues.push(dateTo);
       insertQueryValues.push(1); // daily subscription plan
     }
+    if (newUserSubscriptions.length === 0) {
+      break;
+    }
 
     await dbClient.executeQuery(`
 
       INSERT INTO users_subscriptions
         (user_id, subscription_id, date_from, date_to, subscription_plan_id)
       VALUES
-        ${insertQueryParameters};
+        ${insertQueryParameters}
+      ON CONFLICT DO NOTHING;
 
     `, insertQueryValues);
   }
@@ -1420,119 +1405,47 @@ async function insertRandomPermissions (dbClient, amount) {
 }
 
 async function insertRandomRolesPermissions (dbClient, amount) {
-  const ROW_VALUES_COUNT = 2;
+  const PERMISSIONS_PER_ROLE = 10;
 
-  log.info(`Inserting random roles permissions... Amount: ${amount}`);
+  log.info(`Inserting random roles permissions... Going to insert at most ${amount}`);
 
-  let { rows: existingRolesPermissions } = await dbClient.executeQuery(`
-
-    SELECT
-      role_id,
-      permission_id
-    FROM roles_permissions;
-
-  `);
-
-  let { rows: roles } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM roles;
-
-  `);
+  let { rows: roles } = await dbClient.executeQuery(
+    `SELECT id FROM roles;`
+  );
   let roleIds = roles.map((role) => role.id);
   roles = null;
 
-  let { rows: permissions } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM permissions;
-
-  `);
+  let { rows: permissions } = await dbClient.executeQuery(
+    `SELECT id FROM permissions;`
+  );
   let permissionIds = permissions.map((permission) => permission.id);
   permissions = null;
 
-  const newRolesPermissions = [];
+  const product = generateProduct(roleIds, permissionIds, PERMISSIONS_PER_ROLE);
+  const newRolesPermissions = Array.from(product);
 
-  for (
-    let i1 = 0;
-    i1 < roleIds.length && newRolesPermissions.length < amount;
-    i1++
-  ) {
-    for (
-      let i2 = 0;
-      i2 < permissionIds.length && newRolesPermissions.length < amount;
-      i2++
-    ) {
-      const existingRolePermission = existingRolesPermissions.find((rp) => {
-        return (
-          roleIds[i1] === rp.role_id &&
-          permissionIds[i2] === rp.permission_id
-        );
-      });
-
-      if (existingRolePermission) {
-        continue;
-      }
-
-      newRolesPermissions.push({
-        roleId: roleIds[i1],
-        permissionId: permissionIds[i2],
-      });
-    }
-  }
-
-  existingRolesPermissions = null;
+  log.info(`Generated ${newRolesPermissions.length} new random rows for roles_permissions table.`);
   roleIds = null;
   permissionIds = null;
 
-  let rowsInserted = 0;
+  const insertBatch = 400;
+  const insertRowsGen = generateInsertBatches(newRolesPermissions, insertBatch);
+  let index = -1;
 
-  while (rowsInserted < amount) {
-    updateProgess(rowsInserted, amount);
+  for (const { values, valuesPlaceholders } of insertRowsGen) {
+    index += 1;
+    updateProgess(index * insertBatch, newRolesPermissions.length);
 
-    let insertQueryParameters = '';
-    let queryParamsCounter = 0;
-
-    while (
-      queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
-      rowsInserted < amount
-    ) {
-      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2})`;
-
-      if (
-        queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS &&
-        rowsInserted + 1 < amount
-      ) {
-        insertQueryParameters += ',';
-      }
-
-      queryParamsCounter += ROW_VALUES_COUNT;
-      rowsInserted++;
-    }
-
-    const insertQueryValues = [];
-
-    for (
-      let insertedQueryValues = 0;
-      insertedQueryValues < queryParamsCounter;
-      insertedQueryValues += ROW_VALUES_COUNT
-    ) {
-      const newRolePermission = newRolesPermissions.pop();
-
-      insertQueryValues.push(newRolePermission.roleId);
-      insertQueryValues.push(newRolePermission.permissionId);
-    }
-
-    await dbClient.executeQuery(`
-
+    await dbClient.executeQuery(
+      `
       INSERT INTO roles_permissions
         (role_id, permission_id)
       VALUES
-        ${insertQueryParameters};
-
-    `, insertQueryValues);
+        ${valuesPlaceholders}
+      ON CONFLICT DO NOTHING;
+      `,
+      values,
+    );
   }
 
   log.info(`Insert roles permissions finished`);
