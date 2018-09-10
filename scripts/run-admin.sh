@@ -1,10 +1,2 @@
 #!/usr/bin/env bash
-FREEFALL_PORT=3005 \
-FREEFALL_LOG_LEVEL=DEBUG \
-PGUSER=freefall \
-PGPASSWORD=freefall \
-PGDATABASE=freefall \
-DALIPECHE_ADDRESS=10.20.1.151 \
-DALIPECHE_PORT=3001 \
-DALIPECHE_API_KEY=8yKZ8eIWxA401K6p \
-node ./admin.js
+/usr/bin/node /opt/freefall/admin.js > "${STDOUT_FILE}" 2> "${STDERR_FILE}"
