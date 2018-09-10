@@ -1127,75 +1127,34 @@ async function insertRandomFlights (dbClient, amount) {
 
 async function insertRandomRoutesFlights (dbClient, amount) {
   const ROW_VALUES_COUNT = 2;
+  const ROUTE_TO_FLIGHT_RATIO = 5;
 
   log.info(`Inserting random routes flights... Amount: ${amount}`);
 
-  let { rows: existingRoutesFlights } = await dbClient.executeQuery(`
-
-    SELECT
-      route_id,
-      flight_id
-    FROM routes_flights;
-
-  `);
-
-  let { rows: routes } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM routes;
-
-  `);
+  let { rows: routes } = await dbClient.executeQuery(
+    `SELECT id FROM routes;`
+  );
   let routeIds = routes.map((route) => route.id);
-  routes = null;
-
-  let { rows: flights } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM flights;
-
-  `);
+  let { rows: flights } = await dbClient.executeQuery(
+    `SELECT id FROM flights;`
+  );
   let flightIds = flights.map((flight) => flight.id);
+
+  routes = null;
   flights = null;
 
-  const newRoutesFlights = [];
+  const newRoutesFlights = Array.from(
+    generateProduct(routeIds, flightIds, ROUTE_TO_FLIGHT_RATIO)
+  ).map(([routeId, flightId]) => { return { routeId, flightId }; });
 
-  for (
-    let i1 = 0;
-    i1 < routeIds.length && newRoutesFlights.length < amount;
-    i1++
-  ) {
-    for (
-      let i2 = 0;
-      i2 < flightIds.length && newRoutesFlights.length < amount;
-      i2++
-    ) {
-      const existingRouteFlight = existingRoutesFlights.find((rf) => {
-        return (
-          routeIds[i1] === rf.route_id &&
-          flightIds[i2] === rf.flight_id
-        );
-      });
+  log.info(`Generated ${newRoutesFlights.length} new routes_flights rows.`);
 
-      if (existingRouteFlight) {
-        continue;
-      }
-
-      newRoutesFlights.push({
-        routeId: routeIds[i1],
-        flightId: flightIds[i2],
-      });
-    }
-  }
-
-  existingRoutesFlights = null;
   routeIds = null;
   flightIds = null;
 
   let rowsInserted = 0;
 
-  while (rowsInserted < amount) {
+  while (newRoutesFlights.length > 0) {
     updateProgess(rowsInserted, amount);
 
     let insertQueryParameters = '';
@@ -1225,10 +1184,16 @@ async function insertRandomRoutesFlights (dbClient, amount) {
       insertedQueryValues < queryParamsCounter;
       insertedQueryValues += ROW_VALUES_COUNT
     ) {
+      if (newRoutesFlights.length === 0) {
+        break;
+      }
       const newRouteFlight = newRoutesFlights.pop();
 
       insertQueryValues.push(newRouteFlight.routeId);
       insertQueryValues.push(newRouteFlight.flightId);
+    }
+    if (newRoutesFlights.length === 0) {
+      break;
     }
 
     await dbClient.executeQuery(`
@@ -1236,7 +1201,8 @@ async function insertRandomRoutesFlights (dbClient, amount) {
       INSERT INTO routes_flights
         (route_id, flight_id)
       VALUES
-        ${insertQueryParameters};
+        ${insertQueryParameters}
+      ON CONFLICT DO NOTHING;
 
     `, insertQueryValues);
   }
@@ -2575,12 +2541,13 @@ async function fillDatabase (dbClient) {
   const AIRLINES_AMOUNT = 10000;
   const SUBSCRIPTIONS_AMOUNT = 100000;
   const FETCHES_AMOUNT = 10000;
-  const SUBSCRIPTIONS_FETCHES_AMOUNT = 200000;
   const USERS_AMOUNT = 100000;
   const USERS_SUBSCRIPTIONS_AMOUNT = 500000;
   const ROUTES_AMOUNT = 100000;
-  const FLIGHTS_AMOUNT = 1000000;
-  const ROUTES_FLIGHTS_AMOUNT = 2000000;
+  const FLIGHTS_AMOUNT = 200000;
+  const ROUTES_FLIGHTS_AMOUNT = 100000;
+  // flights are more then possible routes, but not as much as the ratio of flights per route
+  // because flights might be shared between routes;
   const ROLES_AMOUNT = 1000;
   const PERMISSIONS_AMOUNT = 10000;
   const ROLES_PERMISSIONS_AMOUNT = 100000;
@@ -2596,15 +2563,12 @@ async function fillDatabase (dbClient) {
   await insertRandomAirlines(dbClient, AIRLINES_AMOUNT);
   await insertRandomSubscriptions(dbClient, SUBSCRIPTIONS_AMOUNT);
   await insertRandomFetches(dbClient, FETCHES_AMOUNT);
-  await insertRandomSubscriptionsFetches(
-    dbClient,
-    SUBSCRIPTIONS_FETCHES_AMOUNT
-  );
-  await insertRandomUsers(dbClient, USERS_AMOUNT);
-  await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
+  await insertRandomSubscriptionsFetches(dbClient);
   await insertRandomRoutes(dbClient, ROUTES_AMOUNT);
   await insertRandomFlights(dbClient, FLIGHTS_AMOUNT);
   await insertRandomRoutesFlights(dbClient, ROUTES_FLIGHTS_AMOUNT);
+  await insertRandomUsers(dbClient, USERS_AMOUNT);
+  await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
   await insertRandomRoles(dbClient, ROLES_AMOUNT);
   await insertRandomPermissions(dbClient, PERMISSIONS_AMOUNT);
   await insertRandomRolesPermissions(dbClient, ROLES_PERMISSIONS_AMOUNT);
