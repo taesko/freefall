@@ -320,7 +320,8 @@ async function getAccountTransfers (dbClient, filters) {
     withdrawal_amount:
       (row.transfer_amount < 0) ? row.transfer_amount * -1 : null,
     transferred_at: row.transferred_at.toISOString(),
-    employee_transferrer_id: String(row.employee_transferrer_id),
+    employee_transferrer_id:
+      row.employee_transferrer_id == null ? null : String(row.employee_transferrer_id),
     employee_transferrer_email: row.employee_transferrer_email,
     user_subscr_airport_from_name: row.user_subscr_airport_from_name,
     user_subscr_airport_to_name: row.user_subscr_airport_to_name,

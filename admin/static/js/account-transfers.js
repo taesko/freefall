@@ -66,6 +66,12 @@ function start () {
         });
 
         console.log(result.account_transfers);
+
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(result.account_transfers);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+        XLSX.writeFile(workbook, 'account_transfers.xlsx')
       }
     );
   };

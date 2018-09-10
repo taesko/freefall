@@ -42,6 +42,7 @@
     "main": true,
     "Ajv": true,
     "ajv": true,
+    "XLSX": true,
     "jsyaml": true,
     "getParserGetter": true,
     "userGlobal": true,
