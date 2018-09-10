@@ -583,42 +583,42 @@ function start () {
       if (result.status_code === '1000') {
         APIKeyRef.APIKey = result.api_key;
 
-        const params = {
-          v: '2.0',
-          api_key: APIKeyRef.APIKey,
-          offset: 0,
-          limit: RESULTS_LIMIT,
-        };
+        api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+          airports = result.airports;
 
-        adminAPI.adminListUserSubscriptions(
-          params,
-          PROTOCOL_NAME,
-          function (result) { // eslint-disable-line prefer-arrow-callback
-            userSubscriptions = result.user_subscriptions;
-            // TODO error handling
-            renderUserSubscriptions($('#user-subscriptions-table'));
-          }
-        );
+          const params = {
+            v: '2.0',
+            api_key: APIKeyRef.APIKey,
+            offset: 0,
+            limit: RESULTS_LIMIT,
+          };
 
-        adminAPI.adminListGuestSubscriptions(
-          params,
-          PROTOCOL_NAME,
-          function (result) { // eslint-disable-line prefer-arrow-callback
-            guestSubscriptions = result.guest_subscriptions;
-            // TODO error handling
-            renderGuestSubscriptions($('#guest-subscriptions-table'));
-          }
-        );
+          adminAPI.adminListUserSubscriptions(
+            params,
+            PROTOCOL_NAME,
+            function (result) { // eslint-disable-line prefer-arrow-callback
+              userSubscriptions = result.user_subscriptions;
+              // TODO error handling
+              renderUserSubscriptions($('#user-subscriptions-table'));
+            }
+          );
+
+          adminAPI.adminListGuestSubscriptions(
+            params,
+            PROTOCOL_NAME,
+            function (result) { // eslint-disable-line prefer-arrow-callback
+              guestSubscriptions = result.guest_subscriptions;
+              // TODO error handling
+              renderGuestSubscriptions($('#guest-subscriptions-table'));
+            }
+          );
+
+          $userSubscriptionsTab.click(onUserSubscriptionsTabClick);
+          $guestSubscriptionsTab.click(onGuestSubscriptionsTabClick);
+        });
       } else {
         mainUtils.displayUserMessage('Could not get API key for your account. Please try to log out and log back in your account!', 'error');
       }
-    });
-
-    api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      airports = result.airports;
-
-      $userSubscriptionsTab.click(onUserSubscriptionsTabClick);
-      $guestSubscriptionsTab.click(onGuestSubscriptionsTabClick);
     });
   });
 }
