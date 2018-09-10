@@ -42,11 +42,13 @@
     "main": true,
     "Ajv": true,
     "ajv": true,
+    "XLSX": true,
     "jsyaml": true,
     "getParserGetter": true,
     "userGlobal": true,
     "employeeGlobal": true,
     "roleIdGlobal": true,
+    "filtersGlobal": true,
     "getAPIMethods": true,
     "getAdminAPIMethods": true,
     "window": true

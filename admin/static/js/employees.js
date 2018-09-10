@@ -285,8 +285,101 @@ function start () {
     return false;
   };
 
+  const onPreviousPageClick = function (event) {
+    mainUtils.trace('onPreviousPageClick');
+
+    const button = event.target;
+
+    assertApp(typeof offset === 'number', {
+      msg: 'Expected offset to be a number but was =' + offset, // eslint-disable-line prefer-template
+    });
+
+    if (offset === 0) {
+      mainUtils.displayUserMessage('You are already on first page', 'info');
+      return;
+    } else {
+      offset = offset - RESULTS_LIMIT;
+    }
+
+    assertApp(offset >= 0, {
+      msg: 'Expected offset to be >= 0 but was =' + offset, // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isSafeInteger(offset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected offset to be a safe integer, but was =' + offset, // eslint-disable-line prefer-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKeyRef.APIKey,
+      offset: offset,
+      limit: RESULTS_LIMIT,
+    };
+
+    button.disabled = true;
+
+    adminAPI.adminListEmployees(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      button.disabled = false;
+      // TODO error handling
+
+      employees = result.employees;
+
+      renderEmployees($('#employees-table'));
+    });
+  };
+
+  const onNextPageClick = function (event) { // eslint-disable-line prefer-arrow-callback
+    mainUtils.trace('onNextPageClick');
+
+    const button = event.target;
+
+    assertApp(typeof offset === 'number', {
+      msg: 'Expected offset to be a number but was =' + offset, // eslint-disable-line prefer-template
+    });
+
+    const newOffset = offset + RESULTS_LIMIT;
+
+    assertApp(newOffset >= 0, {
+      msg: 'Expected newOffset to be >= 0 but was =' + newOffset, // eslint-disable-line prefer-template
+    });
+
+    assertUser(Number.isSafeInteger(newOffset), {
+      userMessage: 'Invalid results page!',
+      msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefer-template
+    });
+
+    const params = {
+      v: '2.0',
+      api_key: APIKeyRef.APIKey,
+      offset: newOffset,
+      limit: RESULTS_LIMIT,
+    };
+
+    button.disabled = true;
+
+    adminAPI.adminListEmployees(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      button.disabled = false;
+      // TODO error handling
+      if (result.employees.length === 0) {
+        mainUtils.displayUserMessage('You are already on last page!', 'info');
+        return;
+      }
+
+      offset = newOffset;
+      employees = result.employees;
+
+      renderEmployees($('#employees-table'));
+    });
+  };
+
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $('#new-employee-form').submit(onAddNewEmployee);
+    $('#prev-page-btn-top').click(onPreviousPageClick);
+    $('#next-page-btn-top').click(onNextPageClick);
+    $('#prev-page-btn-bottom').click(onPreviousPageClick);
+    $('#next-page-btn-bottom').click(onNextPageClick);
 
     adminAPI.adminGetAPIKey({
       v: '2.0',

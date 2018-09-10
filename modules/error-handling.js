@@ -11,7 +11,12 @@ class CustomError extends Error {
   }
 }
 class PeerError extends CustomError {}
-class AppError extends CustomError {}
+class AppError extends CustomError {
+  constructor (errMsg, errCode = '0') {
+    super(errMsg, errCode);
+    log.error('ASSERTION ERROR', this);
+  }
+}
 class UserError extends CustomError {}
 class SystemError extends CustomError {}
 

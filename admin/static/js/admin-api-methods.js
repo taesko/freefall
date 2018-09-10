@@ -79,6 +79,10 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     adminValidators.getValidateAdminListEmployeesReq();
   const validateAdminListEmployeesRes =
     adminValidators.getValidateAdminListEmployeesRes();
+  const validateAdminListAccountTransfersReq =
+    adminValidators.getValidateAdminListAccountTransfersReq();
+  const validateAdminListAccountTransfersRes =
+    adminValidators.getValidateAdminListAccountTransfersRes();
   const validateAdminGetAPIKeyReq =
     adminValidators.getValidateAdminGetAPIKeyReq();
   const validateAdminGetAPIKeyRes =
@@ -683,6 +687,37 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     });
   };
 
+  const adminListAccountTransfers = function (params, protocolName, callback) {
+    mainUtils.trace('adminListAccountTransfers');
+    assertApp(validateAdminListAccountTransfersReq(params), {
+      msg: 'Params do not adhere to adminListAccountTransfersRequestSchema: ' + mainUtils.getValidatorMsg(validateAdminListAccountTransfersReq), // eslint-disable-line prefer-template
+    });
+
+    mainUtils.sendRequest({
+      url: mainUtils.SERVER_URL,
+      data: {
+        method: 'admin_list_account_transfers',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in adminListAccountTransfers:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+
+      assertPeer(validateAdminListAccountTransfersRes(result), {
+        msg: 'Params do not adhere to adminListAccountTransfersResponseSchema: ' + mainUtils.getValidatorMsg(validateAdminListAccountTransfersRes), // eslint-disable-line prefer-template
+      });
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
+
   const adminGetAPIKey = function (params, protocolName, callback) {
     mainUtils.trace('adminGetAPIKey');
     assertApp(validateAdminGetAPIKeyReq(params), {
@@ -734,6 +769,7 @@ function getAdminAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     adminEditEmployee: adminEditEmployee,
     adminRemoveEmployee: adminRemoveEmployee,
     adminListEmployees: adminListEmployees,
+    adminListAccountTransfers: adminListAccountTransfers,
     adminGetAPIKey: adminGetAPIKey,
   };
 }
