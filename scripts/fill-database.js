@@ -1748,97 +1748,34 @@ async function insertRandomEmployeesRoles (dbClient, amount) {
 }
 
 async function insertRandomLoginSessions (dbClient, amount) {
+  log.info('Staring to insert login sessions.');
   await dbClient.executeQuery(
     `
     INSERT INTO login_sessions
-      (user_id)
-    SELECT id FROM users LIMIT $1
+      (user_id, expiration_date)
+    SELECT id, now() + ((random()*24)||' hours')::interval
+    FROM users 
+    LIMIT $1
     ON CONFLICT DO NOTHING;
     `,
     [amount],
   );
-  log.info(`Insert login sessions finished`);
+  log.info(`Insert login sessions finished.`);
 }
 
 async function insertRandomPasswordResets (dbClient, amount) {
-  const ROW_VALUES_COUNT = 1;
-
-  log.info(`Inserting random password resets... Amount: ${amount}`);
-
-  let { rows: existingPasswordResets } = await dbClient.executeQuery(`
-
-    SELECT
-      user_id
-    FROM password_resets;
-
-  `);
-  let existingPasswordResetsUserIds = existingPasswordResets.map((ls) => {
-    return ls.user_id;
-  });
-  existingPasswordResets = null;
-
-  let { rows: users } = await dbClient.executeQuery(`
-
-    SELECT
-      id
-    FROM users;
-
-  `);
-  let userIds = users.map((user) => user.id);
-  users = null;
-
-  const newPasswordResetsUserIds = [];
-
-  for (let i = 0; i < userIds.length; i++) {
-    if (existingPasswordResetsUserIds.includes(userIds[i])) {
-      continue;
-    }
-
-    newPasswordResetsUserIds.push(userIds[i]);
-  }
-
-  existingPasswordResetsUserIds = null;
-  userIds = null;
-
-  let rowsInserted = 0;
-
-  while (rowsInserted < amount) {
-    updateProgess(rowsInserted, amount);
-
-    let insertQueryParameters = '';
-    let queryParamsCounter = 0;
-
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
-      insertQueryParameters += `($${queryParamsCounter + 1})`;
-
-      if (queryParamsCounter + ROW_VALUES_COUNT * 1 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
-        insertQueryParameters += ',';
-      }
-
-      queryParamsCounter += ROW_VALUES_COUNT;
-      rowsInserted++;
-    }
-
-    const insertQueryValues = [];
-
-    for (
-      let insertedQueryValues = 0;
-      insertedQueryValues < queryParamsCounter;
-      insertedQueryValues += ROW_VALUES_COUNT
-    ) {
-      insertQueryValues.push(newPasswordResetsUserIds.pop());
-    }
-
-    await dbClient.executeQuery(`
-
-      INSERT INTO password_resets
-        (user_id)
-      VALUES
-        ${insertQueryParameters};
-
-    `, insertQueryValues);
-  }
-
+  log.info('Starting to insert password resets');
+  await dbClient.executeQuery(
+    `
+    INSERT INTO password_resets
+      (user_id, sent_email, expires_on)
+    SELECT id, random() > 0.1, now() + ((random()*24)||' hours')::interval
+    FROM users
+    LIMIT $1
+    ON CONFLICT DO NOTHING;
+    `,
+    [amount],
+  );
   log.info(`Insert password resets finished`);
 }
 
