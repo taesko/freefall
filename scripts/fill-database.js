@@ -375,15 +375,6 @@ async function insertRandomSubscriptions (dbClient, amount) {
 
   log.info(`Inserting random subscriptions... Amount: ${amount}`);
 
-  let { rows: existingSubscriptions } = await dbClient.executeQuery(`
-
-    SELECT
-      airport_from_id,
-      airport_to_id
-    FROM subscriptions;
-
-  `);
-
   let { rows: airports } = await dbClient.executeQuery(`
 
     SELECT
@@ -397,31 +388,21 @@ async function insertRandomSubscriptions (dbClient, amount) {
 
   const newSubscriptions = [];
 
-  for (let i1 = 0; i1 < airportIds.length && newSubscriptions.length < amount; i1++) {
-    for (let i2 = 0; i2 < airportIds.length && newSubscriptions.length < amount; i2++) {
-      if (i1 === i2) {
-        continue;
-      }
-
-      const existingSubscription = existingSubscriptions.find((s) => {
-        return (
-          airportIds[i1] === s.airport_from_id &&
-          airportIds[i2] === s.airport_to_id
-        );
-      });
-
-      if (existingSubscription) {
-        continue;
-      }
-
+  for (let count = 0; count < amount; count++) {
+    const randA = Math.floor(Math.random() * airportIds.length);
+    const randB = Math.floor(Math.random() * airportIds.length);
+    const from = airportIds[randA];
+    const to = airportIds[randB];
+    if (from != null && to != null && from !== to) {
       newSubscriptions.push({
-        airportFromId: airportIds[i1],
-        airportToId: airportIds[i2],
+        airportFromId: from,
+        airportToId: to,
       });
     }
   }
 
-  existingSubscriptions = null;
+  log.info(`Generated ${newSubscriptions.length} random subscriptions.`);
+
   airportIds = null;
 
   let rowsInserted = 0;
@@ -446,9 +427,15 @@ async function insertRandomSubscriptions (dbClient, amount) {
     const insertQueryValues = [];
 
     for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
+      if (newSubscriptions.length === 0) {
+        break;
+      }
       const newSubscription = newSubscriptions.pop();
       insertQueryValues.push(newSubscription.airportFromId);
       insertQueryValues.push(newSubscription.airportToId);
+    }
+    if (newSubscriptions.length === 0) {
+      break;
     }
 
     await dbClient.executeQuery(`
@@ -456,7 +443,9 @@ async function insertRandomSubscriptions (dbClient, amount) {
       INSERT INTO subscriptions
         (airport_from_id, airport_to_id)
       VALUES
-        ${insertQueryParameters};
+        ${insertQueryParameters}
+      ON CONFLICT DO NOTHING
+      ;
 
     `, insertQueryValues);
   }
@@ -523,10 +512,6 @@ async function insertRandomSubscriptionsFetches (dbClient) {
 
   log.info(`Inserting random subscriptions fetches...`);
 
-  let { rows: existingSubscriptionsFetches } = await dbClient.executeQuery(
-    `SELECT subscription_id, fetch_id FROM subscriptions_fetches;`
-  );
-
   let { rows: subscriptions } = await dbClient.executeQuery(
     `SELECT id FROM subscriptions;`
   );
@@ -548,14 +533,6 @@ async function insertRandomSubscriptionsFetches (dbClient) {
     SUBSCRIPTIONS_PER_FETCH
   );
   for (const [fetchId, subscriptionId] of products) {
-    const existingSubscriptionFetch = existingSubscriptionsFetches.find(
-      sf => subscriptionId === sf.subscription_id && fetchId === sf.fetch_id
-    );
-
-    if (existingSubscriptionFetch) {
-      continue;
-    }
-
     newSubscriptionsFetches.push({
       subscriptionId: subscriptionId,
       fetchId,
@@ -564,7 +541,6 @@ async function insertRandomSubscriptionsFetches (dbClient) {
 
   log.info(`Generated ${newSubscriptionsFetches.length} rows. Inserting...`);
 
-  existingSubscriptionsFetches = null;
   subscriptionIds = null;
   fetchesIds = null;
 
@@ -576,7 +552,7 @@ async function insertRandomSubscriptionsFetches (dbClient) {
     return [subscriptionId, fetchId, randomAPIFetchesCount];
   });
 
-  const batchLength = 5;
+  const batchLength = 300;
   const insertBatchesGen = generateInsertBatches(rows, batchLength);
   let index = -1;
 
@@ -589,7 +565,8 @@ async function insertRandomSubscriptionsFetches (dbClient) {
       INSERT INTO subscriptions_fetches
         (subscription_id, fetch_id, api_fetches_count)
       VALUES
-        ${valuesPlaceholders};
+        ${valuesPlaceholders}
+      ON CONFLICT DO NOTHING;
       `,
       values
     );
