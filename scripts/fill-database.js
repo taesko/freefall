@@ -5,14 +5,15 @@ const _ = require('lodash');
 const { assertApp } = require('../modules/error-handling');
 const log = require('../modules/log');
 const db = require('../modules/db');
+const utils = require('../modules/utils');
 const MAX_QUERY_PARAMS = 30000;
 
-function randomSequence (collection, sequenceLength) {
-  const index = Math.floor(Math.random() * collection.length);
-  return collection.slice(index, index + sequenceLength);
-}
-
 function * generateProduct (collectionA, collectionB, ratio) {
+  function randomSequence (collection, sequenceLength) {
+    const index = Math.floor(Math.random() * collection.length);
+    return collection.slice(index, index + sequenceLength);
+  }
+
   for (const elementOfA of collectionA) {
     const subscriptionsBatch = randomSequence(collectionB, ratio);
     for (const elementOfB of subscriptionsBatch) {
@@ -21,15 +22,15 @@ function * generateProduct (collectionA, collectionB, ratio) {
   }
 }
 
-function * generateInsertBatches (nestedCollection, batchLength) {
-  function computePlaceholders (values, startingIndex = 0) {
-    assertApp(Number.isInteger(startingIndex));
-    const placeholders = Array(values.length).fill('')
-      .map((e, nestedIndex) => `$${startingIndex + nestedIndex + 1}`)
-      .join(',');
-    return `(${placeholders})`;
-  }
+function computePlaceholders (values, startingOffset = 0) {
+  assertApp(Number.isInteger(startingOffset));
+  const placeholders = Array(values.length).fill('')
+    .map((e, nestedIndex) => `$${startingOffset + nestedIndex + 1}`)
+    .join(',');
+  return `(${placeholders})`;
+}
 
+function * generateInsertBatches (nestedCollection, batchLength) {
   let batch = [];
   let parameterCount = 0;
 
@@ -346,7 +347,7 @@ async function insertRandomAirlines (dbClient, amount) {
     while (
       queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
       rowsInserted < amount
-      ) {
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
 
       if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
@@ -895,7 +896,7 @@ async function insertRandomRoutes (dbClient, amount) {
     while (
       queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
       rowsInserted < amount
-      ) {
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3})`;
 
       if (
@@ -1066,7 +1067,7 @@ async function insertRandomFlights (dbClient, amount) {
     while (
       queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
       rowsInserted < amount
-      ) {
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3}, $${queryParamsCounter + 4}, $${queryParamsCounter + 5}, $${queryParamsCounter + 6}, $${queryParamsCounter + 7})`;
 
       if (
@@ -1168,7 +1169,7 @@ async function insertRandomRoutesFlights (dbClient, amount) {
     while (
       queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
       rowsInserted < amount
-      ) {
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2})`;
 
       if (
@@ -1282,7 +1283,7 @@ async function insertRandomRoles (dbClient, amount) {
     while (
       queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
       rowsInserted < amount
-      ) {
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1})`;
 
       if (
@@ -1387,7 +1388,7 @@ async function insertRandomPermissions (dbClient, amount) {
     while (
       queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS &&
       rowsInserted < amount
-      ) {
+    ) {
       insertQueryParameters += `($${queryParamsCounter + 1})`;
 
       if (
@@ -1807,7 +1808,7 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
     `
     INSERT INTO account_transfers
       (user_id, transfer_amount, transferred_at)
-    SELECT id, $1, now() + (random()*30||' days')::interval
+    SELECT id, $1, now() + (floor(random()*30)||' days')::interval
     FROM users
     ORDER BY random()
     LIMIT $2
@@ -1822,8 +1823,8 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
     `
     INSERT INTO account_transfers_by_employees
       (account_transfer_id, employee_id)
-    SELECT account_transfers.id, (SELECT id FROM employees ORDER BY random() LIMIT 1)
-    FROM account_transfers
+    SELECT DISTINCT ON (account_transfers.id) account_transfers.id, employees.id
+    FROM account_transfers, employees
     ON CONFLICT DO NOTHING
     `,
   );
@@ -1831,19 +1832,27 @@ async function insertRandomAccountTransfersByEmployees (dbClient, amount) {
 
   log.info('Updating user credits');
   const batchLength = 500;
-  const rows = accountTransferRows.map(row => [row.id]);
-  const batchesGen = generateInsertBatches(rows, batchLength);
-  for (const { values, valuesPlaceholders } of batchesGen) {
+  const batchesGen = utils.batchMap(
+    accountTransferRows,
+    row => row.user_id,
+    batchLength,
+  );
+  let index = -1;
+
+  for (const userIds of batchesGen) {
+    index += 1;
+    updateProgess(index * batchLength, accountTransferRows.length);
+    const placeholders = computePlaceholders(userIds, 1);
     await dbClient.executeQuery(
       `
       UPDATE users
-      SET credits = credits + $${values.length}
-      WHERE id IN ${valuesPlaceholders};
+      SET credits = credits + $1
+      WHERE id IN ${placeholders};
       `,
-      [...values, TRANSFER_AMOUNT],
+      [TRANSFER_AMOUNT, ...userIds],
     );
   }
-  log.info('Finsihed updating user credits');
+  log.info('Finished updating user credits');
   log.info(`Insert account transfers by employees finished.`);
 }
 
@@ -2248,36 +2257,36 @@ async function fillDatabase (dbClient) {
 
   log.info('Fill database started');
 
-  // await insertRandomAirports(dbClient, AIRPORTS_AMOUNT);
-  // await insertRandomAirlines(dbClient, AIRLINES_AMOUNT);
-  // await insertRandomSubscriptions(dbClient, SUBSCRIPTIONS_AMOUNT);
-  // await insertRandomFetches(dbClient, FETCHES_AMOUNT);
-  // await insertRandomSubscriptionsFetches(dbClient);
-  // await insertRandomRoutes(dbClient, ROUTES_AMOUNT);
-  // await insertRandomFlights(dbClient, FLIGHTS_AMOUNT);
-  // await insertRandomRoutesFlights(dbClient, ROUTES_FLIGHTS_AMOUNT);
+  await insertRandomAirports(dbClient, AIRPORTS_AMOUNT);
+  await insertRandomAirlines(dbClient, AIRLINES_AMOUNT);
+  await insertRandomSubscriptions(dbClient, SUBSCRIPTIONS_AMOUNT);
+  await insertRandomFetches(dbClient, FETCHES_AMOUNT);
+  await insertRandomSubscriptionsFetches(dbClient);
+  await insertRandomRoutes(dbClient, ROUTES_AMOUNT);
+  await insertRandomFlights(dbClient, FLIGHTS_AMOUNT);
+  await insertRandomRoutesFlights(dbClient, ROUTES_FLIGHTS_AMOUNT);
   await insertRandomUsers(dbClient, USERS_AMOUNT);
-  // await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
+  await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
   await insertRandomRoles(dbClient, ROLES_AMOUNT);
   await insertRandomPermissions(dbClient, PERMISSIONS_AMOUNT);
   await insertRandomRolesPermissions(dbClient, ROLES_PERMISSIONS_AMOUNT);
-  // await insertRandomDalipecheFetches(dbClient, DALIPECHE_FETCHES_AMOUNT);
+  await insertRandomDalipecheFetches(dbClient, DALIPECHE_FETCHES_AMOUNT);
   await insertRandomEmployees(dbClient, EMPLOYEES_AMOUNT);
   await insertRandomEmployeesRoles(dbClient, EMPLOYEES_AMOUNT);
-  // await insertRandomLoginSessions(dbClient, ACTIVE_LOGIN_SESSIONS);
-  // await insertRandomPasswordResets(dbClient, USERS_AMOUNT);
+  await insertRandomLoginSessions(dbClient, ACTIVE_LOGIN_SESSIONS);
+  await insertRandomPasswordResets(dbClient, USERS_AMOUNT);
   await insertRandomAccountTransfersByEmployees(
     dbClient,
     ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT,
   );
-  // await insertRandomUserSubscriptionAccountTransfers(
-  //   dbClient,
-  //   USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT,
-  // );
-  // await insertRandomSubscriptionsFetchesAccountTransfers(
-  //   dbClient,
-  //   SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT,
-  // );
+  await insertRandomUserSubscriptionAccountTransfers(
+    dbClient,
+    USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT,
+  );
+  await insertRandomSubscriptionsFetchesAccountTransfers(
+    dbClient,
+    SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT,
+  );
 
   log.info('Fill database finished');
 }
