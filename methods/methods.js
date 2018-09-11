@@ -629,10 +629,10 @@ const creditHistory = defineAPIMethod(
         ON users_subscriptions.subscription_id=subscriptions.id
       JOIN airports AS ap_from
         ON subscriptions.airport_from_id=ap_from.id AND
-          ($4::text IS NULL OR (ap_from.id::text=$4 OR ap_from.name=$4 OR ap_from.iata_code=$4))
+          ($4::text IS NULL OR (ap_from.name=$4 OR ap_from.iata_code=$4))
       JOIN airports AS ap_to
         ON subscriptions.airport_to_id=ap_to.id AND
-          ($5::text IS NULL OR (ap_to.id::text=$5 OR ap_to.name=$5 OR ap_to.iata_code=$5))
+          ($5::text IS NULL OR (ap_to.name=$5 OR ap_to.iata_code=$5))
       WHERE users_subscriptions.user_id=$1 AND
         ($6::date IS NULL OR date_from >= $6::date) AND
         ($7::date IS NULL OR date_to <= $7::date)
