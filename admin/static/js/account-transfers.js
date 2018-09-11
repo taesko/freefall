@@ -75,7 +75,25 @@ function start () {
         const currentDate = (new Date()).toISOString().replace(':', '-').replace('.', '-');
 
         const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(accountTransfers);
+        const worksheet = XLSX.utils.json_to_sheet(accountTransfers, {
+          header: [
+            "account_transfer_id",
+            "user_id",
+            "user_email",
+            "deposit_amount",
+            "withdrawal_amount",
+            "transferred_at",
+            "employee_transferrer_id",
+            "employee_transferrer_email",
+            "user_subscr_airport_from_name",
+            "user_subscr_airport_to_name",
+            "user_subscr_date_from",
+            "user_subscr_date_to",
+            "subscr_airport_from_name",
+            "subscr_airport_to_name",
+            "fetch_time",
+          ],
+        });
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
 
         // getMonth() + 1. because months in JS start from 0

@@ -5,7 +5,7 @@
   <title>Account transfers reports</title>
   <link href="../css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="./css/jquery-ui.css" rel="stylesheet">
-  <!--   <link href="../css/style.css" rel="stylesheet"> -->
+  <link href="./css/main.css" rel="stylesheet">
 </head>
 <body>
   <div class="container">
@@ -90,59 +90,80 @@
         {{/if}}
       </div>
     </div>
-    <table id="account-transfers-table" class="table table-bordered">
-      <thead>
-        <tr>
-          <th>Id</th>
-          <th>User</th>
-          <th>Deposits</th>
-          <th>Withdrawals</th>
-          <th>Transferred at</th>
-          <th>More information</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each account_transfers}}
-        <tr>
-          <td class="text-right">
-            {{this.account_transfer_id}}
-          </td>
-          <td>
-            {{this.user.email}}
-            <a href="/users/{{this.user.id}}">(open)</a>
-          </td>
-          <td class="text-right">
-            {{this.deposit_amount}}
-          </td>
-          <td class="text-right">
-            {{this.withdrawal_amount}}
-          </td>
-          <td>
-            {{this.transferred_at}}
-          </td>
-          <td>
-            {{#if employee_transferrer_id}}
-              <p><label>Type:</label> by employee</p>
-              <p><label>Employee:</label> {{this.employee_transferrer_email}} <a href="/employees/{{this.employee_transferrer_id}}">(open)</a></p>
-            {{/if}}
-            {{#if user_subscr_airport_from_name}}
-              <p><label>Type:</label> new subscription</p>
-              <p><label>Airport from:</label> {{user_subscr_airport_from_name}}</p>
-              <p><label>Airport to:</label> {{user_subscr_airport_to_name}}</p>
-              <p><label>Date from:</label> {{user_subscr_date_from}}</p>
-              <p><label>Date to:</label> {{user_subscr_date_to}}</p>
-            {{/if}}
-            {{#if fetch_time}}
-              <p><label>Type:</label> fetch</p>
-              <p><label>Fetch time:</label> {{fetch_time}}</p>
-              <p><label>Airport from:</label> {{subscr_airport_from_name}}</p>
-              <p><label>Airport to:</label> {{subscr_airport_to_name}}</p>
-            {{/if}}
-          </td>
-        </tr>
-        {{/each}}
-      </tbody>
-    </table>
+    <div class="table-wrap">
+      <table id="account-transfers-table" class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th>User</th>
+            <th>Deposits</th>
+            <th>Withdrawals</th>
+            <th>Transferred at</th>
+            <th>Employee transferrer id</th>
+            <th>Employee transferrer email</th>
+            <th>User subscription airport from</th>
+            <th>User subscription airport to</th>
+            <th>User subscription date from</th>
+            <th>User subscription date to</th>
+            <th>Subscription airport from</th>
+            <th>Subscription arirpot to</th>
+            <th>Fetch time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each account_transfers}}
+          <tr>
+            <td class="text-right">
+              {{this.account_transfer_id}}
+            </td>
+            <td>
+              {{this.user.email}}
+              <a href="/users/{{this.user.id}}">(open)</a>
+            </td>
+            <td class="text-right">
+              {{this.deposit_amount}}
+            </td>
+            <td class="text-right">
+              {{this.withdrawal_amount}}
+            </td>
+            <td>
+              {{this.transferred_at}}
+            </td>
+            <td>
+              {{this.employee_transferrer_id}}
+            </td>
+            <td>
+              {{this.employee_transferrer_email}}
+              {{#if this.employee_transferrer_id}}
+                <a href="/employees/{{this.employee_transferrer_id}}">(open)</a>
+              {{/if}}
+            </td>
+            <td>
+              {{user_subscr_airport_from_name}}
+            </td>
+            <td>
+              {{user_subscr_airport_to_name}}
+            </td>
+            <td>
+              {{user_subscr_date_from}}
+            </td>
+            <td>
+              {{user_subscr_date_to}}
+            </td>
+            <td>
+              {{fetch_time}}
+            </td>
+            <td>
+              {{subscr_airport_from_name}}
+            </td>
+            <td>
+              {{subscr_airport_to_name}}
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
     <div class="row">
       <div class="col-md-4">
         {{#if prev_page}}
