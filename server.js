@@ -29,6 +29,43 @@ const MIN_EMAIL_LENGTH = 3;
 const MAX_EMAIL_LENGTH = 254;
 const MIN_PASSWORD_LENGTH = 8;
 
+if (process.env.FREEFALL_PROFILING_ON) {
+  const EL = require('eventloop-latency');
+  const interval = 1000;
+  const hrInterval = 10;
+  const monitoring = new EL(interval, hrInterval);
+  monitoring.start(true);
+  monitoring.on('data', data => {
+    const max = Math.max(...data)
+    const average = data.reduce((sum, num) => sum+num, 0) / data.length;
+    log.info(
+      'START eventloop-latency REPORT',
+      'Max latency is', max,
+      'Average latency is', average,
+      'END eventloop-latency REPORT',
+    );
+  });
+
+  const LatencyMonitor = require('latency-monitor').default;
+  const monitor = new LatencyMonitor();
+  log.info('Event Loop Latency Monitor Loaded: %O', {
+    latencyCheckIntervalMs: 50,
+    dataEmitIntervalMs: 1000,
+  });
+  monitor.on(
+    'data',
+    (summary) => log.info(`START latency-monitor REPORT:\n%O\nEND latency-monitor REPORT`, summary)
+  );
+
+  // const blocked = require('blocked-at');
+  // blocked(
+  //   (time, stack) => {
+  //     log.info(`START blocked-at REPORT - blocked for ${time}. Stack trace -`, stack, `END blocked-at REPORT`);
+  //   },
+  //   { threshold: 20, trimFalsePositives: true },
+  // );
+}
+
 app.keys = ['freefall is love freefall is life'];
 
 app.use(logger());
