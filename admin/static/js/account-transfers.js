@@ -2,10 +2,81 @@ function start () {
   const mainUtils = main();
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const assertPeer = mainUtils.assertPeer;
+  const assertApp = mainUtils.assertApp;
   const assertUser = mainUtils.assertUser;
 
   const APIKeyRef = mainUtils.APIKeyRef;
   const adminAPI = getAdminAPIMethods(mainUtils);
+
+  function generateExportData (filterData, data) {
+    assertApp(Array.isArray(filterData.headers), {
+      msg: 'Expected filterData.headers to be array, but filterData.headers=' + filterData.headers, // eslint-disable-line prefer-template
+    });
+    assertApp(_.isObject(filterData.filters), {
+      msg: 'Expected filterData.filters to be object, but filterData.filters=' + filterData.filters, // eslint-disable-line prefer-template
+    });
+    assertApp(Array.isArray(data.headers), {
+      msg: 'Expected data.headers to be array, but data.headers=' + data.headers, // eslint-disable-line prefer-template
+    });
+    assertApp(Array.isArray(data.rows), {
+      msg: 'Expected data.rows to be array, but data.rows=' + data.rows, // eslint-disable-line prefer-template
+    });
+
+    var i; // eslint-disable-line no-var
+    var k; // eslint-disable-line no-var
+
+    for (i = 0; i < filterData.headers.length; i++) {
+      assertApp(filterData.filters.hasOwnProperty(filterData.headers[i]), {
+        msg: 'Filters does not have required header "' + filterData.headers[i] + '"', // eslint-disable-line prefer-template
+      });
+    }
+
+    for (i = 0; i < data.headers.length; i++) {
+      for (k = 0; k < data.rows.length; k++) {
+        assertApp(data.rows[k].hasOwnProperty(data.headers[i]), {
+          msg: 'Data does not have required header "' + data.headers[i] + '"', // eslint-disable-line prefer-template
+        });
+      }
+    }
+
+    const exportData = [];
+
+    exportData.push([
+      'Filter name',
+      'Filter value',
+    ]);
+
+    for (i = 0; i < filterData.headers.length; i++) {
+      exportData.push([
+        filterData.headers[i],
+        filterData.filters[filterData.headers[i]],
+      ]);
+    }
+
+    exportData.push([]);
+
+    {
+      const exportDataHeadersRow = [];
+
+      for (i = 0; i < data.headers.length; i++) {
+        exportDataHeadersRow.push(data.headers[i]);
+      }
+
+      exportData.push(exportDataHeadersRow);
+    }
+
+    for (i = 0; i < data.rows.length; i++) {
+      const exportDataRow = [];
+
+      for (k = 0; k < data.headers.length; k++) {
+        exportDataRow.push(data.rows[i][data.headers[k]]);
+      }
+
+      exportData.push(exportDataRow);
+    }
+
+    return exportData;
+  }
 
   const onExportAsXLSXClick = function (event) {
     mainUtils.trace('onExportAsXLSXClick');
@@ -75,7 +146,40 @@ function start () {
         const currentDate = (new Date()).toISOString().replace(':', '-').replace('.', '-');
 
         const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(accountTransfers);
+        const worksheet = XLSX.utils.aoa_to_sheet(
+          generateExportData(
+            {
+              headers: [
+                "user_email",
+                "date_from",
+                "date_to",
+                "type",
+                "reason",
+              ],
+              filters: filtersGlobal,
+            },
+            {
+              headers: [
+                "account_transfer_id",
+                "user_id",
+                "user_email",
+                "deposit_amount",
+                "withdrawal_amount",
+                "transferred_at",
+                "employee_transferrer_id",
+                "employee_transferrer_email",
+                "user_subscr_airport_from_name",
+                "user_subscr_airport_to_name",
+                "user_subscr_date_from",
+                "user_subscr_date_to",
+                "subscr_airport_from_name",
+                "subscr_airport_to_name",
+                "fetch_time",
+              ],
+              rows: accountTransfers,
+            }
+          )
+        );
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
 
         // getMonth() + 1. because months in JS start from 0
