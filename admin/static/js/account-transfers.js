@@ -7,6 +7,50 @@ function start () {
   const APIKeyRef = mainUtils.APIKeyRef;
   const adminAPI = getAdminAPIMethods(mainUtils);
 
+  function generateExportData (filters, data) {
+    const exportData = [];
+
+    exportData.push([
+      'Filter name',
+      'Filter value',
+    ]);
+
+    var i; // eslint-disable-line no-var
+
+    for (i = 0; i < filters.headers.length; i++) {
+      exportData.push([
+        filters.headers[i],
+        filters.rows[filters.headers[i]],
+      ]);
+    }
+
+    exportData.push([]);
+
+    {
+      const exportDataHeadersRow = [];
+
+      for (i = 0; i < data.headers.length; i++) {
+        exportDataHeadersRow.push(data.headers[i]);
+      }
+
+      exportData.push(exportDataHeadersRow);
+    }
+
+    for (i = 0; i < data.rows.length; i++) {
+      const exportDataRow = [];
+
+      var k; // eslint-disable-line no-var
+
+      for (k = 0; k < data.headers.length; k++) {
+        exportDataRow.push(data.rows[i][data.headers[k]]);
+      }
+
+      exportData.push(exportDataRow);
+    }
+
+    return exportData;
+  }
+
   const onExportAsXLSXClick = function (event) {
     mainUtils.trace('onExportAsXLSXClick');
 
@@ -72,28 +116,48 @@ function start () {
           return at;
         });
 
+        accountTransfers.push({
+          test: 'foo',
+          test2: 'foo2',
+        });
+
         const currentDate = (new Date()).toISOString().replace(':', '-').replace('.', '-');
 
         const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(accountTransfers, {
-          header: [
-            "account_transfer_id",
-            "user_id",
-            "user_email",
-            "deposit_amount",
-            "withdrawal_amount",
-            "transferred_at",
-            "employee_transferrer_id",
-            "employee_transferrer_email",
-            "user_subscr_airport_from_name",
-            "user_subscr_airport_to_name",
-            "user_subscr_date_from",
-            "user_subscr_date_to",
-            "subscr_airport_from_name",
-            "subscr_airport_to_name",
-            "fetch_time",
-          ],
-        });
+        const worksheet = XLSX.utils.aoa_to_sheet(
+          generateExportData(
+            {
+              headers: [
+                "user_email",
+                "date_from",
+                "date_to",
+                "type",
+                "reason",
+              ],
+              rows: filtersGlobal,
+            },
+            {
+              headers: [
+                "account_transfer_id",
+                "user_id",
+                "user_email",
+                "deposit_amount",
+                "withdrawal_amount",
+                "transferred_at",
+                "employee_transferrer_id",
+                "employee_transferrer_email",
+                "user_subscr_airport_from_name",
+                "user_subscr_airport_to_name",
+                "user_subscr_date_from",
+                "user_subscr_date_to",
+                "subscr_airport_from_name",
+                "subscr_airport_to_name",
+                "fetch_time",
+              ],
+              rows: accountTransfers,
+            }
+          )
+        );
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
 
         // getMonth() + 1. because months in JS start from 0
