@@ -48,6 +48,4 @@ CREATE TEMPORARY VIEW credit_totals AS
     JOIN (SELECT user_id, SUM(transfer_amount) AS transferred_total FROM account_transfers GROUP BY user_id) AS transfers
     ON users.id=transfers.user_id;
 
-SELECT id, transactions_are_ok FROM credit_totals;
-
-SELECT every(transactions_are_ok) FROM credit_totals;
+SELECT every(transactions_are_ok) AS all_transactions_are_ok FROM credit_totals;
