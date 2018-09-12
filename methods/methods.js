@@ -23,7 +23,6 @@ const DEFAULT_MAX_FLY_DURATION = 24;
 
 const LIST_SUBSCRIPTIONS_DEFAULT_LIMIT = 5;
 const CREDIT_HISTORY_DEFAULT_LIMIT = 10;
-const CREDIT_HISTORY_MAX_LIMIT = 20;
 
 async function airportIDExists (dbClient, airportID) {
   assertApp(isObject(dbClient), `got ${dbClient}`);
@@ -605,12 +604,14 @@ const creditHistory = defineAPIMethod(
       SELECT credit_history.id::text, transferred_at, transfer_amount, reason,
         subscriptions.airport_from_id::text, subscriptions.airport_to_id::text, 
         users_subscriptions.date_from, users_subscriptions.date_to,
+        ap_from.name AS fly_from, ap_to.name AS fly_to,
         users_subscriptions.active AS subscription_status
       FROM (
         SELECT usat.user_subscription_id AS id, transferred_at, transfer_amount, 'initial tax' AS reason
         FROM account_transfers
         JOIN user_subscription_account_transfers AS usat
           ON account_transfers.id=usat.account_transfer_id
+        WHERE usat.user_subscription_id IN (SELECT id FROM users_subscriptions WHERE user_id=$1)
         UNION ALL
         SELECT users_subscriptions.id, transferred_at, transfer_amount, 'fetch tax' AS reason
         FROM account_transfers
@@ -622,6 +623,7 @@ const creditHistory = defineAPIMethod(
           ON subscriptions_fetches.subscription_id=subscriptions.id
         JOIN users_subscriptions 
           ON subscriptions.id=users_subscriptions.subscription_id
+        WHERE users_subscriptions.user_id=$1
       ) AS credit_history
       JOIN users_subscriptions 
         ON credit_history.id=users_subscriptions.id
@@ -633,8 +635,7 @@ const creditHistory = defineAPIMethod(
       JOIN airports AS ap_to
         ON subscriptions.airport_to_id=ap_to.id AND
           ($5::text IS NULL OR (ap_to.name=$5 OR ap_to.iata_code=$5))
-      WHERE users_subscriptions.user_id=$1 AND
-        ($6::date IS NULL OR date_from >= $6::date) AND
+      WHERE ($6::date IS NULL OR date_from >= $6::date) AND
         ($7::date IS NULL OR date_to <= $7::date)
       ORDER BY transferred_at DESC, id ASC
       LIMIT $2
@@ -693,127 +694,6 @@ const depositHistory = defineAPIMethod(
     return {
       status_code: '1000',
       deposit_history: depositHistory,
-    };
-  },
-);
-
-// eslint-disable-next-line no-unused-vars
-const fullCreditHistory = defineAPIMethod(
-  {
-    'TH_BAD_LIMIT': { status_code: '2100' },
-    'TH_BAD_OFFSET': { status_code: '2100' },
-    'TH_INVALID_LIMIT': { status_code: '2100' },
-    'TH_INVALID_API_KEY': { status_code: '2200' },
-    'TH_NOT_ENOUGH_PERMISSIONS': { status_code: '2200' },
-  },
-  async (params, dbClient) => {
-    const apiKey = params.api_key;
-    const limit = +params.limit || CREDIT_HISTORY_DEFAULT_LIMIT;
-    const offset = +params.offset || 0;
-
-    assertPeer(Number.isSafeInteger(limit), `got ${limit}`, 'TH_BAD_LIMIT');
-    assertPeer(Number.isSafeInteger(offset), `got ${offset}`, 'TH_BAD_OFFSET');
-    assertPeer(limit <= CREDIT_HISTORY_MAX_LIMIT, `got ${limit}`, 'TH_INVALID_LIMIT');
-
-    const user = await users.fetchUser(dbClient, { apiKey });
-
-    assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
-    assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
-
-    const { rows: history } = await dbClient.executeQuery(
-      `
-      SELECT 
-        account_transfers.id AS transfer_id,
-        CASE 
-          WHEN taxes.id IS NULL THEN 'deposit'
-          ELSE 'tax'
-          AS transfer_type
-        COALESCE(taxes.transfer_amount, deposits.transfer_amount) AS transfer_amount,
-        COALESCE(taxes.transferred_at, deposits.transferred_at) AS transferred_at,
-        COALESCE(taxes.reason, deposits.reason) AS reason,
-        taxes.id AS subscription_id,
-        taxes.airport_from_id::text,
-        taxes.airport_to_id::text,
-        taxes.date_from,
-        taxes.date_to,
-        taxes.subscription_status
-      FROM account_transfers
-      LEFT JOIN (
-        SELECT 
-          credit_history.id::text,
-          credit_history.transfer_id,
-          transferred_at,
-          transfer_amount,
-          reason,
-          subscriptions.airport_from_id::text,
-          subscriptions.airport_to_id::text, 
-          users_subscriptions.date_from,
-          users_subscriptions.date_to,
-          users_subscriptions.active AS subscription_status
-        FROM (
-          SELECT 
-            usat.user_subscription_id AS id,
-            account_transfers.id AS transfer_id,
-            transferred_at,
-            transfer_amount,
-            'initial tax' AS reason
-          FROM account_transfers
-          JOIN user_subscription_account_transfers AS usat
-            ON account_transfers.id=usat.account_transfer_id
-          UNION ALL
-          SELECT 
-            users_subscriptions.id,
-            account_transfers.id AS transfer_id,
-            transferred_at,
-            transfer_amount,
-            'fetch tax' AS reason
-          FROM account_transfers
-          JOIN subscriptions_fetches_account_transfers AS sfat 
-            ON account_transfers.id=sfat.account_transfer_id
-          JOIN subscriptions_fetches 
-            ON sfat.subscription_fetch_id=subscriptions_fetches.id
-          JOIN subscriptions 
-            ON subscriptions_fetches.subscription_id=subscriptions.id
-          JOIN users_subscriptions 
-            ON subscriptions.id=users_subscriptions.subscription_id
-        ) AS credit_history
-        JOIN users_subscriptions 
-          ON credit_history.id=users_subscriptions.id
-        JOIN subscriptions 
-          ON users_subscriptions.subscription_id=subscriptions.id
-        WHERE users_subscriptions.user_id=$1
-      ) AS taxes
-        ON account_transfers.id=taxes.transfer_id
-      LEFT JOIN (
-        SELECT 
-          id AS transfer_id,
-          transferred_at,
-          transfer_amount,
-          'Freefall deposit'::text AS reason
-        FROM account_transfers
-        WHERE user_id=$1 AND id IN (SELECT account_transfer_id FROM account_transfers_by_employees)
-      ) AS deposits
-        ON account_transfers.id=deposits.transfer_id
-      WHERE user_id=$1,
-      ORDER BY transferred_at
-      LIMIT $2
-      OFFSET $3
-      `,
-      [user.id, limit, offset],
-    );
-
-    for (const transfer of history) {
-      if (transfer.type === 'tax') {
-        transfer.date_from = moment(transfer.date_from)
-          .format(SERVER_DATE_FORMAT);
-        transfer.date_to = moment(transfer.date_to).format(SERVER_DATE_FORMAT);
-      }
-      transfer.transferred_at = transfer.transferred_at.toISOString();
-    }
-
-    return {
-      status_code: '1000',
-      credit_history: history,
     };
   },
 );
