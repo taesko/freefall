@@ -5,6 +5,7 @@
   <title>Account transfers reports</title>
   <link href="../css/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="./css/jquery-ui.css" rel="stylesheet">
+  <link href="./css/jquery.datetimepicker.min.css" rel="stylesheet">
   <link href="./css/main.css" rel="stylesheet">
 </head>
 <body>
@@ -18,15 +19,15 @@
         <div class="col-md-6">
           <div class="form-group form-inline">
             <label>User email:</label>
-            <input class="form-control" type="email" name="user-email" placeholder="Email" value="{{ filters.user_email }}">
-            <select class="form-control">
-              <option value="">No grouping</option>
-              <option>Group by email</option>
+            <input class="form-control" type="email" name="filter-user-email" placeholder="Email" value="{{ filters.user_email }}">
+            <select name="grouping-email" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="email">Group by email</option>
             </select>
           </div>
           <div class="form-group">
             <label>Type of transaction</label>
-            <select name="type" class="form-control">
+            <select name="filter-type" class="form-control">
               <option value="all" {{ is_selected transaction_type "all" }}>All</option>
               <option value="deposits" {{ is_selected transaction_type "deposits" }}>Only deposits</option>
               <option value="withdrawals" {{ is_selected transaction_type "withdrawals" }}>Only withdrawals</option>
@@ -34,7 +35,7 @@
           </div>
           <div class="form-group">
             <label>Reason for transaction:</label>
-            <select name="reason" class="form-control">
+            <select name="filter-reason" class="form-control">
               <option value="all" {{ is_selected transaction_reason "all" }}>All</option>
               <option value="employee" {{ is_selected transaction_reason "employee" }}>Only transfers by employes</option>
               <option value="new-subscription" {{ is_selected transaction_reason "new-subscription" }}>Only new subscription taxes</option>
@@ -44,23 +45,23 @@
         </div>
         <div class="col-md-6">
           <div class="form-group">
-            <label>Date from:</label>
-            <input id="date-from" name="date-from" class="form-control" type="text" value="{{ filters.date_from }}">
+            <label>Time from:</label>
+            <input id="datetime-from" name="filter-datetime-from" class="form-control" type="text" value="{{ filters.datetime_from }}">
           </div>
           <div class="form-group">
-            <label>Date to:</label>
-            <input id="date-to" name="date-to" class="form-control" type="text" value="{{ filters.date_to }}">
+            <label>Time to:</label>
+            <input id="datetime-to" name="filter-datetime-to" class="form-control" type="text" value="{{ filters.datetime_to }}">
           </div>
           <div class="form-group">
-            <select class="form-control">
-              <option>No grouping</option>
-              <option>Group by seconds</option>
-              <option>Group by minutes</option>
-              <option>Group by hours</option>
-              <option>Group by days</option>
-              <option>Group by weeks</option>
-              <option>Group by months</option>
-              <option>Group by years</option>
+            <select name="grouping-datetime" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="second">Group by seconds</option>
+              <option value="minute">Group by minutes</option>
+              <option value="hour">Group by hours</option>
+              <option value="day">Group by days</option>
+              <option value="week">Group by weeks</option>
+              <option value="month">Group by months</option>
+              <option value="year">Group by years</option>
             </select>
           </div>
           <div class="form-group">
@@ -111,11 +112,11 @@
       <table id="account-transfers-table" class="table table-bordered">
         <thead>
           <tr>
+            <th>Transferred at</th>
             <th>Id</th>
             <th>User</th>
             <th>Deposits</th>
             <th>Withdrawals</th>
-            <th>Transferred at</th>
             <th>Employee transferrer id</th>
             <th>Employee transferrer email</th>
             <th>User subscription airport from</th>
@@ -130,6 +131,9 @@
         <tbody>
           {{#each account_transfers}}
           <tr>
+            <td>
+              {{this.transferred_at}}
+            </td>
             <td class="text-right">
               {{this.account_transfer_id}}
             </td>
@@ -142,9 +146,6 @@
             </td>
             <td class="text-right">
               {{this.withdrawal_amount}}
-            </td>
-            <td>
-              {{this.transferred_at}}
             </td>
             <td>
               {{this.employee_transferrer_id}}
@@ -215,6 +216,8 @@
   <script src="../js/main.js"></script>
   <script src="./js/jquery/jquery-2.2.4.js"></script>
   <script src="./js/jquery-ui.min.js"></script>
+  <script src="./js/jquery.datetimepicker.full.min.js"></script>
+  <script src="./js/jquery.datetimepicker.min.js"></script>
   <script>
     var filtersGlobal = {
       user_email: _.unescape('{{{escape filters.user_email}}}'),

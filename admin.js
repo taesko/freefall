@@ -796,6 +796,12 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     return;
   }
 
+  log.info('here is ctx');
+
+  log.info(ctx.req);
+  log.info(ctx.req.setTimeout);
+  log.info('just after setTimeou');
+
   // setting default filters
   const filters = {
     offset: 0,
@@ -806,11 +812,11 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     transfers_by_employees: true,
     new_subsctiption_taxes: true,
     new_fetch_taxes: true,
-    date_from: null,
-    date_to: null,
+    datetime_from: null,
+    datetime_to: null,
   };
 
-  // TODO validate dates
+  // TODO validate datetimes
 
   let page;
 
@@ -829,45 +835,87 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   filters.offset = (page - 1) * RESULTS_LIMIT;
 
-  if (ctx.query['user-email'] && ctx.query['user-email'].length > 0) {
-    filters.user_email = ctx.query['user-email'];
+  if (ctx.query['filter-user-email'] && ctx.query['filter-user-email'].length > 0) {
+    filters.user_email = ctx.query['filter-user-email'];
   }
 
-  if (ctx.query.type && ctx.query.type.length > 0 && ctx.query.type !== 'all') {
-    if (ctx.query.type !== 'deposits') {
+  if (ctx.query['filter-type'] && ctx.query['filter-type'].length > 0 && ctx.query['filter-type'] !== 'all') {
+    if (ctx.query['filter-type'] !== 'deposits') {
       filters.deposits = false;
     }
 
-    if (ctx.query.type !== 'withdrawals') {
+    if (ctx.query['filter-type'] !== 'withdrawals') {
       filters.withdrawals = false;
     }
   }
 
-  if (ctx.query.reason && ctx.query.reason.length > 0 && ctx.query.reason !== 'all') {
-    if (ctx.query.reason !== 'employee') {
+  if (ctx.query['filter-reason'] && ctx.query['filter-reason'].length > 0 && ctx.query['filter-reason'] !== 'all') {
+    if (ctx.query['filter-reason'] !== 'employee') {
       filters.transfers_by_employees = false;
     }
 
-    if (ctx.query.reason !== 'new-subscription') {
+    if (ctx.query['filter-reason'] !== 'new-subscription') {
       filters.new_subsctiption_taxes = false;
     }
 
-    if (ctx.query.reason !== 'fetch') {
+    if (ctx.query['filter-reason'] !== 'fetch') {
       filters.new_fetch_taxes = false;
     }
   }
 
-  if (ctx.query['date-from'] && ctx.query['date-from'].length > 0) {
-    filters.date_from = ctx.query['date-from'];
+  if (ctx.query['filter-datetime-from'] && ctx.query['filter-datetime-from'].length > 0) {
+    filters.datetime_from = ctx.query['filter-datetime-from'];
   }
 
-  if (ctx.query['date-to'] && ctx.query['date-to'].length > 0) {
-    filters.date_to = ctx.query['date-to'];
+  if (ctx.query['filter-datetime-to'] && ctx.query['filter-datetime-to'].length > 0) {
+    filters.datetime_to = ctx.query['filter-datetime-to'];
+  }
+
+  // setting default groupings
+  const groupings = {
+    email: false,
+    datetime: null,
+  };
+
+  // changing groupings according to params
+
+  if (ctx.query['grouping-email'] && ctx.query['grouping-email'] !== 'none') {
+    const expectedValues = [
+      'email',
+    ];
+
+    if (!expectedValues.includes(ctx.query['grouping-email'])) {
+      ctx.status = 400;
+      ctx.body = 'Invalid email grouping setting!';
+      return;
+    }
+
+    groupings.email = true;
+  }
+
+  if (ctx.query['grouping-datetime'] && ctx.query['grouping-datetime'] !== 'none') {
+    const expectedValues = [
+      'second',
+      'minute',
+      'hour',
+      'day',
+      'week',
+      'month',
+      'year',
+    ];
+
+    if (!expectedValues.includes(ctx.query['grouping-datetime'])) {
+      ctx.status = 400;
+      ctx.body = 'Invalid datetime grouping setting!';
+      return;
+    }
+
+    grouping.datetime = ctx.query['grouping-datetime'];
   }
 
   const dbClient = ctx.state.dbClient;
 
-  const accountTransfers = await getAccountTransfers(dbClient, filters);
+  const accountTransfers = await getAccountTransfers(dbClient, filters, groupings);
 
   const selectAllTransferAmountsResult = await dbClient.executeQuery(`
 
@@ -921,8 +969,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
       );
   `, [
     filters.user_email,
-    filters.date_from,
-    filters.date_to,
+    filters.datetime_from,
+    filters.datetime_to,
     filters.deposits,
     filters.withdrawals,
     filters.transfers_by_employees,
@@ -938,6 +986,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   let filterTotalDeposited = 0;
   let filterTotalWithdrawn = 0;
 
+  // TODO get sums with two db queries
   for (const transferAmountRow of allTransferAmountRows) {
     if (transferAmountRow.transfer_amount > 0) {
       filterTotalDeposited += transferAmountRow.transfer_amount;

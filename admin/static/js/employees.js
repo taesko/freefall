@@ -305,7 +305,7 @@ function start () {
       msg: 'Expected offset to be >= 0 but was =' + offset, // eslint-disable-line prefer-template
     });
 
-    assertUser(Number.isSafeInteger(offset), {
+    assertUser(Number.isInteger(offset), {
       userMessage: 'Invalid results page!',
       msg: 'Expected offset to be a safe integer, but was =' + offset, // eslint-disable-line prefer-template
     });
@@ -344,7 +344,7 @@ function start () {
       msg: 'Expected newOffset to be >= 0 but was =' + newOffset, // eslint-disable-line prefer-template
     });
 
-    assertUser(Number.isSafeInteger(newOffset), {
+    assertUser(Number.isInteger(newOffset), {
       userMessage: 'Invalid results page!',
       msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefer-template
     });

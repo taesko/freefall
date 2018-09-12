@@ -12,42 +12,83 @@
       "type": "string",
       "title": "API key"
     },
-    "user_email": {
-      "title": "User email",
-      "type": "string"
-    },
-    "date_from": {
-      "title": "Date from",
-      "type": "string"
-    },
-    "date_to": {
-      "title": "Date to",
-      "type": "string"
-    },
-    "type": {
-      "title": "Account transfer type",
-      "type": "string",
-      "enum": [
-        "all",
-        "deposits",
-        "withdrawals"
+    "filters": {
+      "title": "Filters",
+      "type": "object",
+      "properties": {
+        "user_email": {
+          "title": "User email filter",
+          "type": "string"
+        },
+        "datetime_from": {
+          "title": "Datetime from fiter",
+          "type": "string"
+        },
+        "datetime_to": {
+          "title": "Datetime to filter",
+          "type": "string"
+        },
+        "type": {
+          "title": "Account transfer type filter",
+          "type": "string",
+          "enum": [
+            "all",
+            "deposits",
+            "withdrawals"
+          ]
+        },
+        "reason": {
+          "title": "Account transfer reason filter",
+          "type": "string",
+          "enum": [
+            "all",
+            "employee",
+            "new-subscription",
+            "fetch"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "reason"
       ]
     },
-    "reason": {
-      "title": "Account transfer reason",
-      "type": "string",
-      "enum": [
-        "all",
-        "employee",
-        "new-subscription",
-        "fetch"
+    "groups": {
+      "title": "Groups",
+      "type": "object",
+      "properties": {
+        "user_email": {
+          "title": "User email grouping",
+          "type": "string",
+          "enum": [
+            "none",
+            "email"
+          ]
+        },
+        "datetime": {
+          "title": "Datetime grouping",
+          "type": "string",
+          "enum": [
+            "second",
+            "minute",
+            "hour",
+            "day",
+            "week",
+            "month",
+            "year"
+          ]
+        }
+      },
+      "required": [
+        "user_email",
+        "datetime"
       ]
     }
   },
   "required": [
     "v",
     "api_key",
-    "type",
-    "reason"
+    "filters",
+    "groups"
   ]
 }

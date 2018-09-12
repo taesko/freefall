@@ -1389,36 +1389,36 @@ const adminListAccountTransfers = defineAPIMethod(
       transfers_by_employees: true,
       new_subsctiption_taxes: true,
       new_fetch_taxes: true,
-      date_from: null,
-      date_to: null,
+      datetime_from: null,
+      datetime_to: null,
     };
 
-    if (params.user_email) {
-      filters.user_email = params.user_email;
+    if (params.filters.user_email) {
+      filters.user_email = params.filters.user_email;
     }
 
-    // TODO validate dates
+    // TODO validate datetimes
 
-    if (params.type && params.type !== 'all') {
-      if (params.type !== 'deposits') {
+    if (params.filters.type && params.filters.type !== 'all') {
+      if (params.filters.type !== 'deposits') {
         filters.deposits = false;
       }
 
-      if (params.type !== 'withdrawals') {
+      if (params.filters.type !== 'withdrawals') {
         filters.withdrawals = false;
       }
     }
 
-    if (params.reason && params.reason !== 'all') {
-      if (params.reason !== 'employee') {
+    if (params.filters.reason && params.filters.reason !== 'all') {
+      if (params.filters.reason !== 'employee') {
         filters.transfers_by_employees = false;
       }
 
-      if (params.reason !== 'new-subscription') {
+      if (params.filters.reason !== 'new-subscription') {
         filters.new_subsctiption_taxes = false;
       }
 
-      if (params.reason !== 'fetch') {
+      if (params.filters.reason !== 'fetch') {
         filters.new_fetch_taxes = false;
       }
     }
