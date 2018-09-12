@@ -93,12 +93,12 @@ function start () {
       listAccountTransfersParams.user_email = filtersGlobal.user_email;
     }
 
-    if (filtersGlobal.date_from.length > 0) {
-      listAccountTransfersParams.date_from = filtersGlobal.date_from;
+    if (filtersGlobal.datetime_from.length > 0) {
+      listAccountTransfersParams.datetime_from = filtersGlobal.datetime_from;
     }
 
-    if (filtersGlobal.date_to.length > 0) {
-      listAccountTransfersParams.date_to = filtersGlobal.date_to;
+    if (filtersGlobal.datetime_to.length > 0) {
+      listAccountTransfersParams.datetime_to = filtersGlobal.datetime_to;
     }
 
     if (filtersGlobal.type.length > 0) {
@@ -150,31 +150,31 @@ function start () {
           generateExportData(
             {
               headers: [
-                "user_email",
-                "date_from",
-                "date_to",
-                "type",
-                "reason",
+                'user_email',
+                'datetime_from',
+                'datetime_to',
+                'type',
+                'reason',
               ],
               filters: filtersGlobal,
             },
             {
               headers: [
-                "account_transfer_id",
-                "user_id",
-                "user_email",
-                "deposit_amount",
-                "withdrawal_amount",
-                "transferred_at",
-                "employee_transferrer_id",
-                "employee_transferrer_email",
-                "user_subscr_airport_from_name",
-                "user_subscr_airport_to_name",
-                "user_subscr_date_from",
-                "user_subscr_date_to",
-                "subscr_airport_from_name",
-                "subscr_airport_to_name",
-                "fetch_time",
+                'account_transfer_id',
+                'user_id',
+                'user_email',
+                'deposit_amount',
+                'withdrawal_amount',
+                'transferred_at',
+                'employee_transferrer_id',
+                'employee_transferrer_email',
+                'user_subscr_airport_from_name',
+                'user_subscr_airport_to_name',
+                'user_subscr_date_from',
+                'user_subscr_date_to',
+                'subscr_airport_from_name',
+                'subscr_airport_to_name',
+                'fetch_time',
               ],
               rows: accountTransfers,
             }
@@ -183,7 +183,7 @@ function start () {
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
 
         // getMonth() + 1. because months in JS start from 0
-        XLSX.writeFile(workbook, `account_transfers_${currentDate}.xlsx`);
+        XLSX.writeFile(workbook, 'account_transfers_' + currentDate + '.xlsx'); // eslint-disable-line prefer-template
       }
     );
   };
@@ -201,12 +201,12 @@ function start () {
       }
     });
 
-    const datepickerOptions = {
-      dateFormat: 'yy-mm-dd',
+    const datetimepickerOptions = {
+      format:'Y-m-d H:i:s',
     };
 
-    $('#date-from').datepicker(datepickerOptions);
-    $('#date-to').datepicker(datepickerOptions);
+    $('#datetime-from').datetimepicker(datetimepickerOptions);
+    $('#datetime-to').datetimepicker(datetimepickerOptions);
   });
 }
 

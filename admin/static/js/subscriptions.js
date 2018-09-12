@@ -396,7 +396,7 @@ function start () {
       msg: 'Expected userSubscriptionsOffset to be >= 0 but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
     });
 
-    assertUser(Number.isSafeInteger(userSubscriptionsOffset), {
+    assertUser(Number.isInteger(userSubscriptionsOffset), {
       userMessage: 'Invalid results page!',
       msg: 'Expected userSubscriptionsOffset to be a safe integer, but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
     });
@@ -437,7 +437,7 @@ function start () {
       msg: 'Expected userSubscriptionsOffset to be >= 0 but was =' + userSubscriptionsOffset, // eslint-disable-line prefer-template
     });
 
-    assertUser(Number.isSafeInteger(newOffset), {
+    assertUser(Number.isInteger(newOffset), {
       userMessage: 'Invalid results page!',
       msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefer-template
     });
@@ -490,7 +490,7 @@ function start () {
       msg: 'Expected guestSubscriptionsOffset to be >= 0 but was =' + guestSubscriptionsOffset, // eslint-disable-line prefer-template
     });
 
-    assertUser(Number.isSafeInteger(guestSubscriptionsOffset), {
+    assertUser(Number.isInteger(guestSubscriptionsOffset), {
       userMessage: 'Invalid results page!',
       msg: 'Expected guestSubscriptionsOffset to be a safe integer, but was =' + guestSubscriptionsOffset, // eslint-disable-line prefer-template
     });
@@ -531,7 +531,7 @@ function start () {
       msg: 'Expected guestSubscriptionsOffset to be >= 0 but was =' + guestSubscriptionsOffset, // eslint-disable-line prefer-template
     });
 
-    assertUser(Number.isSafeInteger(newOffset), {
+    assertUser(Number.isInteger(newOffset), {
       userMessage: 'Invalid results page!',
       msg: 'Expected newOffset to be a safe integer, but was =' + newOffset, // eslint-disable-line prefer-template
     });
