@@ -17,40 +17,40 @@ function shouldPrintLevel (level) {
 /* Request and response are logged to stdout. While all other logs go to stderr. */
 
 function request (ctx) {
-  console.info('GOT REQUEST', ctx.request);
+  console.info(new Date(), 'GOT REQUEST', ctx.request);
 }
 
 function response (ctx) {
-  console.info('GOT RESPONSE', ctx.response);
+  console.info(new Date(), 'GOT RESPONSE', ctx.response);
 }
 
 function debug (...messages) {
   if (shouldPrintLevel(DEBUG)) {
-    console.error('DEBUG: ', ...messages);
+    console.error(new Date(), 'DEBUG: ', ...messages);
   }
 }
 
 function info (...messages) {
   if (shouldPrintLevel(INFO)) {
-    console.error('INFO', ...messages);
+    console.error(new Date(), 'INFO', ...messages);
   }
 }
 
 function warn (...messages) {
   if (shouldPrintLevel(WARNING)) {
-    console.error('WARNING: ', ...messages);
+    console.error(new Date(), 'WARNING: ', ...messages);
   }
 }
 
 function critical (...messages) {
   if (shouldPrintLevel(CRITICAL)) {
-    console.error('CRITICAL: ', ...messages);
+    console.error(new Date(), 'CRITICAL: ', ...messages);
   }
 }
 
 function error (...messages) {
   if (shouldPrintLevel(ERROR)) {
-    console.error('Exception occurred:', ...messages);
+    console.error(new Date(), 'Exception occurred:', ...messages);
   }
 }
 
