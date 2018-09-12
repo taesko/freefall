@@ -1,7 +1,9 @@
-const { Pool } = require('pg');
-const log = require('./log');
-const { assertApp, assertPeer } = require('./error-handling');
 const { isObject } = require('lodash');
+const { Pool } = require('pg');
+
+const log = require('./log');
+const profiling = require('./profiling');
+const { assertApp, assertPeer } = require('./error-handling');
 
 const pool = new Pool();
 
@@ -10,7 +12,8 @@ pool.on('error', (err, client) => {
   log.error(err);
 });
 
-async function client (ctx, next) {
+// eslint-disable-next-line prefer-arrow-callback
+const client = profiling.profileAsync(async function client (ctx, next) {
   const pgClient = await pool.connect();
   // TODO find out a client id and log it
   log.info('Created a new client connection to database.');
@@ -25,7 +28,8 @@ async function client (ctx, next) {
     pgClient.release();
     log.info('Released client connection');
   }
-}
+});
+log.info('Profiled client function is', client);
 
 function wrapPgClient (client) {
   return {
@@ -111,14 +115,20 @@ function buildSetClause (setHash, startIndex = 1) {
   };
 }
 
-const executeQuery = (client) => async (query, values) => {
-  // TODO is it possible for a client to be released by pg due to error and not be handled ?
-  assertApp(typeof query === 'string');
-  assertApp(values == null || Array.isArray(values));
+const _executeQuery = profiling.profileAsync(
+  async (client, query, values) => {
+    // TODO is it possible for a client to be released by pg due to error and not be handled ?
+    assertApp(typeof query === 'string');
+    assertApp(values == null || Array.isArray(values));
 
-  // TODO find out how to log client
-  log.debug('Executing query', query, 'replaced with values: ', values);
-  return client.query(query, values);
+    // TODO find out how to log client
+    log.debug('Executing query', query, 'replaced with values: ', values);
+    return client.query(query, values);
+  },
+  { name: '_executeQuery' },
+);
+const executeQuery = (client) => async (query, values) => {
+  return _executeQuery(client, query, values);
 };
 
 const select = (client) => async (table, columns = '*') => {
@@ -265,7 +275,7 @@ const selectSubscriptions = (client) => async (airportFromId, airportToId) => {
         subscriptions.airport_to_id = $2 AND
         fetches.fetch_time = (SELECT MAX(fetches.fetch_time) FROM fetches);
     `,
-    [airportFromId, airportToId]
+    [airportFromId, airportToId],
   );
 
   assertApp(
@@ -333,8 +343,12 @@ const selectAccountTransfersUsers = (client) => async () => {
     ORDER BY account_transfer_id;
   `);
 
-  assertApp(isObject(selectResult), `Expected selectResult to be an object, but was ${typeof selectResult}`);
-  assertApp(Array.isArray(selectResult.rows), `Expected selectResult.rows to be array, but was ${typeof selectResult.rows}`);
+  assertApp(isObject(selectResult),
+    `Expected selectResult to be an object, but was ${typeof selectResult}`,
+  );
+  assertApp(Array.isArray(selectResult.rows),
+    `Expected selectResult.rows to be array, but was ${typeof selectResult.rows}`,
+  );
 
   return selectResult.rows;
 };
@@ -388,7 +402,7 @@ const insertIfNotExists = (client) => async (table, data, existsCheck) => {
   const found = await selectWhere(client)(
     table,
     Object.keys(data),
-    existsCheck
+    existsCheck,
   );
 
   assertApp(Array.isArray(found), 'Invalid db response.');

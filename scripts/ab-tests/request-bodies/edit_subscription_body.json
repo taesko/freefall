@@ -3,11 +3,11 @@
   "params": {
     "v": "2.0",
     "api_key": "3b488149d9f06b362ad86b5b88785ed7",
-    "user_subscription_id": "1",
+    "user_subscription_id": "195625",
     "fly_from": "3",
     "fly_to": "4",
-    "date_from": "2018-08-08",
-    "date_to": "2018-08-28"
+    "date_from": "2018-10-08",
+    "date_to": "2018-11-28"
   },
   "jsonrpc": "2.0",
   "id": 2

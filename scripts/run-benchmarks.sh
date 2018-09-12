@@ -21,13 +21,16 @@ else
     admin_url="http://${2}:3001"
 fi
 
-number_of_requests=500
+number_of_requests=30000
 concurrency_levels=(5 10 50)
+profiling_reports_file="./logs/server_stderr.log"
 
 function run_post_benchmark {
     if [ "$2" = "admin" ]; then
         target_url="${admin_url}/api"
+        service_name='freefall-admin.service'
     else
+        service_name='freefall.service'
         target_url="${url}/"
     fi
 
@@ -36,6 +39,12 @@ function run_post_benchmark {
         echo "Benchmarking $1 with ${concurrency} concurrency on url ${target_url}."
         echo "Output file is ${output_file}"
         ab -n ${number_of_requests} -c ${concurrency} -T 'application/json' -p "./scripts/ab-tests/request-bodies/${1}_body.json" ${target_url} > ${output_file}
+        echo "" >> "${output_file}"
+        echo "Profiling statistics" >> "${output_file}"
+        echo "" >> "${output_file}"
+        grep "REPORT" "${profiling_reports_file}" >> "${output_file}"
+        echo "Restarting service before raising concurrency"
+        systemctl restart "${service_name}"
     done
 }
 
