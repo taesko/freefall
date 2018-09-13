@@ -115,6 +115,98 @@ function buildSetClause (setHash, startIndex = 1) {
   };
 }
 
+function buildGroupingParams (selectColumns, groupings) {
+  // assert correct format
+  for (const selectColumn of selectColumns) {
+    assertApp(typeof selectColumn.isSet === 'boolean');
+    assertApp(typeof selectColumn.isGroupable === 'boolean');
+    assertApp(typeof selectColumn.isAggregatable === 'boolean');
+    assertApp(!(selectColumn.isGroupable && selectColumn.isAggregatable));
+
+    if (selectColumn.isSet) {
+      assertApp(Array.isArray(selectColumn.set));
+
+      for (const column of selectColumn.set) {
+        assertApp(typeof column.column === 'string');
+        assertApp(column.alias === null || typeof column.alias === 'string);
+      }
+    }
+
+    if (selectColumn.isGroupable) {
+      assertApp(typeof selectColumn.groupingsSettingName === 'string');
+    }
+  }
+
+  let querySelectColumns = [];
+  let queryGroupBy = [];
+
+  const areGroupings = Object.values(groupings)
+    .some((grouping) => grouping != null);
+
+  for (const selectColumn of selectColumns) {
+    const columns = [];
+
+    if (selectColumn.isSet) {
+      const { set, ...setOptions } = selectColumn;
+
+      columns.push(...selectColumn.set.map(column => ({
+        ...column,
+        ...setOptions,
+      })));
+    } else {
+      columns.push(selectColumn);
+    }
+
+    for (const column of columns) {
+      let querySelectColumn = '';
+      const isNullColumn = areGroupings &&
+        !column.isAggregatable &&
+        (
+          !column.isGroupable ||
+          groupings[column.groupingsSettingName] == null
+        );
+
+      console.log(column);
+      console.log(isNullColumn);
+      console.log(areGroupings);
+      console.log(column.isGroupable);
+      console.log(groupings[column.groupingsSettingName]);
+      console.log('-----');
+
+      if (isNullColumn) {
+        querySelectColumn = 'NULL';
+      } else {
+        if (column.transform != null) {
+          querySelectColumn += column.transform(column.column, groupings[column.groupingsSettingName]);
+        } else {
+          querySelectColumn += column.column;
+        }
+
+        if (areGroupings) {
+          assertApp(!(column.isAggregatable && column.isGroupable), 'Column can not be both groupable and aggregatable!');
+
+          if (column.isAggregatable) {
+            querySelectColumn = `${column.aggregateFunction}(${querySelectColumn})`;
+          } else {
+            queryGroupBy.push(querySelectColumns.length + 1);
+          }
+        }
+
+        if (column.alias != null) {
+          querySelectColumn += ` AS ${column.alias}`;
+        }
+      }
+
+      querySelectColumns.push(querySelectColumn);
+    }
+  };
+
+  return {
+    selectColumnsPart: querySelectColumns.join(','),
+    groupByPart: queryGroupBy.join(','),
+  };
+}
+
 const _executeQuery = profiling.profileAsync(
   async (client, query, values) => {
     // TODO is it possible for a client to be released by pg due to error and not be handled ?
@@ -510,4 +602,5 @@ module.exports = {
   session,
   pool,
   wrapPgClient,
+  buildGroupingParams,
 };

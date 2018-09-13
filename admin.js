@@ -796,12 +796,6 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     return;
   }
 
-  log.info('here is ctx');
-
-  log.info(ctx.req);
-  log.info(ctx.req.setTimeout);
-  log.info('just after setTimeou');
-
   // setting default filters
   const filters = {
     offset: 0,

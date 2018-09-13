@@ -3,6 +3,7 @@ const _ = require('lodash');
 const { assertApp, assertPeer, AppError, PeerError, errorCodes } = require('./error-handling');
 const log = require('./log');
 const users = require('./users');
+const db = require('./db');
 const SUBSCRIPTION_COST = 100;
 
 async function depositCredits (dbClient, userId, amount) {
@@ -202,22 +203,9 @@ async function getAccountTransfers (dbClient, filters, groupings) {
 
   // TODO remove
   groupings = {
-    email: true,
-    datetime: null,
+    email: null,
+    datetime: 'hour',
   };
-
-  const queryValues = [
-    filters.user_email,
-    filters.datetime_from,
-    filters.datetime_to,
-    filters.deposits,
-    filters.withdrawals,
-    filters.transfers_by_employees,
-    filters.new_subsctiption_taxes,
-    filters.new_fetch_taxes,
-    offset,
-    groupings.datetime,
-  ];
 
   const useDateTrunc = function (column, timePrecision) {
     if (timePrecision == null) {
@@ -225,7 +213,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     }
 
     return `date_trunc('${timePrecision}', ${column})`;
-  },
+  };
 
   const selectColumns = [
     {
@@ -347,92 +335,34 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     },
   ];
 
-  let querySelectColumnsPart;
-  let queryGroupByPart;
+  let {
+    selectColumnsPart,
+    groupByPart,
+  } = db.buildGroupingParams(selectColumns, groupings);
 
-  {
-    let querySelectColumns = [];
-    let queryGroupBy = [];
+  console.log(selectColumnsPart);
+  console.log(groupByPart);
 
-    const areNoGroupings = Object.values(groupings)
-      .every((grouping) => grouping == null);
-
-    for (let i = 0; i < selectColumns.length; i++) {
-      let querySelectColumn = '';
-
-      if (areNoGroupings) {
-        const columns = [];
-
-        if (selectColumns[i].isSet) {
-          columns.push(...selectColumns[i].set);
-        } else {
-          columns.push(selectColumns[i]);
-        }
-
-        for (const column of columns) {
-          if (column.transform != null) {
-            querySelectColumn += column.transform(column.column, groupings.datetime);
-          } else {
-            querySelectColumn += column.column;
-          }
-        }
-      } else {
-        for (const [groupingName, groupingValue] of Object.entries(groupings)) {
-          const columns = [];
-
-          if (selectColumns[i].isSet) {
-            columns.push(...selectColumns[i].set);
-          } else {
-            columns.push(selectColumns[i]);
-          }
-
-          for (const column of columns) {
-            if (column.transform != null) {
-              querySelectColumn += column.transform(column.column, groupings.datetime);
-            } else {
-              querySelectColumn += column.column;
-            }
-
-            if (column.isAggregatable) {
-              querySelectColumn += `${column.aggregateFunction}(${column.column})`;
-            }
-          }
-        }
-      }
-
-      if (selectColumns[i].alias != null) {
-        querySelectColumn += `AS ${selectColumns[i].alias}`;
-      }
-    }
-
-    querySelectColumnsPart = querySelectColumns.join(',');
-    queryGroupByPart = queryGroupBy.join(',');
-  }
+  const queryValues = [
+    filters.user_email,
+    filters.datetime_from,
+    filters.datetime_to,
+    filters.deposits,
+    filters.withdrawals,
+    filters.transfers_by_employees,
+    filters.new_subsctiption_taxes,
+    filters.new_fetch_taxes,
+    offset,
+  ];
 
   if (filters.limit) {
     queryValues.push(filters.limit);
   }
 
-  console.log(areNoGroupings);
-  console.log(groupings.datetime == null);
-
   const selectAccountTransfersResult = await dbClient.executeQuery(`
 
     SELECT
-      ${areNoGroupings ? 'account_transfers.id' : 'NULL'} AS account_transfer_id,
-      ${areNoGroupings ? 'transfer_amount' : 'sum(transfer_amount)'},
-      ${areNoGroupings ? 'transferred_at' : groupings.datetime == null ? 'NULL' : 'date_trunc($10::text, transferred_at)'} AS transferred_at,
-      account_transfers.user_id AS account_owner_id,
-      users.email AS account_owner_email,
-      ${areNoGroupings ? 'employees.id' : 'NULL'} AS employee_transferrer_id,
-      ${areNoGroupings ? 'employees.email' : 'NULL'} AS employee_transferrer_email,
-      ${areNoGroupings ? 'a1.name' : 'NULL'} AS user_subscr_airport_from_name,
-      ${areNoGroupings ? 'a2.name' : 'NULL'} AS user_subscr_airport_to_name,
-      ${areNoGroupings ? 'users_subscriptions.date_from' : 'NULL'} AS user_subscr_date_from,
-      ${areNoGroupings ? 'users_subscriptions.date_to' : 'NULL'} AS user_subscr_date_to,
-      ${areNoGroupings ? 'a3.name' : 'NULL'} AS subscr_airport_from_name,
-      ${areNoGroupings ? 'a4.name' : 'NULL'} AS subscr_airport_to_name,
-      ${areNoGroupings ? 'fetch_time' : 'NULL'}
+      ${querySelectColumnsPart}
     FROM account_transfers
     LEFT JOIN users
       ON account_transfers.user_id = users.id
@@ -499,10 +429,10 @@ async function getAccountTransfers (dbClient, filters, groupings) {
           fetch_time IS NOT NULL
         )
       )
-    GROUP BY account_owner_id, account_owner_email
+    ${queryGroupByPart.length > 0 ? `GROUP BY ${queryGroupByPart}` : ''}
     ORDER BY transferred_at
     OFFSET $9
-    ${filters.limit ? 'LIMIT $11' : ''};
+    ${filters.limit ? 'LIMIT $10' : ''};
 
   `, queryValues);
 
