@@ -24,6 +24,24 @@
       "type": "string",
       "format": "date"
     },
+    "transferred_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "transferred_to": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "boolean"
+    },
+    "transfer_amount_operator": {
+      "type": "string",
+      "enum": ["=", ">", "<"]
+    },
+    "transfer_amount": {
+      "type": "integer"
+    },
     "limit": {
       "type": "integer",
       "exclusiveMinimum": 0,

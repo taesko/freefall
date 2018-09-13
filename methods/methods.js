@@ -590,6 +590,11 @@ const creditHistory = defineAPIMethod(
       fly_to = null,
       date_from = null,
       date_to = null,
+      transferred_from = null,
+      transferred_to = null,
+      status = null,
+      transfer_amount = null,
+      transfer_amount_operator = '<',
       limit = CREDIT_HISTORY_DEFAULT_LIMIT,
       offset = 0,
     },
@@ -600,10 +605,40 @@ const creditHistory = defineAPIMethod(
     assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
     assertPeer(user.api_key === api_key, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
-    const airportFromFilter = 'AND (ap_from.name=$flyFrom OR ap_from.iata_code=$flyFrom)';
-    const airportToFilter = 'AND (ap_to.name=$flyTo OR ap_to.iata_code=$flyTo)';
-    const dateFromFilter = 'AND date_from >= $dateFrom::date';
-    const dateToFilter = 'AND date_to <= $dateTo::date';
+    const airportFromFilterClause = 'AND (ap_from.name=$flyFrom OR ap_from.iata_code=$flyFrom)';
+    const airportFromFilter = fly_from == null ? '' : airportFromFilterClause;
+
+    const airportToFilterClause = 'AND (ap_to.name=$flyTo OR ap_to.iata_code=$flyTo)';
+    const airportToFilter = fly_to == null ? '' : airportToFilterClause;
+
+    const dateFromFilterClause = 'AND date_from >= $dateFrom::date';
+    const dateFromFilter = date_from == null ? '' : dateFromFilterClause;
+
+    const dateToFilterClause = 'AND date_to <= $dateTo::date';
+    const dateToFilter = date_to == null ? '' : dateToFilterClause;
+
+    let transferredAtFilter = '';
+    // TODO this date filter does catch equal days properly
+    const transferredFromClause = 'transferred_at >= $transferredFrom::date';
+    const transferredToClause = 'transferred_at <= $transferredTo::date';
+
+    if (transferred_from && transferred_to) {
+      transferredAtFilter = `AND ${transferredFromClause} AND ${transferredToClause}`;
+    } else if (transferred_from) {
+      transferredAtFilter = `AND ${transferredFromClause}`;
+    } else if (transferred_to) {
+      transferredAtFilter = `AND ${transferredToClause}`;
+    }
+
+    const statusClause = 'AND users_subscriptions.active=$status';
+    const statusFilter = status == null ? '' : statusClause;
+
+    let transferAmountFilter = '';
+
+    if (transfer_amount != null) {
+      assertApp(['>', '<', '='].includes(transfer_amount_operator));
+      transferAmountFilter = `AND transfer_amount${transfer_amount_operator}$transferAmount`;
+    }
 
     const { query, values } = db.processNamedParameters(
       `
@@ -637,13 +672,16 @@ const creditHistory = defineAPIMethod(
         ON users_subscriptions.subscription_id=subscriptions.id
       JOIN airports AS ap_from
         ON subscriptions.airport_from_id=ap_from.id
-        ${fly_from == null ? '' : airportFromFilter}
+        ${airportFromFilter}
       JOIN airports AS ap_to
         ON subscriptions.airport_to_id=ap_to.id
-        ${fly_to == null ? '' : airportToFilter}
+        ${airportToFilter}
       WHERE users_subscriptions.user_id=$userID
-        ${date_from == null ? '' : dateFromFilter}
-        ${date_to == null ? '' : dateToFilter}
+        ${dateFromFilter}
+        ${dateToFilter}
+        ${transferredAtFilter}
+        ${statusFilter}
+        ${transferAmountFilter}
       ORDER BY 1 DESC, 2 ASC
       LIMIT $limit
       OFFSET $offset
@@ -656,6 +694,10 @@ const creditHistory = defineAPIMethod(
         flyTo: fly_to,
         dateFrom: date_from,
         dateTo: date_to,
+        transferredFrom: transferred_from,
+        transferredTo: transferred_to,
+        status,
+        transferAmount: transfer_amount,
       },
     );
     const pgResult = await dbClient.executeQuery(query, values);
