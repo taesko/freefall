@@ -130,11 +130,13 @@ function buildGroupingParams (selectColumns, groupings) {
       assertApp(Array.isArray(selectColumn.set));
 
       for (const column of selectColumn.set) {
+        assertApp(column.table === null || typeof column.table === 'string');
         assertApp(typeof column.column === 'string');
         assertApp(column.alias === null || typeof column.alias === 'string');
         assertApp(column.transform === null || isFunction(column.transform));
       }
     } else {
+      assertApp(selectColumn.table === null || typeof selectColumn.table === 'string');
       assertApp(typeof selectColumn.column === 'string');
       assertApp(selectColumn.alias === null || typeof selectColumn.alias === 'string');
       assertApp(selectColumn.transform === null || isFunction(selectColumn.transform));
@@ -181,30 +183,38 @@ function buildGroupingParams (selectColumns, groupings) {
       if (isNullColumn) {
         querySelectColumn = 'NULL';
       } else {
-        if (column.transform != null) {
-          querySelectColumn += column.transform(column.column, groupings[column.groupingsSettingName]);
+        let escapedColumn;
+
+        if (column.table) {
+          escapedColumn = `"${column.table}"."${column.column}"`;
         } else {
-          querySelectColumn += column.column;
+          escapedColumn = `"${column.column}"`;
+        }
+
+        if (column.transform != null) {
+          querySelectColumn = column.transform(escapedColumn, groupings[column.groupingsSettingName]);
+        } else {
+          querySelectColumn = escapedColumn;
         }
 
         if (areGroupings) {
           assertApp(!(column.isAggregatable && column.isGroupable), 'Column can not be both groupable and aggregatable!');
 
           if (column.isAggregatable) {
-            querySelectColumn = `${column.aggregateFunction}(${querySelectColumn})`;
+            querySelectColumn = `"${column.aggregateFunction}"(${querySelectColumn})`;
           } else {
             queryGroupBy.push(querySelectColumns.length + 1);
           }
         }
 
         if (column.alias != null) {
-          querySelectColumn += ` AS ${column.alias}`;
+          querySelectColumn += ` AS "${column.alias}"`;
         }
       }
 
       querySelectColumns.push(querySelectColumn);
     }
-  };
+  }
 
   return {
     selectColumnsPart: querySelectColumns.join(','),
