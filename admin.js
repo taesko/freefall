@@ -880,7 +880,6 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   };
 
   // changing groupings according to params
-
   const nullIfNoneElseTrue = function (queryParam) {
     if (queryParam === 'none') {
       return null;
@@ -895,7 +894,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     } else {
       return queryParam;
     }
-  }
+  };
 
   const queryParamsToGroupingsParamsMapping = [
     {
@@ -1020,7 +1019,11 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   const dbClient = ctx.state.dbClient;
 
-  const accountTransfers = await getAccountTransfers(dbClient, filters, groupings);
+  const accountTransfers = await getAccountTransfers(
+    dbClient,
+    filters,
+    groupings
+  );
 
   const selectAllTransferAmountsResult = await dbClient.executeQuery(`
 

@@ -139,7 +139,10 @@ function buildGroupingParams (selectColumns, groupings) {
       assertApp(selectColumn.table === null || typeof selectColumn.table === 'string');
       assertApp(typeof selectColumn.column === 'string');
       assertApp(selectColumn.alias === null || typeof selectColumn.alias === 'string');
-      assertApp(selectColumn.transform === null || isFunction(selectColumn.transform));
+      assertApp(
+        selectColumn.transform === null ||
+        isFunction(selectColumn.transform)
+      );
     }
 
     if (selectColumn.isGroupable) {
@@ -151,8 +154,8 @@ function buildGroupingParams (selectColumns, groupings) {
     }
   }
 
-  let querySelectColumns = [];
-  let queryGroupBy = [];
+  const querySelectColumns = [];
+  const queryGroupBy = [];
 
   const areGroupings = Object.values(groupings)
     .some((grouping) => grouping != null);
@@ -192,7 +195,10 @@ function buildGroupingParams (selectColumns, groupings) {
         }
 
         if (column.transform != null) {
-          querySelectColumn = column.transform(escapedColumn, groupings[column.groupingsSettingName]);
+          querySelectColumn = column.transform(
+            escapedColumn,
+            groupings[column.groupingsSettingName]
+          );
         } else {
           querySelectColumn = escapedColumn;
         }

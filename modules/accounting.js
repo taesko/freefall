@@ -294,7 +294,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
           column: 'email',
           alias: 'employee_transferrer_email',
           transform: null,
-        }
+        },
       ],
       groupingsSettingName: 'employee',
     },
@@ -370,13 +370,10 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     },
   ];
 
-  let {
+  const {
     selectColumnsPart,
     groupColumns,
   } = db.buildGroupingParams(selectColumns, groupings);
-
-  console.log(selectColumnsPart);
-  console.log(groupColumns);
 
   const queryValues = [
     filters.user_email,

@@ -1654,7 +1654,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
               'type': 'string',
             },
             'datetime_from': {
-              'title': 'Datetime from fiter',
+              'title': 'Datetime from filter',
               'type': 'string',
             },
             'datetime_to': {
@@ -1686,22 +1686,97 @@ const adminValidators = { // eslint-disable-line no-unused-vars
             'reason',
           ],
         },
-        'groups': {
-          'title': 'Groups',
+        'groupings': {
+          'title': 'Groupings',
           'type': 'object',
           'properties': {
-            'user_email': {
-              'title': 'User email grouping',
+            'user': {
+              'title': 'User grouping',
               'type': 'string',
               'enum': [
                 'none',
-                'email',
+                'user',
               ],
             },
-            'datetime': {
-              'title': 'Datetime grouping',
+            'transferred_at': {
+              'title': 'Transferred at grouping',
               'type': 'string',
               'enum': [
+                'none',
+                'second',
+                'minute',
+                'hour',
+                'day',
+                'week',
+                'month',
+                'year',
+              ],
+            },
+            'employee': {
+              'title': 'Employee grouping',
+              'type': 'string',
+              'enum': [
+                'none',
+                'employee',
+              ],
+            },
+            'user_subscr_airport_from': {
+              'title': 'User subscription airport from grouping',
+              'type': 'string',
+              'enum': [
+                'none',
+                'airport',
+              ],
+            },
+            'user_subscr_airport_to': {
+              'title': 'User subscription airport to grouping',
+              'type': 'string',
+              'enum': [
+                'none',
+                'airport',
+              ],
+            },
+            'user_subscr_date_from': {
+              'title': 'User subscription date from grouping',
+              'type': 'string',
+              'enum': [
+                'none',
+                'week',
+                'month',
+                'year',
+              ],
+            },
+            'user_subscr_date_to': {
+              'title': 'User subscription date to grouping',
+              'type': 'string',
+              'enum': [
+                'none',
+                'week',
+                'month',
+                'year',
+              ],
+            },
+            'subscr_airport_from': {
+              'title': 'Subscription airport from grouping',
+              'type': 'string',
+              'enum': [
+                'none',
+                'airport',
+              ],
+            },
+            'subscr_airport_to': {
+              'title': 'Subscription airport to grouping',
+              'type': 'string',
+              'enum': [
+                'none',
+                'airport',
+              ],
+            },
+            'fetch_time': {
+              'title': 'Fetch time grouping',
+              'type': 'string',
+              'enum': [
+                'none',
                 'second',
                 'minute',
                 'hour',
@@ -1713,8 +1788,16 @@ const adminValidators = { // eslint-disable-line no-unused-vars
             },
           },
           'required': [
-            'user_email',
-            'datetime',
+            'user',
+            'transferred_at',
+            'employee',
+            'user_subscr_airport_from',
+            'user_subscr_airport_to',
+            'user_subscr_date_from',
+            'user_subscr_date_to',
+            'subscr_airport_from',
+            'subscr_airport_to',
+            'fetch_time',
           ],
         },
       },
@@ -1722,7 +1805,7 @@ const adminValidators = { // eslint-disable-line no-unused-vars
         'v',
         'api_key',
         'filters',
-        'groups',
+        'groupings',
       ],
     };
     return ajv.compile(adminListAccountTransfersRequestSchema);
