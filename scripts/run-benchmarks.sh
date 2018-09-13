@@ -121,4 +121,4 @@ run_dalipeche_benchmark
 
 commit_hash=$(git log | head -n 1 | cut -d " " -f 2 | cut -c -5)
 zip_file_name="benchmarks-${commit_hash}.zip"
-zip -r $zip_file_name $output_dir
+zip -r $zip_file_name $benchmarks_output_dir
