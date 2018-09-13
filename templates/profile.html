@@ -156,6 +156,35 @@
         <div class="form-group">
           <input id="search-ch-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to">
         </div>
+        <div class="form-group">
+          <input id="search-ch-transferred_from" name="transferred_from" class="form-control date-select"
+                 type="text" placeholder="Transferred from">
+        </div>
+        <div class="form-group">
+          <input id="search-ch-transferred_to" name="transferred_to" class="form-control date-select"
+                 type="text" placeholder="Transferred to">
+        </div>
+        <div class="form-group">
+          <label for="search-ch-status">Subscription status: </label>
+          <select id="search-ch-status" name="status">
+            <option value="any">Any</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="search-ch-transfer-amount-operator">Taxed amount</label>
+          <select id="search-ch-transfer-amount-operator"
+                  name="transfer_amount_operator" class="form-control">
+            <option value="<">Larger than</option>
+            <option value=">">Less than</option>
+            <option value="=">Equal to</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <input id="search-ch-transfer-amount" name="transfer_amount" class="form-control"
+                 type="number" placeholder="Transfer amount" min="0">
+        </div>
         <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Search</button>
       </form>
       <table id="credit-history-table" class="table table-bordered">

@@ -853,20 +853,30 @@ function start () {
 
     $('#display-credit-history-btn').click(displayCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
-    $('#search-credit-history').submit(function (event) {
+    const creditHistoryFiltersForm = $('#search-credit-history');
+    creditHistoryFiltersForm.submit(function (event) {
       event.preventDefault();
       resetCreditHistory();
 
-      creditHistoryFilters.fly_from = $('#search-ch-fly-from').val().trim();
-      creditHistoryFilters.fly_to = $('#search-ch-fly-to').val().trim();
-      creditHistoryFilters.date_from = $('#search-ch-date-from').val().trim();
-      creditHistoryFilters.date_to = $('#search-ch-date-to').val().trim();
+      const filters = creditHistoryFiltersForm.serializeArray()
+        .filter(function isEntered (serialized) {
+          return serialized.value.length !== 0;
+        })
+        .reduce(function (hash, serialized) {
+          hash[serialized.name] = serialized.value;
+          return hash;
+        }, {});
 
-      for (const key of Object.keys(creditHistoryFilters)) {
-        if (creditHistoryFilters[key].length === 0) {
-          delete creditHistoryFilters[key];
-        }
+      if (filters.status === 'any') {
+        delete filters.status;
+      } else {
+        filters.status = filters.status === 'active';
       }
+
+      if (filters.transfer_amount) {
+        filters.transfer_amount = -Math.abs(+filters.transfer_amount);
+      }
+      creditHistoryFilters = filters;
 
       displayCreditHistory();
       return false;
