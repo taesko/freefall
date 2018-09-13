@@ -67,6 +67,63 @@ async function session (ctx, next) {
   }
 }
 
+/*
+* Replaces each named parameter(e.g. $email) in the query with an appropriate
+* postgres bind parameter (e.g. $1) and returns the new query and an array
+* of values that can be passed to dbClient.executeQuery.
+*
+* The only named parameters that are processed are those that are properties of the
+* <parameters> argument.
+*
+* The <offset> argument can be provided to replace with bind parameters that begin
+* after that number.
+ */
+function processNamedParameters (query, parameters, offset = 0) {
+  assertApp(typeof query === 'string');
+  assertApp(isObject(parameters));
+  assertApp(Number.isInteger(offset));
+
+  const replacedParams = {};
+  const regexPattern = Object.keys(parameters).map(key => {
+    assertApp(!key.startsWith('$'), 'Parameter properties cannot start with $');
+    return `\\$${key}`;
+  })
+    .join('|');
+  const regex = new RegExp(regexPattern, 'g');
+  let placeholderIndex = offset;
+
+  log.info('Processing regex of query is', regex);
+  log.debug(`Original query string is ${query}`);
+
+  const processedQuery = query.replace(regex, matched => {
+    log.info('got match', matched);
+    matched = matched.slice(1);
+    const alreadyMatched = replacedParams[matched];
+
+    let placeholder;
+
+    if (alreadyMatched != null) {
+      log.info('already matched', alreadyMatched);
+      placeholder = `$${alreadyMatched.placeholderIndex}`;
+    } else {
+      placeholderIndex++;
+      replacedParams[matched] = { value: matched, placeholderIndex };
+      placeholder = `$${placeholderIndex}`;
+    }
+
+    return placeholder;
+  });
+
+  log.info(`Processed named parameters are ${Object.keys(replacedParams).join(',')}`);
+  const processedValues = Array(placeholderIndex - offset).fill(null);
+
+  for (const { placeholderIndex, value } of Object.values(replacedParams)) {
+    processedValues[placeholderIndex - offset - 1] = value;
+  }
+
+  return { query: processedQuery, values: processedValues };
+}
+
 function stringifyColumns (columns) {
   // TODO fix escaping of columns
   if (columns == null || columns === '*') {
@@ -510,4 +567,5 @@ module.exports = {
   session,
   pool,
   wrapPgClient,
+  processNamedParameters,
 };
