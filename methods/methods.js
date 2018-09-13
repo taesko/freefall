@@ -9,6 +9,7 @@ const moment = require('moment');
 const subscriptions = require('../modules/subscriptions');
 const users = require('../modules/users');
 const accounting = require('../modules/accounting');
+const db = require('../modules/db');
 
 const SERVER_DATE_FORMAT = 'Y-MM-DD';
 const SERVER_TIME_FORMAT = 'Y-MM-DDTHH:mm:ssZ';
@@ -599,9 +600,14 @@ const creditHistory = defineAPIMethod(
     assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
     assertPeer(user.api_key === api_key, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
-    const { rows: subscrTransfers } = await dbClient.executeQuery(
+    const airportFromFilter = 'AND (ap_from.name=$flyFrom OR ap_from.iata_code=$flyFrom)';
+    const airportToFilter = 'AND (ap_to.name=$flyTo OR ap_to.iata_code=$flyTo)';
+    const dateFromFilter = 'AND date_from >= $dateFrom::date';
+    const dateToFilter = 'AND date_to <= $dateTo::date';
+
+    const { query, values } = db.processNamedParameters(
       `
-      SELECT credit_history.id::text, transferred_at, transfer_amount, reason,
+      SELECT transferred_at, credit_history.id::text, transfer_amount, reason,
         subscriptions.airport_from_id::text, subscriptions.airport_to_id::text, 
         users_subscriptions.date_from, users_subscriptions.date_to,
         ap_from.name AS fly_from, ap_to.name AS fly_to,
@@ -611,7 +617,7 @@ const creditHistory = defineAPIMethod(
         FROM account_transfers
         JOIN user_subscription_account_transfers AS usat
           ON account_transfers.id=usat.account_transfer_id
-        WHERE usat.user_subscription_id IN (SELECT id FROM users_subscriptions WHERE user_id=$1)
+        WHERE usat.user_subscription_id IN (SELECT id FROM users_subscriptions WHERE user_id=$userID)
         UNION ALL
         SELECT users_subscriptions.id, transferred_at, transfer_amount, 'fetch tax' AS reason
         FROM account_transfers
@@ -623,26 +629,37 @@ const creditHistory = defineAPIMethod(
           ON subscriptions_fetches.subscription_id=subscriptions.id
         JOIN users_subscriptions 
           ON subscriptions.id=users_subscriptions.subscription_id
-        WHERE users_subscriptions.user_id=$1
+        WHERE users_subscriptions.user_id=$userID
       ) AS credit_history
       JOIN users_subscriptions 
         ON credit_history.id=users_subscriptions.id
       JOIN subscriptions 
         ON users_subscriptions.subscription_id=subscriptions.id
       JOIN airports AS ap_from
-        ON subscriptions.airport_from_id=ap_from.id AND
-          ($4::text IS NULL OR (ap_from.name=$4 OR ap_from.iata_code=$4))
+        ON subscriptions.airport_from_id=ap_from.id
+        ${fly_from == null ? '' : airportFromFilter}
       JOIN airports AS ap_to
-        ON subscriptions.airport_to_id=ap_to.id AND
-          ($5::text IS NULL OR (ap_to.name=$5 OR ap_to.iata_code=$5))
-      WHERE ($6::date IS NULL OR date_from >= $6::date) AND
-        ($7::date IS NULL OR date_to <= $7::date)
-      ORDER BY transferred_at DESC, id ASC
-      LIMIT $2
-      OFFSET $3
+        ON subscriptions.airport_to_id=ap_to.id
+        ${fly_to == null ? '' : airportToFilter}
+      WHERE users_subscriptions.user_id=$userID
+        ${date_from == null ? '' : dateFromFilter}
+        ${date_to == null ? '' : dateToFilter}
+      ORDER BY 1 DESC, 2 ASC
+      LIMIT $limit
+      OFFSET $offset
       `,
-      [user.id, limit, offset, fly_from, fly_to, date_from, date_to],
+      {
+        userID: user.id,
+        limit,
+        offset,
+        flyFrom: fly_from,
+        flyTo: fly_to,
+        dateFrom: date_from,
+        dateTo: date_to,
+      },
     );
+    const pgResult = await dbClient.executeQuery(query, values);
+    const { rows: subscrTransfers } = pgResult;
 
     for (const transfer of subscrTransfers) {
       transfer.date_from = moment(transfer.date_from)
