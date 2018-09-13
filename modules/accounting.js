@@ -225,7 +225,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     }
 
     return `date_trunc('${timePrecision}', ${column})`;
-  },
+  };
 
   const selectColumns = [
     {
