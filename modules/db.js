@@ -1,4 +1,7 @@
-const { isObject } = require('lodash');
+const {
+  isObject,
+  isFunction,
+} = require('lodash');
 const { Pool } = require('pg');
 
 const log = require('./log');
@@ -170,6 +173,116 @@ function buildSetClause (setHash, startIndex = 1) {
   return {
     setClause,
     setValues,
+  };
+}
+
+function buildGroupingParams (selectColumns, groupings) {
+  // assert correct format
+  for (const selectColumn of selectColumns) {
+    assertApp(typeof selectColumn.isSet === 'boolean');
+    assertApp(typeof selectColumn.isGroupable === 'boolean');
+    assertApp(typeof selectColumn.isAggregatable === 'boolean');
+    assertApp(!(selectColumn.isGroupable && selectColumn.isAggregatable));
+
+    if (selectColumn.isSet) {
+      assertApp(Array.isArray(selectColumn.set));
+
+      for (const column of selectColumn.set) {
+        assertApp(column.table === null || typeof column.table === 'string');
+        assertApp(typeof column.column === 'string');
+        assertApp(column.alias === null || typeof column.alias === 'string');
+        assertApp(column.transform === null || isFunction(column.transform));
+      }
+    } else {
+      assertApp(selectColumn.table === null || typeof selectColumn.table === 'string');
+      assertApp(typeof selectColumn.column === 'string');
+      assertApp(selectColumn.alias === null || typeof selectColumn.alias === 'string');
+      assertApp(
+        selectColumn.transform === null ||
+        isFunction(selectColumn.transform)
+      );
+    }
+
+    if (selectColumn.isGroupable) {
+      assertApp(typeof selectColumn.groupingsSettingName === 'string');
+    }
+
+    if (selectColumn.isAggregatable) {
+      assertApp(typeof selectColumn.aggregateFunction === 'string');
+    }
+  }
+
+  const querySelectColumns = [];
+  const queryGroupBy = [];
+
+  const areGroupings = Object.values(groupings)
+    .some((grouping) => grouping != null);
+
+  for (const selectColumn of selectColumns) {
+    const columns = [];
+
+    if (selectColumn.isSet) {
+      const { set, ...setOptions } = selectColumn;
+
+      columns.push(...selectColumn.set.map(column => ({
+        ...column,
+        ...setOptions,
+      })));
+    } else {
+      columns.push(selectColumn);
+    }
+
+    for (const column of columns) {
+      let querySelectColumn = '';
+      const isNullColumn = areGroupings &&
+        !column.isAggregatable &&
+        (
+          !column.isGroupable ||
+          groupings[column.groupingsSettingName] == null
+        );
+
+      if (isNullColumn) {
+        querySelectColumn = 'NULL';
+      } else {
+        let escapedColumn;
+
+        if (column.table) {
+          escapedColumn = `"${column.table}"."${column.column}"`;
+        } else {
+          escapedColumn = `"${column.column}"`;
+        }
+
+        if (column.transform != null) {
+          querySelectColumn = column.transform(
+            escapedColumn,
+            groupings[column.groupingsSettingName]
+          );
+        } else {
+          querySelectColumn = escapedColumn;
+        }
+
+        if (areGroupings) {
+          assertApp(!(column.isAggregatable && column.isGroupable), 'Column can not be both groupable and aggregatable!');
+
+          if (column.isAggregatable) {
+            querySelectColumn = `"${column.aggregateFunction}"(${querySelectColumn})`;
+          } else {
+            queryGroupBy.push(querySelectColumns.length + 1);
+          }
+        }
+
+        if (column.alias != null) {
+          querySelectColumn += ` AS "${column.alias}"`;
+        }
+      }
+
+      querySelectColumns.push(querySelectColumn);
+    }
+  }
+
+  return {
+    selectColumnsPart: querySelectColumns.join(','),
+    groupColumns: queryGroupBy.join(','),
   };
 }
 
@@ -569,4 +682,5 @@ module.exports = {
   pool,
   wrapPgClient,
   processNamedParameters,
+  buildGroupingParams,
 };

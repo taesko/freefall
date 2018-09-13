@@ -20,9 +20,9 @@
           <div class="form-group form-inline">
             <label>User email:</label>
             <input class="form-control" type="email" name="filter-user-email" placeholder="Email" value="{{ filters.user_email }}">
-            <select name="grouping-email" class="form-control">
+            <select name="grouping-user" class="form-control">
               <option value="none">No grouping</option>
-              <option value="email">Group by email</option>
+              <option value="user">Group by user</option>
             </select>
           </div>
           <div class="form-group">
@@ -53,7 +53,7 @@
             <input id="datetime-to" name="filter-datetime-to" class="form-control" type="text" value="{{ filters.datetime_to }}">
           </div>
           <div class="form-group">
-            <select name="grouping-datetime" class="form-control">
+            <select name="grouping-transferred-at" class="form-control">
               <option value="none">No grouping</option>
               <option value="second">Group by seconds</option>
               <option value="minute">Group by minutes</option>
@@ -62,6 +62,64 @@
               <option value="week">Group by weeks</option>
               <option value="month">Group by months</option>
               <option value="year">Group by years</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <select name="grouping-employee" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="employee">Group by employee</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <select name="grouping-user-subscr-airport-from" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="airport">Group by user subscription departure airport</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <select name="grouping-user-subscr-airport-to" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="airport">Group by user subscription arrival airport</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <select name="grouping-user-subscr-date-from" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="week">Group user subscription date from by week</option>
+              <option value="month">Group user subscription date from by month</option>
+              <option value="year">Group user subscription date from by year</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <select name="grouping-user-subscr-date-to" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="week">Group user subscription date to by week</option>
+              <option value="month">Group user subscription date to by month</option>
+              <option value="year">Group user subscription date to by year</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <select name="grouping-subscr-airport-from" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="airport">Group by subscription departure airport</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <select name="grouping-subscr-airport-to" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="airport">Group by subscription arrival airport</option>
+            </select>
+          </div>
+          <div class="form-control">
+            <select name="grouping-fetch-time" class="form-control">
+              <option value="none">No grouping</option>
+              <option value="second">Group fetch time by second</option>
+              <option value="minute">Group fetch time by minute</option>
+              <option value="hour">Group fetch time by hour</option>
+              <option value="day">Group fetch time by day</option>
+              <option value="week">Group fetch time by week</option>
+              <option value="month">Group fetch time by month</option>
+              <option value="year">Group fetch time by year</option>
             </select>
           </div>
           <div class="form-group">

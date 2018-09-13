@@ -796,12 +796,6 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     return;
   }
 
-  log.info('here is ctx');
-
-  log.info(ctx.req);
-  log.info(ctx.req.setTimeout);
-  log.info('just after setTimeou');
-
   // setting default filters
   const filters = {
     offset: 0,
@@ -873,49 +867,163 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   // setting default groupings
   const groupings = {
-    email: false,
-    datetime: null,
+    user: null,
+    transferred_at: null,
+    employee: null,
+    user_subscr_airport_from_name: null,
+    user_subscr_airport_to_name: null,
+    user_subscr_date_from: null,
+    user_subscr_date_to: null,
+    subscr_airport_from_name: null,
+    subscr_airport_to_name: null,
+    fetch_time: null,
   };
 
   // changing groupings according to params
-
-  if (ctx.query['grouping-email'] && ctx.query['grouping-email'] !== 'none') {
-    const expectedValues = [
-      'email',
-    ];
-
-    if (!expectedValues.includes(ctx.query['grouping-email'])) {
-      ctx.status = 400;
-      ctx.body = 'Invalid email grouping setting!';
-      return;
+  const nullIfNoneElseTrue = function (queryParam) {
+    if (queryParam === 'none') {
+      return null;
+    } else {
+      return true;
     }
+  };
 
-    groupings.email = true;
-  }
-
-  if (ctx.query['grouping-datetime'] && ctx.query['grouping-datetime'] !== 'none') {
-    const expectedValues = [
-      'second',
-      'minute',
-      'hour',
-      'day',
-      'week',
-      'month',
-      'year',
-    ];
-
-    if (!expectedValues.includes(ctx.query['grouping-datetime'])) {
-      ctx.status = 400;
-      ctx.body = 'Invalid datetime grouping setting!';
-      return;
+  const nullIfNoneElseParam = function (queryParam) {
+    if (queryParam === 'none') {
+      return null;
+    } else {
+      return queryParam;
     }
+  };
 
-    grouping.datetime = ctx.query['grouping-datetime'];
+  const queryParamsToGroupingsParamsMapping = [
+    {
+      query: 'grouping-user',
+      grouping: 'user',
+      expected: [
+        'none',
+        'user',
+      ],
+      resolve: nullIfNoneElseTrue,
+    },
+    {
+      query: 'grouping-transferred-at',
+      grouping: 'transferred_at',
+      expected: [
+        'none',
+        'second',
+        'minute',
+        'hour',
+        'day',
+        'week',
+        'month',
+        'year',
+      ],
+      resolve: nullIfNoneElseParam,
+    },
+    {
+      query: 'grouping-employee',
+      grouping: 'employee',
+      expected: [
+        'none',
+        'employee',
+      ],
+      resolve: nullIfNoneElseTrue,
+    },
+    {
+      query: 'grouping-user-subscr-airport-from',
+      grouping: 'user_subscr_airport_from_name',
+      expected: [
+        'none',
+        'airport',
+      ],
+      resolve: nullIfNoneElseTrue,
+    },
+    {
+      query: 'grouping-user-subscr-airport-to',
+      grouping: 'user_subscr_airport_to_name',
+      expected: [
+        'none',
+        'airport',
+      ],
+      resolve: nullIfNoneElseTrue,
+    },
+    {
+      query: 'grouping-user-subscr-date-from',
+      grouping: 'user_subscr_date_from',
+      expected: [
+        'none',
+        'week',
+        'month',
+        'year',
+      ],
+      resolve: nullIfNoneElseParam,
+    },
+    {
+      query: 'grouping-user-subscr-date-to',
+      grouping: 'user_subscr_date_to',
+      expected: [
+        'none',
+        'week',
+        'month',
+        'year',
+      ],
+      resolve: nullIfNoneElseParam,
+    },
+    {
+      query: 'grouping-subscr-airport-from',
+      grouping: 'subscr_airport_from_name',
+      expected: [
+        'none',
+        'airport',
+      ],
+      resolve: nullIfNoneElseTrue,
+    },
+    {
+      query: 'grouping-subscr-airport-to',
+      grouping: 'subscr_airport_to_name',
+      expected: [
+        'none',
+        'airport',
+      ],
+      resolve: nullIfNoneElseTrue,
+    },
+    {
+      query: 'grouping-fetch-time',
+      grouping: 'fetch_time',
+      expected: [
+        'none',
+        'second',
+        'minute',
+        'hour',
+        'day',
+        'week',
+        'month',
+        'year',
+      ],
+      resolve: nullIfNoneElseParam,
+    },
+  ];
+
+  for (const mapping of queryParamsToGroupingsParamsMapping) {
+    if (ctx.query[mapping.query] && ctx.query[mapping.query] !== 'none') {
+      if (!mapping.expected.includes(ctx.query[mapping.query])) {
+        ctx.status = 400;
+        ctx.body = 'Invalid grouping setting!';
+        return;
+      }
+
+      groupings[mapping.grouping] = mapping.resolve(ctx.query[mapping.query]);
+    }
   }
 
   const dbClient = ctx.state.dbClient;
 
-  const accountTransfers = await getAccountTransfers(dbClient, filters, groupings);
+  const accountTransfers = await getAccountTransfers(
+    dbClient,
+    filters,
+    groupings
+  );
 
   const selectAllTransferAmountsResult = await dbClient.executeQuery(`
 

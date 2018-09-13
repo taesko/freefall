@@ -202,7 +202,7 @@ function start () {
     });
 
     const datetimepickerOptions = {
-      format:'Y-m-d H:i:s',
+      format: 'Y-m-d H:i:s',
     };
 
     $('#datetime-from').datetimepicker(datetimepickerOptions);

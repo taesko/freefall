@@ -1423,7 +1423,163 @@ const adminListAccountTransfers = defineAPIMethod(
       }
     }
 
-    const accountTransfers = await getAccountTransfers(dbClient, filters);
+    // setting default groupings
+    const groupings = {
+      user: null,
+      transferred_at: null,
+      employee: null,
+      user_subscr_airport_from_name: null,
+      user_subscr_airport_to_name: null,
+      user_subscr_date_from: null,
+      user_subscr_date_to: null,
+      subscr_airport_from_name: null,
+      subscr_airport_to_name: null,
+      fetch_time: null,
+    };
+
+    // changing groupings according to params
+    const nullIfNoneElseTrue = function (apiParam) {
+      if (apiParam === 'none') {
+        return null;
+      } else {
+        return true;
+      }
+    };
+
+    const nullIfNoneElseParam = function (apiParam) {
+      if (apiParam === 'none') {
+        return null;
+      } else {
+        return apiParam;
+      }
+    };
+
+    const apiParamsToGroupingsParamsMapping = [
+      {
+        api: 'user',
+        grouping: 'user',
+        expected: [
+          'none',
+          'user',
+        ],
+        resolve: nullIfNoneElseTrue,
+      },
+      {
+        api: 'transferred_at',
+        grouping: 'transferred_at',
+        expected: [
+          'none',
+          'second',
+          'minute',
+          'hour',
+          'day',
+          'week',
+          'month',
+          'year',
+        ],
+        resolve: nullIfNoneElseParam,
+      },
+      {
+        api: 'employee',
+        grouping: 'employee',
+        expected: [
+          'none',
+          'employee',
+        ],
+        resolve: nullIfNoneElseTrue,
+      },
+      {
+        api: 'user_subscr_airport_from',
+        grouping: 'user_subscr_airport_from_name',
+        expected: [
+          'none',
+          'airport',
+        ],
+        resolve: nullIfNoneElseTrue,
+      },
+      {
+        api: 'user_subscr_airport_to',
+        grouping: 'user_subscr_airport_to_name',
+        expected: [
+          'none',
+          'airport',
+        ],
+        resolve: nullIfNoneElseTrue,
+      },
+      {
+        api: 'user_subscr_date_from',
+        grouping: 'user_subscr_date_from',
+        expected: [
+          'none',
+          'week',
+          'month',
+          'year',
+        ],
+        resolve: nullIfNoneElseParam,
+      },
+      {
+        api: 'user_subscr_date_to',
+        grouping: 'user_subscr_date_to',
+        expected: [
+          'none',
+          'week',
+          'month',
+          'year',
+        ],
+        resolve: nullIfNoneElseParam,
+      },
+      {
+        api: 'subscr_airport_from',
+        grouping: 'subscr_airport_from_name',
+        expected: [
+          'none',
+          'airport',
+        ],
+        resolve: nullIfNoneElseTrue,
+      },
+      {
+        api: 'subscr_airport_to',
+        grouping: 'subscr_airport_to_name',
+        expected: [
+          'none',
+          'airport',
+        ],
+        resolve: nullIfNoneElseTrue,
+      },
+      {
+        api: 'fetch_time',
+        grouping: 'fetch_time',
+        expected: [
+          'none',
+          'second',
+          'minute',
+          'hour',
+          'day',
+          'week',
+          'month',
+          'year',
+        ],
+        resolve: nullIfNoneElseParam,
+      },
+    ];
+
+    for (const mapping of apiParamsToGroupingsParamsMapping) {
+      if (params[mapping.api] && params[mapping.api] !== 'none') {
+        assertUser(
+          mapping.expected.includes(params[mapping.api]),
+          'Unexpected param value.',
+          'ALAT_BAD_PATAMETERS',
+        );
+
+        groupings[mapping.grouping] = mapping.resolve(params[mapping.api]);
+      }
+    }
+
+    const accountTransfers = await getAccountTransfers(
+      dbClient,
+      filters,
+      groupings
+    );
 
     return {
       status_code: '1000',

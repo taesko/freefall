@@ -3,6 +3,7 @@ const _ = require('lodash');
 const { assertApp, assertPeer, AppError, PeerError, errorCodes } = require('./error-handling');
 const log = require('./log');
 const users = require('./users');
+const db = require('./db');
 const SUBSCRIPTION_COST = 100;
 
 async function depositCredits (dbClient, userId, amount) {
@@ -200,11 +201,179 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     offset = 0;
   }
 
-  // TODO remove
-  groupings = {
-    email: true,
-    datetime: null,
+  const useDateTrunc = function (column, timePrecision) {
+    if (timePrecision == null) {
+      return column;
+    }
+
+    // TODO escape timePrecision
+    return `date_trunc('${timePrecision}', ${column})`;
   };
+
+  const ignoreDeposits = function (column) {
+    return `CASE WHEN ${column} < 0 THEN ${column} ELSE 0 END * -1`;
+  };
+
+  const ignoreWithdrawals = function (column) {
+    return `CASE WHEN ${column} > 0 THEN ${column} ELSE 0 END`;
+  };
+
+  const selectColumns = [
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: null,
+      column: 'transferred_at',
+      alias: 'transferred_at',
+      transform: useDateTrunc,
+      groupingsSettingName: 'transferred_at', // TODO change name
+    },
+    {
+      isSet: false,
+      isGroupable: false,
+      isAggregatable: false,
+      table: 'account_transfers',
+      column: 'id',
+      alias: 'account_transfer_id',
+      transform: null,
+    },
+    {
+      isSet: true,
+      isGroupable: false,
+      isAggregatable: true,
+      set: [
+        {
+          table: null,
+          column: 'transfer_amount',
+          alias: 'deposit_amount',
+          transform: ignoreWithdrawals,
+        },
+        {
+          table: null,
+          column: 'transfer_amount',
+          alias: 'withdrawal_amount',
+          transform: ignoreDeposits,
+        },
+      ],
+      aggregateFunction: 'sum',
+    },
+    {
+      isSet: true,
+      isGroupable: true,
+      isAggregatable: false,
+      set: [
+        {
+          table: 'account_transfers',
+          column: 'user_id',
+          alias: 'account_owner_id',
+          transform: null,
+        },
+        {
+          table: 'users',
+          column: 'email',
+          alias: 'account_owner_email',
+          transform: null,
+        },
+      ],
+      groupingsSettingName: 'user', // TODO change name
+    },
+    {
+      isSet: true,
+      isGroupable: true,
+      isAggregatable: false,
+      set: [
+        {
+          table: 'employees',
+          column: 'id',
+          alias: 'employee_transferrer_id',
+          transform: null,
+        },
+        {
+          table: 'employees',
+          column: 'email',
+          alias: 'employee_transferrer_email',
+          transform: null,
+        },
+      ],
+      groupingsSettingName: 'employee',
+    },
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: 'a1',
+      column: 'name',
+      alias: 'user_subscr_airport_from_name',
+      transform: null,
+      groupingsSettingName: 'user_subscr_airport_from_name',
+    },
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: 'a2',
+      column: 'name',
+      alias: 'user_subscr_airport_to_name',
+      transform: null,
+      groupingsSettingName: 'user_subscr_airport_to_name',
+    },
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: 'users_subscriptions',
+      column: 'date_from',
+      alias: 'user_subscr_date_from',
+      transform: useDateTrunc,
+      groupingsSettingName: 'user_subscr_date_from',
+    },
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: 'users_subscriptions',
+      column: 'date_to',
+      alias: 'user_subscr_date_to',
+      transform: useDateTrunc,
+      groupingsSettingName: 'user_subscr_date_to',
+    },
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: 'a3',
+      column: 'name',
+      alias: 'subscr_airport_from_name',
+      transform: null,
+      groupingsSettingName: 'subscr_airport_from_name',
+    },
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: 'a4',
+      column: 'name',
+      alias: 'subscr_airport_to_name',
+      transform: null,
+      groupingsSettingName: 'subscr_airport_to_name',
+    },
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: null,
+      column: 'fetch_time',
+      alias: null,
+      transform: useDateTrunc,
+      groupingsSettingName: 'fetch_time',
+    },
+  ];
+
+  const {
+    selectColumnsPart,
+    groupColumns,
+  } = db.buildGroupingParams(selectColumns, groupings);
 
   const queryValues = [
     filters.user_email,
@@ -216,223 +385,16 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     filters.new_subsctiption_taxes,
     filters.new_fetch_taxes,
     offset,
-    groupings.datetime,
   ];
-
-  const useDateTrunc = function (column, timePrecision) {
-    if (timePrecision == null) {
-      return column;
-    }
-
-    return `date_trunc('${timePrecision}', ${column})`;
-  };
-
-  const selectColumns = [
-    {
-      isSet: false,
-      isGroupable: false,
-      isAggregatable: false,
-      column: 'account_transfers.id',
-      alias: 'account_transfer_id',
-      transform: null,
-    },
-    {
-      isSet: false,
-      isGroupable: false,
-      isAggregatable: true,
-      column: 'transfer_amount',
-      alias: null,
-      aggregateFunction: 'sum',
-      transform: null,
-    },
-    {
-      isSet: false,
-      isGroupable: true,
-      isAggregatable: false,
-      column: 'transferred_at',
-      alias: 'transferred_at',
-      transform: useDateTrunc,
-      groupingsSettingName: 'datetime', // TODO change name
-    },
-    {
-      isSet: true,
-      isGroupable: true,
-      isAggregatable: false,
-      set: [
-        {
-          column: 'account_transfers.user_id',
-          alias: 'account_owner_id',
-          transform: null,
-        },
-        {
-          column: 'users.email',
-          alias: 'account_owner_email',
-          transform: null,
-        },
-      ],
-      groupingsSettingName: 'email', // TODO change name
-    },
-    {
-      isSet: true,
-      isGroupable: true,
-      isAggregatable: false,
-      set: [
-        {
-          column: 'employees.id',
-          alias: 'employee_transferrer_id',
-          transform: null,
-        },
-        {
-          column: 'employees.email',
-          alias: 'employee_transferrer_email',
-          transform: null,
-        }
-      ],
-    },
-    {
-      isSet: false,
-      isGroupable: true,
-      isAggregatable: false,
-      column: 'a1.name',
-      alias: 'user_subscr_airport_from_name',
-      transform: null,
-    },
-    {
-      isSet: false,
-      isGroupable: true,
-      isAggregatable: false,
-      column: 'a2.name',
-      alias: 'user_subscr_airport_to_name',
-      transform: null,
-    },
-    {
-      isSet: false,
-      isGroupable: true,
-      isAggregatable: false,
-      column: 'users_subscriptions.date_from',
-      alias: 'user_subscr_date_from',
-      transform: useDateTrunc,
-    },
-    {
-      isSet: false,
-      isGroupable: true,
-      isAggregatable: false,
-      column: 'users_subscriptions_date_to',
-      alias: 'user_subscr_date_to',
-      transform: useDateTrunc,
-    },
-    {
-      isSet: false,
-      isGroupable: true,
-      isAggregatable: false,
-      column: 'a3.name',
-      alias: 'subscr_airport_from_name',
-      transform: null,
-    },
-    {
-      isSet: false,
-      isGroupable: true,
-      isAggregatable: false,
-      column: 'a4.name',
-      alias: 'subscr_airport_to_name',
-      transform: null,
-    },
-    {
-      isSet: false,
-      isGroupable: true,
-      isAggregatable: false,
-      column: 'fetch_time',
-      alias: null,
-      transform: useDateTrunc,
-    },
-  ];
-
-  let querySelectColumnsPart;
-  let queryGroupByPart;
-
-  {
-    let querySelectColumns = [];
-    let queryGroupBy = [];
-
-    const areNoGroupings = Object.values(groupings)
-      .every((grouping) => grouping == null);
-
-    for (let i = 0; i < selectColumns.length; i++) {
-      let querySelectColumn = '';
-
-      if (areNoGroupings) {
-        const columns = [];
-
-        if (selectColumns[i].isSet) {
-          columns.push(...selectColumns[i].set);
-        } else {
-          columns.push(selectColumns[i]);
-        }
-
-        for (const column of columns) {
-          if (column.transform != null) {
-            querySelectColumn += column.transform(column.column, groupings.datetime);
-          } else {
-            querySelectColumn += column.column;
-          }
-        }
-      } else {
-        for (const [groupingName, groupingValue] of Object.entries(groupings)) {
-          const columns = [];
-
-          if (selectColumns[i].isSet) {
-            columns.push(...selectColumns[i].set);
-          } else {
-            columns.push(selectColumns[i]);
-          }
-
-          for (const column of columns) {
-            if (column.transform != null) {
-              querySelectColumn += column.transform(column.column, groupings.datetime);
-            } else {
-              querySelectColumn += column.column;
-            }
-
-            if (column.isAggregatable) {
-              querySelectColumn += `${column.aggregateFunction}(${column.column})`;
-            }
-          }
-        }
-      }
-
-      if (selectColumns[i].alias != null) {
-        querySelectColumn += `AS ${selectColumns[i].alias}`;
-      }
-    }
-
-    querySelectColumnsPart = querySelectColumns.join(',');
-    queryGroupByPart = queryGroupBy.join(',');
-  }
 
   if (filters.limit) {
     queryValues.push(filters.limit);
   }
 
-  console.log(areNoGroupings);
-  console.log(groupings.datetime == null);
-
   const selectAccountTransfersResult = await dbClient.executeQuery(`
 
     SELECT
-      ${areNoGroupings ? 'account_transfers.id' : 'NULL'} AS account_transfer_id,
-      ${areNoGroupings ? 'transfer_amount' : 'sum(transfer_amount)'},
-      ${areNoGroupings ? 'transferred_at' : groupings.datetime == null ? 'NULL' : 'date_trunc($10::text, transferred_at)'} AS transferred_at,
-      account_transfers.user_id AS account_owner_id,
-      users.email AS account_owner_email,
-      ${areNoGroupings ? 'employees.id' : 'NULL'} AS employee_transferrer_id,
-      ${areNoGroupings ? 'employees.email' : 'NULL'} AS employee_transferrer_email,
-      ${areNoGroupings ? 'a1.name' : 'NULL'} AS user_subscr_airport_from_name,
-      ${areNoGroupings ? 'a2.name' : 'NULL'} AS user_subscr_airport_to_name,
-      ${areNoGroupings ? 'users_subscriptions.date_from' : 'NULL'} AS user_subscr_date_from,
-      ${areNoGroupings ? 'users_subscriptions.date_to' : 'NULL'} AS user_subscr_date_to,
-      ${areNoGroupings ? 'a3.name' : 'NULL'} AS subscr_airport_from_name,
-      ${areNoGroupings ? 'a4.name' : 'NULL'} AS subscr_airport_to_name,
-      ${areNoGroupings ? 'fetch_time' : 'NULL'}
+      ${selectColumnsPart}
     FROM account_transfers
     LEFT JOIN users
       ON account_transfers.user_id = users.id
@@ -474,7 +436,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       (
         $3::text IS NULL OR
         transferred_at::date <= to_date($3, 'YYYY-MM-DD')
-      )  AND
+      ) AND
       (
         (
           $4 = true AND
@@ -499,118 +461,12 @@ async function getAccountTransfers (dbClient, filters, groupings) {
           fetch_time IS NOT NULL
         )
       )
-    GROUP BY account_owner_id, account_owner_email
-    ORDER BY transferred_at
+    ${groupColumns.length > 0 ? `GROUP BY ${groupColumns}` : ''}
+    ORDER BY ${groupColumns.length > 0 ? groupColumns : '1'}
     OFFSET $9
-    ${filters.limit ? 'LIMIT $11' : ''};
+    ${filters.limit ? 'LIMIT $10' : ''};
 
   `, queryValues);
-
-
-  /*const queryValues = [
-    filters.user_email,
-    filters.date_from,
-    filters.date_to,
-    filters.deposits,
-    filters.withdrawals,
-    filters.transfers_by_employees,
-    filters.new_subsctiption_taxes,
-    filters.new_fetch_taxes,
-    offset,
-  ];
-
-    if (filters.limit) {
-      queryValues.push(filters.limit);
-    }
-
-    const selectAccountTransfersResult = await dbClient.executeQuery(`
-
-      SELECT
-        account_transfers.id AS account_transfer_id,
-        transfer_amount,
-        transferred_at,
-        account_transfers.user_id AS account_owner_id,
-        users.email AS account_owner_email,
-        employees.id AS employee_transferrer_id,
-        employees.email AS employee_transferrer_email,
-        a1.name AS user_subscr_airport_from_name,
-        a2.name AS user_subscr_airport_to_name,
-        users_subscriptions.date_from AS user_subscr_date_from,
-        users_subscriptions.date_from AS user_subscr_date_to,
-        a3.name AS subscr_airport_from_name,
-        a4.name AS subscr_airport_to_name,
-        fetch_time
-      FROM account_transfers
-      LEFT JOIN users
-        ON account_transfers.user_id = users.id
-      LEFT JOIN user_subscription_account_transfers
-        ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
-      LEFT JOIN subscriptions_fetches_account_transfers
-        ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
-      LEFT JOIN account_transfers_by_employees
-        ON account_transfers_by_employees.account_transfer_id = account_transfers.id
-      LEFT JOIN employees
-        ON employees.id = account_transfers_by_employees.employee_id
-      LEFT JOIN users_subscriptions
-        ON user_subscription_account_transfers.user_subscription_id = users_subscriptions.id
-      LEFT JOIN subscriptions s1
-        ON users_subscriptions.subscription_id = s1.id
-      LEFT JOIN airports a1
-        ON s1.airport_from_id = a1.id
-      LEFT JOIN airports a2
-        ON s1.airport_to_id = a2.id
-      LEFT JOIN subscriptions_fetches
-        ON subscriptions_fetches_account_transfers.subscription_fetch_id = subscriptions_fetches.id
-      LEFT JOIN subscriptions s2
-        ON subscriptions_fetches.subscription_id = s2.id
-      LEFT JOIN airports a3
-        ON s2.airport_from_id = a3.id
-      LEFT JOIN airports a4
-        ON s2.airport_to_id = a4.id
-      LEFT JOIN fetches
-        ON subscriptions_fetches.fetch_id = fetches.id
-      WHERE
-        (
-          $1::text IS NULL OR
-          users.email = $1
-        ) AND
-        (
-          $2::text IS NULL OR
-          transferred_at::date >= to_date($2, 'YYYY-MM-DD')
-        ) AND
-        (
-          $3::text IS NULL OR
-          transferred_at::date <= to_date($3, 'YYYY-MM-DD')
-        ) AND
-        (
-          (
-            $4 = true AND
-            transfer_amount >= 0
-          ) OR
-          (
-            $5 = true AND
-            transfer_amount <= 0
-          )
-        ) AND
-        (
-          (
-            $6 = true AND
-            employees.id IS NOT NULL
-          ) OR
-          (
-            $7 = true AND
-            users_subscriptions.date_to IS NOT NULL
-          ) OR
-          (
-            $8 = true AND
-            fetch_time IS NOT NULL
-          )
-        )
-      ORDER BY transferred_at
-      OFFSET $9
-      ${filters.limit ? 'LIMIT $10' : ''};
-
-    `, queryValues);*/
 
   assertApp(_.isObject(selectAccountTransfersResult), `Expected selectAccountTransfersResult to be an object, but was ${typeof selectAccountTransfersResult}`);
   assertApp(Array.isArray(selectAccountTransfersResult.rows), `Expected selectAccountTransfersResult.rows to be array, but was ${typeof selectAccountTransfersResult.rows}`);
@@ -623,10 +479,9 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       email: row.account_owner_email,
       id: String(row.account_owner_id),
     },
-    deposit_amount: (row.transfer_amount > 0) ? row.transfer_amount : null,
-    withdrawal_amount:
-      (row.transfer_amount < 0) ? row.transfer_amount * -1 : null,
-    transferred_at: row.transferred_at.toISOString(),
+    deposit_amount: row.deposit_amount,
+    withdrawal_amount: row.withdrawal_amount,
+    transferred_at: row.transferred_at && row.transferred_at.toISOString(),
     employee_transferrer_id:
       row.employee_transferrer_id == null ? null : String(row.employee_transferrer_id),
     employee_transferrer_email: row.employee_transferrer_email,

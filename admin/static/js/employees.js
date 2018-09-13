@@ -373,7 +373,6 @@ function start () {
     });
   };
 
-
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $('#new-employee-form').submit(onAddNewEmployee);
     $('#prev-page-btn-top').click(onPreviousPageClick);

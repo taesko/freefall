@@ -12,3 +12,5 @@ admin/static/js/jquery-ui.min.js
 admin/static/js/ajv.min.js
 admin/static/js/lodash
 admin/static/js/xlsx.full.min.js
+admin/static/js/jquery.datetimepicker.full.min.js
+admin/static/js/jquery.datetimepicker.min.js
