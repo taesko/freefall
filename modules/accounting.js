@@ -201,20 +201,6 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     offset = 0;
   }
 
-  // TODO remove
-  groupings = {
-    user: null,
-    transferred_at: null,
-    employee: true,
-    user_subscr_airport_from_name: null,
-    user_subscr_airport_to_name: null,
-    user_subscr_date_from: null,
-    user_subscr_date_to: null,
-    subscr_airport_from_name: null,
-    subscr_airport_to_name: null,
-    fetch_time: null,
-  };
-
   const useDateTrunc = function (column, timePrecision) {
     if (timePrecision == null) {
       return column;
@@ -233,6 +219,16 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   };
 
   const selectColumns = [
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: null,
+      column: 'transferred_at',
+      alias: 'transferred_at',
+      transform: useDateTrunc,
+      groupingsSettingName: 'transferred_at', // TODO change name
+    },
     {
       isSet: false,
       isGroupable: false,
@@ -261,16 +257,6 @@ async function getAccountTransfers (dbClient, filters, groupings) {
         },
       ],
       aggregateFunction: 'sum',
-    },
-    {
-      isSet: false,
-      isGroupable: true,
-      isAggregatable: false,
-      table: null,
-      column: 'transferred_at',
-      alias: 'transferred_at',
-      transform: useDateTrunc,
-      groupingsSettingName: 'transferred_at', // TODO change name
     },
     {
       isSet: true,
@@ -386,11 +372,11 @@ async function getAccountTransfers (dbClient, filters, groupings) {
 
   let {
     selectColumnsPart,
-    groupByPart,
+    groupColumns,
   } = db.buildGroupingParams(selectColumns, groupings);
 
   console.log(selectColumnsPart);
-  console.log(groupByPart);
+  console.log(groupColumns);
 
   const queryValues = [
     filters.user_email,
@@ -447,11 +433,13 @@ async function getAccountTransfers (dbClient, filters, groupings) {
         users.email = $1
       ) AND
       (
-        $2::text IS NULL 
+        $2::text IS NULL OR
+        transferred_at::date >= to_date($2, 'YYYY-MM-DD')
       ) AND
       (
-        $3::text IS NULL 
-      )  AND
+        $3::text IS NULL OR
+        transferred_at::date <= to_date($3, 'YYYY-MM-DD')
+      ) AND
       (
         (
           $4 = true AND
@@ -476,7 +464,8 @@ async function getAccountTransfers (dbClient, filters, groupings) {
           fetch_time IS NOT NULL
         )
       )
-    ${groupByPart.length > 0 ? `GROUP BY ${groupByPart}` : ''}
+    ${groupColumns.length > 0 ? `GROUP BY ${groupColumns}` : ''}
+    ORDER BY ${groupColumns.length > 0 ? groupColumns : '1'}
     OFFSET $9
     ${filters.limit ? 'LIMIT $10' : ''};
 

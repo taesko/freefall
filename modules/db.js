@@ -218,7 +218,7 @@ function buildGroupingParams (selectColumns, groupings) {
 
   return {
     selectColumnsPart: querySelectColumns.join(','),
-    groupByPart: queryGroupBy.join(','),
+    groupColumns: queryGroupBy.join(','),
   };
 }
 
