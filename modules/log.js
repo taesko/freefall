@@ -1,3 +1,5 @@
+const util = require('util');
+
 /* eslint-disable no-console */
 const DEBUG = 'DEBUG';
 const INFO = 'INFO';
@@ -5,6 +7,7 @@ const WARNING = 'WARNING';
 const CRITICAL = 'CRITICAL';
 const ERROR = 'ERROR';
 const ORDER = [DEBUG, INFO, WARNING, ERROR, CRITICAL];
+const LOG_TEMPLATE = '%s %s %s';
 
 function logLevel () {
   return ORDER.find(lvl => lvl === process.env.FREEFALL_LOG_LEVEL) || INFO;
@@ -24,35 +27,17 @@ function response (ctx) {
   console.info(new Date(), 'GOT RESPONSE', ctx.response);
 }
 
-function debug (...messages) {
-  if (shouldPrintLevel(DEBUG)) {
-    console.error(new Date(), 'DEBUG: ', ...messages);
+function log (level, ...messages) {
+  const message = util.format(messages[0], ...messages.slice(1));
+  if (shouldPrintLevel(level)) {
+    console.error(LOG_TEMPLATE, new Date().toISOString(), `${level}: `, message);
   }
 }
-
-function info (...messages) {
-  if (shouldPrintLevel(INFO)) {
-    console.error(new Date(), 'INFO', ...messages);
-  }
-}
-
-function warn (...messages) {
-  if (shouldPrintLevel(WARNING)) {
-    console.error(new Date(), 'WARNING: ', ...messages);
-  }
-}
-
-function critical (...messages) {
-  if (shouldPrintLevel(CRITICAL)) {
-    console.error(new Date(), 'CRITICAL: ', ...messages);
-  }
-}
-
-function error (...messages) {
-  if (shouldPrintLevel(ERROR)) {
-    console.error(new Date(), 'Exception occurred:', ...messages);
-  }
-}
+const debug = (...messages) => log(DEBUG, ...messages);
+const info = (...messages) => log(INFO, ...messages);
+const warn = (...messages) => log(WARNING, ...messages);
+const critical = (...messages) => log(CRITICAL, ...messages);
+const error = (...messages) => log(ERROR, ...messages);
 
 module.exports = {
   debug,
