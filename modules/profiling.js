@@ -41,7 +41,7 @@ function profileEventLoop (
     const average = data.reduce((sum, num) => sum + num, 0) / data.length;
     log.info(
       'START eventloop-latency REPORT',
-      `Max: ${max} ns\tAverage: ${average} ns\tInterval: ${emitInterval} ms`,
+      `Max: ${max} microseconds\tAverage: ${average} microseconds\tInterval: ${emitInterval} ms`,
       'END eventloop-latency REPORT',
     );
   });

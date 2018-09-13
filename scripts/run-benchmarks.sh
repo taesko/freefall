@@ -24,6 +24,16 @@ fi
 number_of_requests=30000
 concurrency_levels=(5 10 50)
 profiling_reports_file="./logs/server_stderr.log"
+benchmarks_output_dir="./scripts/ab-tests/zipped-benchmarks"
+
+if [ ! -d "${benchmarks_output_dir}" ]; then
+    echo "Dir does not exist:  ${benchmarks_output_dir}"
+    exit 100
+fi
+if [ ! -f "${profiling_reports_file}" ]; then
+    echo "File does not exist:  ${profiling_reports_file}";
+    exit 105
+fi
 
 function run_post_benchmark {
     if [ "$2" = "admin" ]; then
