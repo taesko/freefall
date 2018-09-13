@@ -1,4 +1,7 @@
-const { isObject } = require('lodash');
+const {
+  isObject,
+  isFunction,
+} = require('lodash');
 const { Pool } = require('pg');
 
 const log = require('./log');
@@ -128,12 +131,21 @@ function buildGroupingParams (selectColumns, groupings) {
 
       for (const column of selectColumn.set) {
         assertApp(typeof column.column === 'string');
-        assertApp(column.alias === null || typeof column.alias === 'string);
+        assertApp(column.alias === null || typeof column.alias === 'string');
+        assertApp(column.transform === null || isFunction(column.transform));
       }
+    } else {
+      assertApp(typeof selectColumn.column === 'string');
+      assertApp(selectColumn.alias === null || typeof selectColumn.alias === 'string');
+      assertApp(selectColumn.transform === null || isFunction(selectColumn.transform));
     }
 
     if (selectColumn.isGroupable) {
       assertApp(typeof selectColumn.groupingsSettingName === 'string');
+    }
+
+    if (selectColumn.isAggregatable) {
+      assertApp(typeof selectColumn.aggregateFunction === 'string');
     }
   }
 
@@ -165,13 +177,6 @@ function buildGroupingParams (selectColumns, groupings) {
           !column.isGroupable ||
           groupings[column.groupingsSettingName] == null
         );
-
-      console.log(column);
-      console.log(isNullColumn);
-      console.log(areGroupings);
-      console.log(column.isGroupable);
-      console.log(groupings[column.groupingsSettingName]);
-      console.log('-----');
 
       if (isNullColumn) {
         querySelectColumn = 'NULL';

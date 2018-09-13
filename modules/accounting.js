@@ -203,8 +203,16 @@ async function getAccountTransfers (dbClient, filters, groupings) {
 
   // TODO remove
   groupings = {
-    email: null,
-    datetime: 'hour',
+    user: true,
+    transferred_at: 'day',
+    employee: null,
+    user_subscr_airport_from_name: null,
+    user_subscr_airport_to_name: null,
+    user_subscr_date_from: null,
+    user_subscr_date_to: null,
+    subscr_airport_from_name: null,
+    subscr_airport_to_name: null,
+    fetch_time: null,
   };
 
   const useDateTrunc = function (column, timePrecision) {
@@ -212,7 +220,16 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       return column;
     }
 
+    // TODO escape timePrecision
     return `date_trunc('${timePrecision}', ${column})`;
+  };
+
+  const ignoreDeposits = function (column) {
+    return `CASE WHEN ${column} < 0 THEN ${column} ELSE 0 END * -1`;
+  };
+
+  const ignoreWithdrawals = function (column) {
+    return `CASE WHEN ${column} > 0 THEN ${column} ELSE 0 END`;
   };
 
   const selectColumns = [
@@ -223,6 +240,24 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'account_transfers.id',
       alias: 'account_transfer_id',
       transform: null,
+    },
+    {
+      isSet: true,
+      isGroupable: false,
+      isAggregatable: true,
+      set: [
+        {
+          column: 'transfer_amount',
+          alias: 'deposit_amount',
+          transform: ignoreWithdrawals,
+        },
+        {
+          column: 'transfer_amount',
+          alias: 'withdrawal_amount',
+          transform: ignoreDeposits,
+        },
+      ],
+      aggregateFunction: 'sum',
     },
     {
       isSet: false,
@@ -240,7 +275,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'transferred_at',
       alias: 'transferred_at',
       transform: useDateTrunc,
-      groupingsSettingName: 'datetime', // TODO change name
+      groupingsSettingName: 'transferred_at', // TODO change name
     },
     {
       isSet: true,
@@ -258,7 +293,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
           transform: null,
         },
       ],
-      groupingsSettingName: 'email', // TODO change name
+      groupingsSettingName: 'user', // TODO change name
     },
     {
       isSet: true,
@@ -276,6 +311,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
           transform: null,
         }
       ],
+      groupingsSettingName: 'employee',
     },
     {
       isSet: false,
@@ -284,6 +320,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'a1.name',
       alias: 'user_subscr_airport_from_name',
       transform: null,
+      groupingsSettingName: 'user_subscr_airport_from_name',
     },
     {
       isSet: false,
@@ -292,6 +329,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'a2.name',
       alias: 'user_subscr_airport_to_name',
       transform: null,
+      groupingsSettingName: 'user_subscr_airport_to_name',
     },
     {
       isSet: false,
@@ -300,14 +338,16 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'users_subscriptions.date_from',
       alias: 'user_subscr_date_from',
       transform: useDateTrunc,
+      groupingsSettingName: 'user_subscr_date_from',
     },
     {
       isSet: false,
       isGroupable: true,
       isAggregatable: false,
-      column: 'users_subscriptions_date_to',
+      column: 'users_subscriptions.date_to',
       alias: 'user_subscr_date_to',
       transform: useDateTrunc,
+      groupingsSettingName: 'user_subscr_date_to',
     },
     {
       isSet: false,
@@ -316,6 +356,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'a3.name',
       alias: 'subscr_airport_from_name',
       transform: null,
+      groupingsSettingName: 'subscr_airport_from_name',
     },
     {
       isSet: false,
@@ -324,6 +365,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'a4.name',
       alias: 'subscr_airport_to_name',
       transform: null,
+      groupingsSettingName: 'subscr_airport_to_name',
     },
     {
       isSet: false,
@@ -332,6 +374,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'fetch_time',
       alias: null,
       transform: useDateTrunc,
+      groupingsSettingName: 'fetch_time',
     },
   ];
 
@@ -362,7 +405,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   const selectAccountTransfersResult = await dbClient.executeQuery(`
 
     SELECT
-      ${querySelectColumnsPart}
+      ${selectColumnsPart}
     FROM account_transfers
     LEFT JOIN users
       ON account_transfers.user_id = users.id
@@ -398,12 +441,10 @@ async function getAccountTransfers (dbClient, filters, groupings) {
         users.email = $1
       ) AND
       (
-        $2::text IS NULL OR
-        transferred_at::date >= to_date($2, 'YYYY-MM-DD')
+        $2::text IS NULL 
       ) AND
       (
-        $3::text IS NULL OR
-        transferred_at::date <= to_date($3, 'YYYY-MM-DD')
+        $3::text IS NULL 
       )  AND
       (
         (
@@ -429,8 +470,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
           fetch_time IS NOT NULL
         )
       )
-    ${queryGroupByPart.length > 0 ? `GROUP BY ${queryGroupByPart}` : ''}
-    ORDER BY transferred_at
+    ${groupByPart.length > 0 ? `GROUP BY ${groupByPart}` : ''}
     OFFSET $9
     ${filters.limit ? 'LIMIT $10' : ''};
 
@@ -553,10 +593,9 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       email: row.account_owner_email,
       id: String(row.account_owner_id),
     },
-    deposit_amount: (row.transfer_amount > 0) ? row.transfer_amount : null,
-    withdrawal_amount:
-      (row.transfer_amount < 0) ? row.transfer_amount * -1 : null,
-    transferred_at: row.transferred_at.toISOString(),
+    deposit_amount: row.deposit_amount,
+    withdrawal_amount: row.withdrawal_amount,
+    transferred_at: row.transferred_at && row.transferred_at.toISOString(),
     employee_transferrer_id:
       row.employee_transferrer_id == null ? null : String(row.employee_transferrer_id),
     employee_transferrer_email: row.employee_transferrer_email,
