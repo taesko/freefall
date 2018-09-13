@@ -96,18 +96,19 @@ function processNamedParameters (query, parameters, offset = 0) {
   log.debug(`Original query string is ${query}`);
 
   const processedQuery = query.replace(regex, matched => {
-    log.info('got match', matched);
     matched = matched.slice(1);
     const alreadyMatched = replacedParams[matched];
 
     let placeholder;
 
     if (alreadyMatched != null) {
-      log.info('already matched', alreadyMatched);
       placeholder = `$${alreadyMatched.placeholderIndex}`;
     } else {
       placeholderIndex++;
-      replacedParams[matched] = { value: matched, placeholderIndex };
+
+      const value = parameters[matched];
+
+      replacedParams[matched] = { value, placeholderIndex };
       placeholder = `$${placeholderIndex}`;
     }
 
