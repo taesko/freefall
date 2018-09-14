@@ -1641,19 +1641,27 @@ const adminListAccountTransfers = defineAPIMethod(
       }
     }
 
-    console.log(filters);
-    console.log(groupings);
-    console.log(params);
-
-    const { accountTransfers } = await getAccountTransfers(
+    const {
+      accountTransfers,
+      activeColumns,
+    } = await getAccountTransfers(
       dbClient,
       filters,
       groupings
     );
 
+    console.log(accountTransfers);
+    console.log(activeColumns);
+
     return {
       status_code: '1000',
       account_transfers: accountTransfers,
+      active_columns: Object.entries(activeColumns)
+        .filter(([name, value]) => {
+          assertApp(typeof value === 'boolean', `got ${value}`);
+          return value;
+        })
+        .map(([name, value]) => name),
     };
   }
 );

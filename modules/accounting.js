@@ -475,26 +475,24 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   const accountTransfersUsersRows = selectAccountTransfersResult.rows;
 
   const accountTransfers = accountTransfersUsersRows.map(row => ({
-    account_transfer_id: row.account_transfer_id,
-    user: {
-      email: row.account_owner_email,
-      id: String(row.account_owner_id),
-    },
-    deposit_amount: row.deposit_amount,
-    withdrawal_amount: row.withdrawal_amount,
-    transferred_at: row.transferred_at && row.transferred_at.toISOString(),
+    account_transfer_id: row.account_transfer_id || null,
+    account_owner_email: row.account_owner_email || null,
+    account_owner_id: String(row.account_owner_id),
+    deposit_amount: Number(row.deposit_amount),
+    withdrawal_amount: Number(row.withdrawal_amount),
+    transferred_at: (row.transferred_at && row.transferred_at.toISOString()) || null,
     employee_transferrer_id:
       row.employee_transferrer_id == null ? null : String(row.employee_transferrer_id),
-    employee_transferrer_email: row.employee_transferrer_email,
-    user_subscr_airport_from_name: row.user_subscr_airport_from_name,
-    user_subscr_airport_to_name: row.user_subscr_airport_to_name,
-    user_subscr_date_from: row.user_subscr_date_from &&
-      row.user_subscr_date_from.toISOString(),
-    user_subscr_date_to: row.user_subscr_date_to &&
-      row.user_subscr_date_to.toISOString(),
-    subscr_airport_from_name: row.subscr_airport_from_name,
-    subscr_airport_to_name: row.subscr_airport_to_name,
-    fetch_time: row.fetch_time && row.fetch_time.toISOString(),
+    employee_transferrer_email: row.employee_transferrer_email || null,
+    user_subscr_airport_from_name: row.user_subscr_airport_from_name || null,
+    user_subscr_airport_to_name: row.user_subscr_airport_to_name || null,
+    user_subscr_date_from: (row.user_subscr_date_from &&
+      row.user_subscr_date_from.toISOString()) || null,
+    user_subscr_date_to: (row.user_subscr_date_to &&
+      row.user_subscr_date_to.toISOString()) || null,
+    subscr_airport_from_name: row.subscr_airport_from_name || null,
+    subscr_airport_to_name: row.subscr_airport_to_name || null,
+    fetch_time: (row.fetch_time && row.fetch_time.toISOString()) || null,
   }));
 
   return {

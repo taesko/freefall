@@ -132,13 +132,6 @@ function start () {
           msg: msg,
         });
 
-        const accountTransfers = result.account_transfers.map(function (at) { // eslint-disable-line prefer-arrow-callback
-          at.user_email = at.user.email;
-          at.user_id = at.user.id;
-          delete at.user;
-          return at;
-        });
-
         const currentDate = (new Date()).toISOString().replace(':', '-').replace('.', '-');
 
         const workbook = XLSX.utils.book_new();
@@ -155,24 +148,8 @@ function start () {
               filters: filtersGlobal,
             },
             {
-              headers: [
-                'account_transfer_id',
-                'user_id',
-                'user_email',
-                'deposit_amount',
-                'withdrawal_amount',
-                'transferred_at',
-                'employee_transferrer_id',
-                'employee_transferrer_email',
-                'user_subscr_airport_from_name',
-                'user_subscr_airport_to_name',
-                'user_subscr_date_from',
-                'user_subscr_date_to',
-                'subscr_airport_from_name',
-                'subscr_airport_to_name',
-                'fetch_time',
-              ],
-              rows: accountTransfers,
+              headers: result.active_columns,
+              rows: result.account_transfers,
             }
           )
         );

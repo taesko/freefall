@@ -330,13 +330,13 @@
             {{/if}}
             {{#if ../active_columns.account_owner_id}}
               <td class="text-right">
-                {{this.user.id}}
+                {{this.account_owner_id}}
               </td>
             {{/if}}
             {{#if ../active_columns.account_owner_email}}
               <td>
-                {{this.user.email}}
-                <a href="/users/{{this.user.id}}">(open)</a>
+                {{this.account_owner_email}}
+                <a href="/users/{{this.account_owner_id}}">(open)</a>
               </td>
             {{/if}}
             {{#if ../active_columns.deposit_amount}}

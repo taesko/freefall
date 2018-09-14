@@ -796,6 +796,18 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     return;
   }
 
+  let page;
+
+  if (!ctx.query['page']) {
+    page = 1;
+  } else {
+    page = Number(ctx.query['page']);
+
+    if (!Number.isInteger(page) || page < 0) {
+      page = 1;
+    }
+  }
+
   // setting default filters
   const filters = {
     offset: 0,
@@ -871,21 +883,9 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     {
       query: 'page',
       filter: 'offset',
-      resolve: (queryParam) => {
-        let page;
-
-        if (!queryParam) {
-          page = 1;
-        } else {
-          page = Number(queryParam);
-
-          if (!Number.isInteger(page) || page < 0) {
-            page = 1;
-          }
-        }
-
+      resolve: ((page) => () => {
         return (page - 1) * RESULTS_LIMIT;
-      },
+      })(page),
     }
   ];
 
@@ -1250,10 +1250,10 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     total_credits_loaded: totalCreditsLoaded.rows[0].users_given_credits,
     dalipeche_api_total_requests:
       dalipecheAPITotalRequests.rows[0].dalipeche_api_requests,
-    page: filters.page,
+    page,
     query_string_without_page: queryStringWithoutPage,
-    next_page: accountTransfers.length === RESULTS_LIMIT ? filters.page + 1 : null,
-    prev_page: filters.page > 1 ? filters.page - 1 : null,
+    next_page: accountTransfers.length === RESULTS_LIMIT ? page + 1 : null,
+    prev_page: page > 1 ? page - 1 : null,
   });
 });
 

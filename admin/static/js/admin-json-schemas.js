@@ -1825,23 +1825,13 @@ const adminValidators = { // eslint-disable-line no-unused-vars
             'title': 'Account transfer',
             'type': 'object',
             'properties': {
-              'user': {
-                'title': 'User',
-                'type': 'object',
-                'properties': {
-                  'email': {
-                    'title': 'User email',
-                    'type': 'string',
-                  },
-                  'id': {
-                    'title': 'User id',
-                    'type': 'string',
-                  },
-                },
-                'required': [
-                  'email',
-                  'id',
-                ],
+              'account_owner_id': {
+                'title': 'Account owner id',
+                'type': 'string',
+              },
+              'account_owner_email': {
+                'title': 'Account owner email',
+                'type': 'string',
               },
               'deposit_amount': {
                 'title': 'Deposit amount',
@@ -1928,27 +1918,21 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                 ],
               },
             },
-            'required': [
-              'user',
-              'deposit_amount',
-              'withdrawal_amount',
-              'transferred_at',
-              'employee_transferrer_id',
-              'employee_transferrer_email',
-              'user_subscr_airport_from_name',
-              'user_subscr_airport_to_name',
-              'user_subscr_date_from',
-              'user_subscr_date_to',
-              'subscr_airport_from_name',
-              'subscr_airport_to_name',
-              'fetch_time',
-            ],
+          },
+        },
+        'active_columns': {
+          'title': 'Active columns',
+          'type': 'array',
+          'items': {
+            'title': 'Active column',
+            'type': 'string',
           },
         },
       },
       'required': [
         'status_code',
         'account_transfers',
+        'active_columns',
       ],
     };
     return ajv.compile(adminListAccountTransfersResponseSchema);
