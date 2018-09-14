@@ -218,7 +218,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     return `CASE WHEN ${column} > 0 THEN ${column} ELSE 0 END`;
   };
 
-  const selectColumns = [
+  const columnsConfig = [
     {
       isSet: false,
       isGroupable: true,
@@ -306,7 +306,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'name',
       alias: 'user_subscr_airport_from_name',
       transform: null,
-      groupingsSettingName: 'user_subscr_airport_from_name',
+      groupingsSettingName: 'user_subscr_airport_from',
     },
     {
       isSet: false,
@@ -316,7 +316,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'name',
       alias: 'user_subscr_airport_to_name',
       transform: null,
-      groupingsSettingName: 'user_subscr_airport_to_name',
+      groupingsSettingName: 'user_subscr_airport_to',
     },
     {
       isSet: false,
@@ -346,7 +346,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'name',
       alias: 'subscr_airport_from_name',
       transform: null,
-      groupingsSettingName: 'subscr_airport_from_name',
+      groupingsSettingName: 'subscr_airport_from',
     },
     {
       isSet: false,
@@ -356,7 +356,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'name',
       alias: 'subscr_airport_to_name',
       transform: null,
-      groupingsSettingName: 'subscr_airport_to_name',
+      groupingsSettingName: 'subscr_airport_to',
     },
     {
       isSet: false,
@@ -373,12 +373,13 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   const {
     selectColumnsPart,
     groupColumns,
-  } = db.buildGroupingParams(selectColumns, groupings);
+    activeColumns,
+  } = db.buildGroupingParams(columnsConfig, groupings);
 
   const queryValues = [
-    filters.user_email,
-    filters.datetime_from,
-    filters.datetime_to,
+    filters.user,
+    filters.transferred_at_from,
+    filters.transferred_at_to,
     filters.deposits,
     filters.withdrawals,
     filters.transfers_by_employees,
@@ -496,7 +497,10 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     fetch_time: row.fetch_time && row.fetch_time.toISOString(),
   }));
 
-  return accountTransfers;
+  return {
+    accountTransfers,
+    activeColumns,
+  };
 }
 
 module.exports = {

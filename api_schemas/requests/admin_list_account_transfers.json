@@ -16,16 +16,16 @@
       "title": "Filters",
       "type": "object",
       "properties": {
-        "user_email": {
+        "user": {
           "title": "User email filter",
           "type": "string"
         },
-        "datetime_from": {
-          "title": "Datetime from fiter",
+        "transferred_at_from": {
+          "title": "Transferred at from fiter",
           "type": "string"
         },
-        "datetime_to": {
-          "title": "Datetime to filter",
+        "transferred_at_to": {
+          "title": "Transferred at to filter",
           "type": "string"
         },
         "type": {
@@ -47,11 +47,7 @@
             "fetch"
           ]
         }
-      },
-      "required": [
-        "type",
-        "reason"
-      ]
+      }
     },
     "groupings": {
       "title": "Groupings",
