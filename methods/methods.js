@@ -602,8 +602,8 @@ const creditHistory = defineAPIMethod(
   ) => {
     const user = await users.fetchUser(dbClient, { apiKey: api_key });
 
-    assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
-    assertPeer(user.api_key === api_key, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
+    assertPeer(user, `got ${api_key}`, 'TH_INVALID_API_KEY');
+    assertPeer(user.api_key === api_key, `got ${api_key}`, 'TH_NOT_ENOUGH_PERMISSIONS');
 
     const airportFromFilterClause = 'AND (ap_from.name=$flyFrom OR ap_from.iata_code=$flyFrom)';
     const airportFromFilter = fly_from == null ? '' : airportFromFilterClause;
@@ -611,16 +611,16 @@ const creditHistory = defineAPIMethod(
     const airportToFilterClause = 'AND (ap_to.name=$flyTo OR ap_to.iata_code=$flyTo)';
     const airportToFilter = fly_to == null ? '' : airportToFilterClause;
 
-    const dateFromFilterClause = 'AND date_from >= $dateFrom::date';
+    const dateFromFilterClause = 'AND users_subscriptions.date_from >= $dateFrom::date';
     const dateFromFilter = date_from == null ? '' : dateFromFilterClause;
 
-    const dateToFilterClause = 'AND date_to <= $dateTo::date';
+    const dateToFilterClause = 'AND users_subscriptions.date_to <= $dateTo::date';
     const dateToFilter = date_to == null ? '' : dateToFilterClause;
 
     let transferredAtFilter = '';
     // TODO this date filter does catch equal days properly
-    const transferredFromClause = 'transferred_at >= $transferredFrom::date';
-    const transferredToClause = 'transferred_at <= $transferredTo::date';
+    const transferredFromClause = 'account_transfers.transferred_at >= $transferredFrom::date';
+    const transferredToClause = 'account_transfers.transferred_at <= $transferredTo::date';
 
     if (transferred_from && transferred_to) {
       transferredAtFilter = `AND ${transferredFromClause} AND ${transferredToClause}`;
@@ -642,19 +642,56 @@ const creditHistory = defineAPIMethod(
 
     const { query, values } = db.processNamedParameters(
       `
-      SELECT transferred_at, credit_history.id::text, transfer_amount, reason,
-        subscriptions.airport_from_id::text, subscriptions.airport_to_id::text, 
-        users_subscriptions.date_from, users_subscriptions.date_to,
-        ap_from.name AS fly_from, ap_to.name AS fly_to,
-        users_subscriptions.active AS subscription_status
+      SELECT 
+        active AS subscription_status,
+        reason,
+        subscription_plan_id AS plan_id,
+        transfer_amount, 
+        transferred_at, 
+        airport_from_id::text,
+        airport_to_id::text, 
+        ap_from.name AS fly_from,
+        ap_to.name AS fly_to,
+        date_from,
+        date_to,
+        taxes.user_subscr_id::text AS id
       FROM (
-        SELECT usat.user_subscription_id AS id, transferred_at, transfer_amount, 'initial tax' AS reason
+        SELECT 
+          users_subscriptions.active,
+          'initial tax' AS reason,
+          subscription_plan_id,
+          transfer_amount,
+          transferred_at,
+          airport_from_id,
+          airport_to_id, 
+          date_from,
+          date_to,
+          users_subscriptions.id AS user_subscr_id
         FROM account_transfers
         JOIN user_subscription_account_transfers AS usat
           ON account_transfers.id=usat.account_transfer_id
-        WHERE usat.user_subscription_id IN (SELECT id FROM users_subscriptions WHERE user_id=$userID)
+        JOIN users_subscriptions 
+          ON usat.user_subscription_id=users_subscriptions.id
+            ${statusFilter}
+            ${dateFromFilter}
+            ${dateToFilter}
+        JOIN subscriptions
+          ON users_subscriptions.subscription_id=subscriptions.id
+        WHERE account_transfers.user_id=$userId
+          ${transferredAtFilter}
+          ${transferAmountFilter}
         UNION ALL
-        SELECT users_subscriptions.id, transferred_at, transfer_amount, 'fetch tax' AS reason
+        SELECT 
+          users_subscriptions.active,
+          'fetch tax' AS reason,
+          subscription_plan_id,
+          transfer_amount,
+          transferred_at,
+          airport_from_id,
+          airport_to_id, 
+          date_from,
+          date_to,
+          users_subscriptions.id AS user_subscr_id
         FROM account_transfers
         JOIN subscriptions_fetches_account_transfers AS sfat 
           ON account_transfers.id=sfat.account_transfer_id
@@ -663,31 +700,26 @@ const creditHistory = defineAPIMethod(
         JOIN subscriptions 
           ON subscriptions_fetches.subscription_id=subscriptions.id
         JOIN users_subscriptions 
-          ON subscriptions.id=users_subscriptions.subscription_id
-        WHERE users_subscriptions.user_id=$userID
-      ) AS credit_history
-      JOIN users_subscriptions 
-        ON credit_history.id=users_subscriptions.id
-      JOIN subscriptions 
-        ON users_subscriptions.subscription_id=subscriptions.id
+          ON subscriptions.id=users_subscriptions.subscription_id 
+            ${statusFilter}
+            ${dateFromFilter}
+            ${dateToFilter}
+        WHERE account_transfers.user_id=$userId 
+          ${transferredAtFilter}
+          ${transferAmountFilter}
+      ) AS taxes
       JOIN airports AS ap_from
-        ON subscriptions.airport_from_id=ap_from.id
-        ${airportFromFilter}
+        ON taxes.airport_from_id=ap_from.id
+          ${airportFromFilter}
       JOIN airports AS ap_to
-        ON subscriptions.airport_to_id=ap_to.id
-        ${airportToFilter}
-      WHERE users_subscriptions.user_id=$userID
-        ${dateFromFilter}
-        ${dateToFilter}
-        ${transferredAtFilter}
-        ${statusFilter}
-        ${transferAmountFilter}
-      ORDER BY 1 DESC, 2 ASC
-      LIMIT $limit
-      OFFSET $offset
+        ON taxes.airport_to_id=ap_to.id
+          ${airportToFilter}
+      ORDER BY transferred_at DESC, id ASC
+      LIMIT 5
+      OFFSET 0
       `,
       {
-        userID: user.id,
+        userId: user.id,
         limit,
         offset,
         flyFrom: fly_from,
@@ -797,7 +829,6 @@ const listSubscriptions = defineAPIMethod(
         to_char(date_to, 'YYYY-MM-DD') AS date_to,
         subscription_plans.name AS plan
       FROM users_subscriptions AS user_sub
-      JOIN users ON user_sub.user_id=users.id
       JOIN subscriptions sub ON user_sub.subscription_id=sub.id
       JOIN airports ap_from ON sub.airport_from_id=ap_from.id
       JOIN airports ap_to ON sub.airport_to_id=ap_to.id
