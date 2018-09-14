@@ -87,31 +87,27 @@ function start () {
     const listAccountTransfersParams = {
       v: '2.0',
       api_key: APIKeyRef.APIKey,
+      filters: Object.entries(filtersGlobal).reduce(
+        (acc, [name, value]) => {
+          if (value.length > 0) {
+            return {
+              ...acc,
+              [name]: value,
+            };
+          } else {
+            return acc;
+          }
+        },
+        {}
+      ),
+      groupings: Object.entries(groupingsGlobal).reduce(
+        (acc, [name, value]) => ({
+          ...acc,
+          [name]: value || 'none',
+        }),
+        {}
+      ),
     };
-
-    if (filtersGlobal.user_email.length > 0) {
-      listAccountTransfersParams.user_email = filtersGlobal.user_email;
-    }
-
-    if (filtersGlobal.datetime_from.length > 0) {
-      listAccountTransfersParams.datetime_from = filtersGlobal.datetime_from;
-    }
-
-    if (filtersGlobal.datetime_to.length > 0) {
-      listAccountTransfersParams.datetime_to = filtersGlobal.datetime_to;
-    }
-
-    if (filtersGlobal.type.length > 0) {
-      listAccountTransfersParams.type = filtersGlobal.type;
-    } else {
-      listAccountTransfersParams.type = 'all';
-    }
-
-    if (filtersGlobal.reason.length > 0) {
-      listAccountTransfersParams.reason = filtersGlobal.reason;
-    } else {
-      listAccountTransfersParams.reason = 'all';
-    }
 
     adminAPI.adminListAccountTransfers(
       listAccountTransfersParams,
@@ -150,9 +146,9 @@ function start () {
           generateExportData(
             {
               headers: [
-                'user_email',
-                'datetime_from',
-                'datetime_to',
+                'user',
+                'transferred_at_from',
+                'transferred_at_to',
                 'type',
                 'reason',
               ],

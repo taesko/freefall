@@ -1649,16 +1649,16 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'title': 'Filters',
           'type': 'object',
           'properties': {
-            'user_email': {
+            'user': {
               'title': 'User email filter',
               'type': 'string',
             },
-            'datetime_from': {
-              'title': 'Datetime from filter',
+            'transferred_at_from': {
+              'title': 'Transferred at from filter',
               'type': 'string',
             },
-            'datetime_to': {
-              'title': 'Datetime to filter',
+            'transferred_at_to': {
+              'title': 'Transferred at to filter',
               'type': 'string',
             },
             'type': {
@@ -1681,10 +1681,6 @@ const adminValidators = { // eslint-disable-line no-unused-vars
               ],
             },
           },
-          'required': [
-            'type',
-            'reason',
-          ],
         },
         'groupings': {
           'title': 'Groupings',

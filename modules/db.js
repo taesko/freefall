@@ -253,6 +253,8 @@ function buildGroupingParams (selectColumns, groupings) {
   const areGroupings = Object.values(groupings)
     .some((grouping) => grouping != null);
 
+  const activeColumns = {};
+
   for (const selectColumn of selectColumns) {
     const columns = [];
 
@@ -268,6 +270,8 @@ function buildGroupingParams (selectColumns, groupings) {
     }
 
     for (const column of columns) {
+      const columnName = column.alias || column.column;
+
       let querySelectColumn = '';
       const isNullColumn = areGroupings &&
         !column.isAggregatable &&
@@ -278,6 +282,7 @@ function buildGroupingParams (selectColumns, groupings) {
 
       if (isNullColumn) {
         querySelectColumn = 'NULL';
+        activeColumns[columnName] = false;
       } else {
         let escapedColumn;
 
@@ -309,6 +314,8 @@ function buildGroupingParams (selectColumns, groupings) {
         if (column.alias != null) {
           querySelectColumn += ` AS "${column.alias}"`;
         }
+
+        activeColumns[columnName] = true;
       }
 
       querySelectColumns.push(querySelectColumn);
@@ -318,6 +325,7 @@ function buildGroupingParams (selectColumns, groupings) {
   return {
     selectColumnsPart: querySelectColumns.join(','),
     groupColumns: queryGroupBy.join(','),
+    activeColumns,
   };
 }
 
