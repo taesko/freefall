@@ -306,7 +306,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'name',
       alias: 'user_subscr_airport_from_name',
       transform: null,
-      groupingsSettingName: 'user_subscr_airport_from_name',
+      groupingsSettingName: 'user_subscr_airport_from',
     },
     {
       isSet: false,
@@ -316,7 +316,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'name',
       alias: 'user_subscr_airport_to_name',
       transform: null,
-      groupingsSettingName: 'user_subscr_airport_to_name',
+      groupingsSettingName: 'user_subscr_airport_to',
     },
     {
       isSet: false,
@@ -346,7 +346,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'name',
       alias: 'subscr_airport_from_name',
       transform: null,
-      groupingsSettingName: 'subscr_airport_from_name',
+      groupingsSettingName: 'subscr_airport_from',
     },
     {
       isSet: false,
@@ -356,7 +356,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       column: 'name',
       alias: 'subscr_airport_to_name',
       transform: null,
-      groupingsSettingName: 'subscr_airport_to_name',
+      groupingsSettingName: 'subscr_airport_to',
     },
     {
       isSet: false,

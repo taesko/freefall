@@ -1428,12 +1428,12 @@ const adminListAccountTransfers = defineAPIMethod(
       user: null,
       transferred_at: null,
       employee: null,
-      user_subscr_airport_from_name: null,
-      user_subscr_airport_to_name: null,
+      user_subscr_airport_from: null,
+      user_subscr_airport_to: null,
       user_subscr_date_from: null,
       user_subscr_date_to: null,
-      subscr_airport_from_name: null,
-      subscr_airport_to_name: null,
+      subscr_airport_from: null,
+      subscr_airport_to: null,
       fetch_time: null,
     };
 
@@ -1490,7 +1490,7 @@ const adminListAccountTransfers = defineAPIMethod(
       },
       {
         api: 'user_subscr_airport_from',
-        grouping: 'user_subscr_airport_from_name',
+        grouping: 'user_subscr_airport_from',
         expected: [
           'none',
           'airport',
@@ -1499,7 +1499,7 @@ const adminListAccountTransfers = defineAPIMethod(
       },
       {
         api: 'user_subscr_airport_to',
-        grouping: 'user_subscr_airport_to_name',
+        grouping: 'user_subscr_airport_to',
         expected: [
           'none',
           'airport',
@@ -1530,7 +1530,7 @@ const adminListAccountTransfers = defineAPIMethod(
       },
       {
         api: 'subscr_airport_from',
-        grouping: 'subscr_airport_from_name',
+        grouping: 'subscr_airport_from',
         expected: [
           'none',
           'airport',
@@ -1539,7 +1539,7 @@ const adminListAccountTransfers = defineAPIMethod(
       },
       {
         api: 'subscr_airport_to',
-        grouping: 'subscr_airport_to_name',
+        grouping: 'subscr_airport_to',
         expected: [
           'none',
           'airport',

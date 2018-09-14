@@ -870,12 +870,12 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     user: null,
     transferred_at: null,
     employee: null,
-    user_subscr_airport_from_name: null,
-    user_subscr_airport_to_name: null,
+    user_subscr_airport_from: null,
+    user_subscr_airport_to: null,
     user_subscr_date_from: null,
     user_subscr_date_to: null,
-    subscr_airport_from_name: null,
-    subscr_airport_to_name: null,
+    subscr_airport_from: null,
+    subscr_airport_to: null,
     fetch_time: null,
   };
 
@@ -932,7 +932,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     },
     {
       query: 'grouping-user-subscr-airport-from',
-      grouping: 'user_subscr_airport_from_name',
+      grouping: 'user_subscr_airport_from',
       expected: [
         'none',
         'airport',
@@ -941,7 +941,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     },
     {
       query: 'grouping-user-subscr-airport-to',
-      grouping: 'user_subscr_airport_to_name',
+      grouping: 'user_subscr_airport_to',
       expected: [
         'none',
         'airport',
@@ -972,7 +972,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     },
     {
       query: 'grouping-subscr-airport-from',
-      grouping: 'subscr_airport_from_name',
+      grouping: 'subscr_airport_from',
       expected: [
         'none',
         'airport',
@@ -981,7 +981,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     },
     {
       query: 'grouping-subscr-airport-to',
-      grouping: 'subscr_airport_to_name',
+      grouping: 'subscr_airport_to',
       expected: [
         'none',
         'airport',
@@ -1179,9 +1179,21 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     employee: {
       email: loggedInEmployee.email,
     },
-    filters,
-    transaction_type: ctx.query.type,
-    transaction_reason: ctx.query.reason,
+    filters: {
+      ...filters,
+      type: ctx.query.type,
+      reason: ctx.query.reason,
+    },
+    groupings: {
+      ...groupings,
+      ...queryParamsToGroupingsParamsMapping.reduce(
+        (acc, mapping) => ({
+          ...acc,
+          [mapping.grouping]: ctx.query[mapping.query],
+        }),
+        {}
+      ),
+    },
     account_transfers: accountTransfers,
     filter_total_deposited: filterTotalDeposited,
     filter_total_withdrawn: filterTotalWithdrawn,
