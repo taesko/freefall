@@ -51,6 +51,25 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 1000000
+    },
+    "group_by": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["transferred_at", "status", "reason"]
+      }
+    },
+    "date_groupings": {
+      "type": "object",
+      "properties": {
+        "transferred_at": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["year", "month", "day"]
+          }
+        }
+      }
     }
   },
   "required": [

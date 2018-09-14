@@ -597,6 +597,8 @@ const creditHistory = defineAPIMethod(
       transfer_amount_operator = '<',
       limit = CREDIT_HISTORY_DEFAULT_LIMIT,
       offset = 0,
+      group_by = null,
+      date_groupings = null,
     },
     dbClient,
   ) => {
@@ -640,21 +642,45 @@ const creditHistory = defineAPIMethod(
       transferAmountFilter = `AND transfer_amount${transfer_amount_operator}$transferAmount`;
     }
 
+    const aggregateDateFunctions = {
+      year: column => `date_trunc('year', ${column})`,
+      month: column => `date_trunc('month', ${column})`,
+      day: column => `date_trunc('day', ${column})`,
+    };
+    const { columns: selectColumns } = db.buildGroupableSelect(
+      {
+        active: isGroupedBy => { return isGroupedBy ? 'active' : null; },
+        reason: isGroupedBy => { return isGroupedBy ? 'reason' : null; },
+        subscription_plan_id: isGroupedBy => {
+          return isGroupedBy ? 'subscription_plan_id' : null;
+        },
+        transfer_amount: isGroupedBy => {
+          return isGroupedBy ? 'transfer_amount' : 'SUM(transfer_amount)';
+        },
+        transferred_at: () => {
+          const func = aggregateDateFunctions[date_groupings.date_to];
+          return func == null ? null : func('transferred_at');
+        },
+        airport_from_id: isGroupedBy => { return isGroupedBy ? 'airport_from_id' : null; },
+        airport_to_id: isGroupedBy => { return isGroupedBy ? 'airport_to_id' : null; },
+        fly_from: isGroupedBy => { return isGroupedBy ? 'ap_from.name AS fly_from' : null; },
+        fly_to: isGroupedBy => { return isGroupedBy ? 'ap_to.name AS fly_to' : null; },
+        date_from: () => {
+          const func = aggregateDateFunctions[date_groupings.date_to];
+          return func == null ? null : func('date_from');
+        },
+        date_to: () => {
+          const func = aggregateDateFunctions[date_groupings.date_to];
+          return func == null ? null : func('date_to');
+        },
+        id: () => null,
+      },
+      group_by,
+    );
     const { query, values } = db.processNamedParameters(
       `
       SELECT 
-        active AS subscription_status,
-        reason,
-        subscription_plan_id AS plan_id,
-        transfer_amount, 
-        transferred_at, 
-        airport_from_id::text,
-        airport_to_id::text, 
-        ap_from.name AS fly_from,
-        ap_to.name AS fly_to,
-        date_from,
-        date_to,
-        taxes.user_subscr_id::text AS id
+        ${selectColumns}
       FROM (
         SELECT 
           users_subscriptions.active,
@@ -735,11 +761,19 @@ const creditHistory = defineAPIMethod(
     const pgResult = await dbClient.executeQuery(query, values);
     const { rows: subscrTransfers } = pgResult;
 
+    subscrTransfers.grouped_by = group_by;
+
     for (const transfer of subscrTransfers) {
-      transfer.date_from = moment(transfer.date_from)
-        .format(SERVER_DATE_FORMAT);
-      transfer.date_to = moment(transfer.date_to).format(SERVER_DATE_FORMAT);
-      transfer.transferred_at = transfer.transferred_at.toISOString();
+      if (transfer.date_from) {
+        transfer.date_from = moment(transfer.date_from)
+          .format(SERVER_DATE_FORMAT);
+      }
+      if (transfer.date_to) {
+        transfer.date_to = moment(transfer.date_to).format(SERVER_DATE_FORMAT);
+      }
+      if (transfer.transferred_at) {
+        transfer.transferred_at = transfer.transferred_at.toISOString();
+      }
     }
 
     return {
