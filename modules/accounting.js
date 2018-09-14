@@ -218,7 +218,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     return `CASE WHEN ${column} > 0 THEN ${column} ELSE 0 END`;
   };
 
-  const selectColumns = [
+  const columnsConfig = [
     {
       isSet: false,
       isGroupable: true,
@@ -373,7 +373,8 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   const {
     selectColumnsPart,
     groupColumns,
-  } = db.buildGroupingParams(selectColumns, groupings);
+    activeColumns,
+  } = db.buildGroupingParams(columnsConfig, groupings);
 
   const queryValues = [
     filters.user_email,
@@ -496,7 +497,10 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     fetch_time: row.fetch_time && row.fetch_time.toISOString(),
   }));
 
-  return accountTransfers;
+  return {
+    accountTransfers,
+    activeColumns,
+  };
 }
 
 module.exports = {

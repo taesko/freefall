@@ -268,71 +268,135 @@
       <table id="account-transfers-table" class="table table-bordered">
         <thead>
           <tr>
-            <th>Transferred at</th>
-            <th>Id</th>
-            <th>User</th>
-            <th>Deposits</th>
-            <th>Withdrawals</th>
-            <th>Employee transferrer id</th>
-            <th>Employee transferrer email</th>
-            <th>User subscription airport from</th>
-            <th>User subscription airport to</th>
-            <th>User subscription date from</th>
-            <th>User subscription date to</th>
-            <th>Subscription airport from</th>
-            <th>Subscription airport to</th>
-            <th>Fetch time</th>
+            {{#if active_columns.transferred_at}}
+              <th>Transferred at</th>
+            {{/if}}
+            {{#if active_columns.account_transfer_id}}
+              <th>Account transfer id</th>
+            {{/if}}
+            {{#if active_columns.account_owner_id}}
+              <th>User id</th>
+            {{/if}}
+            {{#if active_columns.account_owner_email}}
+              <th>User email</th>
+            {{/if}}
+            {{#if active_columns.deposit_amount}}
+              <th>Deposits</th>
+            {{/if}}
+            {{#if active_columns.withdrawal_amount}}
+              <th>Withdrawals</th>
+            {{/if}}
+            {{#if active_columns.employee_transferrer_id}}
+              <th>Employee transferrer id</th>
+            {{/if}}
+            {{#if active_columns.employee_transferrer_email}}
+              <th>Employee transferrer email</th>
+            {{/if}}
+            {{#if active_columns.user_subscr_airport_from_name}}
+              <th>User subscription airport from</th>
+            {{/if}}
+            {{#if active_columns.user_subscr_airport_to_name}}
+              <th>User subscription airport to</th>
+            {{/if}}
+            {{#if active_columns.user_subscr_date_from}}
+              <th>User subscription date from</th>
+            {{/if}}
+            {{#if active_columns.user_subscr_date_to}}
+              <th>User subscription date to</th>
+            {{/if}}
+            {{#if active_columns.subscr_airport_from_name}}
+              <th>Subscription airport from</th>
+            {{/if}}
+            {{#if active_columns.subscr_airport_to_name}}
+              <th>Subscription airport to</th>
+            {{/if}}
+            {{#if active_columns.fetch_time}}
+              <th>Fetch time</th>
+            {{/if}}
           </tr>
         </thead>
         <tbody>
           {{#each account_transfers}}
           <tr>
-            <td>
-              {{this.transferred_at}}
-            </td>
-            <td class="text-right">
-              {{this.account_transfer_id}}
-            </td>
-            <td>
-              {{this.user.email}}
-              <a href="/users/{{this.user.id}}">(open)</a>
-            </td>
-            <td class="text-right">
-              {{this.deposit_amount}}
-            </td>
-            <td class="text-right">
-              {{this.withdrawal_amount}}
-            </td>
-            <td>
-              {{this.employee_transferrer_id}}
-            </td>
-            <td>
-              {{this.employee_transferrer_email}}
-              {{#if this.employee_transferrer_id}}
-                <a href="/employees/{{this.employee_transferrer_id}}">(open)</a>
-              {{/if}}
-            </td>
-            <td>
-              {{user_subscr_airport_from_name}}
-            </td>
-            <td>
-              {{user_subscr_airport_to_name}}
-            </td>
-            <td>
-              {{user_subscr_date_from}}
-            </td>
-            <td>
-              {{user_subscr_date_to}}
-            </td>
-            <td>
-              {{fetch_time}}
-            </td>
-            <td>
-              {{subscr_airport_from_name}}
-            </td>
-            <td>
-              {{subscr_airport_to_name}}
-            </td>
+            {{#if ../active_columns.transferred_at}}
+              <td>
+                {{this.transferred_at}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.account_transfer_id}}
+              <td class="text-right">
+                {{this.account_transfer_id}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.account_owner_id}}
+              <td class="text-right">
+                {{this.user.id}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.account_owner_email}}
+              <td>
+                {{this.user.email}}
+                <a href="/users/{{this.user.id}}">(open)</a>
+              </td>
+            {{/if}}
+            {{#if ../active_columns.deposit_amount}}
+              <td class="text-right">
+                {{this.deposit_amount}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.withdrawal_amount}}
+              <td class="text-right">
+                {{this.withdrawal_amount}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.employee_transferrer_id}}
+              <td>
+                {{this.employee_transferrer_id}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.employee_transferrer_email}}
+              <td>
+                {{this.employee_transferrer_email}}
+                {{#if this.employee_transferrer_id}}
+                  <a href="/employees/{{this.employee_transferrer_id}}">(open)</a>
+                {{/if}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.user_subscr_airport_from_name}}
+              <td>
+                {{this.user_subscr_airport_from_name}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.user_subscr_airport_to_name}}
+              <td>
+                {{this.user_subscr_airport_to_name}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.user_subscr_date_from}}
+              <td>
+                {{this.user_subscr_date_from}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.user_subscr_date_to}}
+              <td>
+                {{this.user_subscr_date_to}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.subscr_airport_from_name}}
+              <td>
+                {{this.subscr_airport_from_name}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.subscr_airport_to_name}}
+              <td>
+                {{this.subscr_airport_to_name}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.fetch_time}}
+              <td>
+                {{this.fetch_time}}
+              </td>
+            {{/if}}
           </tr>
           {{/each}}
         </tbody>

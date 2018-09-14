@@ -1575,7 +1575,7 @@ const adminListAccountTransfers = defineAPIMethod(
       }
     }
 
-    const accountTransfers = await getAccountTransfers(
+    const { accountTransfers } = await getAccountTransfers(
       dbClient,
       filters,
       groupings

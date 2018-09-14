@@ -1019,7 +1019,10 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
 
   const dbClient = ctx.state.dbClient;
 
-  const accountTransfers = await getAccountTransfers(
+  const {
+    accountTransfers,
+    activeColumns,
+  } = await getAccountTransfers(
     dbClient,
     filters,
     groupings
@@ -1194,6 +1197,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
         {}
       ),
     },
+    active_columns: activeColumns,
     account_transfers: accountTransfers,
     filter_total_deposited: filterTotalDeposited,
     filter_total_withdrawn: filterTotalWithdrawn,
