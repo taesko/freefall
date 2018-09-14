@@ -377,9 +377,9 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   } = db.buildGroupingParams(columnsConfig, groupings);
 
   const queryValues = [
-    filters.user_email,
-    filters.datetime_from,
-    filters.datetime_to,
+    filters.user,
+    filters.transferred_at_from,
+    filters.transferred_at_to,
     filters.deposits,
     filters.withdrawals,
     filters.transfers_by_employees,

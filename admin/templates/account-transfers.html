@@ -21,12 +21,12 @@
             <label>User email:</label>
             <div class="row">
               <div class="col-md-6">
-                <input class="form-control" type="email" name="filter-user-email" placeholder="Email" value="{{ filters.user_email }}">
+                <input class="form-control" type="email" name="filter-user" placeholder="Email" value="{{ filters.user }}">
               </div>
               <div class="col-md-6">
                 <select name="grouping-user" class="form-control">
-                  <option value="none">No grouping</option>
-                  <option value="user">Group by user</option>
+                  <option value="none" {{ is_selected groupings.user "none" }}>No grouping</option>
+                  <option value="user" {{ is_selected groupings.user "user" }}>Group by user</option>
                 </select>
               </div>
             </div>
@@ -440,9 +440,9 @@
   <script src="./js/jquery.datetimepicker.min.js"></script>
   <script>
     var filtersGlobal = {
-      user_email: _.unescape('{{{escape filters.user_email}}}'),
-      date_from: _.unescape('{{{escape filters.date_from}}}'),
-      date_to: _.unescape('{{{escape filters.date_to}}}'),
+      user: _.unescape('{{{escape filters.user}}}'),
+      transferred_at_from: _.unescape('{{{escape filters.transferred_at_from}}}'),
+      transferred_at_to: _.unescape('{{{escape filters.transferred_at_to}}}'),
       type: _.unescape('{{{escape filters.type}}}'),
       reason: _.unescape('{{{escape filters.reason}}}'),
     };
@@ -460,7 +460,6 @@
       fetch_time: _.unescape('{{{escape groupings.fetch_time}}}'),
     };
 
-    console.log(groupingsGlobal);
   </script>
   <script src="./js/xlsx.full.min.js"></script>
   <script src="./js/account-transfers.js"></script>

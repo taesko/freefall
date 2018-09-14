@@ -1383,43 +1383,109 @@ const adminListAccountTransfers = defineAPIMethod(
 
     // setting default filters
     const filters = {
-      user_email: null,
+      user: null,
       deposits: true,
       withdrawals: true,
       transfers_by_employees: true,
       new_subsctiption_taxes: true,
       new_fetch_taxes: true,
-      datetime_from: null,
-      datetime_to: null,
+      transferred_at_from: null,
+      transferred_at_to: null,
     };
-
-    if (params.filters.user_email) {
-      filters.user_email = params.filters.user_email;
-    }
 
     // TODO validate datetimes
 
-    if (params.filters.type && params.filters.type !== 'all') {
-      if (params.filters.type !== 'deposits') {
-        filters.deposits = false;
-      }
+    const typesExpected = [
+      'all',
+      'deposits',
+      'withdrawals',
+    ];
 
-      if (params.filters.type !== 'withdrawals') {
-        filters.withdrawals = false;
-      }
-    }
+    const reasonsExpected = [
+      'all',
+      'employee',
+      'new-subscription',
+      'fetch',
+    ];
 
-    if (params.filters.reason && params.filters.reason !== 'all') {
-      if (params.filters.reason !== 'employee') {
-        filters.transfers_by_employees = false;
-      }
+    const apiParamsToFiltersParamsMapping = [
+      {
+        api: 'user',
+        filter: 'user',
+      },
+      {
+        api: 'type',
+        filter: 'deposits',
+        expected: typesExpected,
+        resolve: (apiParam) => apiParam === 'deposits',
+      },
+      {
+        api: 'type',
+        filter: 'withdrawals',
+        expected: typesExpected,
+        resolve: (apiParam) => apiParam === 'withdrawals',
+      },
+      {
+        api: 'reason',
+        filter: 'transfers_by_employees',
+        expected: reasonsExpected,
+        resolve: (apiParam) => apiParam === 'employee',
+      },
+      {
+        api: 'reason',
+        filter: 'new_subscription_taxes',
+        expected: reasonsExpected,
+        resolve: (apiParam) => apiParam === 'new-subscription',
+      },
+      {
+        api: 'reason',
+        filter: 'new_fetch_taxes',
+        expected: reasonsExpected,
+        resolve: (apiParam) => apiParam === 'fetch',
+      },
+      {
+        api: 'transferred-at-from',
+        filter: 'transferred_at_from',
+      },
+      {
+        api: 'transferred-at-to',
+        filter: 'transferred_at_to',
+      },
+      {
+        api: 'page',
+        filter: 'offset',
+        resolve: (apiParam) => {
+          let page;
 
-      if (params.filters.reason !== 'new-subscription') {
-        filters.new_subsctiption_taxes = false;
-      }
+          if (!apiParam) {
+            page = 1;
+          } else {
+            page = Number(apiParam);
 
-      if (params.filters.reason !== 'fetch') {
-        filters.new_fetch_taxes = false;
+            if (!Number.isInteger(page) || page < 0) {
+              page = 1;
+            }
+          }
+
+          return (page - 1) * RESULTS_LIMIT;
+        },
+      }
+    ];
+
+    for (const mapping of apiParamsToFiltersParamsMapping) {
+      if (params.filters[mapping.api] && params.filters[mapping.api] !== 'all') {
+        assertUser(
+          !mapping.expected ||
+          mapping.expected.includes(params.filters[mapping.api]),
+          'Unexpected param value.',
+          'ALAT_BAD_PATAMETERS',
+        );
+
+        if (mapping.resolve) {
+          filters[mapping.filter] = mapping.resolve(params.filters[mapping.api]);
+        } else {
+          filters[mapping.filter] = params.filters[mapping.api];
+        }
       }
     }
 
@@ -1564,16 +1630,20 @@ const adminListAccountTransfers = defineAPIMethod(
     ];
 
     for (const mapping of apiParamsToGroupingsParamsMapping) {
-      if (params[mapping.api] && params[mapping.api] !== 'none') {
+      if (params.groupings[mapping.api] && params.groupings[mapping.api] !== 'none') {
         assertUser(
-          mapping.expected.includes(params[mapping.api]),
+          mapping.expected.includes(params.groupings[mapping.api]),
           'Unexpected param value.',
           'ALAT_BAD_PATAMETERS',
         );
 
-        groupings[mapping.grouping] = mapping.resolve(params[mapping.api]);
+        groupings[mapping.grouping] = mapping.resolve(params.groupings[mapping.api]);
       }
     }
+
+    console.log(filters);
+    console.log(groupings);
+    console.log(params);
 
     const { accountTransfers } = await getAccountTransfers(
       dbClient,

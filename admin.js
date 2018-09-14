@@ -800,69 +800,112 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   const filters = {
     offset: 0,
     limit: RESULTS_LIMIT,
-    user_email: null,
+    user: null,
     deposits: true,
     withdrawals: true,
     transfers_by_employees: true,
     new_subsctiption_taxes: true,
     new_fetch_taxes: true,
-    datetime_from: null,
-    datetime_to: null,
+    transferred_at_from: null,
+    transferred_at_to: null,
   };
 
   // TODO validate datetimes
 
-  let page;
+  const typesExpected = [
+    'all',
+    'deposits',
+    'withdrawals',
+  ];
 
-  // changing filters according to params
-  if (!ctx.query.page) {
-    page = 1;
-  } else {
-    page = Number(ctx.query.page);
-  }
+  const reasonsExpected = [
+    'all',
+    'employee',
+    'new-subscription',
+    'fetch',
+  ];
 
-  if (!Number.isInteger(page) || page < 1) {
-    ctx.body = 'Expected positive integer for page number!';
-    ctx.status = 400;
-    return;
-  }
+  const queryParamsToFiltersParamsMapping = [
+    {
+      query: 'filter-user',
+      filter: 'user',
+    },
+    {
+      query: 'filter-type',
+      filter: 'deposits',
+      expected: typesExpected,
+      resolve: (queryParam) => queryParam === 'deposits',
+    },
+    {
+      query: 'filter-type',
+      filter: 'withdrawals',
+      expected: typesExpected,
+      resolve: (queryParam) => queryParam === 'withdrawals',
+    },
+    {
+      query: 'filter-reason',
+      filter: 'transfers_by_employees',
+      expected: reasonsExpected,
+      resolve: (queryParam) => queryParam === 'employee',
+    },
+    {
+      query: 'filter-reason',
+      filter: 'new_subscription_taxes',
+      expected: reasonsExpected,
+      resolve: (queryParam) => queryParam === 'new-subscription',
+    },
+    {
+      query: 'filter-reason',
+      filter: 'new_fetch_taxes',
+      expected: reasonsExpected,
+      resolve: (queryParam) => queryParam === 'fetch',
+    },
+    {
+      query: 'filter-transferred-at-from',
+      filter: 'transferred_at_from',
+    },
+    {
+      query: 'filter-transferred-at-to',
+      filter: 'transferred_at_to',
+    },
+    {
+      query: 'page',
+      filter: 'offset',
+      resolve: (queryParam) => {
+        let page;
 
-  filters.offset = (page - 1) * RESULTS_LIMIT;
+        if (!queryParam) {
+          page = 1;
+        } else {
+          page = Number(queryParam);
 
-  if (ctx.query['filter-user-email'] && ctx.query['filter-user-email'].length > 0) {
-    filters.user_email = ctx.query['filter-user-email'];
-  }
+          if (!Number.isInteger(page) || page < 0) {
+            page = 1;
+          }
+        }
 
-  if (ctx.query['filter-type'] && ctx.query['filter-type'].length > 0 && ctx.query['filter-type'] !== 'all') {
-    if (ctx.query['filter-type'] !== 'deposits') {
-      filters.deposits = false;
+        return (page - 1) * RESULTS_LIMIT;
+      },
     }
+  ];
 
-    if (ctx.query['filter-type'] !== 'withdrawals') {
-      filters.withdrawals = false;
+  for (const mapping of queryParamsToFiltersParamsMapping) {
+    if (ctx.query[mapping.query] && ctx.query[mapping.query] !== 'all') {
+      if (
+        mapping.expected &&
+        !mapping.expected.includes(ctx.query[mapping.query])
+      ) {
+        ctx.status = 400;
+        ctx.body = 'Invalid grouping setting!';
+        return;
+      }
+
+      if (mapping.resolve) {
+        filters[mapping.filter] = mapping.resolve(ctx.query[mapping.query]);
+      } else {
+        filters[mapping.filter] = ctx.query[mapping.query];
+      }
     }
-  }
-
-  if (ctx.query['filter-reason'] && ctx.query['filter-reason'].length > 0 && ctx.query['filter-reason'] !== 'all') {
-    if (ctx.query['filter-reason'] !== 'employee') {
-      filters.transfers_by_employees = false;
-    }
-
-    if (ctx.query['filter-reason'] !== 'new-subscription') {
-      filters.new_subsctiption_taxes = false;
-    }
-
-    if (ctx.query['filter-reason'] !== 'fetch') {
-      filters.new_fetch_taxes = false;
-    }
-  }
-
-  if (ctx.query['filter-datetime-from'] && ctx.query['filter-datetime-from'].length > 0) {
-    filters.datetime_from = ctx.query['filter-datetime-from'];
-  }
-
-  if (ctx.query['filter-datetime-to'] && ctx.query['filter-datetime-to'].length > 0) {
-    filters.datetime_to = ctx.query['filter-datetime-to'];
   }
 
   // setting default groupings
@@ -1079,9 +1122,9 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
         )
       );
   `, [
-    filters.user_email,
-    filters.datetime_from,
-    filters.datetime_to,
+    filters.user,
+    filters.transferred_at_from,
+    filters.transferred_at_to,
     filters.deposits,
     filters.withdrawals,
     filters.transfers_by_employees,
@@ -1184,8 +1227,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     },
     filters: {
       ...filters,
-      type: ctx.query.type,
-      reason: ctx.query.reason,
+      type: ctx.query['filter-type'],
+      reason: ctx.query['filter-reason'],
     },
     groupings: {
       ...groupings,
@@ -1207,10 +1250,10 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     total_credits_loaded: totalCreditsLoaded.rows[0].users_given_credits,
     dalipeche_api_total_requests:
       dalipecheAPITotalRequests.rows[0].dalipeche_api_requests,
-    page,
+    page: filters.page,
     query_string_without_page: queryStringWithoutPage,
-    next_page: accountTransfers.length === RESULTS_LIMIT ? page + 1 : null,
-    prev_page: page > 1 ? page - 1 : null,
+    next_page: accountTransfers.length === RESULTS_LIMIT ? filters.page + 1 : null,
+    prev_page: filters.page > 1 ? filters.page - 1 : null,
   });
 });
 
