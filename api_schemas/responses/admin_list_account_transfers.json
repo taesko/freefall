@@ -17,11 +17,17 @@
         "properties": {
           "account_owner_id": {
             "title": "Account owner id",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "account_owner_email": {
             "title": "Account owner email",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "deposit_amount": {
             "title": "Deposit amount",
@@ -39,6 +45,20 @@
           },
           "transferred_at": {
             "title": "Transferred_at",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "title": "Transfer type",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "title": "Transfer reason",
             "type": [
               "null",
               "string"

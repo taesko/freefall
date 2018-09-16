@@ -1680,6 +1680,50 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                 'fetch',
               ],
             },
+            'subscr_airport_from': {
+              'title': 'Subscription departure airport filter',
+              'type': 'string',
+            },
+            'subscr_airport_to': {
+              'title': 'Subscription arrival airport filter',
+              'type': 'string',
+            },
+            'fetch_time_from': {
+              'title': 'Subscription fetch time from filter',
+              'type': 'string',
+            },
+            'fetch_time_to': {
+              'title': 'Subscription fetch time to filter',
+              'type': 'string',
+            },
+            'employee_email': {
+              'title': 'Employee transferrer email filter',
+              'type': 'string',
+            },
+            'user_subscr_airport_from': {
+              'title': 'User subscription departure airport filter',
+              'type': 'string',
+            },
+            'user_subscr_airport_to': {
+              'title': 'User subscription arrival airport filter',
+              'type': 'string',
+            },
+            'user_subscr_depart_time_from': {
+              'title': 'User subscription departure time from filter',
+              'type': 'string',
+            },
+            'user_subscr_depart_time_to': {
+              'title': 'User subscription departure time to filter',
+              'type': 'string',
+            },
+            'user_subscr_arrival_time_from': {
+              'title': 'User subscription arrival time from filter',
+              'type': 'string',
+            },
+            'user_subscr_arrival_time_to': {
+              'title': 'User subscription arrival time to filter',
+              'type': 'string',
+            },
           },
         },
         'groupings': {
@@ -1706,6 +1750,22 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                 'week',
                 'month',
                 'year',
+              ],
+            },
+            'type': {
+              'title': 'Transfer type grouping',
+              'type': 'string',
+              'enum': [
+                'none',
+                'type',
+              ],
+            },
+            'reason': {
+              'title': 'Transfer reason grouping',
+              'type': 'string',
+              'enum': [
+                'none',
+                'reason',
               ],
             },
             'employee': {
@@ -1786,6 +1846,8 @@ const adminValidators = { // eslint-disable-line no-unused-vars
           'required': [
             'user',
             'transferred_at',
+            'type',
+            'reason',
             'employee',
             'user_subscr_airport_from',
             'user_subscr_airport_to',
@@ -1827,11 +1889,17 @@ const adminValidators = { // eslint-disable-line no-unused-vars
             'properties': {
               'account_owner_id': {
                 'title': 'Account owner id',
-                'type': 'string',
+                'type': [
+                  'null',
+                  'string',
+                ],
               },
               'account_owner_email': {
                 'title': 'Account owner email',
-                'type': 'string',
+                'type': [
+                  'null',
+                  'string',
+                ],
               },
               'deposit_amount': {
                 'title': 'Deposit amount',
@@ -1849,6 +1917,20 @@ const adminValidators = { // eslint-disable-line no-unused-vars
               },
               'transferred_at': {
                 'title': 'Transferred_at',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'type': {
+                'title': 'Transfer type',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
+              'reason': {
+                'title': 'Transfer reason',
                 'type': [
                   'null',
                   'string',

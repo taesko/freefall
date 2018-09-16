@@ -1603,6 +1603,24 @@ const adminListAccountTransfers = defineAPIMethod(
         resolve: nullIfNoneElseParam,
       },
       {
+        api: 'type',
+        grouping: 'type',
+        expected: [
+          'none',
+          'type',
+        ],
+        resolve: nullIfNoneElseTrue,
+      },
+      {
+        api: 'reason',
+        grouping: 'reason',
+        expected: [
+          'none',
+          'reason',
+        ],
+        resolve: nullIfNoneElseTrue,
+      },
+      {
         api: 'employee',
         grouping: 'employee',
         expected: [

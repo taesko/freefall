@@ -1022,6 +1022,24 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
       resolve: nullIfNoneElseParam,
     },
     {
+      query: 'grouping-type',
+      grouping: 'type',
+      expected: [
+        'none',
+        'type',
+      ],
+      resolve: nullIfNoneElseTrue,
+    },
+    {
+      query: 'grouping-reason',
+      grouping: 'reason',
+      expected: [
+        'none',
+        'reason',
+      ],
+      resolve: nullIfNoneElseTrue,
+    },
+    {
       query: 'grouping-employee',
       grouping: 'employee',
       expected: [

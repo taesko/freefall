@@ -33,20 +33,40 @@
           </div>
           <div class="form-group">
             <label>Type of transaction</label>
-            <select name="filter-type" class="form-control">
-              <option value="all" {{ is_selected filters.type "all" }}>All</option>
-              <option value="deposits" {{ is_selected filters.type "deposits" }}>Only deposits</option>
-              <option value="withdrawals" {{ is_selected filters.type "withdrawals" }}>Only withdrawals</option>
-            </select>
+            <div class="row">
+              <div class="col-md-6">
+                <select name="filter-type" class="form-control">
+                  <option value="all" {{ is_selected filters.type "all" }}>All</option>
+                  <option value="deposits" {{ is_selected filters.type "deposits" }}>Only deposits</option>
+                  <option value="withdrawals" {{ is_selected filters.type "withdrawals" }}>Only withdrawals</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <select name="grouping-type" class="form-control">
+                  <option value="none" {{ is_selected groupings.type "none" }}>No grouping</option>
+                  <option value="type" {{ is_selected groupings.type "type" }}>Group by transfer type</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label>Reason for transaction:</label>
-            <select name="filter-reason" class="form-control">
-              <option value="all" {{ is_selected filters.reason "all" }}>All</option>
-              <option value="employee" {{ is_selected filters.reason "employee" }}>Only transfers by employes</option>
-              <option value="new-subscription" {{ is_selected filters.reason "new-subscription" }}>Only new subscription taxes</option>
-              <option value="fetch" {{ is_selected filters.reason "fetch" }}>Only fetch taxes</option>
-            </select>
+            <div class="row">
+              <div class="col-md-6">
+                <select name="filter-reason" class="form-control">
+                  <option value="all" {{ is_selected filters.reason "all" }}>All</option>
+                  <option value="employee" {{ is_selected filters.reason "employee" }}>Only transfers by employes</option>
+                  <option value="new-subscription" {{ is_selected filters.reason "new-subscription" }}>Only new subscription taxes</option>
+                  <option value="fetch" {{ is_selected filters.reason "fetch" }}>Only fetch taxes</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <select name="grouping-reason" class="form-control">
+                  <option value="none" {{ is_selected groupings.reason "none" }}>No grouping</option>
+                  <option value="reason" {{ is_selected groupings.reason "reason" }}>Group by transfer reason</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <div class="row">
@@ -487,6 +507,8 @@
       subscr_airport_from: _.unescape('{{{escape groupings.subscr_airport_from}}}'),
       subscr_airport_to: _.unescape('{{{escape groupings.subscr_airport_to}}}'),
       fetch_time: _.unescape('{{{escape groupings.fetch_time}}}'),
+      type: _.unescape('{{{escape groupings.type}}}'),
+      reason: _.unescape('{{{escape groupings.reason}}}'),
     };
 
   </script>
