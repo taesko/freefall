@@ -52,11 +52,11 @@
             <div class="row">
               <div class="col-md-4">
                 <label>Time from:</label>
-                <input id="datetime-from" name="filter-datetime-from" class="form-control" type="text" value="{{ filters.datetime_from }}">
+                <input id="filter-transferred-at-from" name="filter-transferred-at-from" class="form-control" type="text" value="{{ filters.transferred_at_from }}">
               </div>
               <div class="col-md-4">
                 <label>Time to:</label>
-                <input id="datetime-to" name="filter-datetime-to" class="form-control" type="text" value="{{ filters.datetime_to }}">
+                <input id="filter-transferred-at-to" name="filter-transferred-at-to" class="form-control" type="text" value="{{ filters.transferred_at_to }}">
               </div>
               <div class="col-md-4">
                 <label>Group by</label>
@@ -109,11 +109,11 @@
             <div class="row">
               <div class="col-md-4">
                 <label>Time from</label>
-                <input class="form-control" type="text" name="filter-fetch-time-from" placeholder="Fetch time from" value="{{ filters.fetch_time_from }}">
+                <input id="filter-fetch-time-from" class="form-control" type="text" name="filter-fetch-time-from" placeholder="Fetch time from" value="{{ filters.fetch_time_from }}">
               </div>
               <div class="col-md-4">
                 <label>Time to</label>
-                <input class="form-control" type="text" name="filter-fetch-time-to" placeholder="Fetch time to" value="{{  filters.fetch_time_to }}">
+                <input id="filter-fetch-time-to" class="form-control" type="text" name="filter-fetch-time-to" placeholder="Fetch time to" value="{{  filters.fetch_time_to }}">
               </div>
               <div class="col-md-4">
                 <label>Group by:</label>
@@ -180,11 +180,11 @@
             <div class="row">
               <div class="col-md-4">
                 <label>Departure time from</label>
-                <input class="form-control" type="text" name="filter-user-subscr-depart-time-from" placeholder="Departure time from" value="{{ filters.user_subscr_depart_time_from }}">
+                <input id="filter-user-subscr-depart-time-from" class="form-control" type="text" name="filter-user-subscr-depart-time-from" placeholder="Departure time from" value="{{ filters.user_subscr_depart_time_from }}">
               </div>
               <div class="col-md-4">
                 <label>Departure time to</label>
-                <input class="form-control" type="text" name="filter-user-subscr-depart-time-to" placeholder="Departure time to" value="{{ filters.user_subscr_depart_time_to }}">
+                <input id="filter-user-subscr-depart-time-to" class="form-control" type="text" name="filter-user-subscr-depart-time-to" placeholder="Departure time to" value="{{ filters.user_subscr_depart_time_to }}">
               </div>
               <div class="col-md-4">
                 <div class="form-group">
@@ -203,11 +203,11 @@
             <div class="row">
               <div class="col-md-4">
                 <label>Arrival time from</label>
-                <input class="form-control" type="text" name="filter-user-subscr-arrival-time-from" placeholder="Arrival time from" value="{{ filters.user_subscr_arrival_time_from }}">
+                <input id="filter-user-subscr-arrival-time-from" class="form-control" type="text" name="filter-user-subscr-arrival-time-from" placeholder="Arrival time from" value="{{ filters.user_subscr_arrival_time_from }}">
               </div>
               <div class="col-md-4">
                 <label>Arrival time to</label>
-                <input class="form-control" type="text" name="filter-user-subscr-arrival-time-to" placeholder="Arrival time to" value="{{ filters.user_subscr_arrival_time_to }}">
+                <input id="filter-user-subscr-arrival-time-to" class="form-control" type="text" name="filter-user-subscr-arrival-time-to" placeholder="Arrival time to" value="{{ filters.user_subscr_arrival_time_to }}">
               </div>
               <div class="col-md-4">
                 <label>Group by</label>
@@ -445,6 +445,19 @@
       transferred_at_to: _.unescape('{{{escape filters.transferred_at_to}}}'),
       type: _.unescape('{{{escape filters.type}}}'),
       reason: _.unescape('{{{escape filters.reason}}}'),
+      transferred_at_from: _.unescape('{{{escape filters.transferred_at_from}}}'),
+      transferred_at_to: _.unescape('{{{escape filters.transferred_at_to}}}'),
+      subscr_airport_from: _.unescape('{{{escape filters.subscr_airport_from}}}'),
+      subscr_airport_to: _.unescape('{{{escape filters.subscr_airport_to}}}'),
+      fetch_time_from: _.unescape('{{{escape filters.fetch_time_from}}}'),
+      fetch_time_to: _.unescape('{{{escape filters.fetch_time_to}}}'),
+      employee_email: _.unescape('{{{escape filters.employee_email}}}'),
+      user_subscr_airport_from: _.unescape('{{{escape filters.user_subscr_airport_from}}}'),
+      user_subscr_airport_to: _.unescape('{{{escape filters.user_subscr_airport_to}}}'),
+      user_subscr_depart_time_from: _.unescape('{{{escape filters.user_subscr_depart_time_from}}}'),
+      user_subscr_depart_time_to: _.unescape('{{{escape filters.user_subscr_depart_time_to}}}'),
+      user_subscr_arrival_time_from: _.unescape('{{{escape filters.user_subscr_arrival_time_from}}}'),
+      user_subscr_arrival_time_to: _.unescape('{{{escape filters.user_subscr_arrival_time_to}}}'),
     };
 
     var groupingsGlobal = {

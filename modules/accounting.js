@@ -385,6 +385,17 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     filters.transfers_by_employees,
     filters.new_subsctiption_taxes,
     filters.new_fetch_taxes,
+    filters.subscr_airport_from,
+    filters.subscr_airport_to,
+    filters.fetch_time_from,
+    filters.fetch_time_to,
+    filters.employee_email,
+    filters.user_subscr_airport_from,
+    filters.user_subscr_airport_to,
+    filters.user_subscr_depart_time_from,
+    filters.user_subscr_depart_time_to,
+    filters.user_subscr_arrival_time_from,
+    filters.user_subscr_arrival_time_to,
     offset,
   ];
 
@@ -461,11 +472,55 @@ async function getAccountTransfers (dbClient, filters, groupings) {
           $8 = true AND
           fetch_time IS NOT NULL
         )
+      ) AND
+      (
+        $9::text IS NULL OR
+        a3.name = $9
+      ) AND
+      (
+        $10::text IS NULL OR
+        a4.name = $10
+      ) AND
+      (
+        $11::text IS NULL OR
+        fetch_time >= to_timestamp($11, 'YYYY-MM-DDTHH24:MI:SS')
+      ) AND
+      (
+        $12::text IS NULL OR
+        fetch_time <= to_timestamp($12, 'YYYY-MM-DDTH24:MI:SS')
+      ) AND
+      (
+        $13::text IS NULL OR
+        employees.email = $13
+      ) AND
+      (
+        $14::text IS NULL OR
+        a1.name = $14
+      ) AND
+      (
+        $15::text IS NULL OR
+        a2.name = $15
+      ) AND
+      (
+        $16::text IS NULL OR
+        users_subscriptions.date_from >= to_date($16, 'YYYY-MM-DD')
+      ) AND
+      (
+        $17::text IS NULL OR
+        users_subscriptions.date_from <= to_date($17, 'YYYY-MM-DD')
+      ) AND
+      (
+        $18::text IS NULL OR
+        users_subscriptions.date_to >= to_date($18, 'YYYY-MM-DD')
+      ) AND
+      (
+        $19::text IS NULL OR
+        users_subscriptions.date_to <= to_date($19, 'YYYY-MM-DD')
       )
     ${groupColumns.length > 0 ? `GROUP BY ${groupColumns}` : ''}
     ORDER BY ${groupColumns.length > 0 ? groupColumns : '1'}
-    OFFSET $9
-    ${filters.limit ? 'LIMIT $10' : ''};
+    OFFSET $20
+    ${filters.limit ? 'LIMIT $21' : ''};
 
   `, queryValues);
 

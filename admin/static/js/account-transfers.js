@@ -144,6 +144,17 @@ function start () {
                 'transferred_at_to',
                 'type',
                 'reason',
+                'subscr_airport_from',
+                'subscr_airport_to',
+                'fetch_time_from',
+                'fetch_time_to',
+                'employee_email',
+                'user_subscr_airport_from',
+                'user_subscr_airport_to',
+                'user_subscr_depart_time_from',
+                'user_subscr_depart_time_to',
+                'user_subscr_arrival_time_from',
+                'user_subscr_arrival_time_to',
               ],
               filters: filtersGlobal,
             },
@@ -178,8 +189,14 @@ function start () {
       format: 'Y-m-d H:i:s',
     };
 
-    $('#datetime-from').datetimepicker(datetimepickerOptions);
-    $('#datetime-to').datetimepicker(datetimepickerOptions);
+    $('#filter-transferred-at-from').datetimepicker(datetimepickerOptions);
+    $('#filter-transferred-at-to').datetimepicker(datetimepickerOptions);
+    $('#filter-fetch-time-from').datetimepicker(datetimepickerOptions);
+    $('#filter-fetch-time-to').datetimepicker(datetimepickerOptions);
+    $('#filter-user-subscr-depart-time-from').datetimepicker(datetimepickerOptions);
+    $('#filter-user-subscr-depart-time-to').datetimepicker(datetimepickerOptions);
+    $('#filter-user-subscr-arrival-time-from').datetimepicker(datetimepickerOptions);
+    $('#filter-user-subscr-arrival-time-to').datetimepicker(datetimepickerOptions);
   });
 }
 

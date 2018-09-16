@@ -1391,6 +1391,17 @@ const adminListAccountTransfers = defineAPIMethod(
       new_fetch_taxes: true,
       transferred_at_from: null,
       transferred_at_to: null,
+      subscr_airport_from: null,
+      subscr_airport_to: null,
+      fetch_time_from: null,
+      fetch_time_to: null,
+      employee_email: null,
+      user_subscr_airport_from: null,
+      user_subscr_airport_to: null,
+      user_subscr_depart_time_from: null,
+      user_subscr_depart_time_to: null,
+      user_subscr_arrival_time_from: null,
+      user_subscr_arrival_time_to: null,
     };
 
     // TODO validate datetimes
@@ -1469,7 +1480,51 @@ const adminListAccountTransfers = defineAPIMethod(
 
           return (page - 1) * RESULTS_LIMIT;
         },
-      }
+      },
+      {
+        api: 'subscr_airport_from',
+        filter: 'subscr_airport_from',
+      },
+      {
+        api: 'subscr_airport_to',
+        filter: 'subscr_airport_to',
+      },
+      {
+        api: 'fetch_time_from',
+        filter: 'fetch_time_from',
+      },
+      {
+        api: 'fetch_time_to',
+        filter: 'fetch_time_to',
+      },
+      {
+        api: 'employee_email',
+        filter: 'employee_email',
+      },
+      {
+        api: 'user_subscr_airport_from',
+        filter: 'user_subscr_airport_from',
+      },
+      {
+        api: 'user_subscr_airport_to',
+        filter: 'user_subscr_airport_to',
+      },
+      {
+        api: 'user_subscr_depart_time_from',
+        filter: 'user_subscr_depart_time_from',
+      },
+      {
+        api: 'user_subscr_depart_time_to',
+        filter: 'user_subscr_depart_time_to',
+      },
+      {
+        api: 'user_subscr_arrival_time_from',
+        filter: 'user_subscr_arrival_time_from',
+      },
+      {
+        api: 'user_subscr_arrival_time_to',
+        filter: 'user_subscr_arrival_time_to',
+      },
     ];
 
     for (const mapping of apiParamsToFiltersParamsMapping) {

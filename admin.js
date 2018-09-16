@@ -820,6 +820,17 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     new_fetch_taxes: true,
     transferred_at_from: null,
     transferred_at_to: null,
+    subscr_airport_from: null,
+    subscr_airport_to: null,
+    fetch_time_from: null,
+    fetch_time_to: null,
+    employee_email: null,
+    user_subscr_airport_from: null,
+    user_subscr_airport_to: null,
+    user_subscr_depart_time_from: null,
+    user_subscr_depart_time_to: null,
+    user_subscr_arrival_time_from: null,
+    user_subscr_arrival_time_to: null,
   };
 
   // TODO validate datetimes
@@ -886,7 +897,51 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
       resolve: ((page) => () => {
         return (page - 1) * RESULTS_LIMIT;
       })(page),
-    }
+    },
+    {
+      query: 'filter-subscr-airport-from',
+      filter: 'subscr_airport_from',
+    },
+    {
+      query: 'filter-subscr-airport-to',
+      filter: 'subscr_airport_to',
+    },
+    {
+      query: 'filter-fetch-time-from',
+      filter: 'fetch_time_from',
+    },
+    {
+      query: 'filter-fetch-time-to',
+      filter: 'fetch_time_to',
+    },
+    {
+      query: 'filter-employee-email',
+      filter: 'employee_email',
+    },
+    {
+      query: 'filter-user-subscr-airport-from',
+      filter: 'user_subscr_airport_from',
+    },
+    {
+      query: 'filter-user-subscr-airport-to',
+      filter: 'user_subscr_airport_to',
+    },
+    {
+      query: 'filter-user-subscr-depart-time-from',
+      filter: 'user_subscr_depart_time_from',
+    },
+    {
+      query: 'filter-user-subscr-depart-time-to',
+      filter: 'user_subscr_depart_time_to',
+    },
+    {
+      query: 'filter-user-subscr-arrival-time-from',
+      filter: 'user_subscr_arrival_time_from',
+    },
+    {
+      query: 'filter-user-subscr-arrival-time-to',
+      filter: 'user_subscr_arrival_time_to',
+    },
   ];
 
   for (const mapping of queryParamsToFiltersParamsMapping) {
@@ -1130,6 +1185,17 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     filters.transfers_by_employees,
     filters.new_subsctiption_taxes,
     filters.new_fetch_taxes,
+/*    filters.subscr_airport_from,
+    filters.subscr_airport_to,
+    filters.fetch_time_from,
+    filters.fetch_time_to,
+    filters.employee_email,
+    filters.user_subscr_airport_from,
+    filters.user_subscr_airport_to,
+    filters.user_subscr_depart_time_from,
+    filters.user_subscr_depart_time_to,
+    filters.user_subscr_arrival_time_from,
+    filters.user_subscr_arrival_time_to,*/
   ]);
 
   assertApp(isObject(selectAllTransferAmountsResult), `Expected selectAllTransferAmountsResult to be an object, but was ${typeof selectAllTransferAmountsResult}`);
