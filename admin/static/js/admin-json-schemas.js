@@ -1999,6 +1999,13 @@ const adminValidators = { // eslint-disable-line no-unused-vars
                   'string',
                 ],
               },
+              'grouped_amount': {
+                'title': 'Grouped amount',
+                'type': [
+                  'null',
+                  'string',
+                ],
+              },
             },
           },
         },

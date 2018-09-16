@@ -218,7 +218,13 @@ function buildGroupingParams (selectColumns, groupings) {
   const areGroupings = Object.values(groupings)
     .some((grouping) => grouping != null);
 
-  const activeColumns = {};
+  const activeColumns = {
+    grouped_amount: false,
+  };
+
+  if (areGroupings) {
+    activeColumns.grouped_amount = true;
+  }
 
   for (const selectColumn of selectColumns) {
     const columns = [];

@@ -126,6 +126,13 @@
               "null",
               "string"
             ]
+          },
+          "grouped_amount": {
+            "title": "Grouped amount",
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       }

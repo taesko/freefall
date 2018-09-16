@@ -326,7 +326,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       transform: depositIfAmountPositiveElseWitihdrawal,
       groupingsSettingName: 'type',
     },
-    { // TODO this is ugly hack:
+    { // TODO FIX this is ugly hack:
       isSet: false,
       isGroupable: true,
       isAggregatable: false,
@@ -445,6 +445,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
 
     SELECT
       ${selectColumnsPart}
+      ${groupColumns.length > 0 ? ', COUNT(*) AS grouped_amount' : ''}
     FROM account_transfers
     LEFT JOIN users
       ON account_transfers.user_id = users.id
@@ -588,6 +589,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     subscr_airport_from_name: row.subscr_airport_from_name || null,
     subscr_airport_to_name: row.subscr_airport_to_name || null,
     fetch_time: (row.fetch_time && row.fetch_time.toISOString()) || null,
+    grouped_amount: row.grouped_amount || null,
   }));
 
   return {

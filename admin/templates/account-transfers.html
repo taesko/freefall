@@ -291,6 +291,9 @@
             {{#if active_columns.transferred_at}}
               <th>Transferred at</th>
             {{/if}}
+            {{#if active_columns.grouped_amount}}
+              <th>Grouped amount</th>
+            {{/if}}
             {{#if active_columns.account_transfer_id}}
               <th>Account transfer id</th>
             {{/if}}
@@ -347,6 +350,11 @@
             {{#if ../active_columns.transferred_at}}
               <td>
                 {{this.transferred_at}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.grouped_amount}}
+              <td>
+                {{this.grouped_amount}}
               </td>
             {{/if}}
             {{#if ../active_columns.account_transfer_id}}
