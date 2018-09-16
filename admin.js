@@ -975,6 +975,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     subscr_airport_from: null,
     subscr_airport_to: null,
     fetch_time: null,
+    type: null,
+    reason: null,
   };
 
   // changing groupings according to params

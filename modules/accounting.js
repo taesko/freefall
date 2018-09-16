@@ -218,6 +218,24 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     return `CASE WHEN ${column} > 0 THEN ${column} ELSE 0 END`;
   };
 
+  const depositIfAmountPositiveElseWitihdrawal = function (column) {
+    return `CASE WHEN ${column} > 0 THEN 'deposit' ELSE 'withdrawal' END`;
+  };
+
+  // TODO this is ugly hack, fix it:
+  const resolveTransferReason = function () {
+    return `
+
+      CASE
+      WHEN "user_subscription_account_transfers"."id" IS NOT NULL THEN 'user subscription'
+      WHEN "subscriptions_fetches_account_transfers"."id" IS NOT NULL THEN 'fetch'
+      WHEN "account_transfers_by_employees"."id" IS NOT NULL THEN 'employee'
+      ELSE 'unknown'
+      END
+
+    `;
+  };
+
   const columnsConfig = [
     {
       isSet: false,
@@ -297,6 +315,26 @@ async function getAccountTransfers (dbClient, filters, groupings) {
         },
       ],
       groupingsSettingName: 'employee',
+    },
+    {
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: 'account_transfers',
+      column: 'transfer_amount',
+      alias: 'type',
+      transform: depositIfAmountPositiveElseWitihdrawal,
+      groupingsSettingName: 'type',
+    },
+    { // TODO this is ugly hack:
+      isSet: false,
+      isGroupable: true,
+      isAggregatable: false,
+      table: '', // doesn't matter
+      column: '', // doesn't matter
+      alias: 'reason',
+      transform: resolveTransferReason,
+      groupingsSettingName: 'reason',
     },
     {
       isSet: false,
@@ -536,6 +574,8 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     deposit_amount: Number(row.deposit_amount),
     withdrawal_amount: Number(row.withdrawal_amount),
     transferred_at: (row.transferred_at && row.transferred_at.toISOString()) || null,
+    type: row.type || null,
+    reason: row.reason || null,
     employee_transferrer_id:
       row.employee_transferrer_id == null ? null : String(row.employee_transferrer_id),
     employee_transferrer_email: row.employee_transferrer_email || null,

@@ -1556,6 +1556,8 @@ const adminListAccountTransfers = defineAPIMethod(
       subscr_airport_from: null,
       subscr_airport_to: null,
       fetch_time: null,
+      type: null,
+      reason: null,
     };
 
     // changing groupings according to params

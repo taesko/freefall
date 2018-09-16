@@ -286,6 +286,12 @@
             {{#if active_columns.withdrawal_amount}}
               <th>Withdrawals</th>
             {{/if}}
+            {{#if active_columns.type}}
+              <th>Transfer type</th>
+            {{/if}}
+            {{#if active_columns.reason}}
+              <th>Transfer reason</th>
+            {{/if}}
             {{#if active_columns.employee_transferrer_id}}
               <th>Employee transferrer id</th>
             {{/if}}
@@ -347,6 +353,16 @@
             {{#if ../active_columns.withdrawal_amount}}
               <td class="text-right">
                 {{this.withdrawal_amount}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.type}}
+              <td>
+                {{this.type}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.reason}}
+              <td>
+                {{this.reason}}
               </td>
             {{/if}}
             {{#if ../active_columns.employee_transferrer_id}}
