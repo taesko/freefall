@@ -228,35 +228,76 @@ function main () { // eslint-disable-line no-unused-vars
       msg: 'Expected callback to be falsey or function, but was "' + typeof callback + '"', // eslint-disable-line prefer-template
     });
 
-    var url = requestData.url; // eslint-disable-line no-var
-    var data = requestData.data; // eslint-disable-line no-var
-    var protocolName = requestData.protocolName; // eslint-disable-line no-var
+    var parser = getParser(requestData.protocolName); // eslint-disable-line no-var
+
+    getAjaxResponseText({
+      url: requestData.url,
+      method: 'POST',
+      contentType: parser.contentType,
+      body: parser.stringifyRequest(requestData.data, getUniqueId())
+    }, function (response) { // eslint-disable-line prefer-arrow-callback
+      if (response.status === 200) {
+        const responseParsed = parser.parseResponse(response.responseText);
+        if (typeof callback === 'function') {
+          setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+            callback(
+              responseParsed.error || null,
+              responseParsed.result || null
+            );
+          }, 0);
+        }
+      } else if (response.status !== 204) {
+        handleError({
+          userMessage: 'Service is not available at the moment due to network or other issues.',
+        });
+      }
+    });
+  };
+
+  const getAjaxResponseText = function (params, callback) {
+    assertApp(typeof params.url === 'string', {
+      msg: 'Expected url in params to be string, but params.url=' + params.url, // eslint-disable-line prefer-template
+    });
+    const expectedRequestMethods = [
+      'GET',
+      'HEAD',
+      'POST',
+      'PUT',
+      'DELETE',
+      'CONNECT',
+      'OPTIONS',
+      'TRACE',
+      'PATCH',
+    ];
+    assertApp(expectedRequestMethods.indexOf(params.method) >= 0, {
+      msg: 'Unexpected method in params, method=' + params.method, // eslint-disable-line prefer-template
+    });
+    assertApp(params.body === null || typeof params.body === 'string', {
+      msg: 'Expected body in params to be string, but body=' + params.body, // eslint-disable-line prefer-template
+    });
+    assertApp(typeof params.contentType === 'string', {
+      msg: 'Expected contentType in params to be string, but contentType=' + params.contentType, // eslint-disable-line prefer-template
+    });
+    assertApp(_.isFunction(callback), {
+      msg: 'Expected callback function, but callback=' + callback, // eslint-disable-line prefer-template
+    });
+
     var xhr = new window.XMLHttpRequest(); // eslint-disable-line no-var
-    var parser = getParser(protocolName); // eslint-disable-line no-var
 
     xhr.onreadystatechange = function () { // eslint-disable-line prefer-arrow-callback
       if (xhr.readyState === window.XMLHttpRequest.DONE) {
-        if (xhr.status === 200) {
-          const responseParsed = parser.parseResponse(xhr.responseText);
-          if (typeof callback === 'function') {
-            setTimeout(function () { // eslint-disable-line prefer-arrow-callback
-              callback(
-                responseParsed.error || null,
-                responseParsed.result || null
-              );
-            }, 0);
-          }
-        } else if (xhr.status !== 204) {
-          handleError({
-            userMessage: 'Service is not available at the moment due to network or other issues.',
+        setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+          callback({
+            status: xhr.status,
+            responseText: xhr.responseText,
           });
-        }
+        }, 0);
       }
     };
 
-    xhr.open('POST', url);
-    xhr.setRequestHeader('Content-Type', parser.contentType);
-    xhr.send(parser.stringifyRequest(data, getUniqueId()));
+    xhr.open(params.method, params.url);
+    xhr.setRequestHeader('Content-Type', params.contentType);
+    xhr.send(params.body);
   };
 
   inherit(BaseError, Error);
@@ -286,6 +327,7 @@ function main () { // eslint-disable-line no-unused-vars
     trace: trace,
     traceLog: traceLog,
     sendRequest: sendRequest,
+    getAjaxResponseText: getAjaxResponseText,
     sendError: sendError,
     getUniqueId: getUniqueId,
     getElementUniqueId: getElementUniqueId,

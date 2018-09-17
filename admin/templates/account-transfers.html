@@ -288,14 +288,17 @@
       <table id="account-transfers-table" class="table table-bordered">
         <thead>
           <tr>
-            {{#if active_columns.transferred_at}}
-              <th>Transferred at</th>
-            {{/if}}
             {{#if active_columns.grouped_amount}}
               <th>Grouped amount</th>
             {{/if}}
-            {{#if active_columns.account_transfer_id}}
-              <th>Account transfer id</th>
+            {{#if active_columns.transferred_at}}
+              <th>Transferred at</th>
+            {{/if}}
+            {{#if active_columns.type}}
+              <th>Transfer type</th>
+            {{/if}}
+            {{#if active_columns.reason}}
+              <th>Transfer reason</th>
             {{/if}}
             {{#if active_columns.account_owner_id}}
               <th>User id</th>
@@ -303,17 +306,14 @@
             {{#if active_columns.account_owner_email}}
               <th>User email</th>
             {{/if}}
-            {{#if active_columns.deposit_amount}}
-              <th>Deposits</th>
+            {{#if active_columns.subscr_airport_from_name}}
+              <th>Subscription airport from</th>
             {{/if}}
-            {{#if active_columns.withdrawal_amount}}
-              <th>Withdrawals</th>
+            {{#if active_columns.subscr_airport_to_name}}
+              <th>Subscription airport to</th>
             {{/if}}
-            {{#if active_columns.type}}
-              <th>Transfer type</th>
-            {{/if}}
-            {{#if active_columns.reason}}
-              <th>Transfer reason</th>
+            {{#if active_columns.fetch_time}}
+              <th>Fetch time</th>
             {{/if}}
             {{#if active_columns.employee_transferrer_id}}
               <th>Employee transferrer id</th>
@@ -333,33 +333,38 @@
             {{#if active_columns.user_subscr_date_to}}
               <th>User subscription date to</th>
             {{/if}}
-            {{#if active_columns.subscr_airport_from_name}}
-              <th>Subscription airport from</th>
+            {{#if active_columns.deposit_amount}}
+              <th>Deposits</th>
             {{/if}}
-            {{#if active_columns.subscr_airport_to_name}}
-              <th>Subscription airport to</th>
+            {{#if active_columns.withdrawal_amount}}
+              <th>Withdrawals</th>
             {{/if}}
-            {{#if active_columns.fetch_time}}
-              <th>Fetch time</th>
+            {{#if active_columns.account_transfer_id}}
+              <th>Account transfer id</th>
             {{/if}}
           </tr>
         </thead>
         <tbody>
           {{#each account_transfers}}
           <tr>
-            {{#if ../active_columns.transferred_at}}
-              <td>
-                {{this.transferred_at}}
-              </td>
-            {{/if}}
             {{#if ../active_columns.grouped_amount}}
               <td>
                 {{this.grouped_amount}}
               </td>
             {{/if}}
-            {{#if ../active_columns.account_transfer_id}}
-              <td class="text-right">
-                {{this.account_transfer_id}}
+            {{#if ../active_columns.transferred_at}}
+              <td>
+                {{this.transferred_at}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.type}}
+              <td>
+                {{this.type}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.reason}}
+              <td>
+                {{this.reason}}
               </td>
             {{/if}}
             {{#if ../active_columns.account_owner_id}}
@@ -373,24 +378,19 @@
                 <a href="/users/{{this.account_owner_id}}">(open)</a>
               </td>
             {{/if}}
-            {{#if ../active_columns.deposit_amount}}
-              <td class="text-right">
-                {{this.deposit_amount}}
-              </td>
-            {{/if}}
-            {{#if ../active_columns.withdrawal_amount}}
-              <td class="text-right">
-                {{this.withdrawal_amount}}
-              </td>
-            {{/if}}
-            {{#if ../active_columns.type}}
+            {{#if ../active_columns.subscr_airport_from_name}}
               <td>
-                {{this.type}}
+                {{this.subscr_airport_from_name}}
               </td>
             {{/if}}
-            {{#if ../active_columns.reason}}
+            {{#if ../active_columns.subscr_airport_to_name}}
               <td>
-                {{this.reason}}
+                {{this.subscr_airport_to_name}}
+              </td>
+            {{/if}}
+            {{#if ../active_columns.fetch_time}}
+              <td>
+                {{this.fetch_time}}
               </td>
             {{/if}}
             {{#if ../active_columns.employee_transferrer_id}}
@@ -426,19 +426,19 @@
                 {{this.user_subscr_date_to}}
               </td>
             {{/if}}
-            {{#if ../active_columns.subscr_airport_from_name}}
-              <td>
-                {{this.subscr_airport_from_name}}
+            {{#if ../active_columns.deposit_amount}}
+              <td class="text-right">
+                {{this.deposit_amount}}
               </td>
             {{/if}}
-            {{#if ../active_columns.subscr_airport_to_name}}
-              <td>
-                {{this.subscr_airport_to_name}}
+            {{#if ../active_columns.withdrawal_amount}}
+              <td class="text-right">
+                {{this.withdrawal_amount}}
               </td>
             {{/if}}
-            {{#if ../active_columns.fetch_time}}
-              <td>
-                {{this.fetch_time}}
+            {{#if ../active_columns.account_transfer_id}}
+              <td class="text-right">
+                {{this.account_transfer_id}}
               </td>
             {{/if}}
           </tr>
@@ -519,6 +519,7 @@
       reason: _.unescape('{{{escape groupings.reason}}}'),
     };
 
+    var queryStringWithoutPage = _.unescape('{{{escape query_string_without_page}}}');
   </script>
   <script src="./js/xlsx.full.min.js"></script>
   <script src="./js/account-transfers.js"></script>

@@ -811,7 +811,6 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   // setting default filters
   const filters = {
     offset: 0,
-    limit: RESULTS_LIMIT,
     user: null,
     deposits: true,
     withdrawals: true,
@@ -832,6 +831,11 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     user_subscr_arrival_time_from: null,
     user_subscr_arrival_time_to: null,
   };
+
+  // TODO FIX ugly check
+  if (ctx.query['return-type'] !== 'json') {
+    filters.limit = RESULTS_LIMIT;
+  }
 
   // TODO validate datetimes
 
@@ -1306,41 +1310,56 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     queryStringWithoutPage = `&${queryStringWithoutPage}`;
   }
 
-  return ctx.render('account-transfers.html', {
-    item: 'transfers',
-    employee: {
-      email: loggedInEmployee.email,
-    },
-    filters: {
-      ...filters,
-      type: ctx.query['filter-type'],
-      reason: ctx.query['filter-reason'],
-    },
-    groupings: {
-      ...groupings,
-      ...queryParamsToGroupingsParamsMapping.reduce(
-        (acc, mapping) => ({
-          ...acc,
-          [mapping.grouping]: ctx.query[mapping.query],
-        }),
-        {}
-      ),
-    },
-    active_columns: activeColumns,
-    account_transfers: accountTransfers,
-    filter_total_deposited: filterTotalDeposited,
-    filter_total_withdrawn: filterTotalWithdrawn,
-    users_total_spent_credits:
-      usersTotalSpentCredits.rows[0].user_spent_credits,
-    users_total_credits: usersTotalCredits.rows[0].users_credits,
-    total_credits_loaded: totalCreditsLoaded.rows[0].users_given_credits,
-    dalipeche_api_total_requests:
-      dalipecheAPITotalRequests.rows[0].dalipeche_api_requests,
-    page,
-    query_string_without_page: queryStringWithoutPage,
-    next_page: accountTransfers.length === RESULTS_LIMIT ? page + 1 : null,
-    prev_page: page > 1 ? page - 1 : null,
-  });
+  if (ctx.query['return-type'] !== 'json') {
+    return ctx.render('account-transfers.html', {
+      item: 'transfers',
+      employee: {
+        email: loggedInEmployee.email,
+      },
+      filters: {
+        ...filters,
+        type: ctx.query['filter-type'],
+        reason: ctx.query['filter-reason'],
+      },
+      groupings: {
+        ...groupings,
+        ...queryParamsToGroupingsParamsMapping.reduce(
+          (acc, mapping) => ({
+            ...acc,
+            [mapping.grouping]: ctx.query[mapping.query],
+          }),
+          {}
+        ),
+      },
+      active_columns: activeColumns,
+      account_transfers: accountTransfers,
+      filter_total_deposited: filterTotalDeposited,
+      filter_total_withdrawn: filterTotalWithdrawn,
+      users_total_spent_credits:
+        usersTotalSpentCredits.rows[0].user_spent_credits,
+      users_total_credits: usersTotalCredits.rows[0].users_credits,
+      total_credits_loaded: totalCreditsLoaded.rows[0].users_given_credits,
+      dalipeche_api_total_requests:
+        dalipecheAPITotalRequests.rows[0].dalipeche_api_requests,
+      page,
+      query_string_without_page: queryStringWithoutPage,
+      next_page: accountTransfers.length === RESULTS_LIMIT ? page + 1 : null,
+      prev_page: page > 1 ? page - 1 : null,
+    });
+  } else {
+    ctx.status = 200;
+    ctx.body = {
+      account_transfers: accountTransfers,
+      active_columns: Object.entries(activeColumns)
+        .filter(([name, value]) => {
+          assertApp(typeof value === 'boolean', `got ${value}`);
+          return value;
+        })
+        .map(([name, value]) => name),
+    };
+
+    return;
+  }
 });
 
 const executeMethod = getExecuteMethod({
