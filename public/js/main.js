@@ -39,6 +39,7 @@ function main () { // eslint-disable-line no-unused-vars
   };
 
   const ApplicationError = function (messages) {
+    messages = messages || { msg: '', userMessage: null };
     messages.userMessage = messages.userMessage ||
       'Application encountered an unexpected condition. Please refresh the page.';
 

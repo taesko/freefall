@@ -176,41 +176,6 @@ function buildSetClause (setHash, startIndex = 1) {
   };
 }
 
-/*
-* Builds the columns of a SELECT statement that can be used with a GROUP BY.
-*
-* The <columnCallbacks> argument is required to be a hash from column names to
-* functions with signature isGroupedBy => {}. The functions should return null
-* for columns that will be dropped and otherwise a string which will be the expression
-* in the select.
- */
-function buildGroupableSelect (columnCallbacks, groupBy) {
-  assertApp(isObject(columnCallbacks));
-  assertApp(Array.isArray(columnCallbacks));
-
-  const droppedColumns = [];
-  const columns = Object.entries(columnCallbacks)
-    .map(([column, func]) => {
-      const result = func(groupBy.includes(column));
-
-      assertApp(typeof result === 'string', `got ${func}`);
-
-      return result;
-    })
-    .filter(columnString => {
-      const dropped = columnString != null;
-
-      if (dropped) {
-        droppedColumns.push(dropped);
-      }
-
-      return dropped;
-    })
-    .join(',\n');
-
-  return { columns, droppedColumns };
-}
-
 function buildGroupingParams (selectColumns, groupings) {
   // assert correct format
   for (const selectColumn of selectColumns) {
@@ -725,6 +690,5 @@ module.exports = {
   pool,
   wrapPgClient,
   processNamedParameters,
-  buildGroupableSelect,
   buildGroupingParams,
 };

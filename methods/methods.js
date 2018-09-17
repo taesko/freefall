@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 const { defineAPIMethod } = require('./resolve-method');
-const { assertPeer, assertApp, assertUser, errorCodes } = require('../modules/error-handling');
+const { assertPeer, assertApp, assertUser, errorCodes } = require(
+  '../modules/error-handling');
 const { toSmallestCurrencyUnit } = require('../modules/utils');
 const { isObject } = require('lodash');
 const log = require('../modules/log');
@@ -120,7 +121,10 @@ const search = defineAPIMethod(
     const flyFrom = +params.fly_from;
     const flyTo = +params.fly_to;
 
-    assertPeer(Number.isInteger(flyFrom), `got ${flyFrom}`, 'SEARCH_BAD_FLY_FROM');
+    assertPeer(Number.isInteger(flyFrom),
+      `got ${flyFrom}`,
+      'SEARCH_BAD_FLY_FROM',
+    );
     assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'SEARCH_BAD_FLY_TO');
 
     const flyFromExists = await airportIDExists(dbClient, flyFrom);
@@ -147,20 +151,28 @@ const search = defineAPIMethod(
 
     const priceTo = toSmallestCurrencyUnit(params.price_to) || DEFAULT_PRICE_TO;
 
-    assertPeer(Number.isInteger(priceTo), `got ${priceTo}`, 'SEARCH_BAD_PRICE_TO');
-    assertPeer(priceTo > 0 && priceTo <= MAX_PRICE_TO, `got ${priceTo}`, 'SEARCH_INVALID_PRICE_TO');
+    assertPeer(Number.isInteger(priceTo),
+      `got ${priceTo}`,
+      'SEARCH_BAD_PRICE_TO',
+    );
+    assertPeer(priceTo > 0 && priceTo <= MAX_PRICE_TO, `got ${priceTo}`,
+      'SEARCH_INVALID_PRICE_TO',
+    );
 
     const limit = params.limit || DEFAULT_SEARCH_PAGE_LIMIT;
     const offset = params.offset || DEFAULT_SEARCH_PAGE_OFFSET;
 
     assertPeer(Number.isInteger(limit), `got ${limit}`, 'SEARCH_BAD_LIMIT');
-    assertPeer(limit > 0 && limit <= MAX_SEARCH_PAGE_LIMIT, `got ${limit}`, 'SEARCH_INVALID_LIMIT');
+    assertPeer(limit > 0 && limit <= MAX_SEARCH_PAGE_LIMIT, `got ${limit}`,
+      'SEARCH_INVALID_LIMIT',
+    );
     assertPeer(Number.isInteger(offset), `got ${offset}`, 'SEARCH_BAD_OFFSET');
     assertPeer(offset >= 0, `got ${offset}`, 'SEARCH_INVALID_OFFSET');
 
     const currency = params.currency;
     // eslint-disable-next-line max-len
-    const maxFlightDuration = params.max_fly_duration || DEFAULT_MAX_FLY_DURATION;
+    const maxFlightDuration = params.max_fly_duration ||
+                              DEFAULT_MAX_FLY_DURATION;
 
     assertPeer(
       maxFlightDuration < MAX_FLY_DURATION,
@@ -391,10 +403,15 @@ const subscribe = defineAPIMethod(
     const flyFromExists = await airportIDExists(dbClient, flyFrom);
     const flyToExists = await airportIDExists(dbClient, flyTo);
 
-    assertPeer(Number.isInteger(flyFrom), `got ${flyFrom}`, 'SUBSCR_BAD_FLY_FROM');
+    assertPeer(Number.isInteger(flyFrom),
+      `got ${flyFrom}`,
+      'SUBSCR_BAD_FLY_FROM',
+    );
     assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'SUBSCR_BAD_FLY_TO');
     assertPeer(userExists, `got ${apiKey}`, 'SUBSCR_BAD_API_KEY');
-    assertPeer(moment() < moment(dateFrom), `dateFrom=${dateFrom}`, 'SUBSCR_EARLY_DATE_FROM');
+    assertPeer(moment() < moment(dateFrom), `dateFrom=${dateFrom}`,
+      'SUBSCR_EARLY_DATE_FROM',
+    );
     assertPeer(flyFromExists, `got ${flyFrom}`, 'SUBSCR_INVALID_FLY_FROM_ID');
     assertPeer(flyToExists, `got ${flyTo}`, 'SUBSCR_INVALID_FLY_TO_ID');
 
@@ -450,7 +467,9 @@ const subscribe = defineAPIMethod(
     } catch (e) {
       // unique constraint failed
       log.info(`Subscription already was taxed. Probably by a concurrent request.`);
-      assertUser(e.code !== '23505', 'subscription exists', errorCodes.subscriptionExists);
+      assertUser(e.code !== '23505', 'subscription exists',
+        errorCodes.subscriptionExists,
+      );
       throw e;
     }
 
@@ -473,7 +492,10 @@ const unsubscribe = defineAPIMethod(
     const apiKey = params.api_key;
     const user = await users.fetchUser(dbClient, { apiKey });
 
-    assertPeer(Number.isInteger(userSubId), `got ${userSubId}`, 'UNSUBSCR_BAD_USER_SUBSCR_ID');
+    assertPeer(Number.isInteger(userSubId),
+      `got ${userSubId}`,
+      'UNSUBSCR_BAD_USER_SUBSCR_ID',
+    );
     assertPeer(user != null, `got ${user}`, 'UNSUBSCR_INVALID_API_KEY');
 
     const userSubscriptions = await subscriptions.listUserSubscriptions(
@@ -532,29 +554,49 @@ const editSubscription = defineAPIMethod(
       `got ${flyFrom}`,
       'EDIT_SUBSCR_BAD_FROM_ID',
     );
-    assertPeer(Number.isInteger(flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_BAD_TO_ID');
+    assertPeer(Number.isInteger(flyTo),
+      `got ${flyTo}`,
+      'EDIT_SUBSCR_BAD_TO_ID',
+    );
     assertPeer(
-      Number.isInteger(subscriptionId), `got ${subscriptionId}`, 'EDIT_SUBSCR_BAD_SUBSCR_ID',
+      Number.isInteger(subscriptionId),
+      `got ${subscriptionId}`,
+      'EDIT_SUBSCR_BAD_SUBSCR_ID',
     );
 
     const dateFrom = moment(params.date_from, SERVER_DATE_FORMAT);
     const dateTo = moment(params.date_to, SERVER_DATE_FORMAT);
 
-    assertPeer(dateFrom.isValid(), `got ${dateFrom}`, 'EDIT_SUBSCR_INVALID_DATE_FROM');
-    assertPeer(dateTo.isValid(), `got ${dateTo}`, 'EDIT_SUBSCR_INVALID_DATE_TO');
-    assertPeer(dateFrom < dateTo, `got ${dateFrom} and ${dateTo}`, 'EDIT_SUBSCR_BAD_DATE_RANGE');
+    assertPeer(dateFrom.isValid(),
+      `got ${dateFrom}`,
+      'EDIT_SUBSCR_INVALID_DATE_FROM',
+    );
+    assertPeer(dateTo.isValid(),
+      `got ${dateTo}`,
+      'EDIT_SUBSCR_INVALID_DATE_TO',
+    );
+    assertPeer(dateFrom < dateTo, `got ${dateFrom} and ${dateTo}`,
+      'EDIT_SUBSCR_BAD_DATE_RANGE',
+    );
 
     const apiKeyHasPermissions = userSubscr.find(
       subscr => subscr.id === subscriptionId,
     );
 
     // TODO apiKeyHasPermissions also checks if the user exists
-    assertPeer(apiKeyHasPermissions, `apiKey=${apiKey}`, 'EDIT_SUBSCR_NOT_ENOUGH_PERMISSIONS');
-    assertPeer(
-      await airportIDExists(dbClient, flyFrom), `got ${flyFrom}`, 'EDIT_SUBSCR_INVALID_FROM_ID',
+    assertPeer(apiKeyHasPermissions,
+      `apiKey=${apiKey}`,
+      'EDIT_SUBSCR_NOT_ENOUGH_PERMISSIONS',
     );
     assertPeer(
-      await airportIDExists(dbClient, flyTo), `got ${flyTo}`, 'EDIT_SUBSCR_INVALID_TO_ID',
+      await airportIDExists(dbClient, flyFrom),
+      `got ${flyFrom}`,
+      'EDIT_SUBSCR_INVALID_FROM_ID',
+    );
+    assertPeer(
+      await airportIDExists(dbClient, flyTo),
+      `got ${flyTo}`,
+      'EDIT_SUBSCR_INVALID_TO_ID',
     );
 
     try {
@@ -597,15 +639,16 @@ const creditHistory = defineAPIMethod(
       transfer_amount_operator = '<',
       limit = CREDIT_HISTORY_DEFAULT_LIMIT,
       offset = 0,
-      group_by = null,
-      date_groupings = null,
+      group_by = {},
     },
     dbClient,
   ) => {
     const user = await users.fetchUser(dbClient, { apiKey: api_key });
 
     assertPeer(user, `got ${api_key}`, 'TH_INVALID_API_KEY');
-    assertPeer(user.api_key === api_key, `got ${api_key}`, 'TH_NOT_ENOUGH_PERMISSIONS');
+    assertPeer(user.api_key === api_key, `got ${api_key}`,
+      'TH_NOT_ENOUGH_PERMISSIONS',
+    );
 
     const airportFromFilterClause = 'AND (ap_from.name=$flyFrom OR ap_from.iata_code=$flyFrom)';
     const airportFromFilter = fly_from == null ? '' : airportFromFilterClause;
@@ -647,40 +690,74 @@ const creditHistory = defineAPIMethod(
       month: column => `date_trunc('month', ${column})`,
       day: column => `date_trunc('day', ${column})`,
     };
-    const { columns: selectColumns } = db.buildGroupableSelect(
-      {
-        active: isGroupedBy => { return isGroupedBy ? 'active' : null; },
-        reason: isGroupedBy => { return isGroupedBy ? 'reason' : null; },
-        subscription_plan_id: isGroupedBy => {
-          return isGroupedBy ? 'subscription_plan_id' : null;
-        },
-        transfer_amount: isGroupedBy => {
-          return isGroupedBy ? 'transfer_amount' : 'SUM(transfer_amount)';
-        },
-        transferred_at: () => {
-          const func = aggregateDateFunctions[date_groupings.date_to];
-          return func == null ? null : func('transferred_at');
-        },
-        airport_from_id: isGroupedBy => { return isGroupedBy ? 'airport_from_id' : null; },
-        airport_to_id: isGroupedBy => { return isGroupedBy ? 'airport_to_id' : null; },
-        fly_from: isGroupedBy => { return isGroupedBy ? 'ap_from.name AS fly_from' : null; },
-        fly_to: isGroupedBy => { return isGroupedBy ? 'ap_to.name AS fly_to' : null; },
-        date_from: () => {
-          const func = aggregateDateFunctions[date_groupings.date_to];
-          return func == null ? null : func('date_from');
-        },
-        date_to: () => {
-          const func = aggregateDateFunctions[date_groupings.date_to];
-          return func == null ? null : func('date_to');
-        },
-        id: () => null,
+    const groupingConfig = {
+      active: {
+        default: 'active',
       },
-      group_by,
-    );
+      reason: {
+        default: 'reason',
+      },
+      transferred_at: {
+        year: `${aggregateDateFunctions['year']('transferred_at')}`,
+        month: `${aggregateDateFunctions['month']('transferred_at')}`,
+        day: `${aggregateDateFunctions['day']('transferred_at')}`,
+        default: `${aggregateDateFunctions['month']('transferred_at')}`,
+      },
+    };
+    const groupByOrder = ['transferred_at', 'active', 'reason'];
+    const extraColumnsWhenGrouping = {
+      transfer_amount: 'CAST(SUM(transfer_amount) AS int) AS transfer_amount',
+    };
+
+    let selectedColumnsString;
+    let groupByClause = '';
+
+    if (Object.keys(group_by).length === 0) {
+      selectedColumnsString = `
+        transferred_at,
+        active,
+        reason,
+        transfer_amount,
+        CAST(airport_from_id AS text),
+        CAST(airport_to_id AS text),
+        date_from,
+        date_to,
+        CAST(user_subscr_id AS text) AS id
+      `;
+    } else {
+      const selectColumns = [];
+      const groupByColumns = [];
+      const entries = Object.entries(group_by);
+
+      entries.sort((a, b) => {
+        return groupByOrder.indexOf(a[0]) - groupByOrder.indexOf(b[0]);
+      });
+
+      for (const [column, type] of entries) {
+        const possibleGroupings = groupingConfig[column];
+
+        assertApp(possibleGroupings != null, `got from ${column}`);
+        assertApp(
+          possibleGroupings[type] != null,
+          `got from ${column} and ${type}`
+        );
+        assertApp(!column.includes('"') || !column.includes('\\'));
+
+        const selectCol = `${possibleGroupings[type]} AS "${column}"`;
+
+        selectColumns.push(selectCol);
+        groupByColumns.push(possibleGroupings[type]);
+      }
+
+      selectColumns.push(...Object.values(extraColumnsWhenGrouping));
+
+      groupByClause = `GROUP BY ${groupByColumns}`;
+      selectedColumnsString = selectColumns.join(', ');
+    }
     const { query, values } = db.processNamedParameters(
       `
       SELECT 
-        ${selectColumns}
+        ${selectedColumnsString}
       FROM (
         SELECT 
           users_subscriptions.active,
@@ -740,9 +817,10 @@ const creditHistory = defineAPIMethod(
       JOIN airports AS ap_to
         ON taxes.airport_to_id=ap_to.id
           ${airportToFilter}
-      ORDER BY transferred_at DESC, id ASC
-      LIMIT 5
-      OFFSET 0
+      ${groupByClause}
+      ORDER BY 1 DESC
+      LIMIT $limit
+      OFFSET $offset
       `,
       {
         userId: user.id,
@@ -761,8 +839,6 @@ const creditHistory = defineAPIMethod(
     const pgResult = await dbClient.executeQuery(query, values);
     const { rows: subscrTransfers } = pgResult;
 
-    subscrTransfers.grouped_by = group_by;
-
     for (const transfer of subscrTransfers) {
       if (transfer.date_from) {
         transfer.date_from = moment(transfer.date_from)
@@ -779,6 +855,7 @@ const creditHistory = defineAPIMethod(
     return {
       status_code: '1000',
       credit_history: subscrTransfers,
+      grouped_by: group_by,
     };
   },
 );
@@ -798,7 +875,9 @@ const depositHistory = defineAPIMethod(
     const user = await users.fetchUser(dbClient, { apiKey });
 
     assertPeer(user, `got ${user}`, 'TH_INVALID_API_KEY');
-    assertPeer(user.api_key === apiKey, `got ${user}`, 'TH_NOT_ENOUGH_PERMISSIONS');
+    assertPeer(user.api_key === apiKey, `got ${user}`,
+      'TH_NOT_ENOUGH_PERMISSIONS',
+    );
 
     const { rows: depositHistory } = await dbClient.executeQuery(
       `

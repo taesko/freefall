@@ -53,21 +53,19 @@
       "maximum": 1000000
     },
     "group_by": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["transferred_at", "status", "reason"]
-      }
-    },
-    "date_groupings": {
       "type": "object",
       "properties": {
+        "active": {
+          "type": "string",
+          "const": "default"
+        },
+        "reason": {
+          "type": "string",
+          "const": "default"
+        },
         "transferred_at": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": ["year", "month", "day"]
-          }
+          "type": "string",
+          "enum": ["year", "month", "day", "default"]
         }
       }
     }

@@ -698,11 +698,11 @@ function start () {
         $noContentMsg.show();
         $loadMoreBtn.hide();
       } else if (creditHistory.length < CREDIT_HISTORY_PAGE_LIMIT) {
-        renderCreditHistoryTable($creditsTable, creditHistory);
+        renderCreditHistoryTable($creditsTable, result);
         $noContentMsg.hide();
         $loadMoreBtn.hide();
       } else {
-        renderCreditHistoryTable($creditsTable, creditHistory);
+        renderCreditHistoryTable($creditsTable, result);
         $loadMoreBtn.show();
       }
 
@@ -712,18 +712,101 @@ function start () {
     });
   }
 
-  function renderCreditHistoryTable ($table, history) {
-    // $table.find('tr:not(:first)').remove();
+  function renderCreditHistoryTable ($table, historyResult) {
+    const history = historyResult.credit_history;
+
+    function formatDate (date, accuracy, seperator) {
+      if (date == null) {
+        return 'ALL';
+      } else if (accuracy == null) {
+        accuracy = 'day';
+      }
+      if (typeof date === 'string') {
+        date = new Date(date);
+      }
+      if (seperator == null) {
+        seperator = '.';
+      }
+
+      assertApp(date instanceof Date, { msg: 'got ' + date });
+      assertApp(typeof accuracy === 'string', { msg: 'got ' + date });
+      assertApp(typeof seperator === 'string', { msg: 'got ' + seperator });
+
+      const formats = {
+        year: function (date) { return date.getFullYear(); },
+        month: function (date) {
+          const year = date.getFullYear();
+          const month = leftPad(date.getMonth() + 1, 2);
+
+          return year + seperator + month;
+        },
+        day: function (date) {
+          const month = leftPad(date.getMonth() + 1, 2);
+          const day = leftPad(date.getDate(), 2);
+
+          return date.getFullYear() + seperator + month + seperator + day;
+        },
+      };
+
+      assertApp(Object.keys(formats).includes(accuracy), {});
+
+      return formats[accuracy](date);
+    }
+    function leftPad (string, amount, filler) {
+      if (typeof string === 'number') {
+        string = '' + string;
+      }
+      if (filler == null) {
+        filler = '0';
+      }
+
+      assertApp(typeof string === 'string');
+      assertApp(_.isNumber(amount), {});
+      assertApp(typeof filler === 'string');
+
+      const chars = [];
+      for (let k = 0; k < amount - string.length; k++) {
+        chars.push(filler);
+      }
+      for (const c of string) {
+        chars.push(c);
+      }
+
+      return chars.join('');
+    }
+
     $table.show();
+
     const $tableRowTemplate = $table.find('#credit-history-template-row');
+    const missingFieldValue = 'ALL';
 
     for (const historyHash of history) {
       const { airport_from_id, airport_to_id } = historyHash;
-      const { name: airportFrom } = airports.find(
+
+      var airportFrom = airports.find(
         a => a.id === airport_from_id
       );
-      const { name: airportTo } = airports.find(a => a.id === airport_to_id);
-      const statusText = { true: 'Active', false: 'Inactive' }[historyHash.subscription_status];
+      var airportTo = airports.find(a => a.id === airport_to_id);
+
+      airportFrom = airportFrom ? airportFrom.name : missingFieldValue;
+      airportTo = airportTo ? airportTo.name : missingFieldValue;
+
+      const statusTexts = {
+        true: 'Active',
+        false: 'Inactive',
+        null: 'All',
+        undefined: missingFieldValue,
+      };
+      const statusText = statusTexts[historyHash.active];
+      const dateFrom = formatDate(historyHash.date_from);
+      const dateTo = formatDate(historyHash.date_to);
+      const transferredAt = formatDate(
+        historyHash.transferred_at,
+        historyResult.grouped_by.transferred_at,
+      );
+      const transferAmount = historyHash.transfer_amount;
+      const reason = historyHash.reason || missingFieldValue;
+
       const $tableRow = $tableRowTemplate.clone()
         .removeAttr('id')
         .show();
@@ -731,12 +814,12 @@ function start () {
       renderRow($tableRow, {
         airport_from: airportFrom,
         airport_to: airportTo,
-        date_from: new Date(historyHash.date_from).toDateString(),
-        date_to: new Date(historyHash.date_to).toDateString(),
+        date_from: dateFrom,
+        date_to: dateTo,
         subscr_status: statusText,
-        transferred_at: new Date(historyHash.transferred_at).toLocaleString(),
-        transfer_amount: historyHash.transfer_amount,
-        reason: historyHash.reason,
+        transferred_at: transferredAt,
+        transfer_amount: transferAmount,
+        reason: reason,
       });
       $table.find('tbody tr:last').after($tableRow);
     }
@@ -863,7 +946,12 @@ function start () {
           return serialized.value.length !== 0;
         })
         .reduce(function (hash, serialized) {
-          hash[serialized.name] = serialized.value;
+          if (serialized.name === 'group_by') {
+            hash[serialized.name] = hash[serialized.name] || [];
+            hash[serialized.name].push(serialized.value);
+          } else {
+            hash[serialized.name] = serialized.value;
+          }
           return hash;
         }, {});
 
@@ -876,6 +964,20 @@ function start () {
       if (filters.transfer_amount) {
         filters.transfer_amount = -Math.abs(+filters.transfer_amount);
       }
+      if (filters.group_by_active) {
+        filters.group_by = filters.group_by || {};
+        filters.group_by.active = filters.group_by_active;
+      }
+      if (filters.group_by_reason) {
+        filters.group_by = filters.group_by || {};
+        filters.group_by.reason = filters.group_by_reason;
+      }
+      if (filters.transferred_at_date_groupings) {
+        filters.group_by = filters.group_by || {};
+        filters.group_by.transferred_at = filters.transferred_at_date_groupings;
+        delete filters.transferred_at_date_groupings;
+      }
+
       creditHistoryFilters = filters;
 
       displayCreditHistory();
