@@ -7,6 +7,23 @@
     "status_code": {
       "type": "string"
     },
+    "grouped_by": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "string",
+          "const": "default"
+        },
+        "reason": {
+          "type": "string",
+          "const": "default"
+        },
+        "transferred_at": {
+          "type": "string",
+          "enum": ["year", "month", "day", "default"]
+        }
+      }
+    },
     "credit_history": {
       "type": "array",
       "items": {
@@ -16,8 +33,7 @@
             "type": "string"
           },
           "transferred_at": {
-            "type": "string",
-            "format": "date-time"
+            "type": "string"
           },
           "transfer_amount": {
             "type": "number"
@@ -42,18 +58,11 @@
           "date_to": {
             "type": "string",
             "format": "date"
+          },
+          "active": {
+            "type": "boolean"
           }
-        },
-        "required": [
-          "id",
-          "transferred_at",
-          "transfer_amount",
-          "reason",
-          "airport_from_id",
-          "airport_to_id",
-          "date_from",
-          "date_to"
-        ]
+        }
       }
     }
   },
