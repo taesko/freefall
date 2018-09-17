@@ -86,7 +86,7 @@ function start () {
     const exportButton = event.target;
     exportButton.disabled = true;
 
-    /*const listAccountTransfersParams = {
+    const listAccountTransfersParams = {
       v: '2.0',
       api_key: APIKeyRef.APIKey,
       filters: Object.entries(filtersGlobal).reduce(
@@ -109,9 +109,9 @@ function start () {
         }),
         {}
       ),
-    };*/
+    };
 
-    /*adminAPI.adminListAccountTransfers(
+    adminAPI.adminListAccountTransfers(
       listAccountTransfersParams,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
@@ -133,67 +133,6 @@ function start () {
           userMessage: userMessage,
           msg: msg,
         });
-
-        const currentDate = (new Date()).toISOString().replace(':', '-').replace('.', '-');
-
-        const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.aoa_to_sheet(
-          generateExportData(
-            {
-              headers: [
-                'user',
-                'transferred_at_from',
-                'transferred_at_to',
-                'type',
-                'reason',
-                'subscr_airport_from',
-                'subscr_airport_to',
-                'fetch_time_from',
-                'fetch_time_to',
-                'employee_email',
-                'user_subscr_airport_from',
-                'user_subscr_airport_to',
-                'user_subscr_depart_time_from',
-                'user_subscr_depart_time_to',
-                'user_subscr_arrival_time_from',
-                'user_subscr_arrival_time_to',
-              ],
-              filters: filtersGlobal,
-            },
-            {
-              headers: result.active_columns,
-              rows: result.account_transfers,
-            }
-          )
-        );
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-        console.log('after');
-        console.log(new Date());
-
-        // getMonth() + 1. because months in JS start from 0
-        XLSX.writeFile(workbook, 'account_transfers_' + currentDate + '.xlsx'); // eslint-disable-line prefer-template
-      }
-    );*/
-
-    mainUtils.getAjaxResponseText(
-      {
-        url: '/transfers?return-type=json' + queryStringWithoutPage,
-        method: 'GET',
-        contentType: 'application/json',
-        body: null,
-      },
-      function (response) { // eslint-disable-line prefer-arrow-callback
-        exportButton.disabled = false;
-
-        // TODO check response.status code
-
-        var result; // eslint-disable-line no-var
-
-        try {
-          result = JSON.parse(response.responseText);
-        } catch (error) {
-          console.log(error); // TODO handle
-        }
 
         const currentDate = (new Date()).toISOString().replace(':', '-').replace('.', '-');
 

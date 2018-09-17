@@ -1455,11 +1455,11 @@ const adminListAccountTransfers = defineAPIMethod(
         resolve: (apiParam) => apiParam === 'fetch',
       },
       {
-        api: 'transferred-at-from',
+        api: 'transferred_at_from',
         filter: 'transferred_at_from',
       },
       {
-        api: 'transferred-at-to',
+        api: 'transferred_at_to',
         filter: 'transferred_at_to',
       },
       {
