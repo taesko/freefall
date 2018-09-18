@@ -127,6 +127,22 @@ function start () {
     });
   }
 
+  const onSearchClick = function (event) {
+    mainUtils.trace('search button click');
+
+    const rowId = mainUtils.getElementUniqueId(event.target, 'subscription-view-mode-search-btn-');
+    const subscription = rowIdSubscriptionMap[rowId];
+    const json = JSON.stringify(subscription);
+    const indexHref = $('#index-route-link').attr('href');
+    const queryString = '?display-subscription=target-subscription';
+
+    assertApp(indexHref != null);
+    assertApp(typeof indexHref === 'string');
+    assertApp(indexHref.length > 0);
+
+    window.localStorage.setItem('target-subscription', json);
+    window.location = indexHref + queryString;
+  };
   const onEditClick = function (event) {
     mainUtils.trace('edit button click');
 
@@ -501,6 +517,9 @@ function start () {
       .attr('id', 'subscription-view-mode-plan-' + rowId)
       .text(subscription.plan);
 
+    $subscriptionViewModeClone.find('#subscription-view-mode-search-btn')
+      .attr('id', 'subscription-view-mode-search-btn-' + rowId)
+      .click(onSearchClick)
     $subscriptionViewModeClone.find('#subscription-view-mode-edit-btn')
       .attr('id', 'subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditClick);
