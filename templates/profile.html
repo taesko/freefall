@@ -185,6 +185,23 @@
           <input id="search-ch-transfer-amount" name="transfer_amount" class="form-control"
                  type="number" placeholder="Transfer amount" min="0">
         </div>
+        <div class="form-group">
+          <label for="search-ch-group-by-active">Group by status</label>
+          <input id="search-ch-group-by-active" name="group_by_active" class="form-control" type="checkbox" value="default">
+        </div>
+        <div class="form-group">
+          <label for="search-ch-group-by-reason">Group by reason</label>
+          <input id="search-ch-group-by-reason" name="group_by_reason" class="form-control" type="checkbox" value="default">
+        </div>
+        <div class="form-group">
+          <label for="search-ch-transferred-at-grouping">Group by transferred at</label>
+          <select id="search-ch-transferred-at-grouping" name="transferred_at_date_groupings" class="form-control">
+            <option value=""></option>
+            <option value="year">Year</option>
+            <option value="month">Month</option>
+            <option value="day">Day</option>
+          </select>
+        </div>
         <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Search</button>
       </form>
       <table id="credit-history-table" class="table table-bordered">
