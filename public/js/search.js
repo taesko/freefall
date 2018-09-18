@@ -509,8 +509,7 @@ function start () {
         return airport.name;
       });
 
-      $('#from-input').autocomplete(airportNames);
-      $('#to-input').autocomplete(airportNames);
+      $('#airports-list').autocomplete(airportNames);
     });
   });
 }
