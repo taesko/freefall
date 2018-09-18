@@ -383,6 +383,72 @@ function start () {
     }
   }
 
+  function autoSearchIfRedirected () {
+    const parts = window.location.split('?');
+    const query = parts[1].split('&')
+      .map(function (part) {
+        return part.split('=');
+      })
+      .reduce(
+        function (hash, entry) {
+          hash[entry[0]] = entry[1];
+          return hash;
+        },
+        {}
+      );
+    const storageID = query['display-subscription'];
+    const subscription = JSON.parse(window.localStorage.getItem(storageID));
+  }
+
+  function searchAndDisplay () {
+    const airportFrom = getAirport(formParams.fly_from, airports); // eslint-disable-line no-var
+    const airportTo = getAirport(formParams.fly_to, airports); // eslint-disable-line no-var
+
+    assertUser(_.isObject(airportFrom), {
+      msg: 'Could not find airport "' + formParams.fly_from + '"', // eslint-disable-line prefer-template
+      userMessage: 'Could not find airport "' + formParams.fly_from + '"', // eslint-disable-line prefer-template
+    });
+    assertUser(_.isObject(airportTo), {
+      msg: 'Could not find airport "' + formParams.fly_to + '"', // eslint-disable-line prefer-template
+      userMessage: 'Could not find airport "' + formParams.fly_to + '"', // eslint-disable-line prefer-template
+    });
+
+    showWeather(airportFrom.iata_code, airportTo.iata_code);
+
+    $submitBtn.prop('disabled', true);
+
+    api.search(formParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      $submitBtn.prop('disabled', false);
+
+      const messages = {
+        '1000': 'Search success, results found.',
+        '1001': 'There is no information about such routes at the moment. But we will check for you. Please come back in 15 minutes.',
+        '1002': 'There is no information about such routes at the moment.',
+        '2000': 'Search input was not correct.',
+      };
+
+      assertPeer(typeof messages[result.status_code] === 'string', {
+        msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
+
+      const userMessage = messages[result.status_code] ||
+                          'An error has occurred. Please refresh the page and try again later.';
+      assertUser(result.status_code === '1000', {
+        userMessage: userMessage,
+        msg: 'Search failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
+      });
+
+      if (result.routes.length >= MAX_ROUTES_PER_PAGE) {
+        showLoadMoreBtn();
+      } else {
+        hideLoadMoreBtn();
+      }
+
+      routes = result.routes;
+      renderRoutes($('#routes-container'));
+    });
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $loadMoreBtn = $('#load-more-btn');
     mainUtils.restoreFormData(CURRENT_PAGE_NAME, 'flight-form');
@@ -403,52 +469,7 @@ function start () {
 
       formParams = getSearchFormParams($flightForm);
 
-      const airportFrom = getAirport(formParams.fly_from, airports); // eslint-disable-line no-var
-      const airportTo = getAirport(formParams.fly_to, airports); // eslint-disable-line no-var
-
-      assertUser(_.isObject(airportFrom), {
-        msg: 'Could not find airport "' + formParams.fly_from + '"', // eslint-disable-line prefer-template
-        userMessage: 'Could not find airport "' + formParams.fly_from + '"', // eslint-disable-line prefer-template
-      });
-      assertUser(_.isObject(airportTo), {
-        msg: 'Could not find airport "' + formParams.fly_to + '"', // eslint-disable-line prefer-template
-        userMessage: 'Could not find airport "' + formParams.fly_to + '"', // eslint-disable-line prefer-template
-      });
-
-      showWeather(airportFrom.iata_code, airportTo.iata_code);
-
-      $submitBtn.prop('disabled', true);
-
-      api.search(formParams, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-        $submitBtn.prop('disabled', false);
-
-        const messages = {
-          '1000': 'Search success, results found.',
-          '1001': 'There is no information about such routes at the moment. But we will check for you. Please come back in 15 minutes.',
-          '1002': 'There is no information about such routes at the moment.',
-          '2000': 'Search input was not correct.',
-        };
-
-        assertPeer(typeof messages[result.status_code] === 'string', {
-          msg: 'Unexpected status code in search. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
-        });
-
-        const userMessage = messages[result.status_code] ||
-                            'An error has occurred. Please refresh the page and try again later.';
-        assertUser(result.status_code === '1000', {
-          userMessage: userMessage,
-          msg: 'Search failed. Status code: "' + result.status_code + '"', // eslint-disable-line prefer-template
-        });
-
-        if (result.routes.length >= MAX_ROUTES_PER_PAGE) {
-          showLoadMoreBtn();
-        } else {
-          hideLoadMoreBtn();
-        }
-
-        routes = result.routes;
-        renderRoutes($('#routes-container'));
-      });
+      searchAndDisplay(formParams);
     });
 
     $loadMoreBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback
@@ -509,7 +530,7 @@ function start () {
         return airport.name;
       });
 
-      $('#airports-list').autocomplete(airportNames);
+      $('#airports-list').fillWithAirports(airportNames);
     });
   });
 }
