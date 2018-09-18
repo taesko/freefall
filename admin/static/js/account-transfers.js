@@ -80,8 +80,6 @@ function start () {
 
   const onExportAsXLSXClick = function (event) {
     mainUtils.trace('onExportAsXLSXClick');
-    console.log('b4');
-    console.log(new Date());
 
     const exportButton = event.target;
     exportButton.disabled = true;
@@ -120,6 +118,8 @@ function start () {
         const messages = {
           '1000': 'Successfully downloaded account transfers!',
           '2100': 'Your API key does not support this operation!',
+          '2101': 'You have sent an invalid request. Please refresh the page and try again!',
+          '2201': 'Your request took too long. Please select more filters and try again!',
         };
 
         assertPeer(typeof messages[result.status_code] === 'string', {
@@ -167,8 +167,6 @@ function start () {
           )
         );
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-        console.log('after');
-        console.log(new Date());
 
         // getMonth() + 1. because months in JS start from 0
         XLSX.writeFile(workbook, 'account_transfers_' + currentDate + '.xlsx'); // eslint-disable-line prefer-template
