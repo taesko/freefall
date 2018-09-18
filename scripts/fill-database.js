@@ -7,7 +7,6 @@ const log = require('../modules/log');
 const db = require('../modules/db');
 const utils = require('../modules/utils');
 const MAX_QUERY_PARAMS = 30000;
-const DB_MAX_INSERT_VALUES = 1000;
 const DB_CONCURRENT_INSERTS = 10;
 
 function * generateProduct (collectionA, collectionB, ratio) {
@@ -70,6 +69,38 @@ function * generateInsertBatches (nestedIteratee, batchLength) {
   }
 }
 
+function * generateUniqueRandomString (minLength, maxLength) {
+  // function * genRandomString (minLength, maxLength) {
+  //   assertApp(Number.isInteger(minLength));
+  //   assertApp(Number.isInteger(maxLength));
+  //   assertApp(minLength >= 2);
+  //   assertApp(maxLength <= 30);
+  //
+  //   const hash = crypto.createHash('md5');
+  //   for (let index = 0; ; index++) {
+  //     hash.update(`${index}`);
+  //     const string = hash.digest('hex');
+  //     for (let k = 0; k <= string.length; k++) {
+  //       const randomOffset = Math.floor(
+  //         Math.random() * (maxLength - minLength)
+  //       );
+  //       const length = randomOffset + minLength;
+  //       yield string.slice(k, length);
+  //     }
+  //   }
+  // }
+
+  const strings = {};
+  while (true) {
+    const randString = getRandomString({ minLength, maxLength });
+    if (strings[randString] != null) {
+      continue;
+    }
+
+    strings[randString] = true;
+    yield randString;
+  }
+}
 function getRandomString (config) {
   const allowedCharacters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const { minLength, maxLength } = config;
@@ -139,13 +170,15 @@ async function insertRandomData (
   {table, columnsString, rowGenerator, amount}
 ) {
   log.info(`Inserting ${amount} random rows into table ${table}`);
-  const rows = Array.from(range(1, amount))
-    .map(rowGenerator);
-  log.info('Generated random rows. Beginning inserts');
-  const rowsPerInsert = DB_MAX_INSERT_VALUES / rows[0].length;
+  const rows = (function * generatorMap () {
+    for (const id of range(0, amount)) {
+      yield rowGenerator(id);
+    }
+  })();
+  // const rowsPerInsert = DB_MAX_INSERT_VALUES / rows[0].length;
   const multiRowInserts = generateInsertBatches(
     rows,
-    rowsPerInsert,
+    100,
   );
   const insertBatchGen = utils.batchMap(
     multiRowInserts,
@@ -155,8 +188,7 @@ async function insertRandomData (
         INSERT INTO ${table}
           ${columnsString}
         VALUES
-          ${valuesPlaceholders}
-        ON CONFLICT DO NOTHING;
+          ${valuesPlaceholders};
         `,
         values
       );
@@ -167,7 +199,7 @@ async function insertRandomData (
   for (const batch of insertBatchGen) {
     index += 1;
     updateProgess(
-      index * DB_CONCURRENT_INSERTS * multiRowInserts.length * rowsPerInsert,
+      index * DB_CONCURRENT_INSERTS,
       amount
     );
     await Promise.all(batch);
@@ -175,11 +207,19 @@ async function insertRandomData (
 }
 
 async function insertRandomAirports (dbClient, amount) {
+  const minNameLength = 3;
+  const maxNameLength = 30;
+  const minIataLength = 3;
+  const maxIataLength = 8;
+
   const table = 'airports';
   const columnsString = '(id, name, iata_code)';
+  const nameGen = generateUniqueRandomString(minNameLength, maxNameLength);
+  const iataGen = generateUniqueRandomString(minIataLength, maxIataLength);
+
   const rowGenerator = id => {
-    const name = getRandomString({minLength: 5, maxLength: 30});
-    const iata = getRandomString({minLength: 3, maxLength: 30});
+    const name = nameGen.next().value;
+    const iata = iataGen.next().value;
     return [id, name, iata];
   };
   return insertRandomData(
@@ -196,15 +236,11 @@ async function insertRandomAirlines (dbClient, amount) {
 
   const table = 'airlines';
   const columnsString = '(id, name, code, logo_url)';
+  const nameGen = generateUniqueRandomString(MIN_NAME_LENGTH, MAX_NAME_LENGTH);
+  const codeGen = generateUniqueRandomString(MIN_CODE_LENGTH, MAX_CODE_LENGTH);
   const rowGenerator = id => {
-    const name = getRandomString({
-      minLength: MIN_NAME_LENGTH,
-      maxLength: MAX_NAME_LENGTH,
-    });
-    const code = getRandomString({
-      minLength: MIN_CODE_LENGTH,
-      maxLength: MAX_CODE_LENGTH,
-    });
+    const name = nameGen.next().value;
+    const code = codeGen.next().value;
     const logoURL = `https://images.kiwi.com/airlines/64/${code}.png`;
     return [id, name, code, logoURL];
   };
@@ -216,12 +252,22 @@ async function insertRandomAirlines (dbClient, amount) {
 }
 
 async function insertRandomSubscriptions (dbClient, amount, amountOfAirports) {
+  const ratio = Math.floor(amount / amountOfAirports) * 2;
+  log.info('Airport ratio in subscriptions is', ratio);
+  log.info('Outer loop break is on', amountOfAirports - ratio);
+  function * generateAirportIDs () {
+    for (let id1 = 1; id1 < amountOfAirports - ratio; id1++) {
+      for (let offset = 1; offset < ratio; offset++) {
+        yield [id1, id1 + offset];
+      }
+    }
+  }
   const table = 'subscriptions';
   const columnsString = '(id, airport_from_id, airport_to_id, created_at, updated_at)';
   const dateGen = dateOffsetGeneratorFromToday(1);
+  const airportIDsGen = generateAirportIDs();
   const rowGenerator = id => {
-    const from = Math.floor(amount * Math.random()) % amountOfAirports + 1;
-    const to = (from + 1) % amountOfAirports;
+    const [from, to] = airportIDsGen.next().value;
     const date = dateGen.next().value;
     return [id, from, to, date, date];
   };
@@ -240,77 +286,47 @@ async function insertRandomFetches (dbClient, amount) {
     const fetchTime = dateGen.next().value;
     return [id, fetchTime];
   };
-  await insertRandomData(dbClient, { table, columnsString, rowGenerator, amount });
+
+  return insertRandomData(
+    dbClient,
+    { table, columnsString, rowGenerator, amount }
+  );
 }
 
-async function insertRandomSubscriptionsFetches (dbClient) {
-  const MIN_API_FETCHES_COUNT = 1;
-  const MAX_API_FETCHES_COUNT = 20;
-  const SUBSCRIPTIONS_PER_FETCH = 10;
+async function insertRandomSubscriptionsFetches (
+  dbClient,
+  subscriptionsCount,
+  fetchesCount
+) {
+  const maxAmount = 1e7;
+  const rowsPerFetch = Math.floor(subscriptionsCount / fetchesCount);
 
-  log.info(`Inserting random subscriptions fetches...`);
+  log.info('Rows per fetch are', rowsPerFetch);
+  assertApp(rowsPerFetch > 1);
 
-  let { rows: subscriptions } = await dbClient.executeQuery(
-    `SELECT id FROM subscriptions;`,
-  );
-  let subscriptionIds = subscriptions.map((subscription) => subscription.id);
-  subscriptions = null;
+  const table = 'subscriptions_fetches';
+  const columnsString = '(id, subscription_id, fetch_id)';
+  let amount = rowsPerFetch * fetchesCount;
 
-  let { rows: fetches } = await dbClient.executeQuery(
-    `SELECT id FROM fetches;`,
-  );
-
-  let fetchesIds = fetches.map((f) => f.id);
-  fetches = null;
-
-  const newSubscriptionsFetches = [];
-
-  const products = generateProduct(
-    fetchesIds,
-    subscriptionIds,
-    SUBSCRIPTIONS_PER_FETCH,
-  );
-  for (const [fetchId, subscriptionId] of products) {
-    newSubscriptionsFetches.push({
-      subscriptionId: subscriptionId,
-      fetchId,
-    });
-  }
-
-  log.info(`Generated ${newSubscriptionsFetches.length} rows. Inserting...`);
-
-  subscriptionIds = null;
-  fetchesIds = null;
-
-  const rows = newSubscriptionsFetches.map(({ subscriptionId, fetchId }) => {
-    const randomAPIFetchesCount = Math.floor(
-      Math.random() * (MAX_API_FETCHES_COUNT - MIN_API_FETCHES_COUNT),
-    ) + MIN_API_FETCHES_COUNT;
-
-    return [subscriptionId, fetchId, randomAPIFetchesCount];
-  });
-
-  const batchLength = 300;
-  const insertBatchesGen = generateInsertBatches(rows, batchLength);
-  let index = -1;
-
-  for (const { values, valuesPlaceholders } of insertBatchesGen) {
-    index += 1;
-    updateProgess(index * batchLength, rows.length);
-
-    await dbClient.executeQuery(
-      `
-      INSERT INTO subscriptions_fetches
-        (subscription_id, fetch_id, api_fetches_count)
-      VALUES
-        ${valuesPlaceholders}
-      ON CONFLICT DO NOTHING;
-      `,
-      values,
+  if (maxAmount < amount) {
+    log.info(
+      'Product of subscriptionsFetches exceeded hard maximum of 10 million.',
+      'Defaulting to hard maximum.'
     );
+    amount = maxAmount;
   }
 
-  log.info(`Insert subscriptions fetches finished.`);
+  log.info('Going to insert', amount, 'subscriptions_fetches');
+  const rowGenerator = id => {
+    const subscriptionId = id % subscriptionsCount;
+    const fetchId = Math.floor(id / rowsPerFetch);
+
+    return [id, subscriptionId, fetchId];
+  };
+  return insertRandomData(
+    dbClient,
+    { table, columnsString, rowGenerator, amount }
+  );
 }
 
 async function insertRandomUsers (dbClient, amount) {
@@ -318,120 +334,46 @@ async function insertRandomUsers (dbClient, amount) {
   const MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH = 40;
   const MIN_EMAIL_ADDRESS_DOMAIN_PART_LENGTH = 2;
   const MAX_EMAIL_ADDRESS_DOMAIN_PART_LENGTH = 20;
-  const MIN_PASSWORD_LENGTH = 8;
-  const MAX_PASSWORD_LENGTH = 50;
-  const MAX_FAILED_ATTEMPTS = 50;
-  const ROW_VALUES_COUNT = 6;
 
-  log.info(`Inserting random users... Amount: ${amount}`);
-
-  let { rows: existingUsers } = await dbClient.executeQuery(`
-
-    SELECT
-      email
-    FROM users;
-
-  `);
-
-  let existingEmails = existingUsers.map((user) => user.email);
-  existingUsers = null;
-
-  let randomEmails = new Set();
-  let failedAttempts = 0;
-
-  for (let i = 0; i < amount; i++) {
-    const randomLocalPart = getRandomString({
-      minLength: MIN_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
-      maxLength: MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
-    });
-
-    const randomDomainPart = getRandomString({
-      minLength: MIN_EMAIL_ADDRESS_DOMAIN_PART_LENGTH,
-      maxLength: MAX_EMAIL_ADDRESS_DOMAIN_PART_LENGTH,
-    });
-
-    const randomEmailAddress = `${randomLocalPart}@${randomDomainPart}`;
-
-    if (existingEmails.includes(randomEmailAddress)) {
-      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomCodes set');
-      }
-
-      i--; // try again
-      failedAttempts++;
-      continue;
-    }
-
-    randomEmails.add(randomEmailAddress);
-
-    if (randomEmails.size < i + 1) {
-      if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-        throw new Error('MAX_FAILED_ATTEMPTS reached while creating randomEmails set');
-      }
-
-      i--; // try again
-      failedAttempts++;
-      continue;
-    }
-
-    failedAttempts = 0;
-  }
-
-  existingEmails = null;
-
-  const randomEmailsIterator = randomEmails.values();
-  randomEmails = null;
-
-  let rowsInserted = 0;
-
-  while (rowsInserted < amount) {
-    updateProgess(rowsInserted, amount);
-
-    let insertQueryParameters = '';
-    let queryParamsCounter = 0;
-
-    while (queryParamsCounter + ROW_VALUES_COUNT < MAX_QUERY_PARAMS && rowsInserted < amount) {
-      insertQueryParameters += `($${queryParamsCounter + 1}, $${queryParamsCounter + 2}, $${queryParamsCounter + 3}, $${queryParamsCounter + 4}, $${queryParamsCounter + 5}, $${queryParamsCounter + 6})`;
-
-      if (queryParamsCounter + ROW_VALUES_COUNT * 2 < MAX_QUERY_PARAMS && rowsInserted + 1 < amount) {
-        insertQueryParameters += ',';
-      }
-
-      queryParamsCounter += ROW_VALUES_COUNT;
-      rowsInserted++;
-    }
-
-    const insertQueryValues = [];
-
-    for (let insertedQueryValues = 0; insertedQueryValues < queryParamsCounter; insertedQueryValues += ROW_VALUES_COUNT) {
-      const randomEmail = randomEmailsIterator.next().value;
-      const randomPassword = getRandomString({
-        minLength: MIN_PASSWORD_LENGTH,
-        maxLength: MAX_PASSWORD_LENGTH,
+  function * generateUniqueEmails () {
+    const generated = {};
+    while (true) {
+      const localPart = getRandomString({
+        minLength: MIN_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
+        maxLength: MAX_EMAIL_ADDRESS_LOCAL_PART_LENGTH,
       });
 
-      const hashedRandomPassword = crypto.createHash('md5').update(randomPassword).digest('hex');
+      const domainPart = getRandomString({
+        minLength: MIN_EMAIL_ADDRESS_DOMAIN_PART_LENGTH,
+        maxLength: MAX_EMAIL_ADDRESS_DOMAIN_PART_LENGTH,
+      });
+      const email = `${localPart}@${domainPart}`;
 
-      insertQueryValues.push(randomEmail);
-      insertQueryValues.push(hashedRandomPassword);
-      insertQueryValues.push(crypto.createHash('md5').update(`${randomEmail}:${hashedRandomPassword}`).digest('hex'));
-      insertQueryValues.push(true); // verified
-      insertQueryValues.push(true); // sent verification email
-      insertQueryValues.push(crypto.createHash('md5').update(`${randomEmail}:${hashedRandomPassword}:verification_token`).digest(
-        'hex'));
+      if (generated[email] != null) {
+        continue;
+      }
+
+      yield email;
+      generated[email] = true;
     }
-
-    await dbClient.executeQuery(`
-
-      INSERT INTO users
-        (email, password, api_key, verified, sent_verification_email, verification_token)
-      VALUES
-        ${insertQueryParameters};
-
-    `, insertQueryValues);
   }
 
-  log.info(`Insert users finished.`);
+  const emailGen = generateUniqueEmails();
+  const table = 'users';
+  const columnString = `(email, password, api_key, verified, sent_verification_email, verification_token)`;
+  const rowGenerator = id => {
+    const email = emailGen.next().value;
+    const password = crypto.createHash('md5').update(email).digest('hex');
+    let apiKey = `${email}:${password}`;
+    apiKey = crypto.createHash('md5').update(email).digest('hex');
+    const verified = true;
+    const sentEmail = true;
+    return [email, password, apiKey, verified, sentEmail, apiKey];
+  };
+  return insertRandomData(
+    dbClient,
+    {table, columnString, rowGenerator, amount},
+  );
 }
 
 async function insertRandomUsersSubscriptions (dbClient, amount) {
@@ -1714,8 +1656,8 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient) {
 async function fillDatabase (dbClient) {
   const AIRPORTS_AMOUNT = 10000;
   const AIRLINES_AMOUNT = 10000;
-  const SUBSCRIPTIONS_AMOUNT = 100000;
-  const FETCHES_AMOUNT = 10000;
+  const SUBSCRIPTIONS_AMOUNT = 1e5;
+  const FETCHES_AMOUNT = 1e3;
   const USERS_AMOUNT = 100000;
   const USERS_SUBSCRIPTIONS_AMOUNT = 500000;
   const ROUTES_AMOUNT = 100000;
@@ -1737,9 +1679,17 @@ async function fillDatabase (dbClient) {
 
   await insertRandomAirports(dbClient, AIRPORTS_AMOUNT);
   await insertRandomAirlines(dbClient, AIRLINES_AMOUNT);
-  await insertRandomSubscriptions(dbClient, SUBSCRIPTIONS_AMOUNT, AIRPORTS_AMOUNT);
+  await insertRandomSubscriptions(
+    dbClient,
+    SUBSCRIPTIONS_AMOUNT,
+    AIRPORTS_AMOUNT
+  );
   await insertRandomFetches(dbClient, FETCHES_AMOUNT);
-  // await insertRandomSubscriptionsFetches(dbClient);
+  await insertRandomSubscriptionsFetches(
+    dbClient,
+    SUBSCRIPTIONS_AMOUNT,
+    FETCHES_AMOUNT
+  );
   // await insertRandomRoutes(dbClient, ROUTES_AMOUNT);
   // await insertRandomFlights(dbClient, FLIGHTS_AMOUNT);
   // await insertRandomRoutesFlights(dbClient, ROUTES_FLIGHTS_AMOUNT);
