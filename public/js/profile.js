@@ -130,11 +130,15 @@ function start () {
   const onSearchClick = function (event) {
     mainUtils.trace('search button click');
 
-    const rowId = mainUtils.getElementUniqueId(event.target, 'subscription-view-mode-edit-btn-');
+    const rowId = mainUtils.getElementUniqueId(event.target, 'subscription-view-mode-search-btn-');
     const subscription = rowIdSubscriptionMap[rowId];
     const json = JSON.stringify(subscription);
-    const indexHref = $('#index-route-link').attr('href').val();
+    const indexHref = $('#index-route-link').attr('href');
     const queryString = '?display-subscription=target-subscription';
+
+    assertApp(indexHref != null);
+    assertApp(typeof indexHref === 'string');
+    assertApp(indexHref.length > 0);
 
     window.localStorage.setItem('target-subscription', json);
     window.location = indexHref + queryString;
