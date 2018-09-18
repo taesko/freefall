@@ -98,7 +98,7 @@ app.use(views(path.join(__dirname, 'admin', 'templates'), {
       heading: 'heading',
       messages: 'messages',
       auth_message_success: 'auth-message-success',
-      auth_message_error: 'auth-message-error',
+      error_message_partial: 'error-message-partial',
     },
   },
 }));
@@ -1135,9 +1135,49 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     }
   }
 
+  const { page: pageRemoved, ...queryWithoutPage } = ctx.query;
+
+  ctx.query = queryWithoutPage;
+
+  let queryStringWithoutPage = ctx.querystring;
+
+  if (queryStringWithoutPage.length > 0) {
+    queryStringWithoutPage = `&${queryStringWithoutPage}`;
+  }
+
+  ctx.query = {
+    ...queryWithoutPage,
+    pageRemoved,
+  };
+
+  const pageTemplateValues = {
+    item: 'transfers',
+    employee: {
+      email: loggedInEmployee.email,
+    },
+    filters: {
+      ...filters,
+      type: ctx.query['filter-type'],
+      reason: ctx.query['filter-reason'],
+    },
+    groupings: {
+      ...groupings,
+      ...queryParamsToGroupingsParamsMapping.reduce(
+        (acc, mapping) => ({
+          ...acc,
+          [mapping.grouping]: ctx.query[mapping.query],
+        }),
+        {}
+      ),
+    },
+    page,
+    query_string_without_page: queryStringWithoutPage,
+  };
+
   const dbClient = ctx.state.dbClient;
 
   const {
+    isReachedTimeout,
     accountTransfers,
     activeColumns,
   } = await getAccountTransfers(
@@ -1145,6 +1185,15 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     filters,
     groupings
   );
+
+  if (isReachedTimeout) {
+    ctx.status = 400;
+
+    return ctx.render('account-transfers.html', {
+      ...pageTemplateValues,
+      error_message: 'Your request took too long! Please add more filters!',
+    });
+  }
 
   const selectAllTransferAmountsResult = await dbClient.executeQuery(`
 
@@ -1296,36 +1345,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   assertApp(isObject(dalipecheAPITotalRequests.rows[0]), `got ${dalipecheAPITotalRequests.rows[0]}`);
   assertApp(typeof dalipecheAPITotalRequests.rows[0].dalipeche_api_requests === 'number', `got ${dalipecheAPITotalRequests.rows[0].dalipeche_api_requests}`);
 
-  const { page: pageRemoved, ...queryWithoutPage } = ctx.query;
-
-  ctx.query = queryWithoutPage;
-
-  let queryStringWithoutPage = ctx.querystring;
-
-  if (queryStringWithoutPage.length > 0) {
-    queryStringWithoutPage = `&${queryStringWithoutPage}`;
-  }
-
   return ctx.render('account-transfers.html', {
-    item: 'transfers',
-    employee: {
-      email: loggedInEmployee.email,
-    },
-    filters: {
-      ...filters,
-      type: ctx.query['filter-type'],
-      reason: ctx.query['filter-reason'],
-    },
-    groupings: {
-      ...groupings,
-      ...queryParamsToGroupingsParamsMapping.reduce(
-        (acc, mapping) => ({
-          ...acc,
-          [mapping.grouping]: ctx.query[mapping.query],
-        }),
-        {}
-      ),
-    },
+    ...pageTemplateValues,
     active_columns: activeColumns,
     account_transfers: accountTransfers,
     filter_total_deposited: filterTotalDeposited,
@@ -1336,8 +1357,6 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     total_credits_loaded: totalCreditsLoaded.rows[0].users_given_credits,
     dalipeche_api_total_requests:
       dalipecheAPITotalRequests.rows[0].dalipeche_api_requests,
-    page,
-    query_string_without_page: queryStringWithoutPage,
     next_page: accountTransfers.length === RESULTS_LIMIT ? page + 1 : null,
     prev_page: page > 1 ? page - 1 : null,
   });

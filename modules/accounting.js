@@ -441,158 +441,173 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     queryValues.push(filters.limit);
   }
 
-  const selectAccountTransfersResult = await dbClient.executeQuery(`
+  let selectAccountTransfersResult;
+  let accountTransfers = [];
+  let isReachedTimeout = false;
 
-    SELECT
-      ${selectColumnsPart}
-      ${groupColumns.length > 0 ? ', COUNT(*) AS grouped_amount' : ''}
-    FROM account_transfers
-    LEFT JOIN users
-      ON account_transfers.user_id = users.id
-    LEFT JOIN user_subscription_account_transfers
-      ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
-    LEFT JOIN subscriptions_fetches_account_transfers
-      ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
-    LEFT JOIN account_transfers_by_employees
-      ON account_transfers_by_employees.account_transfer_id = account_transfers.id
-    LEFT JOIN employees
-      ON employees.id = account_transfers_by_employees.employee_id
-    LEFT JOIN users_subscriptions
-      ON user_subscription_account_transfers.user_subscription_id = users_subscriptions.id
-    LEFT JOIN subscriptions s1
-      ON users_subscriptions.subscription_id = s1.id
-    LEFT JOIN airports a1
-      ON s1.airport_from_id = a1.id
-    LEFT JOIN airports a2
-      ON s1.airport_to_id = a2.id
-    LEFT JOIN subscriptions_fetches
-      ON subscriptions_fetches_account_transfers.subscription_fetch_id = subscriptions_fetches.id
-    LEFT JOIN subscriptions s2
-      ON subscriptions_fetches.subscription_id = s2.id
-    LEFT JOIN airports a3
-      ON s2.airport_from_id = a3.id
-    LEFT JOIN airports a4
-      ON s2.airport_to_id = a4.id
-    LEFT JOIN fetches
-      ON subscriptions_fetches.fetch_id = fetches.id
-    WHERE
-      (
-        $1::text IS NULL OR
-        users.email = $1
-      ) AND
-      (
-        $2::text IS NULL OR
-        transferred_at::date >= to_date($2, 'YYYY-MM-DD')
-      ) AND
-      (
-        $3::text IS NULL OR
-        transferred_at::date <= to_date($3, 'YYYY-MM-DD')
-      ) AND
-      (
+  try {
+    await dbClient.executeQuery('SET statement_timeout TO 15000;');
+
+    selectAccountTransfersResult = await dbClient.executeQuery(`
+
+      SELECT
+        ${selectColumnsPart}
+        ${groupColumns.length > 0 ? ', COUNT(*) AS grouped_amount' : ''}
+      FROM account_transfers
+      LEFT JOIN users
+        ON account_transfers.user_id = users.id
+      LEFT JOIN user_subscription_account_transfers
+        ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
+      LEFT JOIN subscriptions_fetches_account_transfers
+        ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
+      LEFT JOIN account_transfers_by_employees
+        ON account_transfers_by_employees.account_transfer_id = account_transfers.id
+      LEFT JOIN employees
+        ON employees.id = account_transfers_by_employees.employee_id
+      LEFT JOIN users_subscriptions
+        ON user_subscription_account_transfers.user_subscription_id = users_subscriptions.id
+      LEFT JOIN subscriptions s1
+        ON users_subscriptions.subscription_id = s1.id
+      LEFT JOIN airports a1
+        ON s1.airport_from_id = a1.id
+      LEFT JOIN airports a2
+        ON s1.airport_to_id = a2.id
+      LEFT JOIN subscriptions_fetches
+        ON subscriptions_fetches_account_transfers.subscription_fetch_id = subscriptions_fetches.id
+      LEFT JOIN subscriptions s2
+        ON subscriptions_fetches.subscription_id = s2.id
+      LEFT JOIN airports a3
+        ON s2.airport_from_id = a3.id
+      LEFT JOIN airports a4
+        ON s2.airport_to_id = a4.id
+      LEFT JOIN fetches
+        ON subscriptions_fetches.fetch_id = fetches.id
+      WHERE
         (
-          $4 = true AND
-          transfer_amount >= 0
-        ) OR
+          $1::text IS NULL OR
+          users.email = $1
+        ) AND
         (
-          $5 = true AND
-          transfer_amount <= 0
+          $2::text IS NULL OR
+          transferred_at::date >= to_date($2, 'YYYY-MM-DD')
+        ) AND
+        (
+          $3::text IS NULL OR
+          transferred_at::date <= to_date($3, 'YYYY-MM-DD')
+        ) AND
+        (
+          (
+            $4 = true AND
+            transfer_amount >= 0
+          ) OR
+          (
+            $5 = true AND
+            transfer_amount <= 0
+          )
+        ) AND
+        (
+          (
+            $6 = true AND
+            employees.id IS NOT NULL
+          ) OR
+          (
+            $7 = true AND
+            users_subscriptions.date_to IS NOT NULL
+          ) OR
+          (
+            $8 = true AND
+            fetch_time IS NOT NULL
+          )
+        ) AND
+        (
+          $9::text IS NULL OR
+          a3.name = $9
+        ) AND
+        (
+          $10::text IS NULL OR
+          a4.name = $10
+        ) AND
+        (
+          $11::text IS NULL OR
+          fetch_time >= to_timestamp($11, 'YYYY-MM-DDTHH24:MI:SS')
+        ) AND
+        (
+          $12::text IS NULL OR
+          fetch_time <= to_timestamp($12, 'YYYY-MM-DDTH24:MI:SS')
+        ) AND
+        (
+          $13::text IS NULL OR
+          employees.email = $13
+        ) AND
+        (
+          $14::text IS NULL OR
+          a1.name = $14
+        ) AND
+        (
+          $15::text IS NULL OR
+          a2.name = $15
+        ) AND
+        (
+          $16::text IS NULL OR
+          users_subscriptions.date_from >= to_date($16, 'YYYY-MM-DD')
+        ) AND
+        (
+          $17::text IS NULL OR
+          users_subscriptions.date_from <= to_date($17, 'YYYY-MM-DD')
+        ) AND
+        (
+          $18::text IS NULL OR
+          users_subscriptions.date_to >= to_date($18, 'YYYY-MM-DD')
+        ) AND
+        (
+          $19::text IS NULL OR
+          users_subscriptions.date_to <= to_date($19, 'YYYY-MM-DD')
         )
-      ) AND
-      (
-        (
-          $6 = true AND
-          employees.id IS NOT NULL
-        ) OR
-        (
-          $7 = true AND
-          users_subscriptions.date_to IS NOT NULL
-        ) OR
-        (
-          $8 = true AND
-          fetch_time IS NOT NULL
-        )
-      ) AND
-      (
-        $9::text IS NULL OR
-        a3.name = $9
-      ) AND
-      (
-        $10::text IS NULL OR
-        a4.name = $10
-      ) AND
-      (
-        $11::text IS NULL OR
-        fetch_time >= to_timestamp($11, 'YYYY-MM-DDTHH24:MI:SS')
-      ) AND
-      (
-        $12::text IS NULL OR
-        fetch_time <= to_timestamp($12, 'YYYY-MM-DDTH24:MI:SS')
-      ) AND
-      (
-        $13::text IS NULL OR
-        employees.email = $13
-      ) AND
-      (
-        $14::text IS NULL OR
-        a1.name = $14
-      ) AND
-      (
-        $15::text IS NULL OR
-        a2.name = $15
-      ) AND
-      (
-        $16::text IS NULL OR
-        users_subscriptions.date_from >= to_date($16, 'YYYY-MM-DD')
-      ) AND
-      (
-        $17::text IS NULL OR
-        users_subscriptions.date_from <= to_date($17, 'YYYY-MM-DD')
-      ) AND
-      (
-        $18::text IS NULL OR
-        users_subscriptions.date_to >= to_date($18, 'YYYY-MM-DD')
-      ) AND
-      (
-        $19::text IS NULL OR
-        users_subscriptions.date_to <= to_date($19, 'YYYY-MM-DD')
-      )
-    ${groupColumns.length > 0 ? `GROUP BY ${groupColumns}` : ''}
-    ORDER BY ${groupColumns.length > 0 ? groupColumns : '1'}
-    OFFSET $20
-    ${filters.limit ? 'LIMIT $21' : ''};
+      ${groupColumns.length > 0 ? `GROUP BY ${groupColumns}` : ''}
+      ORDER BY ${groupColumns.length > 0 ? groupColumns : '1'}
+      OFFSET $20
+      ${filters.limit ? 'LIMIT $21' : ''};
 
-  `, queryValues);
+    `, queryValues);
 
-  assertApp(_.isObject(selectAccountTransfersResult), `Expected selectAccountTransfersResult to be an object, but was ${typeof selectAccountTransfersResult}`);
-  assertApp(Array.isArray(selectAccountTransfersResult.rows), `Expected selectAccountTransfersResult.rows to be array, but was ${typeof selectAccountTransfersResult.rows}`);
+    assertApp(_.isObject(selectAccountTransfersResult), `Expected selectAccountTransfersResult to be an object, but was ${typeof selectAccountTransfersResult}`);
+    assertApp(Array.isArray(selectAccountTransfersResult.rows), `Expected selectAccountTransfersResult.rows to be array, but was ${typeof selectAccountTransfersResult.rows}`);
 
-  const accountTransfersUsersRows = selectAccountTransfersResult.rows;
+    accountTransfers = selectAccountTransfersResult.rows.map(row => ({
+      account_transfer_id: row.account_transfer_id || null,
+      account_owner_email: row.account_owner_email || null,
+      account_owner_id: String(row.account_owner_id),
+      deposit_amount: Number(row.deposit_amount),
+      withdrawal_amount: Number(row.withdrawal_amount),
+      transferred_at: (row.transferred_at && row.transferred_at.toISOString()) || null,
+      type: row.type || null,
+      reason: row.reason || null,
+      employee_transferrer_id:
+        row.employee_transferrer_id == null ? null : String(row.employee_transferrer_id),
+      employee_transferrer_email: row.employee_transferrer_email || null,
+      user_subscr_airport_from_name: row.user_subscr_airport_from_name || null,
+      user_subscr_airport_to_name: row.user_subscr_airport_to_name || null,
+      user_subscr_date_from: (row.user_subscr_date_from &&
+        row.user_subscr_date_from.toISOString()) || null,
+      user_subscr_date_to: (row.user_subscr_date_to &&
+        row.user_subscr_date_to.toISOString()) || null,
+      subscr_airport_from_name: row.subscr_airport_from_name || null,
+      subscr_airport_to_name: row.subscr_airport_to_name || null,
+      fetch_time: (row.fetch_time && row.fetch_time.toISOString()) || null,
+      grouped_amount: row.grouped_amount || null,
+    }));
 
-  const accountTransfers = accountTransfersUsersRows.map(row => ({
-    account_transfer_id: row.account_transfer_id || null,
-    account_owner_email: row.account_owner_email || null,
-    account_owner_id: String(row.account_owner_id),
-    deposit_amount: Number(row.deposit_amount),
-    withdrawal_amount: Number(row.withdrawal_amount),
-    transferred_at: (row.transferred_at && row.transferred_at.toISOString()) || null,
-    type: row.type || null,
-    reason: row.reason || null,
-    employee_transferrer_id:
-      row.employee_transferrer_id == null ? null : String(row.employee_transferrer_id),
-    employee_transferrer_email: row.employee_transferrer_email || null,
-    user_subscr_airport_from_name: row.user_subscr_airport_from_name || null,
-    user_subscr_airport_to_name: row.user_subscr_airport_to_name || null,
-    user_subscr_date_from: (row.user_subscr_date_from &&
-      row.user_subscr_date_from.toISOString()) || null,
-    user_subscr_date_to: (row.user_subscr_date_to &&
-      row.user_subscr_date_to.toISOString()) || null,
-    subscr_airport_from_name: row.subscr_airport_from_name || null,
-    subscr_airport_to_name: row.subscr_airport_to_name || null,
-    fetch_time: (row.fetch_time && row.fetch_time.toISOString()) || null,
-    grouped_amount: row.grouped_amount || null,
-  }));
+    await dbClient.executeQuery('SET statement_timeout TO DEFAULT;');
+  } catch (error) {
+    if (error.code === '57014') {
+      isReachedTimeout = true;
+    } else {
+      throw error;
+    }
+  }
 
   return {
+    isReachedTimeout,
     accountTransfers,
     activeColumns,
   };

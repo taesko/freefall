@@ -1371,8 +1371,9 @@ const adminListEmployees = defineAPIMethod(
 
 const adminListAccountTransfers = defineAPIMethod(
   {
-    'ALAT_INVALID_ADMIN_API_KEY': { status_code: '2100', account_transfers: [] },
-    'ALAT_BAD_PATAMETERS': { status_code: '2101', account_transfers: [] },
+    'ALAT_INVALID_ADMIN_API_KEY': { status_code: '2100', account_transfers: [], active_columns: [] },
+    'ALAT_BAD_PATAMETERS': { status_code: '2101', account_transfers: [], active_columns: [] },
+    'ALAT_TIMEOUT': { status_code: '2201', account_transfers: [], active_columns: [] },
   },
   async (params, dbClient) => {
     assertUser(
@@ -1709,7 +1710,7 @@ const adminListAccountTransfers = defineAPIMethod(
         assertUser(
           mapping.expected.includes(params.groupings[mapping.api]),
           'Unexpected param value.',
-          'ALAT_BAD_PATAMETERS',
+          'ALAT_BAD_PATAMETERS'
         );
 
         groupings[mapping.grouping] = mapping.resolve(params.groupings[mapping.api]);
@@ -1717,6 +1718,7 @@ const adminListAccountTransfers = defineAPIMethod(
     }
 
     const {
+      isReachedTimeout,
       accountTransfers,
       activeColumns,
     } = await getAccountTransfers(
@@ -1725,8 +1727,11 @@ const adminListAccountTransfers = defineAPIMethod(
       groupings
     );
 
-    console.log(accountTransfers);
-    console.log(activeColumns);
+    assertUser(
+      !isReachedTimeout,
+      'Get account transfers took too long!',
+      'ALAT_TIMEOUT'
+    );
 
     return {
       status_code: '1000',
