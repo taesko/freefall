@@ -44,10 +44,16 @@ function start () {
       assertApp(typeof data.headers[i].namePretty === 'string', {
         msg: 'Expected data header namePretty to be string, but namePretty=' + data.headers[i].namePretty, // eslint-disable-line prefer-template
       });
-      for (k = 0; k < data.rows.length; k++) {
-        assertApp(data.rows[k].hasOwnProperty(data.headers[i].name), {
-          msg: 'Data does not have required header "' + data.headers[i].name + '"', // eslint-disable-line prefer-template
-        });
+      assertApp(typeof data.headers[i].isActive === 'boolean', {
+        msg: 'Expected data header isActive to be boolean, but isActive=' + data.headers[i].isActive, // eslint-disable-line prefer-template
+      });
+
+      if (data.headers[i].isActive) {
+        for (k = 0; k < data.rows.length; k++) {
+          assertApp(data.rows[k].hasOwnProperty(data.headers[i].name), {
+            msg: 'Data does not have required header "' + data.headers[i].name + '"', // eslint-disable-line prefer-template
+          });
+        }
       }
     }
 
@@ -81,7 +87,11 @@ function start () {
       const exportDataRow = [];
 
       for (k = 0; k < data.headers.length; k++) {
-        exportDataRow.push(data.rows[i][data.headers[k].name]);
+        if (data.headers[k].isActive) {
+          exportDataRow.push(data.rows[i][data.headers[k].name]);
+        } else {
+          exportDataRow.push('All');
+        }
       }
 
       exportData.push(exportDataRow);
@@ -209,26 +219,80 @@ function start () {
           },
         ];
 
-        const dataHeadersPrettyNames = {
-          'transferred_at': 'Transferred at',
-          'type': 'Transfer type',
-          'reason': 'Transfer reason',
-          'account_owner_id': 'User id',
-          'account_owner_email': 'User email',
-          'subscr_airport_from_name': 'Subscription airport from',
-          'subscr_airport_to_name': 'Subscription airport to',
-          'fetch_time': 'Fetch time',
-          'employee_transferrer_id': 'Employee transferrer id',
-          'employee_transferrer_email': 'Employee transferrer email',
-          'user_subscr_airport_from_name': 'User subscription airport from',
-          'user_subscr_airport_to_name': 'User subscription airport to',
-          'user_subscr_date_from': 'User subscription date from',
-          'user_subscr_date_to': 'User subscription date to',
-          'deposit_amount': 'Deposits',
-          'withdrawal_amount': 'Withdrawals',
-          'account_transfer_id': 'Account transfer id',
-          'grouped_amount': 'Grouped amount',
-        };
+        const dataHeaders = [
+          {
+            name: 'transferred_at',
+            namePretty: 'Transferred at',
+          },
+          {
+            name: 'type',
+            namePretty: 'Transfer type',
+          },
+          {
+            name: 'reason',
+            namePretty: 'Transfer reason',
+          },
+          {
+            name: 'account_owner_id',
+            namePretty: 'User id',
+          },
+          {
+            name: 'account_owner_email',
+            namePretty: 'User email',
+          },
+          {
+            name: 'subscr_airport_from_name',
+            namePretty: 'Subscription airport from',
+          },
+          {
+            name: 'subscr_airport_to_name',
+            namePretty: 'Subscription airport to',
+          },
+          {
+            name: 'fetch_time',
+            namePretty: 'Fetch time',
+          },
+          {
+            name: 'employee_transferrer_id',
+            namePretty: 'Employee transferrer id',
+          },
+          {
+            name: 'employee_transferrer_email',
+            namePretty: 'Employee transferrer email',
+          },
+          {
+            name: 'user_subscr_airport_from_name',
+            namePretty: 'User subscription airport from',
+          },
+          {
+            name: 'user_subscr_airport_to_name',
+            namePretty: 'User subscription airport to',
+          },
+          {
+            name: 'user_subscr_date_from',
+            namePretty: 'User subscription date from',
+          },
+          {
+            name: 'user_subscr_date_to',
+            namePretty: 'User subscription date to',
+          },
+          {
+            name: 'deposit_amount',
+            namePretty: 'Deposits',
+          },
+          {
+            name: 'withdrawal_amount',
+            namePretty: 'Withdrawals',
+          },
+          {
+            name: 'account_transfer_id',
+            namePretty: 'Account transfer id',
+          },
+          {
+            name: 'grouped_amount',
+            namePretty: 'Grouped amount',
+          },
+        ];
 
         const currentDate = (new Date()).toISOString().replace(':', '-').replace('.', '-');
 
@@ -240,13 +304,17 @@ function start () {
               filters: filtersGlobal,
             },
             {
-              headers: result.active_columns.map(function (column) { // eslint-disable-line prefer-arrow-callback
-                assertApp(typeof dataHeadersPrettyNames[column] === 'string', {
-                  msg: 'Expected dattaHeaderPrettyName to be string but was =' + dataHeadersPrettyNames[column], // eslint-disable-line prefer-template
+              headers: dataHeaders.map(function (header) { // eslint-disable-line prefer-arrow-callback
+                assertApp(typeof header.name === 'string', {
+                  msg: 'Expected header to have a property "name" of type string, but name=' + header.name, // eslint-disable-line prefer-template
+                });
+                assertApp(typeof header.namePretty === 'string', {
+                  msg: 'Expected header to have a property "namePretty" of type string, but namePretty=' + header.namePretty, // eslint-disable-line prefer-template
                 });
                 return {
-                  name: column,
-                  namePretty: dataHeadersPrettyNames[column],
+                  name: header.name,
+                  namePretty: header.namePretty,
+                  isActive: result.active_columns.indexOf(header.name) >= 0,
                 };
               }),
               rows: result.account_transfers,
