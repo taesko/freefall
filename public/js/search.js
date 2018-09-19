@@ -1,6 +1,5 @@
 /* eslint-disable no-var,prefer-template,prefer-arrow-callback */
 function start () {
-  const $flightForm = $('#flight-form');
   const $submitBtn = $('#submit-button');
 
   const mainUtils = main();
@@ -383,21 +382,65 @@ function start () {
     }
   }
 
+  function autoSearchIfRedirected () {
+    const parts = window.location.href.split('?');
+    if (parts.length < 2) {
+      return;
+    }
+
+    assertApp(parts.length === 2);
+
+    const query = parts[1].split('&')
+      .map(function (part) {
+        return part.split('=');
+      })
+      .reduce(
+        function (hash, entry) {
+          hash[entry[0]] = entry[1];
+          return hash;
+        },
+        {}
+      );
+    const storageID = query['display-subscription'];
+    const subscription = JSON.parse(window.localStorage.getItem(storageID));
+    const airportFrom = airports.find(function (ap) {
+      return ap.id === subscription.fly_from;
+    });
+    const airportTo = airports.find(function (ap) {
+      return ap.id === subscription.fly_to;
+    });
+    var dateFrom = subscription.date_from;
+    var dateTo = subscription.date_to;
+    const $form = $('#flight-form');
+    const now = new Date().getTime();
+
+    if (new Date(dateFrom).getTime() < now) {
+      dateFrom = '';
+    }
+    if (new Date(dateTo).getTime() < now) {
+      dateTo = '';
+    }
+
+    mainUtils.clearFormData('flight-form');
+
+    $form.find('#from-input').val(airportFrom.name);
+    $form.find('#to-input').val(airportTo.name);
+    $form.find('#date-from').val(dateFrom);
+    $form.find('#date-to').val(dateTo);
+    $form.change();
+    $form.submit();
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $loadMoreBtn = $('#load-more-btn');
+    const $flightForm = $('#flight-form');
     mainUtils.restoreFormData(CURRENT_PAGE_NAME, 'flight-form');
 
-    $('#flight-form').change(function () {
+    $flightForm.change(function () {
       mainUtils.saveFormData(CURRENT_PAGE_NAME, 'flight-form');
     });
-
-    $('#clear-button').click(function () {
-      mainUtils.clearFormData('flight-form');
-      mainUtils.saveFormData(CURRENT_PAGE_NAME, 'flight-form');
-    });
-
-    $submitBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback
-      mainUtils.trace('Submit button clicked');
+    $flightForm.submit(function (event) {
+      mainUtils.trace('Submitting flight form');
 
       event.preventDefault();
 
@@ -451,6 +494,11 @@ function start () {
       });
     });
 
+    $('#clear-button').click(function () {
+      mainUtils.clearFormData('flight-form');
+      mainUtils.saveFormData(CURRENT_PAGE_NAME, 'flight-form');
+    });
+
     $loadMoreBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback
       mainUtils.trace('Load more button clicked');
 
@@ -491,10 +539,6 @@ function start () {
       });
     });
 
-    $flightForm.on('submit', function (event) { // eslint-disable-line prefer-arrow-callback
-      event.preventDefault();
-    });
-
     const datepickerOptions = {
       dateFormat: 'yy-mm-dd',
     };
@@ -509,8 +553,8 @@ function start () {
         return airport.name;
       });
 
-      $('#from-input').autocomplete(airportNames);
-      $('#to-input').autocomplete(airportNames);
+      $('#airports-list').fillWithAirports(airportNames);
+      autoSearchIfRedirected();
     });
   });
 }

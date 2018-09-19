@@ -127,6 +127,22 @@ function start () {
     });
   }
 
+  const onSearchClick = function (event) {
+    mainUtils.trace('search button click');
+
+    const rowId = mainUtils.getElementUniqueId(event.target, 'subscription-view-mode-search-btn-');
+    const subscription = rowIdSubscriptionMap[rowId];
+    const json = JSON.stringify(subscription);
+    const indexHref = $('#index-route-link').attr('href');
+    const queryString = '?display-subscription=target-subscription';
+
+    assertApp(indexHref != null);
+    assertApp(typeof indexHref === 'string');
+    assertApp(indexHref.length > 0);
+
+    window.localStorage.setItem('target-subscription', json);
+    window.location = indexHref + queryString;
+  };
   const onEditClick = function (event) {
     mainUtils.trace('edit button click');
 
@@ -469,9 +485,9 @@ function start () {
     modes[mode](subscription, rowId, $row);
 
     applyDatePicker();
-    applyAutocomplete(airports.map(function (airport) { // eslint-disable-line prefer-arrow-callback
-      return airport.name;
-    }));
+    // applyAutocomplete(airports.map(function (airport) { // eslint-disable-line prefer-arrow-callback
+    //   return airport.name;
+    // }));
   }
 
   function renderSubscriptionRowViewMode (subscription, rowId, $row) {
@@ -501,6 +517,9 @@ function start () {
       .attr('id', 'subscription-view-mode-plan-' + rowId)
       .text(subscription.plan);
 
+    $subscriptionViewModeClone.find('#subscription-view-mode-search-btn')
+      .attr('id', 'subscription-view-mode-search-btn-' + rowId)
+      .click(onSearchClick)
     $subscriptionViewModeClone.find('#subscription-view-mode-edit-btn')
       .attr('id', 'subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditClick);
@@ -524,13 +543,13 @@ function start () {
     $subscriptionEditModeClone.find('#subscription-edit-mode-airport-from')
       .addClass('airport-select')
       .attr('id', 'subscription-edit-mode-airport-from-' + rowId) // eslint-disable-line prefer-template
-      .attr('list', 'subscription-airport-from-' + rowId) // eslint-disable-line prefer-template
+      // .attr('list', 'subscription-airport-from-' + rowId) // eslint-disable-line prefer-template
       .attr('value', getAirportName(airports, subscription.fly_from));
 
     $subscriptionEditModeClone.find('#subscription-edit-mode-airport-to')
       .addClass('airport-select')
       .attr('id', 'subscription-edit-mode-airport-to-' + rowId) // eslint-disable-line prefer-template
-      .attr('list', 'user-subscription-airport-to-' + rowId) // eslint-disable-line prefer-template
+      // .attr('list', 'user-subscription-airport-to-' + rowId) // eslint-disable-line prefer-template
       .attr('value', getAirportName(airports, subscription.fly_to));
 
     $subscriptionEditModeClone.find('#subscription-edit-mode-date-from')
@@ -573,7 +592,7 @@ function start () {
   }
 
   function applyAutocomplete (values) {
-    $('.airport-select').autocomplete(values);
+    $('#airports-list').fillWithAirports(values);
   }
 
   function resetSubscriptions () {

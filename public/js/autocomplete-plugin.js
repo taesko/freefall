@@ -1,5 +1,26 @@
+/* eslint-disable prefer-arrow-callback */
 (function ($) {
-  $.fn.autocomplete = function (data) {
+  const filledDataLists = {};
+  $.fn.fillWithAirports = function (data) {
+    if (this.attr('id') in filledDataLists) {
+      console.warn('Already filled datalist with id', this.attr('id'));
+      return;
+    }
+    filledDataLists[this.attr('id')] = true;
+
+    console.log('Filling airports list with id', this.attr('id'));
+
+    for (const suggestion of data) {
+      $('<option></option>')
+        .attr('value', suggestion)
+        .appendTo(this);
+    }
+  };
+
+  $.fn.autocompleteDepreciated = function (data) {
+    console.warn(
+      'autocomplete function is depreciated please use fillWithAirports'
+    );
     return this.each(function () {
       var $dataList; // eslint-disable-line no-var
 

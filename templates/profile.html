@@ -16,11 +16,11 @@
     <form class="row" id="subscribe-form">
       <div class="col-md-2">
         <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text"
-               placeholder="Airport from" list="from-airports" required>
+               placeholder="Airport from" list="airports-list" required>
       </div>
       <div class="col-md-2">
         <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text"
-               placeholder="Airport to" list="to-airports" required>
+               placeholder="Airport to" list="airports-list" required>
       </div>
       <div class="col-md-2">
         <input id="subscribe-date-from" class="form-control date-select" name="date-from" type="text"
@@ -64,12 +64,12 @@
         <div class="form-group">
           <label for="search-airport-from" class="sr-only">From</label>
           <input id="search-airport-from" class="form-control airport-select" name="from" type="text"
-                 placeholder="Airport from" list="from-airports">
+                 placeholder="Airport from" list="airports-list">
         </div>
         <div class="form-group">
           <label for="search-airport-to" class="sr-only">To</label>
           <input id="search-airport-to" name="to" class="form-control airport-select" type="text"
-                 placeholder="Airport to" list="to-airports">
+                 placeholder="Airport to" list="airports-list">
         </div>
         <div class="form-group">
           <button id="search-subscriptions-btn" class="btn btn-primary">Search</button>
@@ -90,11 +90,11 @@
         <tr id="subscription-edit-mode" hidden>
           <td>
             <input id="subscription-edit-mode-airport-from" class="form-control" name="from" type="text"
-                   placeholder="Airport from" required>
+                   list="airports-list" placeholder="Airport from" required>
           </td>
           <td>
             <input id="subscription-edit-mode-airport-to" class="form-control" name="to" type="text"
-                   placeholder="Airport to" required>
+                   list="airports-list" placeholder="Airport to" required>
           </td>
           <td>
             <input id="subscription-edit-mode-date-from" class="form-control" name="date-from" type="text"
@@ -131,6 +131,7 @@
             <span id="subscription-view-mode-plan"></span>
           </td>
           <td>
+            <button id="subscription-view-mode-search-btn" type="button" class="btn btn-primary btn-block">Search</button>
             <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
           </td>
         </tr>
@@ -143,11 +144,11 @@
       <form id="search-credit-history">
         <div class="form-group">
           <input id="search-ch-fly-from" class="form-control airport-select" name="from" type="text"
-                 placeholder="Airport from" list="from-airports">
+                 placeholder="Airport from" list="airports-list">
         </div>
         <div class="form-group">
           <input id="search-ch-fly-to" name="to" class="form-control airport-select" type="text"
-                 placeholder="Airport to" list="to-airports">
+                 placeholder="Airport to" list="airports-list">
         </div>
         <div class="form-group">
           <input id="search-ch-date-from" class="form-control date-select" name="date-from" type="text"
@@ -291,6 +292,7 @@
     </div>
   </div>
 </div>
+<datalist id="airports-list"></datalist>
 <script src="{{routes.static}}/js/lodash/index.min.js"></script>
 <script src="{{routes.static}}/js/jquery/jquery-2.2.4.js"></script>
 <script src="{{routes.static}}/css/bootstrap/js/bootstrap.min.js"></script>
