@@ -67,8 +67,10 @@ function * batchMap (collection, func, count) {
 
   let itemCount = 0;
   let batch = [];
+  let index = -1;
 
-  for (const [index, element] of Object.entries(collection)) {
+  for (const element of collection) {
+    index += 1;
     if (itemCount === count) {
       yield batch;
       batch = [];
