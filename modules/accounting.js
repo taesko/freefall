@@ -446,7 +446,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   let isReachedTimeout = false;
 
   try {
-    await dbClient.executeQuery('SET statement_timeout TO 15000;');
+    //await dbClient.executeQuery('SET statement_timeout TO 15000;');
 
     selectAccountTransfersResult = await dbClient.executeQuery(`
 
@@ -597,7 +597,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       grouped_amount: row.grouped_amount || null,
     }));
 
-    await dbClient.executeQuery('SET statement_timeout TO DEFAULT;');
+    //await dbClient.executeQuery('SET statement_timeout TO DEFAULT;');
   } catch (error) {
     if (error.code === '57014') {
       isReachedTimeout = true;
