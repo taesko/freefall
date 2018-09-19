@@ -225,10 +225,6 @@ function start () {
             namePretty: 'Transferred at',
           },
           {
-            name: 'type',
-            namePretty: 'Transfer type',
-          },
-          {
             name: 'reason',
             namePretty: 'Transfer reason',
           },

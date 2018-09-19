@@ -290,7 +290,6 @@
     <thead>
       <tr>
         <th>Transferred at</th>
-        <th>Transfer type</th>
         <th>Transfer reason</th>
         <th>User id</th>
         <th>User email</th>
@@ -315,15 +314,6 @@
         {{#if ../active_columns.transferred_at}}
           <td>
             {{this.transferred_at}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.type}}
-          <td>
-            {{this.type}}
           </td>
         {{else}}
           <td>
