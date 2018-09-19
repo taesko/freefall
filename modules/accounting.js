@@ -1,5 +1,5 @@
 const _ = require('lodash');
-
+const moment = require('moment');
 const { assertApp, assertPeer, AppError, PeerError, errorCodes } = require('./error-handling');
 const log = require('./log');
 const users = require('./users');
@@ -573,13 +573,57 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     assertApp(_.isObject(selectAccountTransfersResult), `Expected selectAccountTransfersResult to be an object, but was ${typeof selectAccountTransfersResult}`);
     assertApp(Array.isArray(selectAccountTransfersResult.rows), `Expected selectAccountTransfersResult.rows to be array, but was ${typeof selectAccountTransfersResult.rows}`);
 
+    assertApp(
+      groupings.transferred_at === null ||
+      typeof groupings.transferred_at === 'string'
+    );
+    assertApp(
+      groupings.user_subscr_date_from === null ||
+      typeof groupings.user_subscr_date_from === 'string'
+    );
+    assertApp(
+      groupings.user_subscr_date_to === null ||
+      typeof groupings.user_subscr_date_to === 'string'
+    );
+    assertApp(
+      groupings.fetch_time === null ||
+      typeof groupings.fetch_time === 'string'
+    );
+
+    const truncateDatetime = function (datetime, precision) {
+      assertApp(datetime === null || datetime instanceof Date);
+      assertApp(precision === null || typeof precision === 'string');
+
+      if (datetime === null) {
+        return datetime;
+      } else if (precision === null) {
+        return datetime.toISOString();
+      }
+
+      const precisionsFormats = {
+        'none': 'Y-MM-DDTHH:mm:ss.SSSZ',
+        'second': 'Y-MM-DDTHH:mm:ss',
+        'minute': 'Y-MM-DDTHH:mm',
+        'hour': 'Y-MM-DDTHH',
+        'day': 'Y-MM-DD',
+        'week': 'Y-MM,WW',
+        'month': 'Y-MM',
+        'year': 'Y',
+      };
+      assertApp(Object.keys(precisionsFormats).includes(precision));
+
+      const result = moment(datetime).format(precisionsFormats[precision]);
+
+      return result;
+    };
+
     accountTransfers = selectAccountTransfersResult.rows.map(row => ({
       account_transfer_id: row.account_transfer_id || null,
       account_owner_email: row.account_owner_email || null,
       account_owner_id: String(row.account_owner_id),
       deposit_amount: Number(row.deposit_amount),
       withdrawal_amount: Number(row.withdrawal_amount),
-      transferred_at: (row.transferred_at && row.transferred_at.toISOString()) || null,
+      transferred_at: (row.transferred_at && truncateDatetime(row.transferred_at, groupings.transferred_at)) || null,
       type: row.type || null,
       reason: row.reason || null,
       employee_transferrer_id:
@@ -588,12 +632,12 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       user_subscr_airport_from_name: row.user_subscr_airport_from_name || null,
       user_subscr_airport_to_name: row.user_subscr_airport_to_name || null,
       user_subscr_date_from: (row.user_subscr_date_from &&
-        row.user_subscr_date_from.toISOString()) || null,
+        truncateDatetime(row.user_subscr_date_from, groupings.user_subscr_date_from)) || null,
       user_subscr_date_to: (row.user_subscr_date_to &&
-        row.user_subscr_date_to.toISOString()) || null,
+        truncateDatetime(row.user_subscr_date_to, groupings.user_subscr_date_to)) || null,
       subscr_airport_from_name: row.subscr_airport_from_name || null,
       subscr_airport_to_name: row.subscr_airport_to_name || null,
-      fetch_time: (row.fetch_time && row.fetch_time.toISOString()) || null,
+      fetch_time: (row.fetch_time && truncateDatetime(row.fetch_time, groupings.fetch_time)) || null,
       grouped_amount: row.grouped_amount || null,
     }));
 
