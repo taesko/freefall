@@ -377,7 +377,7 @@ async function insertRandomUsers (dbClient, amount) {
     const email = emailGen.next().value;
     const password = crypto.createHash('md5').update(email).digest('hex');
     let apiKey = `${email}:${password}`;
-    apiKey = crypto.createHash('md5').update(email).digest('hex');
+    apiKey = crypto.createHash('md5').update(apiKey).digest('hex');
     const verified = true;
     const sentEmail = true;
     return [id, email, password, apiKey, verified, sentEmail, apiKey];
@@ -549,7 +549,7 @@ async function insertRandomFlights (
 ) {
   [
     airportCount, airportRatio, airlinesCount,
-    flightsPerRoute, routesPerSubscriptionFetch, recentSubscriptionFetchCount
+    flightsPerRoute, routesPerSubscriptionFetch, recentSubscriptionFetchCount,
   ].every(arg => assertApp(Number.isInteger(arg)));
 
   const MIN_REMOTE_ID_LENGTH = 20;
@@ -1424,25 +1424,25 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient) {
 }
 
 async function fillDatabase (dbClient) {
-  const AIRPORTS_AMOUNT = 100;
-  const AIRLINES_AMOUNT = 10000;
-  const SUBSCRIPTIONS_AMOUNT = 1e3;
-  const FETCHES_AMOUNT = 1e1;
-  const ROUTES_PER_SUBSCRIPTION_FETCH = 2e1;
+  const AIRPORTS_AMOUNT = 1e4;
+  const AIRLINES_AMOUNT = 1e4;
+  const SUBSCRIPTIONS_AMOUNT = 1e5;
+  const FETCHES_AMOUNT = 1e2;
+  const ROUTES_PER_SUBSCRIPTION_FETCH = 1e1;
   const FLIGHTS_PER_ROUTE = 4;
-  // const USERS_AMOUNT = 100000;
-  // const USERS_SUBSCRIPTIONS_AMOUNT = 500000;
+  const USERS_AMOUNT = 100000;
+  const USERS_SUBSCRIPTIONS_AMOUNT = 500000;
   // flights are more then possible routes, but not as much as the ratio of flights per route
   // because flights might be shared between routes;
-  // const ROLES_AMOUNT = 1000;
-  // const PERMISSIONS_AMOUNT = 10000;
-  // const ROLES_PERMISSIONS_AMOUNT = 100000;
-  // const DALIPECHE_FETCHES_AMOUNT = 100000;
-  // const EMPLOYEES_AMOUNT = 5000;
-  // const ACTIVE_LOGIN_SESSIONS = Math.floor(USERS_AMOUNT / 2);
-  // const ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT = 500000;
-  // const USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT = 100000;
-  // const SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT = 1000000;
+  const ROLES_AMOUNT = 1000;
+  const PERMISSIONS_AMOUNT = 10000;
+  const ROLES_PERMISSIONS_AMOUNT = 100000;
+  const DALIPECHE_FETCHES_AMOUNT = 100000;
+  const EMPLOYEES_AMOUNT = 5000;
+  const ACTIVE_LOGIN_SESSIONS = Math.floor(USERS_AMOUNT / 2);
+  const ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT = 500000;
+  const USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT = 100000;
+  const SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT = 1000000;
 
   log.info('Fill database started');
 
@@ -1458,22 +1458,22 @@ async function fillDatabase (dbClient) {
     dbClient,
     SUBSCRIPTIONS_AMOUNT,
   );
+  const routeCount = await insertRandomRoutes(
+    dbClient,
+    SUBSCRIPTIONS_AMOUNT,
+    ROUTES_PER_SUBSCRIPTION_FETCH
+  );
   await insertRandomFlights(
     dbClient,
     {
       airlinesCount: AIRLINES_AMOUNT,
       airportCount: AIRPORTS_AMOUNT,
       airportRatio,
-      routeCount: SUBSCRIPTIONS_AMOUNT * ROUTES_PER_SUBSCRIPTION_FETCH,
+      routeCount,
       flightsPerRoute: FLIGHTS_PER_ROUTE,
       routesPerSubscriptionFetch: ROUTES_PER_SUBSCRIPTION_FETCH,
       recentSubscriptionFetchCount: SUBSCRIPTIONS_AMOUNT,
     }
-  );
-  const routeCount = await insertRandomRoutes(
-    dbClient,
-    SUBSCRIPTIONS_AMOUNT,
-    ROUTES_PER_SUBSCRIPTION_FETCH
   );
   await insertRandomRoutesFlights(
     dbClient,
@@ -1482,28 +1482,28 @@ async function fillDatabase (dbClient) {
       flightsPerRoute: FLIGHTS_PER_ROUTE,
     },
   );
-  // await insertRandomUsers(dbClient, USERS_AMOUNT);
-  // await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
-  // await insertRandomRoles(dbClient, ROLES_AMOUNT);
-  // await insertRandomPermissions(dbClient, PERMISSIONS_AMOUNT);
-  // await insertRandomRolesPermissions(dbClient, ROLES_PERMISSIONS_AMOUNT);
-  // await insertRandomDalipecheFetches(dbClient, DALIPECHE_FETCHES_AMOUNT);
-  // await insertRandomEmployees(dbClient, EMPLOYEES_AMOUNT);
-  // await insertRandomEmployeesRoles(dbClient, EMPLOYEES_AMOUNT);
-  // await insertRandomLoginSessions(dbClient, ACTIVE_LOGIN_SESSIONS);
-  // await insertRandomPasswordResets(dbClient, USERS_AMOUNT);
-  // await insertRandomAccountTransfersByEmployees(
-  //   dbClient,
-  //   ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT,
-  // );
-  // await insertRandomUserSubscriptionAccountTransfers(
-  //   dbClient,
-  //   USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT,
-  // );
-  // await insertRandomSubscriptionsFetchesAccountTransfers(
-  //   dbClient,
-  //   SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT,
-  // );
+  await insertRandomUsers(dbClient, USERS_AMOUNT);
+  await insertRandomUsersSubscriptions(dbClient, USERS_SUBSCRIPTIONS_AMOUNT);
+  await insertRandomRoles(dbClient, ROLES_AMOUNT);
+  await insertRandomPermissions(dbClient, PERMISSIONS_AMOUNT);
+  await insertRandomRolesPermissions(dbClient, ROLES_PERMISSIONS_AMOUNT);
+  await insertRandomDalipecheFetches(dbClient, DALIPECHE_FETCHES_AMOUNT);
+  await insertRandomEmployees(dbClient, EMPLOYEES_AMOUNT);
+  await insertRandomEmployeesRoles(dbClient, EMPLOYEES_AMOUNT);
+  await insertRandomLoginSessions(dbClient, ACTIVE_LOGIN_SESSIONS);
+  await insertRandomPasswordResets(dbClient, USERS_AMOUNT);
+  await insertRandomAccountTransfersByEmployees(
+    dbClient,
+    ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT,
+  );
+  await insertRandomUserSubscriptionAccountTransfers(
+    dbClient,
+    USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT,
+  );
+  await insertRandomSubscriptionsFetchesAccountTransfers(
+    dbClient,
+    SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT,
+  );
 
   log.info('Fill database finished');
 }
