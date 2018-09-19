@@ -521,7 +521,7 @@ async function insertRandomRoutes (
   const rowGenerator = id => {
     const bookingToken = bookingTokenGen.next().value;
     const randomOffset = Math.floor(Math.random() * (MIN_PRICE + MAX_PRICE));
-    const price = MIN_PRICE + randomOffset;
+    const price = (MIN_PRICE + randomOffset) * 100; // transform into cents
     const subscriptionFetchId = Math.floor(id / routesPerSubscriptionFetch);
 
     return [id, bookingToken, subscriptionFetchId, price];
@@ -646,7 +646,7 @@ async function insertRandomRoutesFlights (
   const columnsString = '(id, route_id, flight_id)';
   const amount = routeCount * flightsPerRoute;
   const rowGenerator = id => {
-    const routeID = id / flightsPerRoute;
+    const routeID = Math.floor(id / flightsPerRoute);
     const flightID = id % flightsPerRoute;
 
     return [id, routeID, flightID];
@@ -1424,19 +1424,12 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient) {
 }
 
 async function fillDatabase (dbClient) {
-  const AIRPORTS_AMOUNT = 10000;
+  const AIRPORTS_AMOUNT = 100;
   const AIRLINES_AMOUNT = 10000;
-  const SUBSCRIPTIONS_AMOUNT = 1e5;
-  const FETCHES_AMOUNT = 1e3;
+  const SUBSCRIPTIONS_AMOUNT = 1e3;
+  const FETCHES_AMOUNT = 1e1;
   const ROUTES_PER_SUBSCRIPTION_FETCH = 2e1;
-  const ROUTES_AMOUNT = 100000;
-  const ROUTES_TO_FLIGHTS_RATIO = 2;
   const FLIGHTS_PER_ROUTE = 4;
-  const FLIGHTS_BETWEEN_AIRPORTS = 5;
-  const FLIGHTS_AMOUNT = SUBSCRIPTIONS_AMOUNT *
-                         ROUTES_PER_SUBSCRIPTION_FETCH *
-                         ROUTES_TO_FLIGHTS_RATIO;
-  const ROUTES_FLIGHTS_AMOUNT = ROUTES_AMOUNT * FLIGHTS_PER_ROUTE;
   // const USERS_AMOUNT = 100000;
   // const USERS_SUBSCRIPTIONS_AMOUNT = 500000;
   // flights are more then possible routes, but not as much as the ratio of flights per route
