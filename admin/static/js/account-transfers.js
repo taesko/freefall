@@ -26,15 +26,27 @@ function start () {
     var k; // eslint-disable-line no-var
 
     for (i = 0; i < filterData.headers.length; i++) {
-      assertApp(filterData.filters.hasOwnProperty(filterData.headers[i]), {
-        msg: 'Filters does not have required header "' + filterData.headers[i] + '"', // eslint-disable-line prefer-template
+      assertApp(typeof filterData.headers[i].name === 'string', {
+        msg: 'Expected filterData header to have property name, but name=' + filterData.headers[i].name, // eslint-disable-line prefer-template
+      });
+      assertApp(typeof filterData.headers[i].namePretty === 'string', {
+        msg: 'Expected filterData header to have property namePretty, but namePretty=' + filterData.headers[i].namePretty, // eslint-disable-line prefer-template
+      });
+      assertApp(filterData.filters.hasOwnProperty(filterData.headers[i].name), {
+        msg: 'Filters does not have required header "' + filterData.headers[i].name + '"', // eslint-disable-line prefer-template
       });
     }
 
     for (i = 0; i < data.headers.length; i++) {
+      assertApp(typeof data.headers[i].name === 'string', {
+        msg: 'Expected data header name to be string, but name=' + data.headers[i].name, // eslint-disable-line prefer-template
+      });
+      assertApp(typeof data.headers[i].namePretty === 'string', {
+        msg: 'Expected data header namePretty to be string, but namePretty=' + data.headers[i].namePretty, // eslint-disable-line prefer-template
+      });
       for (k = 0; k < data.rows.length; k++) {
-        assertApp(data.rows[k].hasOwnProperty(data.headers[i]), {
-          msg: 'Data does not have required header "' + data.headers[i] + '"', // eslint-disable-line prefer-template
+        assertApp(data.rows[k].hasOwnProperty(data.headers[i].name), {
+          msg: 'Data does not have required header "' + data.headers[i].name + '"', // eslint-disable-line prefer-template
         });
       }
     }
@@ -48,8 +60,8 @@ function start () {
 
     for (i = 0; i < filterData.headers.length; i++) {
       exportData.push([
-        filterData.headers[i],
-        filterData.filters[filterData.headers[i]],
+        filterData.headers[i].namePretty,
+        filterData.filters[filterData.headers[i].name],
       ]);
     }
 
@@ -59,7 +71,7 @@ function start () {
       const exportDataHeadersRow = [];
 
       for (i = 0; i < data.headers.length; i++) {
-        exportDataHeadersRow.push(data.headers[i]);
+        exportDataHeadersRow.push(data.headers[i].namePretty);
       }
 
       exportData.push(exportDataHeadersRow);
@@ -69,7 +81,7 @@ function start () {
       const exportDataRow = [];
 
       for (k = 0; k < data.headers.length; k++) {
-        exportDataRow.push(data.rows[i][data.headers[k]]);
+        exportDataRow.push(data.rows[i][data.headers[k].name]);
       }
 
       exportData.push(exportDataRow);
@@ -134,34 +146,109 @@ function start () {
           msg: msg,
         });
 
+        const filtersHeaders = [
+          {
+            name: 'transferred_at_from',
+            namePretty: 'Transferred at from',
+          },
+          {
+            name: 'transferred_at_to',
+            namePretty: 'Transferred at to',
+          },
+          {
+            name: 'type',
+            namePretty: 'Transfer type',
+          },
+          {
+            name: 'reason',
+            namePretty: 'Transfer reason',
+          },
+          {
+            name: 'subscr_airport_from',
+            namePretty: 'Subscription airport from',
+          },
+          {
+            name: 'subscr_airport_to',
+            namePretty: 'Subscription airport to',
+          },
+          {
+            name: 'fetch_time_from',
+            namePretty: 'Fetch time from',
+          },
+          {
+            name: 'fetch_time_to',
+            namePretty: 'Fetch time to',
+          },
+          {
+            name: 'employee_email',
+            namePretty: 'Employee email',
+          },
+          {
+            name: 'user_subscr_airport_from',
+            namePretty: 'User subscription departure airport',
+          },
+          {
+            name: 'user_subscr_airport_to',
+            namePretty: 'User subscription arrival airport',
+          },
+          {
+            name: 'user_subscr_depart_time_from',
+            namePretty: 'User subscription departure time from',
+          },
+          {
+            name: 'user_subscr_depart_time_to',
+            namePretty: 'User subscription departure time to',
+          },
+          {
+            name: 'user_subscr_arrival_time_from',
+            namePretty: 'User subscription arrival time from',
+          },
+          {
+            name: 'user_subscr_arrival_time_to',
+            namePretty: 'User subscription arrival time to',
+          },
+        ];
+
+        const dataHeadersPrettyNames = {
+          'transferred_at': 'Transferred at',
+          'type': 'Transfer type',
+          'reason': 'Transfer reason',
+          'account_owner_id': 'User id',
+          'account_owner_email': 'User email',
+          'subscr_airport_from_name': 'Subscription airport from',
+          'subscr_airport_to_name': 'Subscription airport to',
+          'fetch_time': 'Fetch time',
+          'employee_transferrer_id': 'Employee transferrer id',
+          'employee_transferrer_email': 'Employee transferrer email',
+          'user_subscr_airport_from_name': 'User subscription airport from',
+          'user_subscr_airport_to_name': 'User subscription airport to',
+          'user_subscr_date_from': 'User subscription date from',
+          'user_subscr_date_to': 'User subscription date to',
+          'deposit_amount': 'Deposits',
+          'withdrawal_amount': 'Withdrawals',
+          'account_transfer_id': 'Account transfer id',
+          'grouped_amount': 'Grouped amount',
+        };
+
         const currentDate = (new Date()).toISOString().replace(':', '-').replace('.', '-');
 
         const workbook = XLSX.utils.book_new();
         const worksheet = XLSX.utils.aoa_to_sheet(
           generateExportData(
             {
-              headers: [
-                'user',
-                'transferred_at_from',
-                'transferred_at_to',
-                'type',
-                'reason',
-                'subscr_airport_from',
-                'subscr_airport_to',
-                'fetch_time_from',
-                'fetch_time_to',
-                'employee_email',
-                'user_subscr_airport_from',
-                'user_subscr_airport_to',
-                'user_subscr_depart_time_from',
-                'user_subscr_depart_time_to',
-                'user_subscr_arrival_time_from',
-                'user_subscr_arrival_time_to',
-              ],
+              headers: filtersHeaders,
               filters: filtersGlobal,
             },
             {
-              headers: result.active_columns,
+              headers: result.active_columns.map(function (column) { // eslint-disable-line prefer-arrow-callback
+                assertApp(typeof dataHeadersPrettyNames[column] === 'string', {
+                  msg: 'Expected dattaHeaderPrettyName to be string but was =' + dataHeadersPrettyNames[column], // eslint-disable-line prefer-template
+                });
+                return {
+                  name: column,
+                  namePretty: dataHeadersPrettyNames[column],
+                };
+              }),
               rows: result.account_transfers,
             }
           )
