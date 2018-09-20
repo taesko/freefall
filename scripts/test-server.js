@@ -417,7 +417,7 @@ defineTestFunction(
 
       return response.result.subscriptions;
     });
-    const { successful, unsuccessful } = responses.reduce(
+    const { successful } = responses.reduce(
       (hash, response) => {
         if (responseBodyIsOK('subscribe', response)) {
           hash.successful.push(response);
@@ -466,7 +466,6 @@ defineTestFunction(
       api_key: testingUserAPIKey,
       v: '2.0',
     };
-    const creditHistoryBody = await makeRPCRequest('credit_history', chParams);
     const lastTax = await makeRPCRequest('credit_history', chParams)
       .then(body => {
         assertPeer(responseBodyIsOK('credit_history', body));
