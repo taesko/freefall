@@ -71,26 +71,6 @@ function * generateInsertBatches (nestedIteratee, batchLength) {
 }
 
 function * generateUniqueRandomString (minLength, maxLength) {
-  // function * genRandomString (minLength, maxLength) {
-  //   assertApp(Number.isInteger(minLength));
-  //   assertApp(Number.isInteger(maxLength));
-  //   assertApp(minLength >= 2);
-  //   assertApp(maxLength <= 30);
-  //
-  //   const hash = crypto.createHash('md5');
-  //   for (let index = 0; ; index++) {
-  //     hash.update(`${index}`);
-  //     const string = hash.digest('hex');
-  //     for (let k = 0; k <= string.length; k++) {
-  //       const randomOffset = Math.floor(
-  //         Math.random() * (maxLength - minLength)
-  //       );
-  //       const length = randomOffset + minLength;
-  //       yield string.slice(k, length);
-  //     }
-  //   }
-  // }
-
   const strings = {};
   while (true) {
     const randString = getRandomString({ minLength, maxLength });
@@ -205,6 +185,9 @@ async function insertRandomData (
     );
     await Promise.all(batch);
   }
+  await dbClient.executeQuery(
+    `SELECT setval(${table}_id_seq, (SELECT MAX(id) FROM ${table}))`
+  );
 }
 
 async function insertRandomAirports (dbClient, amount) {
