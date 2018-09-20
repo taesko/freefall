@@ -1,7 +1,6 @@
 module.exports = {
   hostname: 'localhost',
   port: 80,
-  protocol: 'http',
   address: 'http://localhost',
   routes: {
     index: '/',
