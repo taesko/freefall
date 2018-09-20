@@ -21,6 +21,10 @@ if (IS_PROFILING_ON) {
   );
 }
 
+function profilingIsEnabled () {
+  return IS_PROFILING_ON != null && IS_PROFILING_ON.toLowerCase() === 'true';
+}
+
 function profileEventLoop (
   emitInterval = EMIT_INTERVAL,
   latencyCheckInterval = LATENCY_CHECK_INTERVAL
@@ -28,7 +32,7 @@ function profileEventLoop (
   assertApp(Number.isInteger(emitInterval));
   assertApp(Number.isInteger(latencyCheckInterval));
 
-  if (!IS_PROFILING_ON) {
+  if (!profilingIsEnabled()) {
     return;
   }
 
@@ -66,7 +70,8 @@ function profileAsync (asyncFunc, options = {}) {
   assertApp(_.isFunction(asyncFunc));
   assertApp(_.isObject(options));
 
-  if (!IS_PROFILING_ON) {
+  if (!profilingIsEnabled()) {
+    log.info('Profiling is not enabled returning from profileAsync');
     return asyncFunc;
   }
 

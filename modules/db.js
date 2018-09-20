@@ -32,7 +32,6 @@ const client = profiling.profileAsync(async function client (ctx, next) {
     log.info('Released client connection');
   }
 });
-log.info('Profiled client function is', client);
 
 function wrapPgClient (client) {
   return {
