@@ -97,6 +97,7 @@ app.use(views(path.join(__dirname, 'admin', 'templates'), {
       menu: 'menu',
       heading: 'heading',
       messages: 'messages',
+      loader: 'loader',
       auth_message_success: 'auth-message-success',
       error_message_partial: 'error-message-partial',
     },

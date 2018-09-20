@@ -183,9 +183,11 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       button.disabled = false;
+      mainUtils.hideLoader();
       // TODO error handling
 
       users = result.users;
@@ -222,9 +224,12 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       button.disabled = false;
+      mainUtils.hideLoader();
+
       // TODO error handling
       if (result.users.length === 0) {
         mainUtils.displayUserMessage('You are already on last page!', 'info');
@@ -258,6 +263,8 @@ function start () {
         };
 
         adminAPI.adminListUsers(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+          mainUtils.hideLoader();
+
           users = result.users;
 
           renderUsers($('#users-table'));

@@ -409,12 +409,15 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListUserSubscriptions(
       params,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
+        mainUtils.hideLoader();
+
         userSubscriptions = result.user_subscriptions;
         // TODO error handling
         renderUserSubscriptions($('#user-subscriptions-table'));
@@ -450,12 +453,15 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListUserSubscriptions(
       params,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
+        mainUtils.hideLoader();
+
         // TODO error handling
         if (result.user_subscriptions.length === 0) {
           mainUtils.displayUserMessage('You are already on last page!', 'info');
@@ -503,12 +509,15 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListGuestSubscriptions(
       params,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
+        mainUtils.hideLoader();
+
         guestSubscriptions = result.guest_subscriptions;
         // TODO error handling
         renderGuestSubscriptions($('#guest-subscriptions-table'));
@@ -544,12 +553,15 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListGuestSubscriptions(
       params,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
+        mainUtils.hideLoader();
+
         // TODO error handling
         if (result.guest_subscriptions.length === 0) {
           mainUtils.displayUserMessage('You are already on last page!', 'info');
@@ -584,6 +596,8 @@ function start () {
         APIKeyRef.APIKey = result.api_key;
 
         api.listAirports(PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+          mainUtils.hideLoader();
+
           airports = result.airports;
 
           const params = {

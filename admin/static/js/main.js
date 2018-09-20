@@ -202,6 +202,26 @@ function main () { // eslint-disable-line no-unused-vars
     $messageClone.appendTo($('messages-list'));
   };
 
+  const showLoader = function () {
+    const $loader = $('#loader');
+
+    assertApp($loader.length === 1, {
+      msg: 'Expected one loader to be found, but $loader.length=' + $loader.length, // eslint-disable-line prefer-template
+    });
+
+    $loader.removeAttr('hidden');
+  };
+
+  const hideLoader = function () {
+    const $loader = $('#loader');
+
+    assertApp($loader.length === 1, {
+      msg: 'Expected one loader to be found, but $loader.length=' + $loader.length, // eslint-disable-line prefer-template
+    });
+
+    $loader.attr('hidden', true);
+  };
+
   const sendError = function (params, protocolName) {
     assertApp(validateSendErrorReq(params), {
       msg: 'Params do not adhere to sendErrorRequestSchema: ' + getValidatorMsg(validateSendErrorReq), // eslint-disable-line prefer-template
@@ -282,6 +302,8 @@ function main () { // eslint-disable-line no-unused-vars
     assertUser: assertUser,
     handleError: handleError,
     displayUserMessage: displayUserMessage,
+    showLoader: showLoader,
+    hideLoader: hideLoader,
     getValidatorMsg: getValidatorMsg,
     trace: trace,
     traceLog: traceLog,

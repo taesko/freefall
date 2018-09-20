@@ -508,6 +508,8 @@ function start () {
       return false;
     });
 
+    mainUtils.showLoader();
+
     adminAPI.adminAddRole(
       addRoleParams,
       PROTOCOL_NAME,
@@ -547,6 +549,8 @@ function start () {
           listRolesParams,
           PROTOCOL_NAME,
           function (result) { // eslint-disable-line prefer-arrow-callback
+            mainUtils.hideLoader();
+
             const messages = {
               '1000': 'Successfully listed roles!',
               '2100': 'Your API key does not support this operation!',
@@ -652,6 +656,8 @@ function start () {
             },
             PROTOCOL_NAME,
             function (result) { // eslint-disable-line prefer-arrow-callback
+              mainUtils.hideLoader();
+
               const messages = {
                 '1000': 'Successfully listed roles!',
                 '2100': 'Your API key does not support this operation!',

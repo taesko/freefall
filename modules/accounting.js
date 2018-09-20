@@ -529,11 +529,11 @@ async function getAccountTransfers (dbClient, filters, groupings) {
         ) AND
         (
           $11::text IS NULL OR
-          fetch_time >= to_timestamp($11, 'YYYY-MM-DDTHH24:MI:SS')
+          fetch_time >= to_timestamp($11, 'YYYY-MM-DD"T"HH24:MI:SS')
         ) AND
         (
           $12::text IS NULL OR
-          fetch_time <= to_timestamp($12, 'YYYY-MM-DDTH24:MI:SS')
+          fetch_time <= to_timestamp($12, 'YYYY-MM-DD"T"H24:MI:SS')
         ) AND
         (
           $13::text IS NULL OR

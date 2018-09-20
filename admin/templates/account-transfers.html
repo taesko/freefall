@@ -254,6 +254,7 @@
         <p><label>Total deposited:</label> {{filter_total_deposited}}</p>
         <p><label>Total withdrawn:</label> {{filter_total_withdrawn}}</p>
         <button id="export-xlsx-btn" class="btn btn-primary">Export as XLSX</button>
+        {{> loader }}
       </div>
       <div class="col-md-6">
         <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>

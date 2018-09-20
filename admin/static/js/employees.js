@@ -251,8 +251,11 @@ function start () {
       event.preventDefault();
       return false;
     });
+    mainUtils.showLoader();
+
     adminAPI.adminAddEmployee(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       $(form).off('submit').submit(onAddNewEmployee);
+      mainUtils.hideLoader();
 
       const messages = {
         '1000': 'Successfully added new employee!',
@@ -318,9 +321,11 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListEmployees(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       button.disabled = false;
+      mainUtils.hideLoader();
       // TODO error handling
 
       employees = result.employees;
@@ -357,9 +362,11 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListEmployees(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       button.disabled = false;
+      mainUtils.hideLoader();
       // TODO error handling
       if (result.employees.length === 0) {
         mainUtils.displayUserMessage('You are already on last page!', 'info');
@@ -450,6 +457,8 @@ function start () {
                 },
                 PROTOCOL_NAME,
                 function (result) { // eslint-disable-line prefer-arrow-callback
+                  mainUtils.hideLoader();
+
                   const messages = {
                     '1000': 'adminListEmployees success!',
                     '2100': 'Could not get API key for your account. Please try to log out and log back in your account!',

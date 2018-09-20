@@ -201,9 +201,11 @@ function start () {
       event.preventDefault();
       return false;
     });
+    mainUtils.showLoader();
 
     adminAPI.adminEditEmployee(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       $(form).off('submit').submit(onSaveEmployee);
+      mainUtils.hideLoader();
 
       const messages = {
         '1000': 'Successfully updated employee!',
@@ -281,6 +283,8 @@ function start () {
       employee_id: employeeGlobal.id,
       api_key: APIKeyRef.APIKey,
     };
+
+    mainUtils.showLoader();
 
     adminAPI.adminRemoveEmployee(
       removeEmployeeParams,
@@ -375,6 +379,8 @@ function start () {
             );
           } else {
             mainUtils.trace('callbacksWithEmptyRolesResult: ' + callbacksWithEmptyRolesResult + 1); // eslint-disable-line prefer-template
+            mainUtils.hideLoader();
+
             callbacksWithEmptyRolesResult++;
 
             if (callbacksWithEmptyRolesResult === parallelRoleRequests) {

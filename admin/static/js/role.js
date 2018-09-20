@@ -223,12 +223,14 @@ function start () {
       event.preventDefault();
       return false;
     });
+    mainUtils.showLoader();
 
     adminAPI.adminEditRole(
       editRoleParams,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         $(form).off('submit').submit(onSaveRoleClick);
+        mainUtils.hideLoader();
 
         const messages = {
           '1000': 'Successfully edited role!',
@@ -320,12 +322,14 @@ function start () {
     };
 
     removeButton.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminRemoveRole(
       removeRoleParams,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         removeButton.disabled = false;
+        mainUtils.hideLoader();
 
         const messages = {
           '1000': 'Successfully removed role!',
@@ -633,6 +637,8 @@ function start () {
             },
             PROTOCOL_NAME,
             function (result) { // eslint-disable-line prefer-arrow-callback
+              mainUtils.hideLoader();
+
               const messages = {
                 '1000': 'Successfully listed roles!',
                 '2100': 'Your API key does not support this operation!',

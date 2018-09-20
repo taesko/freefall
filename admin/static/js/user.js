@@ -187,9 +187,11 @@ function start () {
       event.preventDefault();
       return false;
     });
+    mainUtils.showLoader();
 
     adminAPI.adminEditUser(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       $(form).off('submit').submit(onSaveUserClick);
+      mainUtils.hideLoader();
 
       const messages = {
         '1000': 'Successfully updated user!',
@@ -267,10 +269,14 @@ function start () {
       api_key: APIKeyRef.APIKey,
     };
 
+    mainUtils.showLoader();
+
     adminAPI.adminRemoveUser(
       removeUserParams,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
+        mainUtils.hideLoader();
+
         const messages = {
           '1000': 'Successfully removed user!',
           '2100': 'Your API key does not support this operation!',
@@ -521,12 +527,14 @@ function start () {
       event.preventDefault();
       return false;
     });
+    mainUtils.showLoader();
 
     adminAPI.adminAlterUserCredits(
       alterUserCreditsParams,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         $(form).off('submit').submit(onUserCreditsSubmitClick);
+        mainUtils.hideLoader();
         $('#user-credits-change').val(0);
 
         const messages = {
@@ -591,12 +599,14 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListUserSubscriptions(
       params,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
+        mainUtils.hideLoader();
         subscriptions = result.user_subscriptions;
         renderUserSubscriptions($('#user-subscriptions-table'));
       }
@@ -632,12 +642,14 @@ function start () {
     };
 
     button.disabled = true;
+    mainUtils.showLoader();
 
     adminAPI.adminListUserSubscriptions(
       params,
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         button.disabled = false;
+        mainUtils.hideLoader();
 
         if (result.user_subscriptions.length === 0) {
           mainUtils.displayUserMessage('You are already on last page!', 'info');
@@ -671,6 +683,7 @@ function start () {
           airports = result.airports;
 
           const adminListUserSubscriptionsCallback = function (result) {
+            mainUtils.hideLoader();
             subscriptions = result.user_subscriptions;
 
             renderUserSubscriptions($('#user-subscriptions-table'));

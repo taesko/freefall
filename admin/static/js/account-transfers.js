@@ -105,6 +105,7 @@ function start () {
 
     const exportButton = event.target;
     exportButton.disabled = true;
+    mainUtils.showLoader();
 
     const listAccountTransfersParams = {
       v: '2.0',
@@ -136,6 +137,7 @@ function start () {
       PROTOCOL_NAME,
       function (result) { // eslint-disable-line prefer-arrow-callback
         exportButton.disabled = false;
+        mainUtils.hideLoader();
 
         const messages = {
           '1000': 'Successfully downloaded account transfers!',
@@ -329,6 +331,8 @@ function start () {
     adminAPI.adminGetAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
+      mainUtils.hideLoader();
+
       if (result.status_code === '1000') {
         APIKeyRef.APIKey = result.api_key;
 
