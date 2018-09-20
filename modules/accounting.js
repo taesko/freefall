@@ -655,7 +655,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   let depositsSum = 0;
   let withdrawalsSum = 0;
 
-  if (selectAccountTransfersResult.rows > 0) {
+  if (selectAccountTransfersResult.rows.length > 0) {
     depositsSum = selectAccountTransfersResult.rows[0].deposits_sum;
     withdrawalsSum = selectAccountTransfersResult.rows[0].withdrawals_sum * -1;
   }

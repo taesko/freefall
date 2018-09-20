@@ -78,7 +78,7 @@ function start () {
       dataColumnExists = false;
 
       for (k = 0; k < data.headers.length; k++) {
-        if (data.headers[i].name === data.totals[i].column) {
+        if (data.headers[k].name === data.totals[i].column) {
           dataColumnExists = true;
         }
       }
@@ -128,7 +128,7 @@ function start () {
       exportData.push(exportDataRow);
     }
 
-    var totalColumnValue;
+    var totalColumnValue; // eslint-disable-line no-var
 
     {
       const exportDataTotalsRow = [];
@@ -371,11 +371,11 @@ function start () {
               totals: [
                 {
                   column: 'deposit_amount',
-                  value: result.depositsSum,
+                  value: result.deposits_sum,
                 },
                 {
                   column: 'withdrawal_amount',
-                  value: result.withdrawalsSum,
+                  value: result.withdrawals_sum,
                 },
               ],
             },
