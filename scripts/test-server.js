@@ -32,7 +32,7 @@ const protocolToFormat = {
 };
 const jsonRPCVersion = '2.0';
 const yamlRPCVersion = '2.0';
-const testingUserAPIKey = '99acea95da5d772dc6dcdbc82bbc31e8';
+const testingUserAPIKey = '78d050b4490db48d61e5479ef3743628';
 
 const idGen = (function * () {
   for (let k = 1; ; k++) {
@@ -119,8 +119,8 @@ async function makeRPCRequest (
 
   const body = buildRPCBody(protocol, method, params);
   const options = {
-    hostname: '10.20.1.128',
-    port: '3000',
+    hostname: 'localhost',
+    port: '80',
     path: endpoint,
     method: 'POST',
     headers: {
@@ -181,6 +181,13 @@ function assertEqual (a, b) {
   assertPeer(
     _.isEqual(a, b),
     `${JSON.stringify(a)} is not equal to ${JSON.stringify(b)}`
+  );
+}
+
+function assertNotEqual (a, b) {
+  assertPeer(
+    !_.isEqual(a, b),
+    `${JSON.stringify(a)} is equal to ${JSON.stringify(b)}`
   );
 }
 
@@ -429,7 +436,7 @@ defineTestFunction(
       assertEqual(subscr.result.subscription_id, subscriptions[0].id);
     });
     subscriptions.slice(1).every(subscr => {
-      assertEqual(subscr.id === successful[0].result.subscription_id);
+      assertNotEqual(subscr.id, successful[0].result.subscription_id);
     });
   },
 );
@@ -466,7 +473,7 @@ defineTestFunction(
 
         return body.result.credit_history[0];
       });
-    let subscribeBody;
+    let newSubscriptionID;
     let tryCount = -1;
     const maxTries = 5;
 
@@ -475,17 +482,17 @@ defineTestFunction(
 
       assertApp(tryCount < maxTries);
 
-      subscribeBody = await makeSubscribeRequest(params);
+      const subscribeBody = await makeSubscribeRequest(params);
 
       if (responseBodyIsOK('subscribe', subscribeBody)) {
+        newSubscriptionID = subscribeBody.result.subscription_id;
         break;
       }
     }
 
-    const { subscriptions } = subscribeBody.result;
     const newLastTax = await makeRPCRequest('credit_history', chParams)
       .then(body => {
-        assertPeer(responseBodyIsOK('credit_history', chParams));
+        assertPeer(responseBodyIsOK('credit_history', body));
 
         const last = body.result.credit_history[0];
 
@@ -494,49 +501,10 @@ defineTestFunction(
         return last;
       });
 
-    assertPeer(newLastTax.id === subscriptions.id);
+    assertPeer(newLastTax.id === newSubscriptionID);
     assertPeer(newLastTax.id !== lastTax.id);
     assertPeer(newLastTax.reason === 'initial tax');
   },
-);
-
-defineTestFunction(
-  async function testSearch () {
-    const params = {
-      fly_from: '2',
-      fly_to: '3',
-    };
-
-    const responseBody = await makeRPCRequest('search', params);
-
-    assertPeer(responseBodyIsOK('search', responseBody));
-
-    const { routes } = responseBody.result;
-
-    for (const route of routes) {
-      let first = route[0];
-      let last = route.slice(-1)[0];
-
-      if (route.length === 0) {
-        return;
-      } else if (route.length === 1) {
-        first = first || last;
-        last = first;
-      }
-
-      assertPeer(first.airport_from === params.fly_from);
-      assertPeer(last.airport_to === params.airport_to);
-
-      for (let k = 1; k < route.length - 2; k++) {
-        const current = route[k];
-        const next = route[k + 1];
-
-        assertPeer(current.airport_to === next.airport_from);
-        assertPeer(current.dtime <= current.atime);
-        assertPeer(current.atime <= next.atime);
-      }
-    }
-  }
 );
 
 runTests()
