@@ -1,24 +1,23 @@
 <div class="row">
   <div class="navbar navbar-default navbar-static-top">
-      {{#if employee}}
-    <ul class="nav navbar-nav">
-      <li class="{{is_active item "subscriptions"}}"><a href="/subscriptions">Subscriptions</a></li>
-      <li class="{{is_active item "users"}}"><a href="/users">Users</a></li>
-      <li class="{{is_active item "employees"}}"><a href="/employees">Employees</a></li>
-      <li class="{{is_active item "fetches"}}"><a href="/fetches">Fetches</a></li>
-      <li class="{{is_active item "transfers"}}"><a href="/transfers">Account transfers</a></li>
-      <li class="{{is_active item "roles"}}"><a href="/roles">Roles</a></li>
-    </ul>
-    <ul class="nav navbar-nav navbar-right">
-      <li class="{{is_active item "change_password"}}"><a href="/change_password">Change password</a></li>
-      <li><a href="/logout">Log out</a></li>
-    <li class="active"><a>{{employee.email}}</a></li>
-    </ul>
-      {{else}}
+    {{#if employee}}
+      <ul class="nav navbar-nav">
+        <li class="{{is_active item "subscriptions"}}"><a href="/subscriptions">Subscriptions</a></li>
+        <li class="{{is_active item "users"}}"><a href="/users">Users</a></li>
+        <li class="{{is_active item "employees"}}"><a href="/employees">Employees</a></li>
+        <li class="{{is_active item "fetches"}}"><a href="/fetches">Fetches</a></li>
+        <li class="{{is_active item "transfers"}}"><a href="/transfers">Account transfers</a></li>
+        <li class="{{is_active item "roles"}}"><a href="/roles">Roles</a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="{{is_active item "change_password"}}"><a href="/change_password">Change password</a></li>
+        <li><a href="/logout">Log out</a></li>
+        <li class="active"><a>{{employee.email}}</a></li>
+      </ul>
+    {{else}}
       <ul class="nav navbar-nav navbar-right">
         <li class="{{is_active item "login"}}"><a href="/login">Log in</a></li>
       </ul>
-      {{/if}}
-    </ul>
+    {{/if}}
   </div>
 </div>

@@ -17,233 +17,294 @@
     <div class="row">
       <h3>Filter:</h3>
       <form action="/transfers" method="get">
-        <div class="col-md-6">
-          <div class="form-group">
-            <label>User email:</label>
-            <div class="row">
-              <div class="col-md-6">
-                <input class="form-control" type="email" name="filter-user" placeholder="Email" value="{{ filters.user }}">
-              </div>
-              <div class="col-md-6">
-                <select name="grouping-user" class="form-control">
-                  <option value="none" {{ is_selected groupings.user "none" }}>No grouping</option>
-                  <option value="user" {{ is_selected groupings.user "user" }}>Group by user</option>
-                </select>
-              </div>
-            </div>
+        <div class="row">
+          <div class="col-md-4"></div>
+          <div class="col-md-4"></div>
+          <div class="col-md-4">
+            <h4>Group by</h4>
           </div>
+        </div>
+        <div class="row">
           <div class="form-group">
-            <label>Type of transaction</label>
-            <div class="row">
-              <div class="col-md-6">
-                <select name="filter-type" class="form-control">
-                  <option value="all" {{ is_selected filters.type "all" }}>All</option>
-                  <option value="deposits" {{ is_selected filters.type "deposits" }}>Only deposits</option>
-                  <option value="withdrawals" {{ is_selected filters.type "withdrawals" }}>Only withdrawals</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <select name="grouping-type" class="form-control">
-                  <option value="none" {{ is_selected groupings.type "none" }}>No grouping</option>
-                  <option value="type" {{ is_selected groupings.type "type" }}>Group by transfer type</option>
-                </select>
-              </div>
+            <div class="col-md-4">
+              <label>User email:</label>
             </div>
-          </div>
-          <div class="form-group">
-            <label>Reason for transaction:</label>
-            <div class="row">
-              <div class="col-md-6">
-                <select name="filter-reason" class="form-control">
-                  <option value="all" {{ is_selected filters.reason "all" }}>All</option>
-                  <option value="employee" {{ is_selected filters.reason "employee" }}>Only transfers by employes</option>
-                  <option value="new-subscription" {{ is_selected filters.reason "new-subscription" }}>Only new subscription taxes</option>
-                  <option value="fetch" {{ is_selected filters.reason "fetch" }}>Only fetch taxes</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <select name="grouping-reason" class="form-control">
-                  <option value="none" {{ is_selected groupings.reason "none" }}>No grouping</option>
-                  <option value="reason" {{ is_selected groupings.reason "reason" }}>Group by transfer reason</option>
-                </select>
-              </div>
+            <div class="col-md-4">
+              <input class="form-control" type="email" name="filter-user" placeholder="Email" value="{{ filters.user }}">
             </div>
-          </div>
-          <div class="form-group">
-            <div class="row">
-              <div class="col-md-4">
-                <label>Time from:</label>
-                <input id="filter-transferred-at-from" name="filter-transferred-at-from" placeholder="Time from" class="form-control" type="text" autocomplete="off" value="{{ filters.transferred_at_from }}">
-              </div>
-              <div class="col-md-4">
-                <label>Time to:</label>
-                <input id="filter-transferred-at-to" name="filter-transferred-at-to" placeholder="Time to" class="form-control" type="text" autocomplete="off" value="{{ filters.transferred_at_to }}">
-              </div>
-              <div class="col-md-4">
-                <label>Group by</label>
-                <div class="form-group">
-                  <select name="grouping-transferred-at" class="form-control">
-                    <option value="none" {{ is_selected groupings.transferred_at "none" }}>No grouping</option>
-                    <option value="second" {{ is_selected groupings.transferred_at "second" }}>Group by seconds</option>
-                    <option value="minute" {{ is_selected groupings.transferred_at "minute" }}>Group by minutes</option>
-                    <option value="hour" {{ is_selected groupings.transferred_at "hour" }}>Group by hours</option>
-                    <option value="day" {{ is_selected groupings.transferred_at "day" }}>Group by days</option>
-                    <option value="week" {{ is_selected groupings.transferred_at "week" }}>Group by weeks</option>
-                    <option value="month" {{ is_selected groupings.transferred_at "month" }}>Group by months</option>
-                    <option value="year" {{ is_selected groupings.transferred_at "year" }}>Group by years</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-          <hr>
-          <h4>Data fetches</h4>
-          <div class="form-group">
-            <label>Departure airport</label>
-            <div class="row">
-              <div class="col-md-6">
-                <input class="form-control" type="text" name="filter-subscr-airport-from" placeholder="Airport" value="{{ filters.subscr_airport_from}}">
-              </div>
-              <div class="col-md-6">
-                <select name="grouping-subscr-airport-from" class="form-control">
-                  <option value="none" {{ is_selected groupings.subscr_airport_from "none" }}>No grouping</option>
-                  <option value="airport" {{ is_selected groupings.subscr_airport_from "airport" }}>Group by subscription departure airport</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Arrival airport</label>
-            <div class="row">
-              <div class="col-md-6">
-                <input class="form-control" type="text" name="filter-subscr-airport-to" placeholder="Airport" value="{{ filters.subscr_airport_to }}">
-              </div>
-              <div class="col-md-6">
-                <select name="grouping-subscr-airport-to" class="form-control">
-                  <option value="none" {{ is_selected groupings.subscr_airport_to "none" }}>No grouping</option>
-                  <option value="airport" {{ is_selected groupings.subscr_airport_to "airport" }}>Group by subscription arrival airport</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <div class="row">
-              <div class="col-md-4">
-                <label>Time from</label>
-                <input id="filter-fetch-time-from" class="form-control" type="text" name="filter-fetch-time-from" placeholder="Fetch time from" autocomplete="off" value="{{ filters.fetch_time_from }}">
-              </div>
-              <div class="col-md-4">
-                <label>Time to</label>
-                <input id="filter-fetch-time-to" class="form-control" type="text" name="filter-fetch-time-to" placeholder="Fetch time to" autocomplete="off" value="{{  filters.fetch_time_to }}">
-              </div>
-              <div class="col-md-4">
-                <label>Group by:</label>
-                <select name="grouping-fetch-time" class="form-control">
-                  <option value="none" {{ is_selected groupings.fetch_time "none" }}>No grouping</option>
-                  <option value="second" {{ is_selected groupings.fetch_time "second" }}>Group fetch time by second</option>
-                  <option value="minute" {{ is_selected groupings.fetch_time "minute" }}>Group fetch time by minute</option>
-                  <option value="hour" {{ is_selected groupings.fetch_time "hour" }}>Group fetch time by hour</option>
-                  <option value="day" {{ is_selected groupings.fetch_time "day" }}>Group fetch time by day</option>
-                  <option value="week" {{ is_selected groupings.fetch_time "week" }}>Group fetch time by week</option>
-                  <option value="month" {{ is_selected groupings.fetch_time "month" }}>Group fetch time by month</option>
-                  <option value="year" {{ is_selected groupings.fetch_time "year" }}>Group fetch time by year</option>
-                </select>
-              </div>
+            <div class="col-md-4">
+              <select name="grouping-user" class="form-control">
+                <option value="none" {{ is_selected groupings.user "none" }}>No grouping</option>
+                <option value="user" {{ is_selected groupings.user "user" }}>Group by user</option>
+              </select>
             </div>
           </div>
         </div>
-        <div class="col-md-6">
+        <div class="row">
           <div class="form-group">
-            <label>Employee transferrer email:</label>
-            <div class="row">
-              <div class="col-md-6">
-                <input class="form-control" type="email" name="filter-employee-email" placeholder="Email" value="{{ filters.employee_email }}">
-              </div>
-              <div class="col-md-6">
-                <select name="grouping-employee" class="form-control">
-                  <option value="none" {{ is_selected groupings.employee "none" }}>No grouping</option>
-                  <option value="employee" {{ is_selected groupings.employee "employee" }}>Group by employee</option>
-                </select>
-              </div>
+            <div class="col-md-4">
+              <label>Type of transaction</label>
             </div>
-          </div>
-          <hr>
-          <h4>User subscriptions</h4>
-          <div class="form-group">
-            <label>Departure airport</label>
-            <div class="row">
-              <div class="col-md-6">
-                <input class="form-control" type="text" name="filter-user-subscr-airport-from" placeholder="Airport" value="{{ filters.user_subscr_airport_from }}">
-              </div>
-              <div class="col-md-6">
-                <select name="grouping-user-subscr-airport-from" class="form-control">
-                  <option value="none" {{ is_selected groupings.user_subscr_airport_from "none" }}>No grouping</option>
-                  <option value="airport" {{ is_selected groupings.user_subscr_airport_from "airport" }}>Group by user subscription departure airport</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Arrival airport</label>
-            <div class="row">
-              <div class="col-md-6">
-                <input class="form-control" type="text" name="filter-user-subscr-airport-to" placeholder="Airport" value="{{ filters.user_subscr_airport_to }}">
-              </div>
-              <div class="col-md-6">
-              <select name="grouping-user-subscr-airport-to" class="form-control">
-                <option value="none" {{ is_selected groupings.user_subscr_airport_to "none" }}>No grouping</option>
-                <option value="airport" {{ is_selected groupings.user_subscr_airport_to "airport" }}>Group by user subscription arrival airport</option>
+            <div class="col-md-4">
+              <select name="filter-type" class="form-control">
+                <option value="all" {{ is_selected filters.type "all" }}>All</option>
+                <option value="deposits" {{ is_selected filters.type "deposits" }}>Only deposits</option>
+                <option value="withdrawals" {{ is_selected filters.type "withdrawals" }}>Only withdrawals</option>
               </select>
-              </div>
+            </div>
+            <div class="col-md-4">
+              <select name="grouping-type" class="form-control">
+                <option value="none" {{ is_selected groupings.type "none" }}>No grouping</option>
+                <option value="type" {{ is_selected groupings.type "type" }}>Group by transfer type</option>
+              </select>
             </div>
           </div>
+        </div>
+        <div class="row">
           <div class="form-group">
-            <div class="row">
-              <div class="col-md-4">
-                <label>Departure time from</label>
-                <input id="filter-user-subscr-depart-time-from" class="form-control" type="text" name="filter-user-subscr-depart-time-from" placeholder="Departure time from" autocomplete="off" value="{{ filters.user_subscr_depart_time_from }}">
-              </div>
-              <div class="col-md-4">
-                <label>Departure time to</label>
-                <input id="filter-user-subscr-depart-time-to" class="form-control" type="text" name="filter-user-subscr-depart-time-to" placeholder="Departure time to" autocomplete="off" value="{{ filters.user_subscr_depart_time_to }}">
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label>Group by</label>
-                  <select name="grouping-user-subscr-date-from" class="form-control">
-                    <option value="none" {{ is_selected groupings.user_subscr_date_from "none" }}>No grouping</option>
-                    <option value="week" {{ is_selected groupings.user_subscr_date_from "week" }}>Group user subscription date from by week</option>
-                    <option value="month" {{ is_selected groupings.user_subscr_date_from "month" }}>Group user subscription date from by month</option>
-                    <option value="year" {{ is_selected groupings.user_subscr_date_from "year" }}>Group user subscription date from by year</option>
-                  </select>
+            <div class="col-md-4">
+              <label>Reason for transaction:</label>
+            </div>
+            <div class="col-md-4">
+              <select name="filter-reason" class="form-control">
+                <option value="all" {{ is_selected filters.reason "all" }}>All</option>
+                <option value="employee" {{ is_selected filters.reason "employee" }}>Only transfers by employes</option>
+                <option value="new-subscription" {{ is_selected filters.reason "new-subscription" }}>Only new subscription taxes</option>
+                <option value="fetch" {{ is_selected filters.reason "fetch" }}>Only fetch taxes</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <select name="grouping-reason" class="form-control">
+                <option value="none" {{ is_selected groupings.reason "none" }}>No grouping</option>
+                <option value="reason" {{ is_selected groupings.reason "reason" }}>Group by transfer reason</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <label>Transferred at from:</label>
+                </div>
+                <div class="col-md-6">
+                  <input id="filter-transferred-at-from" name="filter-transferred-at-from" placeholder="Time from" class="form-control" type="text" autocomplete="off" value="{{ filters.transferred_at_from }}">
                 </div>
               </div>
             </div>
-          </div>
-          <div class="form-group">
-            <div class="row">
-              <div class="col-md-4">
-                <label>Arrival time from</label>
-                <input id="filter-user-subscr-arrival-time-from" class="form-control" type="text" name="filter-user-subscr-arrival-time-from" placeholder="Arrival time from" autocomplete="off" value="{{ filters.user_subscr_arrival_time_from }}">
-              </div>
-              <div class="col-md-4">
-                <label>Arrival time to</label>
-                <input id="filter-user-subscr-arrival-time-to" class="form-control" type="text" name="filter-user-subscr-arrival-time-to" placeholder="Arrival time to" autocomplete="off" value="{{ filters.user_subscr_arrival_time_to }}">
-              </div>
-              <div class="col-md-4">
-                <label>Group by</label>
-                <select name="grouping-user-subscr-date-to" class="form-control">
-                  <option value="none" {{ is_selected groupings.user_subscr_date_to "none" }}>No grouping</option>
-                  <option value="week" {{ is_selected groupings.user_subscr_date_to "week" }}>Group user subscription date to by week</option>
-                  <option value="month" {{ is_selected groupings.user_subscr_date_to "month" }}>Group user subscription date to by month</option>
-                  <option value="year" {{ is_selected groupings.user_subscr_date_to "year" }}>Group user subscription date to by year</option>
-                </select>
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <label>Transferred at to:</label>
+                </div>
+                <div class="col-md-6">
+                  <input id="filter-transferred-at-to" name="filter-transferred-at-to" placeholder="Time to" class="form-control" type="text" autocomplete="off" value="{{ filters.transferred_at_to }}">
+                </div>
               </div>
             </div>
+            <div class="col-md-4">
+              <select name="grouping-transferred-at" class="form-control">
+                <option value="none" {{ is_selected groupings.transferred_at "none" }}>No grouping</option>
+                <option value="second" {{ is_selected groupings.transferred_at "second" }}>Group by seconds</option>
+                <option value="minute" {{ is_selected groupings.transferred_at "minute" }}>Group by minutes</option>
+                <option value="hour" {{ is_selected groupings.transferred_at "hour" }}>Group by hours</option>
+                <option value="day" {{ is_selected groupings.transferred_at "day" }}>Group by days</option>
+                <option value="week" {{ is_selected groupings.transferred_at "week" }}>Group by weeks</option>
+                <option value="month" {{ is_selected groupings.transferred_at "month" }}>Group by months</option>
+                <option value="year" {{ is_selected groupings.transferred_at "year" }}>Group by years</option>
+              </select>
+            </div>
           </div>
+        </div>
+        <hr>
+        <h4>Data fetches</h4>
+        <div class="row">
           <div class="form-group">
-            <input class="btn btn-primary" type="submit">
+            <div class="col-md-4">
+              <label>Departure airport</label>
+            </div>
+            <div class="col-md-4">
+              <input class="form-control" type="text" name="filter-subscr-airport-from" placeholder="Airport" value="{{ filters.subscr_airport_from}}">
+            </div>
+            <div class="col-md-4">
+              <select name="grouping-subscr-airport-from" class="form-control">
+                <option value="none" {{ is_selected groupings.subscr_airport_from "none" }}>No grouping</option>
+                <option value="airport" {{ is_selected groupings.subscr_airport_from "airport" }}>Group by subscription departure airport</option>
+              </select>
+            </div>
           </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <div class="col-md-4">
+              <label>Arrival airport</label>
+            </div>
+            <div class="col-md-4">
+              <input class="form-control" type="text" name="filter-subscr-airport-to" placeholder="Airport" value="{{ filters.subscr_airport_to }}">
+            </div>
+            <div class="col-md-4">
+              <select name="grouping-subscr-airport-to" class="form-control">
+                <option value="none" {{ is_selected groupings.subscr_airport_to "none" }}>No grouping</option>
+                <option value="airport" {{ is_selected groupings.subscr_airport_to "airport" }}>Group by subscription arrival airport</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <label>Fetch time from</label>
+                </div>
+                <div class="col-md-6">
+                  <input id="filter-fetch-time-from" class="form-control" type="text" name="filter-fetch-time-from" placeholder="Fetch time from" autocomplete="off" value="{{ filters.fetch_time_from }}">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <label>Fetch time to</label>
+                </div>
+                <div class="col-md-6">
+                  <input id="filter-fetch-time-to" class="form-control" type="text" name="filter-fetch-time-to" placeholder="Fetch time to" autocomplete="off" value="{{  filters.fetch_time_to }}">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <select name="grouping-fetch-time" class="form-control">
+                <option value="none" {{ is_selected groupings.fetch_time "none" }}>No grouping</option>
+                <option value="second" {{ is_selected groupings.fetch_time "second" }}>Group fetch time by second</option>
+                <option value="minute" {{ is_selected groupings.fetch_time "minute" }}>Group fetch time by minute</option>
+                <option value="hour" {{ is_selected groupings.fetch_time "hour" }}>Group fetch time by hour</option>
+                <option value="day" {{ is_selected groupings.fetch_time "day" }}>Group fetch time by day</option>
+                <option value="week" {{ is_selected groupings.fetch_time "week" }}>Group fetch time by week</option>
+                <option value="month" {{ is_selected groupings.fetch_time "month" }}>Group fetch time by month</option>
+                <option value="year" {{ is_selected groupings.fetch_time "year" }}>Group fetch time by year</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <hr>
+        <h4>Transfers by employees</h4>
+        <div class="row">
+          <div class="form-group">
+            <div class="col-md-4">
+              <label>Employee transferrer email:</label>
+            </div>
+            <div class="col-md-4">
+              <input class="form-control" type="email" name="filter-employee-email" placeholder="Email" value="{{ filters.employee_email }}">
+            </div>
+            <div class="col-md-4">
+              <select name="grouping-employee" class="form-control">
+                <option value="none" {{ is_selected groupings.employee "none" }}>No grouping</option>
+                <option value="employee" {{ is_selected groupings.employee "employee" }}>Group by employee</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <hr>
+        <h4>User subscriptions</h4>
+        <div class="row">
+          <div class="form-group">
+            <div class="col-md-4">
+              <label>Departure airport</label>
+            </div>
+            <div class="col-md-4">
+              <input class="form-control" type="text" name="filter-user-subscr-airport-from" placeholder="Airport" value="{{ filters.user_subscr_airport_from }}">
+            </div>
+            <div class="col-md-4">
+              <select name="grouping-user-subscr-airport-from" class="form-control">
+                <option value="none" {{ is_selected groupings.user_subscr_airport_from "none" }}>No grouping</option>
+                <option value="airport" {{ is_selected groupings.user_subscr_airport_from "airport" }}>Group by user subscription departure airport</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <div class="col-md-4">
+              <label>Arrival airport</label>
+            </div>
+            <div class="col-md-4">
+              <input class="form-control" type="text" name="filter-user-subscr-airport-to" placeholder="Airport" value="{{ filters.user_subscr_airport_to }}">
+            </div>
+            <div class="col-md-4">
+            <select name="grouping-user-subscr-airport-to" class="form-control">
+              <option value="none" {{ is_selected groupings.user_subscr_airport_to "none" }}>No grouping</option>
+              <option value="airport" {{ is_selected groupings.user_subscr_airport_to "airport" }}>Group by user subscription arrival airport</option>
+            </select>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <label>Departure time from</label>
+                </div>
+                <div class="col-md-6">
+                  <input id="filter-user-subscr-depart-time-from" class="form-control" type="text" name="filter-user-subscr-depart-time-from" placeholder="Departure time from" autocomplete="off" value="{{ filters.user_subscr_depart_time_from }}">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <label>Departure time to</label>
+                </div>
+                <div class="col-md-6">
+                  <input id="filter-user-subscr-depart-time-to" class="form-control" type="text" name="filter-user-subscr-depart-time-to" placeholder="Departure time to" autocomplete="off" value="{{ filters.user_subscr_depart_time_to }}">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <select name="grouping-user-subscr-date-from" class="form-control">
+                <option value="none" {{ is_selected groupings.user_subscr_date_from "none" }}>No grouping</option>
+                <option value="week" {{ is_selected groupings.user_subscr_date_from "week" }}>Group user subscription date from by week</option>
+                <option value="month" {{ is_selected groupings.user_subscr_date_from "month" }}>Group user subscription date from by month</option>
+                <option value="year" {{ is_selected groupings.user_subscr_date_from "year" }}>Group user subscription date from by year</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-group">
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <label>Arrival time from</label>
+                </div>
+                <div class="col-md-6">
+                  <input id="filter-user-subscr-arrival-time-from" class="form-control" type="text" name="filter-user-subscr-arrival-time-from" placeholder="Arrival time from" autocomplete="off" value="{{ filters.user_subscr_arrival_time_from }}">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <label>Arrival time to</label>
+                </div>
+                <div class="col-md-6">
+                  <input id="filter-user-subscr-arrival-time-to" class="form-control" type="text" name="filter-user-subscr-arrival-time-to" placeholder="Arrival time to" autocomplete="off" value="{{ filters.user_subscr_arrival_time_to }}">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <select name="grouping-user-subscr-date-to" class="form-control">
+                <option value="none" {{ is_selected groupings.user_subscr_date_to "none" }}>No grouping</option>
+                <option value="week" {{ is_selected groupings.user_subscr_date_to "week" }}>Group user subscription date to by week</option>
+                <option value="month" {{ is_selected groupings.user_subscr_date_to "month" }}>Group user subscription date to by month</option>
+                <option value="year" {{ is_selected groupings.user_subscr_date_to "year" }}>Group user subscription date to by year</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <input class="btn btn-primary" type="submit">
         </div>
       </form>
     </div>
