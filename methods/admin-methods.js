@@ -1721,6 +1721,8 @@ const adminListAccountTransfers = defineAPIMethod(
       isReachedTimeout,
       accountTransfers,
       activeColumns,
+      depositsSum,
+      withdrawalsSum,
     } = await getAccountTransfers(
       dbClient,
       filters,
@@ -1742,6 +1744,8 @@ const adminListAccountTransfers = defineAPIMethod(
           return value;
         })
         .map(([name, value]) => name),
+      deposits_sum: depositsSum,
+      withdrawals_sum: withdrawalsSum,
     };
   }
 );

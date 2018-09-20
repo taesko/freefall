@@ -144,11 +144,21 @@
         "title": "Active column",
         "type": "string"
       }
+    },
+    "deposits_sum": {
+      "title": "Deposits sum",
+      "type": "integer"
+    },
+    "withdrawals_sum": {
+      "title": "Withdrawals sum",
+      "type": "integer"
     }
   },
   "required": [
     "status_code",
     "account_transfers",
-    "active_columns"
+    "active_columns",
+    "deposits_sum",
+    "withdrawals_sum"
   ]
 }

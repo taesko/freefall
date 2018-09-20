@@ -2017,11 +2017,21 @@ const adminValidators = { // eslint-disable-line no-unused-vars
             'type': 'string',
           },
         },
+        'deposits_sum': {
+          'title': 'Deposits sum',
+          'type': 'integer',
+        },
+        'withdrawals_sum': {
+          'title': 'Withdrawals sum',
+          'type': 'integer',
+        },
       },
       'required': [
         'status_code',
         'account_transfers',
         'active_columns',
+        'deposits_sum',
+        'withdrawals_sum',
       ],
     };
     return ajv.compile(adminListAccountTransfersResponseSchema);

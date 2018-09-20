@@ -9,6 +9,8 @@ function start () {
   const adminAPI = getAdminAPIMethods(mainUtils);
 
   function generateExportData (filterData, data) {
+    // TODO assert values (e.g. name and column fields) in configs are unique
+
     assertApp(Array.isArray(filterData.headers), {
       msg: 'Expected filterData.headers to be array, but filterData.headers=' + filterData.headers, // eslint-disable-line prefer-template
     });
@@ -20,6 +22,9 @@ function start () {
     });
     assertApp(Array.isArray(data.rows), {
       msg: 'Expected data.rows to be array, but data.rows=' + data.rows, // eslint-disable-line prefer-template
+    });
+    assertApp(_.isObject(data.totals), {
+      msg: 'Expected data.totals to be an object, but data.totals=' + data.totals, // eslint-disable-line prefer-template
     });
 
     var i; // eslint-disable-line no-var
@@ -55,6 +60,32 @@ function start () {
           });
         }
       }
+    }
+
+    var dataColumnExists;
+
+    for (i = 0; i < data.totals.length; i++) {
+      assertApp(_.isObject(data.totals[i]), {
+        msg: 'Expected data total to be object, but data total=' + data.totals[i], // eslint-disable-line prefer-template
+      });
+      assertApp(typeof data.totals[i].column === 'string', {
+        msg: 'Expected data total column to be string, but data total column=' + data.totals[i].column, // eslint-disable-line prefer-template
+      });
+      assertApp(Number.isInteger(data.totals[i].value), {
+        msg: 'Expected data total value to be integer, but data total value=' + data.totals[i].value, // eslint-disable-line prefer-template
+      });
+
+      dataColumnExists = false;
+
+      for (k = 0; k < data.headers.length; k++) {
+        if (data.headers[i].name === data.totals[i].column) {
+          dataColumnExists = true;
+        }
+      }
+
+      assertApp(dataColumnExists, {
+        msg: 'Data total column not found in data headers',
+      });
     }
 
     const exportData = [];
@@ -95,6 +126,27 @@ function start () {
       }
 
       exportData.push(exportDataRow);
+    }
+
+    var totalColumnValue;
+
+    {
+      const exportDataTotalsRow = [];
+
+      for (i = 0; i < data.headers.length; i++) {
+        totalColumnValue = '';
+
+        for (k = 0; k < data.totals.length; k++) {
+          if (data.headers[i].name === data.totals[k].column) {
+            totalColumnValue = data.totals[k].value;
+            break;
+          }
+        }
+
+        exportDataTotalsRow.push(totalColumnValue);
+      }
+
+      exportData.push(exportDataTotalsRow);
     }
 
     return exportData;
@@ -316,7 +368,17 @@ function start () {
                 };
               }),
               rows: result.account_transfers,
-            }
+              totals: [
+                {
+                  column: 'deposit_amount',
+                  value: result.depositsSum,
+                },
+                {
+                  column: 'withdrawal_amount',
+                  value: result.withdrawalsSum,
+                },
+              ],
+            },
           )
         );
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
@@ -328,11 +390,11 @@ function start () {
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
+    mainUtils.hideLoader();
+
     adminAPI.adminGetAPIKey({
       v: '2.0',
     }, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
-      mainUtils.hideLoader();
-
       if (result.status_code === '1000') {
         APIKeyRef.APIKey = result.api_key;
 

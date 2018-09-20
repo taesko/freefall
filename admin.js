@@ -1181,11 +1181,19 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     isReachedTimeout,
     accountTransfers,
     activeColumns,
+    depositsSum,
+    withdrawalsSum,
   } = await getAccountTransfers(
     dbClient,
     filters,
     groupings
   );
+
+  assertApp(typeof isReachedTimeout === 'boolean');
+  assertApp(Array.isArray(accountTransfers));
+  assertApp(isObject(activeColumns));
+  assertApp(Number.isSafeInteger(depositsSum));
+  assertApp(Number.isSafeInteger(withdrawalsSum));
 
   if (isReachedTimeout) {
     ctx.status = 400;
@@ -1195,99 +1203,6 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
       error_message: 'Your request took too long! Please add more filters!',
     });
   }
-
-  const selectAllTransferAmountsResult = await dbClient.executeQuery(`
-
-    SELECT
-      transfer_amount
-    FROM account_transfers
-    LEFT JOIN users
-      ON account_transfers.user_id = users.id
-    LEFT JOIN user_subscription_account_transfers
-      ON user_subscription_account_transfers.account_transfer_id = account_transfers.id
-    LEFT JOIN subscriptions_fetches_account_transfers
-      ON subscriptions_fetches_account_transfers.account_transfer_id = account_transfers.id
-    LEFT JOIN account_transfers_by_employees
-      ON account_transfers_by_employees.account_transfer_id = account_transfers.id
-    WHERE
-      (
-        $1::text IS NULL OR
-        users.email = $1
-      ) AND
-      (
-        $2::text IS NULL OR
-        transferred_at::date >= to_date($2, 'YYYY-MM-DD')
-      ) AND
-      (
-        $3::text IS NULL OR
-        transferred_at::date <= to_date($3, 'YYYY-MM-DD')
-      ) AND
-      (
-        (
-          $4 = true AND
-          transfer_amount >= 0
-        ) OR
-        (
-          $5 = true AND
-          transfer_amount <= 0
-        )
-      ) AND
-      (
-        (
-          $6 = true AND
-          account_transfers_by_employees.id IS NOT NULL
-        ) OR
-        (
-          $7 = true AND
-          user_subscription_account_transfers.id IS NOT NULL
-        ) OR
-        (
-          $8 = true AND
-          subscriptions_fetches_account_transfers.id IS NOT NULL
-        )
-      );
-  `, [
-    filters.user,
-    filters.transferred_at_from,
-    filters.transferred_at_to,
-    filters.deposits,
-    filters.withdrawals,
-    filters.transfers_by_employees,
-    filters.new_subsctiption_taxes,
-    filters.new_fetch_taxes,
-/*    filters.subscr_airport_from,
-    filters.subscr_airport_to,
-    filters.fetch_time_from,
-    filters.fetch_time_to,
-    filters.employee_email,
-    filters.user_subscr_airport_from,
-    filters.user_subscr_airport_to,
-    filters.user_subscr_depart_time_from,
-    filters.user_subscr_depart_time_to,
-    filters.user_subscr_arrival_time_from,
-    filters.user_subscr_arrival_time_to,*/
-  ]);
-
-  assertApp(isObject(selectAllTransferAmountsResult), `Expected selectAllTransferAmountsResult to be an object, but was ${typeof selectAllTransferAmountsResult}`);
-  assertApp(Array.isArray(selectAllTransferAmountsResult.rows), `Expected selectAllTransferAmountsResult.rows to be array, but was ${typeof selectAllTransferAmountsResult.rows}`);
-
-  const allTransferAmountRows = selectAllTransferAmountsResult.rows;
-
-  let filterTotalDeposited = 0;
-  let filterTotalWithdrawn = 0;
-
-  // TODO get sums with two db queries
-  for (const transferAmountRow of allTransferAmountRows) {
-    if (transferAmountRow.transfer_amount > 0) {
-      filterTotalDeposited += transferAmountRow.transfer_amount;
-    }
-
-    if (transferAmountRow.transfer_amount < 0) {
-      filterTotalWithdrawn += transferAmountRow.transfer_amount;
-    }
-  }
-
-  filterTotalWithdrawn *= -1;
 
   const usersTotalSpentCredits = await dbClient.executeQuery(`
 
@@ -1350,8 +1265,8 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     ...pageTemplateValues,
     active_columns: activeColumns,
     account_transfers: accountTransfers,
-    filter_total_deposited: filterTotalDeposited,
-    filter_total_withdrawn: filterTotalWithdrawn,
+    filter_total_deposited: depositsSum,
+    filter_total_withdrawn: withdrawalsSum,
     users_total_spent_credits:
       usersTotalSpentCredits.rows[0].user_spent_credits,
     users_total_credits: usersTotalCredits.rows[0].users_credits,

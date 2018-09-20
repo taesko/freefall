@@ -452,7 +452,9 @@ async function getAccountTransfers (dbClient, filters, groupings) {
 
       SELECT
         ${selectColumnsPart}
-        ${groupColumns.length > 0 ? ', COUNT(*) AS grouped_amount' : ''}
+        ${groupColumns.length > 0 ? ', COUNT(*) AS grouped_amount' : ''},
+        sum(CASE WHEN transfer_amount > 0 THEN transfer_amount ELSE 0 END) OVER () AS deposits_sum,
+        sum(CASE WHEN transfer_amount < 0 THEN transfer_amount ELSE 0 END) OVER () AS withdrawals_sum
       FROM account_transfers
       LEFT JOIN users
         ON account_transfers.user_id = users.id
@@ -650,10 +652,20 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     }
   }
 
+  let depositsSum = 0;
+  let withdrawalsSum = 0;
+
+  if (selectAccountTransfersResult.rows > 0) {
+    depositsSum = selectAccountTransfersResult.rows[0].deposits_sum;
+    withdrawalsSum = selectAccountTransfersResult.rows[0].withdrawals_sum * -1;
+  }
+
   return {
     isReachedTimeout,
     accountTransfers,
     activeColumns,
+    depositsSum: Number(depositsSum),
+    withdrawalsSum: Number(withdrawalsSum),
   };
 }
 
