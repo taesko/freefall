@@ -305,250 +305,255 @@
         </div>
         <hr>
         <div class="form-group text-center">
+          <input type="text" name="page" value="1" hidden>
           <input class="btn btn-primary" type="submit">
         </div>
       </form>
     </div>
     <hr>
-    <div class="row">
-      <div class="col-md-6">
-        <h3>Current filter data:</h3>
-        <p><label>Total deposited:</label> {{filter_total_deposited}}</p>
-        <p><label>Total withdrawn:</label> {{filter_total_withdrawn}}</p>
-        <button id="export-xlsx-btn" class="btn btn-primary">Export as XLSX</button>
-        {{> loader }}
-      </div>
-      <div class="col-md-6">
-        <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
-        <p><label>Credits owned by all users:</label> {{users_total_credits}}</p>
-        <p><label>Credits loaded into system:</label> {{total_credits_loaded}}</p>
-        <p><label>Amount of requests to Dalipeche:</label> {{dalipeche_api_total_requests}}</p>
+  </div>
+  {{> loader }}
+  {{#if show_results}}
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6 text-left">
+          <h3>Current filter data:</h3>
+          <p><label>Total deposited:</label> {{filter_total_deposited}}</p>
+          <p><label>Total withdrawn:</label> {{filter_total_withdrawn}}</p>
+          <button id="export-xlsx-btn" class="btn btn-primary">Export as XLSX</button>
+        </div>
+        <div class="col-md-6 text-right">
+          <p><label>Credits spent by all users:</label> {{users_total_spent_credits}}</p>
+          <p><label>Credits owned by all users:</label> {{users_total_credits}}</p>
+          <p><label>Credits loaded into system:</label> {{total_credits_loaded}}</p>
+          <p><label>Amount of requests to Dalipeche:</label> {{dalipeche_api_total_requests}}</p>
+        </div>
       </div>
     </div>
     <hr>
-  </div>
-  <div class="row">
-    <div class="col-md-4">
-      {{#if prev_page}}
-      <p class="text-left">
-        <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}{{query_string_without_page}}';">Previous page</button>
-      </p>
-      {{/if}}
+    <div class="row">
+      <div class="col-md-4">
+        {{#if prev_page}}
+        <p class="text-left">
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}{{query_string_without_page}}';">Previous page</button>
+        </p>
+        {{/if}}
+      </div>
+      <div class="col-md-4">
+        <p class="text-center">
+          Page:
+          <label>{{page}}</label>
+        </p>
+      </div>
+      <div class="col-md-4">
+        {{#if next_page}}
+        <p class="text-right">
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}{{query_string_without_page}}';">Next page</button>
+        </p>
+        {{/if}}
+      </div>
     </div>
-    <div class="col-md-4">
-      <p class="text-center">
-        Page:
-        <label>{{page}}</label>
-      </p>
+    <table id="account-transfers-table" class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Transferred at</th>
+          <th>Transfer reason</th>
+          <th>User id</th>
+          <th>User email</th>
+          <th>Subscription airport from</th>
+          <th>Subscription airport to</th>
+          <th>Fetch time</th>
+          <th>Employee transferrer id</th>
+          <th>Employee transferrer email</th>
+          <th>User subscription airport from</th>
+          <th>User subscription airport to</th>
+          <th>User subscription date from</th>
+          <th>User subscription date to</th>
+          <th>Deposits</th>
+          <th>Withdrawals</th>
+          <th>Account transfer id</th>
+          <th>Grouped amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each account_transfers}}
+        <tr>
+          {{#if ../active_columns.transferred_at}}
+            <td>
+              {{this.transferred_at}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.reason}}
+            <td>
+              {{this.reason}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.account_owner_id}}
+            <td class="text-right">
+              {{this.account_owner_id}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.account_owner_email}}
+            <td>
+              {{this.account_owner_email}}
+              <a href="/users/{{this.account_owner_id}}">(open)</a>
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.subscr_airport_from_name}}
+            <td>
+              {{this.subscr_airport_from_name}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.subscr_airport_to_name}}
+            <td>
+              {{this.subscr_airport_to_name}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.fetch_time}}
+            <td>
+              {{this.fetch_time}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.employee_transferrer_id}}
+            <td>
+              {{this.employee_transferrer_id}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.employee_transferrer_email}}
+            <td>
+              {{this.employee_transferrer_email}}
+              {{#if this.employee_transferrer_id}}
+                <a href="/employees/{{this.employee_transferrer_id}}">(open)</a>
+              {{/if}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.user_subscr_airport_from_name}}
+            <td>
+              {{this.user_subscr_airport_from_name}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.user_subscr_airport_to_name}}
+            <td>
+              {{this.user_subscr_airport_to_name}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.user_subscr_date_from}}
+            <td>
+              {{this.user_subscr_date_from}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.user_subscr_date_to}}
+            <td>
+              {{this.user_subscr_date_to}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.deposit_amount}}
+            <td class="text-right">
+              {{this.deposit_amount}}
+            </td>
+          {{/if}}
+          {{#if ../active_columns.withdrawal_amount}}
+            <td class="text-right">
+              {{this.withdrawal_amount}}
+            </td>
+          {{/if}}
+          {{#if ../active_columns.account_transfer_id}}
+            <td class="text-right">
+              {{this.account_transfer_id}}
+            </td>
+          {{else}}
+            <td>
+              All
+            </td>
+          {{/if}}
+          {{#if ../active_columns.grouped_amount}}
+            <td class="text-right">
+              {{this.grouped_amount}}
+            </td>
+          {{else}}
+            <td class="text-right">
+              1
+            </td>
+          {{/if}}
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    <div class="row">
+      <div class="col-md-4">
+        {{#if prev_page}}
+        <p class="text-left">
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}{{query_string_without_page}}';">Previous page</button>
+        </p>
+        {{/if}}
+      </div>
+      <div class="col-md-4">
+        <p class="text-center">
+          Page:
+          <label>{{page}}</label>
+        </p>
+      </div>
+      <div class="col-md-4">
+        {{#if next_page}}
+        <p class="text-right">
+          <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}{{query_string_without_page}}';">Next page</button>
+        </p>
+        {{/if}}
+      </div>
     </div>
-    <div class="col-md-4">
-      {{#if next_page}}
-      <p class="text-right">
-        <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}{{query_string_without_page}}';">Next page</button>
-      </p>
-      {{/if}}
-    </div>
-  </div>
-  <table id="account-transfers-table" class="table table-bordered">
-    <thead>
-      <tr>
-        <th>Transferred at</th>
-        <th>Transfer reason</th>
-        <th>User id</th>
-        <th>User email</th>
-        <th>Subscription airport from</th>
-        <th>Subscription airport to</th>
-        <th>Fetch time</th>
-        <th>Employee transferrer id</th>
-        <th>Employee transferrer email</th>
-        <th>User subscription airport from</th>
-        <th>User subscription airport to</th>
-        <th>User subscription date from</th>
-        <th>User subscription date to</th>
-        <th>Deposits</th>
-        <th>Withdrawals</th>
-        <th>Account transfer id</th>
-        <th>Grouped amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{#each account_transfers}}
-      <tr>
-        {{#if ../active_columns.transferred_at}}
-          <td>
-            {{this.transferred_at}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.reason}}
-          <td>
-            {{this.reason}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.account_owner_id}}
-          <td class="text-right">
-            {{this.account_owner_id}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.account_owner_email}}
-          <td>
-            {{this.account_owner_email}}
-            <a href="/users/{{this.account_owner_id}}">(open)</a>
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.subscr_airport_from_name}}
-          <td>
-            {{this.subscr_airport_from_name}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.subscr_airport_to_name}}
-          <td>
-            {{this.subscr_airport_to_name}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.fetch_time}}
-          <td>
-            {{this.fetch_time}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.employee_transferrer_id}}
-          <td>
-            {{this.employee_transferrer_id}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.employee_transferrer_email}}
-          <td>
-            {{this.employee_transferrer_email}}
-            {{#if this.employee_transferrer_id}}
-              <a href="/employees/{{this.employee_transferrer_id}}">(open)</a>
-            {{/if}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.user_subscr_airport_from_name}}
-          <td>
-            {{this.user_subscr_airport_from_name}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.user_subscr_airport_to_name}}
-          <td>
-            {{this.user_subscr_airport_to_name}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.user_subscr_date_from}}
-          <td>
-            {{this.user_subscr_date_from}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.user_subscr_date_to}}
-          <td>
-            {{this.user_subscr_date_to}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.deposit_amount}}
-          <td class="text-right">
-            {{this.deposit_amount}}
-          </td>
-        {{/if}}
-        {{#if ../active_columns.withdrawal_amount}}
-          <td class="text-right">
-            {{this.withdrawal_amount}}
-          </td>
-        {{/if}}
-        {{#if ../active_columns.account_transfer_id}}
-          <td class="text-right">
-            {{this.account_transfer_id}}
-          </td>
-        {{else}}
-          <td>
-            All
-          </td>
-        {{/if}}
-        {{#if ../active_columns.grouped_amount}}
-          <td class="text-right">
-            {{this.grouped_amount}}
-          </td>
-        {{else}}
-          <td class="text-right">
-            1
-          </td>
-        {{/if}}
-      </tr>
-      {{/each}}
-    </tbody>
-  </table>
-  <div class="row">
-    <div class="col-md-4">
-      {{#if prev_page}}
-      <p class="text-left">
-        <button class="btn btn-default" onclick="location.href='/transfers?page={{prev_page}}{{query_string_without_page}}';">Previous page</button>
-      </p>
-      {{/if}}
-    </div>
-    <div class="col-md-4">
-      <p class="text-center">
-        Page:
-        <label>{{page}}</label>
-      </p>
-    </div>
-    <div class="col-md-4">
-      {{#if next_page}}
-      <p class="text-right">
-        <button class="btn btn-default" onclick="location.href='/transfers?page={{next_page}}{{query_string_without_page}}';">Next page</button>
-      </p>
-      {{/if}}
-    </div>
-  </div>
+  {{/if}}
   <script src="../js/lodash/index.min.js"></script>
   <script src="../js/ajv.min.js"></script>
   <script src="../js/js-yaml/js-yaml.min.js"></script>

@@ -945,7 +945,20 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     },
   ];
 
+  let showResults = true;
+
   for (const mapping of queryParamsToFiltersParamsMapping) {
+    console.log(typeof ctx.query);
+    console.log(Object.getPrototypeOf(ctx.query));
+    console.log(ctx.query);
+
+    if (!Object.hasOwnProperty.call(ctx.query, mapping.query)) {
+      console.log('query param not found:');
+      console.log(mapping.query);
+      showResults = false;
+      break;
+    }
+
     if (ctx.query[mapping.query] && ctx.query[mapping.query] !== 'all') {
       if (
         mapping.expected &&
@@ -1175,6 +1188,13 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     query_string_without_page: queryStringWithoutPage,
   };
 
+  if (!showResults) {
+    return ctx.render('account-transfers.html', {
+      ...pageTemplateValues,
+      show_results: false,
+    });
+  }
+
   const dbClient = ctx.state.dbClient;
 
   const {
@@ -1201,6 +1221,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     return ctx.render('account-transfers.html', {
       ...pageTemplateValues,
       error_message: 'Your request took too long! Please add more filters!',
+      show_results: false,
     });
   }
 
@@ -1275,6 +1296,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
       dalipecheAPITotalRequests.rows[0].dalipeche_api_requests,
     next_page: accountTransfers.length === RESULTS_LIMIT ? page + 1 : null,
     prev_page: page > 1 ? page - 1 : null,
+    show_results: true,
   });
 });
 
