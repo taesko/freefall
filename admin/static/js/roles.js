@@ -431,6 +431,7 @@ function start () {
 
     newRolePermissions.push(permission);
     renderNewRolePermissionRow('edit', permission);
+    form.reset();
 
     return false;
   };
@@ -577,6 +578,8 @@ function start () {
             const newRole = result.roles[0];
             renderRoleRow('view', newRole);
             clearNewRolePermissionsTable($('#new-role-permissions-table'));
+
+            form.reset();
           }
         );
         mainUtils.displayUserMessage('Successfully added new role!', 'success');

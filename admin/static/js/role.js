@@ -434,6 +434,7 @@ function start () {
 
     rolePermissions.push(permission);
     renderRolePermissionRow('edit', permission);
+    form.reset();
 
     return false;
   };

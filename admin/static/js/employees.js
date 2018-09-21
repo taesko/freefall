@@ -283,6 +283,7 @@ function start () {
 
       renderEmployeeRow('view', result.employee);
       mainUtils.displayUserMessage('Successfully added new employee!', 'success');
+      form.reset();
     });
 
     return false;
