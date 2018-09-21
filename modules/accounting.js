@@ -596,22 +596,23 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       assertApp(datetime === null || datetime instanceof Date);
       assertApp(precision === null || typeof precision === 'string');
 
-      if (datetime === null) {
-        return datetime;
-      } else if (precision === null) {
-        return datetime.toISOString();
-      }
-
       const precisionsFormats = {
-        'none': 'Y-MM-DDTHH:mm:ss.SSSZ',
-        'second': 'Y-MM-DDTHH:mm:ss',
-        'minute': 'Y-MM-DDTHH:mm',
-        'hour': 'Y-MM-DDTHH',
+        'none': 'Y-MM-DD HH:mm:ss.SSS',
+        'second': 'Y-MM-DD HH:mm:ss',
+        'minute': 'Y-MM-DD HH:mm',
+        'hour': 'Y-MM-DD HH',
         'day': 'Y-MM-DD',
         'week': 'Y-MM,WW',
         'month': 'Y-MM',
         'year': 'Y',
       };
+
+      if (datetime === null) {
+        return datetime;
+      } else if (precision === null) {
+        return moment(datetime).format(precisionsFormats['none']);
+      }
+
       assertApp(Object.keys(precisionsFormats).includes(precision));
 
       const result = moment(datetime).format(precisionsFormats[precision]);

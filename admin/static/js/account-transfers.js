@@ -37,7 +37,7 @@ function start () {
       assertApp(typeof filterData.headers[i].namePretty === 'string', {
         msg: 'Expected filterData header to have property namePretty, but namePretty=' + filterData.headers[i].namePretty, // eslint-disable-line prefer-template
       });
-      assertApp(filterData.filters.hasOwnProperty(filterData.headers[i].name), {
+      assertApp(Object.hasOwnProperty.call(filterData.filters, filterData.headers[i].name), {
         msg: 'Filters does not have required header "' + filterData.headers[i].name + '"', // eslint-disable-line prefer-template
       });
     }
@@ -55,7 +55,7 @@ function start () {
 
       if (data.headers[i].isActive) {
         for (k = 0; k < data.rows.length; k++) {
-          assertApp(data.rows[k].hasOwnProperty(data.headers[i].name), {
+          assertApp(Object.hasOwnProperty.call(data.rows[k], data.headers[i].name), {
             msg: 'Data does not have required header "' + data.headers[i].name + '"', // eslint-disable-line prefer-template
           });
         }
