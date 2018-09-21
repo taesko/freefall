@@ -5,6 +5,7 @@ const log = require('./log');
 const users = require('./users');
 const db = require('./db');
 const SUBSCRIPTION_COST = 100;
+const FILTER_MAX_MONTHS_DIFF = 24;
 
 async function depositCredits (dbClient, userId, amount) {
   assertApp(_.isObject(dbClient), `got ${typeof dbClient} but expected object`);
@@ -226,25 +227,32 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     assertApp(typeof filters[filter] === 'boolean', `Filter: ${filter}`);
   }
 
-  if (filters.transferred_at_from === null || filters.transferred_at_to === null) {
-    return {
-      isCanceled: true,
-      accountTransfers: null,
-      activeColumns: null,
-      depositsSum: null,
-      withdrawalsSum: null,
-    };
+  const resultCanceled = {
+    isCanceled: true,
+    accountTransfers: null,
+    activeColumns: null,
+    depositsSum: null,
+    withdrawalsSum: null,
+  };
+
+  if (
+    filters.transferred_at_from === null ||
+    filters.transferred_at_to === null
+  ) {
+    return resultCanceled;
   }
 
   {
     const transferredAtFrom = moment(filters.transferred_at_from);
     const transferredAtTo = moment(filters.transferred_at_to);
 
-    console.log('here are the times');
-    console.log(transferredAtFrom);
-    console.log(transferredAtTo);
-    console.log(filters.transferred_at_from);
-    console.log(filters.transferred_at_to);
+    if (!transferredAtFrom.isValid() || !transferredAtTo.isValid()) {
+      return resultCanceled;
+    }
+
+    if (transferredAtTo.diff(transferredAtFrom, 'months') > FILTER_MAX_MONTHS_DIFF) {
+      return resultCanceled;
+    }
   }
 
   let offset;

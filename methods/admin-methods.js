@@ -1388,7 +1388,7 @@ const adminListAccountTransfers = defineAPIMethod(
       deposits: true,
       withdrawals: true,
       transfers_by_employees: true,
-      new_subsctiption_taxes: true,
+      new_subscription_taxes: true,
       new_fetch_taxes: true,
       transferred_at_from: null,
       transferred_at_to: null,

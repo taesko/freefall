@@ -817,7 +817,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     deposits: true,
     withdrawals: true,
     transfers_by_employees: true,
-    new_subsctiption_taxes: true,
+    new_subscription_taxes: true,
     new_fetch_taxes: true,
     transferred_at_from: null,
     transferred_at_to: null,
@@ -1204,10 +1204,10 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   );
 
   assertApp(typeof isCanceled === 'boolean');
-  assertApp(Array.isArray(accountTransfers));
-  assertApp(isObject(activeColumns));
-  assertApp(Number.isSafeInteger(depositsSum));
-  assertApp(Number.isSafeInteger(withdrawalsSum));
+  assertApp(accountTransfers === null || Array.isArray(accountTransfers));
+  assertApp(activeColumns === null || isObject(activeColumns));
+  assertApp(depositsSum === null || Number.isSafeInteger(depositsSum));
+  assertApp(withdrawalsSum === null || Number.isSafeInteger(withdrawalsSum));
 
   if (isCanceled) {
     ctx.status = 400;
