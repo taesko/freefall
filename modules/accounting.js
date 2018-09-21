@@ -193,6 +193,60 @@ async function registerTransferByEmployee (dbClient, accountTransferId, employee
 }
 
 async function getAccountTransfers (dbClient, filters, groupings) {
+  const expectedNullOrStringValues = [
+    'user',
+    'transferred_at_from',
+    'transferred_at_to',
+    'subscr_airport_from',
+    'subscr_airport_to',
+    'fetch_time_from',
+    'fetch_time_to',
+    'employee_email',
+    'user_subscr_airport_from',
+    'user_subscr_airport_to',
+    'user_subscr_depart_time_from',
+    'user_subscr_depart_time_to',
+    'user_subscr_arrival_time_from',
+    'user_subscr_arrival_time_to',
+  ];
+
+  for (const filter of expectedNullOrStringValues) {
+    assertApp(filters[filter] === null || typeof filters[filter] === 'string', `Filter: ${filter}`);
+  }
+
+  const expectedBooleanValues = [
+    'deposits',
+    'withdrawals',
+    'transfers_by_employees',
+    'new_subscription_taxes',
+    'new_fetch_taxes',
+  ];
+
+  for (const filter of expectedBooleanValues) {
+    assertApp(typeof filters[filter] === 'boolean', `Filter: ${filter}`);
+  }
+
+  if (filters.transferred_at_from === null || filters.transferred_at_to === null) {
+    return {
+      isCanceled: true,
+      accountTransfers: null,
+      activeColumns: null,
+      depositsSum: null,
+      withdrawalsSum: null,
+    };
+  }
+
+  {
+    const transferredAtFrom = moment(filters.transferred_at_from);
+    const transferredAtTo = moment(filters.transferred_at_to);
+
+    console.log('here are the times');
+    console.log(transferredAtFrom);
+    console.log(transferredAtTo);
+    console.log(filters.transferred_at_from);
+    console.log(filters.transferred_at_to);
+  }
+
   let offset;
 
   if (filters.limit) {
@@ -313,7 +367,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       isAggregatable: false,
       table: null,
       column: 'fetch_time',
-      alias: null,
+      alias: 'fetch_time',
       transform: useDateTrunc,
       groupingsSettingName: 'fetch_time',
     },
@@ -443,10 +497,12 @@ async function getAccountTransfers (dbClient, filters, groupings) {
 
   let selectAccountTransfersResult;
   let accountTransfers = [];
-  let isReachedTimeout = false;
+  let isCanceled = false;
+  let depositsSum = 0;
+  let withdrawalsSum = 0;
 
   try {
-    //await dbClient.executeQuery('SET statement_timeout TO 15000;');
+    await dbClient.executeQuery('SET LOCAL statement_timeout TO 15000;');
 
     selectAccountTransfersResult = await dbClient.executeQuery(`
 
@@ -644,29 +700,24 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       grouped_amount: row.grouped_amount || null,
     }));
 
-    //await dbClient.executeQuery('SET statement_timeout TO DEFAULT;');
+    if (selectAccountTransfersResult.rows.length > 0) {
+      depositsSum = selectAccountTransfersResult.rows[0].deposits_sum;
+      withdrawalsSum = selectAccountTransfersResult.rows[0].withdrawals_sum;
+    }
   } catch (error) {
     if (error.code === '57014') {
-      isReachedTimeout = true;
+      isCanceled = true;
     } else {
       throw error;
     }
   }
 
-  let depositsSum = 0;
-  let withdrawalsSum = 0;
-
-  if (selectAccountTransfersResult.rows.length > 0) {
-    depositsSum = selectAccountTransfersResult.rows[0].deposits_sum;
-    withdrawalsSum = selectAccountTransfersResult.rows[0].withdrawals_sum;
-  }
-
   return {
-    isReachedTimeout,
-    accountTransfers,
-    activeColumns,
-    depositsSum: Number(depositsSum),
-    withdrawalsSum: Number(withdrawalsSum),
+    isCanceled,
+    accountTransfers: isCanceled ? null : accountTransfers,
+    activeColumns: isCanceled ? null : activeColumns,
+    depositsSum: isCanceled ? null : Number(depositsSum),
+    withdrawalsSum: isCanceled ? null : Number(withdrawalsSum),
   };
 }
 

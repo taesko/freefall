@@ -948,13 +948,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   let showResults = true;
 
   for (const mapping of queryParamsToFiltersParamsMapping) {
-    console.log(typeof ctx.query);
-    console.log(Object.getPrototypeOf(ctx.query));
-    console.log(ctx.query);
-
     if (!Object.hasOwnProperty.call(ctx.query, mapping.query)) {
-      console.log('query param not found:');
-      console.log(mapping.query);
       showResults = false;
       break;
     }
@@ -1198,7 +1192,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
   const dbClient = ctx.state.dbClient;
 
   const {
-    isReachedTimeout,
+    isCanceled,
     accountTransfers,
     activeColumns,
     depositsSum,
@@ -1209,18 +1203,18 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     groupings
   );
 
-  assertApp(typeof isReachedTimeout === 'boolean');
+  assertApp(typeof isCanceled === 'boolean');
   assertApp(Array.isArray(accountTransfers));
   assertApp(isObject(activeColumns));
   assertApp(Number.isSafeInteger(depositsSum));
   assertApp(Number.isSafeInteger(withdrawalsSum));
 
-  if (isReachedTimeout) {
+  if (isCanceled) {
     ctx.status = 400;
 
     return ctx.render('account-transfers.html', {
       ...pageTemplateValues,
-      error_message: 'Your request took too long! Please add more filters!',
+      error_message: 'Request too large! Please add more filters!',
       show_results: false,
     });
   }

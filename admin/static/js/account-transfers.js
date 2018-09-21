@@ -195,7 +195,7 @@ function start () {
           '1000': 'Successfully downloaded account transfers!',
           '2100': 'Your API key does not support this operation!',
           '2101': 'You have sent an invalid request. Please refresh the page and try again!',
-          '2201': 'Your request took too long. Please select more filters and try again!',
+          '2201': 'Your request was too large! Please select more filters and try again!',
         };
 
         assertPeer(typeof messages[result.status_code] === 'string', {

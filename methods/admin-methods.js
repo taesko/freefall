@@ -1373,7 +1373,7 @@ const adminListAccountTransfers = defineAPIMethod(
   {
     'ALAT_INVALID_ADMIN_API_KEY': { status_code: '2100', account_transfers: [], active_columns: [] },
     'ALAT_BAD_PATAMETERS': { status_code: '2101', account_transfers: [], active_columns: [] },
-    'ALAT_TIMEOUT': { status_code: '2201', account_transfers: [], active_columns: [] },
+    'ALAT_CANCELED': { status_code: '2201', account_transfers: [], active_columns: [] },
   },
   async (params, dbClient) => {
     assertUser(
@@ -1718,7 +1718,7 @@ const adminListAccountTransfers = defineAPIMethod(
     }
 
     const {
-      isReachedTimeout,
+      isCanceled,
       accountTransfers,
       activeColumns,
       depositsSum,
@@ -1730,9 +1730,9 @@ const adminListAccountTransfers = defineAPIMethod(
     );
 
     assertUser(
-      !isReachedTimeout,
-      'Get account transfers took too long!',
-      'ALAT_TIMEOUT'
+      !isCanceled,
+      'Get account transfers canceled!',
+      'ALAT_CANCELED'
     );
 
     return {
