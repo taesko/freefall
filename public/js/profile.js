@@ -939,6 +939,16 @@ function start () {
     }
   }
 
+  function exportCreditHistory () {
+    api.exportCreditHistory(
+      creditHistoryFilters,
+      PROTOCOL_NAME,
+      function () {
+        console.log('Finished exporting credit history.');
+      },
+    );
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $('#display-subscriptions-btn').click(displaySubscriptions);
     $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
@@ -954,6 +964,7 @@ function start () {
     });
 
     $('#display-credit-history-btn').click(displayCreditHistory);
+    $('#export-credit-history-btn').click(exportCreditHistory);
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
     const creditHistoryFiltersForm = $('#search-credit-history');
     creditHistoryFiltersForm.submit(function (event) {

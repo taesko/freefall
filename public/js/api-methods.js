@@ -138,6 +138,34 @@ function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     });
   };
 
+  const exportCreditHistory = function (params, protocolName, callback) {
+    params.api_key = mainUtils.APIKeyRef.APIKey;
+    params.v = '2.0';
+
+    mainUtils.trace('exportCreditHistory(' + JSON.stringify(params) + '), typeof arg=' + typeof params + ''); // eslint-disable-line prefer-template
+    // TODO json schema validation
+    mainUtils.sendRequest({
+      url: mainUtils.EXPORT_SERVER_URL,
+      data: {
+        method: 'export_credit_history',
+        params: params,
+      },
+      protocolName: protocolName,
+    }, function (error, result) { // eslint-disable-line prefer-arrow-callback
+      if (error) {
+        mainUtils.trace('Error in export_credit_history:' + JSON.stringify(error)); // eslint-disable-line prefer-template
+        throw new PeerError({
+          msg: error.message,
+        });
+      }
+      // TODO validate response of result with json schema
+
+      setTimeout(function () { // eslint-disable-line prefer-arrow-callback
+        callback(result);
+      }, 0);
+    });
+  };
+
   const depositHistory = function (params, protocolName, callback) {
     params.api_key = mainUtils.APIKeyRef.APIKey;
     params.v = '2.0';
@@ -374,6 +402,7 @@ function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     listSubscriptions: listSubscriptions,
     creditHistory: creditHistory,
     depositHistory: depositHistory,
+    exportCreditHistory: exportCreditHistory,
     getAPIKey: getAPIKey,
     unsubscribe: unsubscribe,
     subscribe: subscribe,

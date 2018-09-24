@@ -11,7 +11,8 @@ function main () { // eslint-disable-line no-unused-vars
   };
 
   const SERVER_URL = '/';
-  const PROTOCOL_NAME = 'yamlrpc';
+  const EXPORT_SERVER_URL = '/api/exports/';
+  const PROTOCOL_NAME = 'jsonrpc';
   const MAX_TRACE = 300;
   var $messagesList; // eslint-disable-line no-var
   const validateSendErrorReq = validators.getValidateSendErrorReq();
@@ -328,6 +329,7 @@ function main () { // eslint-disable-line no-unused-vars
     restoreFormData,
     clearFormData,
     SERVER_URL: SERVER_URL,
+    EXPORT_SERVER_URL: EXPORT_SERVER_URL,
     PROTOCOL_NAME: PROTOCOL_NAME,
     APIKeyRef: APIKeyRef,
   };
