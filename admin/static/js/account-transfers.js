@@ -391,6 +391,7 @@ function start () {
   };
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
+    const DATETIMEPICKER_FORMAT = 'Y-m-d H:i:s';
     mainUtils.hideLoader();
 
     adminAPI.adminGetAPIKey({
@@ -405,18 +406,88 @@ function start () {
       }
     });
 
-    const datetimepickerOptions = {
-      format: 'Y-m-d H:i:s',
-    };
+    $('#filter-transferred-at-from').datetimepicker({
+      format: DATETIMEPICKER_FORMAT,
+      onShow: function () {
+        const filterTransferredAtToValue = $('#filter-transferred-at-to').val();
 
-    $('#filter-transferred-at-from').datetimepicker(datetimepickerOptions);
-    $('#filter-transferred-at-to').datetimepicker(datetimepickerOptions);
-    $('#filter-fetch-time-from').datetimepicker(datetimepickerOptions);
-    $('#filter-fetch-time-to').datetimepicker(datetimepickerOptions);
-    $('#filter-user-subscr-depart-time-from').datetimepicker(datetimepickerOptions);
-    $('#filter-user-subscr-depart-time-to').datetimepicker(datetimepickerOptions);
-    $('#filter-user-subscr-arrival-time-from').datetimepicker(datetimepickerOptions);
-    $('#filter-user-subscr-arrival-time-to').datetimepicker(datetimepickerOptions);
+        this.setOptions({
+          maxDate: filterTransferredAtToValue || new Date(),
+        });
+      },
+    });
+    $('#filter-transferred-at-to').datetimepicker({
+      format: DATETIMEPICKER_FORMAT,
+      onShow: function () {
+        const filterTransferredAtFromValue = $('#filter-transferred-at-from').val();
+
+        this.setOptions({
+          minDate: filterTransferredAtFromValue || false,
+          maxDate: new Date(),
+        });
+      },
+    });
+    $('#filter-fetch-time-from').datetimepicker({
+      format: DATETIMEPICKER_FORMAT,
+      onShow: function () {
+        const filterFetchTimeToValue = $('#filter-fetch-time-to').val();
+
+        this.setOptions({
+          maxDate: filterFetchTimeToValue || new Date(),
+        });
+      }
+    });
+    $('#filter-fetch-time-to').datetimepicker({
+      format: DATETIMEPICKER_FORMAT,
+      onShow: function () {
+        const filterFetchTimeFromValue = $('#filter-fetch-time-from').val();
+
+        this.setOptions({
+          minDate: filterFetchTimeFromValue || false,
+          maxDate: new Date(),
+        });
+      },
+    });
+    $('#filter-user-subscr-depart-time-from').datetimepicker({
+      format: DATETIMEPICKER_FORMAT,
+      onShow: function () {
+        const filterUserSubscrDepartTimeToValue = $('#filter-user-subscr-depart-time-to').val();
+
+        this.setOptions({
+          maxDate: filterUserSubscrDepartTimeToValue || false,
+        });
+      },
+    });
+    $('#filter-user-subscr-depart-time-to').datetimepicker({
+      format: DATETIMEPICKER_FORMAT,
+      onShow: function () {
+        const filterUserSubscrDepartTimeFromValue = $('#filter-user-subscr-depart-time-from').val();
+
+        this.setOptions({
+          minDate: filterUserSubscrDepartTimeFromValue || false,
+        });
+      },
+    });
+    $('#filter-user-subscr-arrival-time-from').datetimepicker({
+      format: DATETIMEPICKER_FORMAT,
+      onShow: function () {
+        const filterUserSubscrArrivalTimeToValue = $('#filter-user-subscr-arrival-time-to').val();
+
+        this.setOptions({
+          maxDate: filterUserSubscrArrivalTimeToValue || false,
+        });
+      },
+    });
+    $('#filter-user-subscr-arrival-time-to').datetimepicker({
+      format: DATETIMEPICKER_FORMAT,
+      onShow: function () {
+        const filterUserSubscrArrivalTimeFromValue = $('#filter-user-subscr-arrival-time-from').val();
+
+        this.setOptions({
+          minDate: filterUserSubscrArrivalTimeFromValue || false,
+        });
+      },
+    });
   });
 }
 
