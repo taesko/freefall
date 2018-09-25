@@ -1143,6 +1143,37 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     }
   }
 
+  // setting default order by settings
+  const order = {
+    transferred_at: 'asc',
+  };
+
+  const queryParamsToOrderParamsMapping = [
+    {
+      query: 'order-transferred-at',
+      order: 'transferred_at',
+      expected: [
+        'asc',
+        'desc',
+      ],
+    },
+  ];
+
+  for (const mapping of queryParamsToOrderParamsMapping) {
+    if (ctx.query[mapping.query]) {
+      if (
+        mapping.expected &&
+        !mapping.expected.includes(ctx.query[mapping.query])
+      ) {
+        ctx.status = 400;
+        ctx.body = 'Invalid order by setting!';
+        return;
+      }
+
+      order[mapping.order] = ctx.query[mapping.query];
+    }
+  }
+
   const { page: pageRemoved, ...queryWithoutPage } = ctx.query;
 
   ctx.query = queryWithoutPage;
@@ -1178,6 +1209,7 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
         {}
       ),
     },
+    order,
     page,
     query_string_without_page: queryStringWithoutPage,
   };
@@ -1197,11 +1229,11 @@ router.get('/transfers', adminAuth.redirectWhenLoggedOut('/login'), async (ctx) 
     activeColumns,
     depositsSum,
     withdrawalsSum,
-  } = await getAccountTransfers(
-    dbClient,
+  } = await getAccountTransfers(dbClient, {
     filters,
-    groupings
-  );
+    groupings,
+    order,
+  });
 
   assertApp(typeof isCanceled === 'boolean');
   assertApp(accountTransfers === null || Array.isArray(accountTransfers));

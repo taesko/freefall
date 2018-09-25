@@ -159,29 +159,30 @@ function start () {
     exportButton.disabled = true;
     mainUtils.showLoader();
 
+    const filters = {};
+    const groupings = {};
+    const order = {};
+
+    for (const key in filtersGlobal) {
+      if (filtersGlobal[key].length > 0) {
+        filters[key] = filtersGlobal[key];
+      }
+    }
+
+    for (const key in groupingsGlobal) {
+      groupings[key] = groupingsGlobal[key] || 'none';
+    }
+
+    for (const key in orderGlobal) {
+      order[key] = orderGlobal[key] || 'asc'; // setting asc as default
+    }
+
     const listAccountTransfersParams = {
       v: '2.0',
       api_key: APIKeyRef.APIKey,
-      filters: Object.entries(filtersGlobal).reduce(
-        (acc, [name, value]) => {
-          if (value.length > 0) {
-            return {
-              ...acc,
-              [name]: value,
-            };
-          } else {
-            return acc;
-          }
-        },
-        {}
-      ),
-      groupings: Object.entries(groupingsGlobal).reduce(
-        (acc, [name, value]) => ({
-          ...acc,
-          [name]: value || 'none',
-        }),
-        {}
-      ),
+      filters: filters,
+      groupings: groupings,
+      order: order,
     };
 
     adminAPI.adminListAccountTransfers(

@@ -50,6 +50,7 @@
     "roleIdGlobal": true,
     "filtersGlobal": true,
     "groupingsGlobal": true,
+    "orderGlobal": true,
     "getAPIMethods": true,
     "getAdminAPIMethods": true,
     "window": true

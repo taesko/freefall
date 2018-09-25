@@ -193,7 +193,19 @@ async function registerTransferByEmployee (dbClient, accountTransferId, employee
   return accountTransferByEmployee;
 }
 
-async function getAccountTransfers (dbClient, filters, groupings) {
+async function getAccountTransfers (dbClient, options) {
+  assertApp(_.isObject(options));
+
+  const {
+    filters,
+    groupings,
+    order,
+  } = options;
+
+  assertApp(_.isObject(filters));
+  assertApp(_.isObject(groupings));
+  assertApp(_.isObject(order));
+
   const expectedNullOrStringValues = [
     'user',
     'transferred_at_from',
@@ -473,8 +485,9 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   const {
     selectColumnsPart,
     groupColumns,
+    orderByColumns,
     activeColumns,
-  } = db.buildGroupingParams(columnsConfig, groupings);
+  } = db.buildQueryClauseParts(columnsConfig, groupings, order);
 
   const queryValues = [
     filters.user,
@@ -483,7 +496,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
     filters.deposits,
     filters.withdrawals,
     filters.transfers_by_employees,
-    filters.new_subsctiption_taxes,
+    filters.new_subscription_taxes,
     filters.new_fetch_taxes,
     filters.subscr_airport_from,
     filters.subscr_airport_to,
@@ -510,7 +523,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
   let withdrawalsSum = 0;
 
   try {
-    await dbClient.executeQuery('SET LOCAL statement_timeout TO 15000;');
+    await dbClient.executeQuery('SET LOCAL statement_timeout TO 30000;');
 
     selectAccountTransfersResult = await dbClient.executeQuery(`
 
@@ -630,7 +643,7 @@ async function getAccountTransfers (dbClient, filters, groupings) {
           users_subscriptions.date_to <= to_date($19, 'YYYY-MM-DD')
         )
       ${groupColumns.length > 0 ? `GROUP BY ${groupColumns}` : ''}
-      ORDER BY ${groupColumns.length > 0 ? groupColumns : '1'}
+      ORDER BY ${orderByColumns}
       OFFSET $20
       ${filters.limit ? 'LIMIT $21' : ''};
 
@@ -655,6 +668,8 @@ async function getAccountTransfers (dbClient, filters, groupings) {
       groupings.fetch_time === null ||
       typeof groupings.fetch_time === 'string'
     );
+
+    await dbClient.executeQuery('SET LOCAL statement_timeout TO DEFAULT;');
 
     const truncateDatetime = function (datetime, precision) {
       assertApp(datetime === null || datetime instanceof Date);

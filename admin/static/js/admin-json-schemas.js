@@ -1858,12 +1858,30 @@ const adminValidators = { // eslint-disable-line no-unused-vars
             'fetch_time',
           ],
         },
+        'order': {
+          'title': 'Order by',
+          'type': 'object',
+          'properties': {
+            'transferred_at': {
+              'title': 'Transferred at',
+              'type': 'string',
+              'enum': [
+                'asc',
+                'desc',
+              ],
+            },
+          },
+          'required': [
+            'transferred_at',
+          ],
+        },
       },
       'required': [
         'v',
         'api_key',
         'filters',
         'groupings',
+        'order',
       ],
     };
     return ajv.compile(adminListAccountTransfersRequestSchema);

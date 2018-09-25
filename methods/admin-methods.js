@@ -1717,17 +1717,35 @@ const adminListAccountTransfers = defineAPIMethod(
       }
     }
 
+    // setting default order by settings
+    const order = {
+      transferred_at: 'asc',
+    };
+
+    const apiParamsToOrderParamsMapping = [
+      {
+        api: 'transferred_at',
+        order: 'transferred_at'
+      },
+    ];
+
+    for (const mapping of apiParamsToOrderParamsMapping) {
+      if (params.order[mapping.api]) {
+        order[mapping.order] = params.order[mapping.api];
+      }
+    }
+
     const {
       isCanceled,
       accountTransfers,
       activeColumns,
       depositsSum,
       withdrawalsSum,
-    } = await getAccountTransfers(
-      dbClient,
+    } = await getAccountTransfers(dbClient, {
       filters,
-      groupings
-    );
+      groupings,
+      order,
+    });
 
     assertUser(
       !isCanceled,

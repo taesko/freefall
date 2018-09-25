@@ -304,6 +304,20 @@
           </div>
         </div>
         <hr>
+        <div class="row">
+          <div class="form-group">
+            <div class="col-md-4">
+              <label>Order by transferred at:</label>
+            </div>
+            <div class="col-md-4">
+              <select name="order-transferred-at" class="form-control">
+                <option value="desc" {{ is_selected order.transferred_at "desc" }}>Descending</option>
+                <option value="asc" {{ is_selected order.transferred_at "asc" }}>Ascending</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <hr>
         <div class="form-group text-center">
           <input type="text" name="page" value="1" hidden>
           <input class="btn btn-primary" type="submit">
@@ -602,6 +616,10 @@
       fetch_time: _.unescape('{{{escape groupings.fetch_time}}}'),
       type: _.unescape('{{{escape groupings.type}}}'),
       reason: _.unescape('{{{escape groupings.reason}}}'),
+    };
+
+    var orderGlobal = {
+      transferred_at: _.unescape('{{{escape order.transferred_at}}}'),
     };
 
     var queryStringWithoutPage = _.unescape('{{{escape query_string_without_page}}}');

@@ -175,7 +175,7 @@ function buildSetClause (setHash, startIndex = 1) {
   };
 }
 
-function buildGroupingParams (selectColumns, groupings) {
+function buildQueryClauseParts (selectColumns, groupings, order) {
   // assert correct format
   for (const selectColumn of selectColumns) {
     assertApp(typeof selectColumn.isSet === 'boolean');
@@ -292,9 +292,27 @@ function buildGroupingParams (selectColumns, groupings) {
     }
   }
 
+  let orderByColumns = '';
+
+  if (queryGroupBy.length > 0) {
+    orderByColumns = queryGroupBy.join(',');
+  } else {
+    orderByColumns = '1';
+  }
+
+  assertApp(isObject(order));
+  assertApp(typeof order.transferred_at === 'string');
+
+  if (order.transferred_at === 'asc') {
+    orderByColumns += ' ASC';
+  } else {
+    orderByColumns += ' DESC';
+  }
+
   return {
     selectColumnsPart: querySelectColumns.join(','),
     groupColumns: queryGroupBy.join(','),
+    orderByColumns,
     activeColumns,
   };
 }
@@ -695,5 +713,5 @@ module.exports = {
   pool,
   wrapPgClient,
   processNamedParameters,
-  buildGroupingParams,
+  buildQueryClauseParts,
 };
