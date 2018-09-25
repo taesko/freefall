@@ -305,6 +305,39 @@ function main () { // eslint-disable-line no-unused-vars
     }
   }
 
+  function serializeFormInput (formID, config, skipEmptyString=true) {
+    config = config || Object.create(null);
+
+    assertApp(_.isObject(config));
+
+    if (formID[0] !== '#') {
+      formID = '#' + formID;
+    }
+
+    const $form = $(formID);
+    const serialized = {};
+
+    for (const input of $form.serializeArray()) {
+      const name = input.name;
+      const value = input.value;
+
+      if (skipEmptyString && value.trim() === '') {
+        continue;
+      }
+
+      if (name in config) {
+        const result = config[name](value, serialized, name);
+        if (typeof result !== 'undefined') {
+          serialized[name] = result;
+        }
+      } else {
+        serialized[name] = value;
+      }
+    }
+
+    return serialized;
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $messagesList = $('#messages-list');
   });
@@ -328,6 +361,7 @@ function main () { // eslint-disable-line no-unused-vars
     saveFormData,
     restoreFormData,
     clearFormData,
+    serializeFormInput,
     SERVER_URL: SERVER_URL,
     EXPORT_SERVER_URL: EXPORT_SERVER_URL,
     PROTOCOL_NAME: PROTOCOL_NAME,

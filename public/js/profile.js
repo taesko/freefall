@@ -939,13 +939,31 @@ function start () {
     }
   }
 
-  function exportCreditHistory () {
-    api.exportCreditHistory(
-      creditHistoryFilters,
-      PROTOCOL_NAME,
-      function () {
-        console.log('Finished exporting credit history.');
-      },
+  function serializeCreditHistoryParams () {
+    return mainUtils.serializeFormInput(
+      '#search-credit-history',
+      {
+        status: function (value) {
+          if (value !== 'any') {
+            return value === 'active';
+          }
+        },
+        transfer_amount: function (value) {
+          return -Math.abs(+value);
+        },
+        group_by_active: function (value, serialized) {
+          serialized.group_by = serialized.group_by || {};
+          serialized.group_by.active = value;
+        },
+        group_by_reason: function (value, serialized) {
+          serialized.group_by = serialized.group_by || {};
+          serialized.group_by.reason = value;
+        },
+        transferred_at_date_groupings: function (value, serialized) {
+          serialized.group_by = serialized.group_by || {};
+          serialized.group_by.transferred_at = value;
+        },
+      }
     );
   }
 
@@ -964,51 +982,30 @@ function start () {
     });
 
     $('#display-credit-history-btn').click(displayCreditHistory);
-    $('#export-credit-history-btn').click(exportCreditHistory);
+    $('#export-credit-history-btn').click(
+      function exportCreditHistory () {
+        api.exportCreditHistory(
+          serializeCreditHistoryParams(),
+          PROTOCOL_NAME,
+          function () {},
+        );
+    });
+    $('#export-credit-history-table-btn').click(
+      function exportCreditHistoryTable () {
+        api.exportCreditHistory(
+          creditHistoryFilters,
+          PROTOCOL_NAME,
+          function () {},
+        );
+      }
+    );
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
     const creditHistoryFiltersForm = $('#search-credit-history');
     creditHistoryFiltersForm.submit(function (event) {
       event.preventDefault();
       resetCreditHistory();
 
-      const filters = creditHistoryFiltersForm.serializeArray()
-        .filter(function isEntered (serialized) {
-          return serialized.value.length !== 0;
-        })
-        .reduce(function (hash, serialized) {
-          if (serialized.name === 'group_by') {
-            hash[serialized.name] = hash[serialized.name] || [];
-            hash[serialized.name].push(serialized.value);
-          } else {
-            hash[serialized.name] = serialized.value;
-          }
-          return hash;
-        }, {});
-
-      if (filters.status === 'any') {
-        delete filters.status;
-      } else {
-        filters.status = filters.status === 'active';
-      }
-
-      if (filters.transfer_amount) {
-        filters.transfer_amount = -Math.abs(+filters.transfer_amount);
-      }
-      if (filters.group_by_active) {
-        filters.group_by = filters.group_by || {};
-        filters.group_by.active = filters.group_by_active;
-      }
-      if (filters.group_by_reason) {
-        filters.group_by = filters.group_by || {};
-        filters.group_by.reason = filters.group_by_reason;
-      }
-      if (filters.transferred_at_date_groupings) {
-        filters.group_by = filters.group_by || {};
-        filters.group_by.transferred_at = filters.transferred_at_date_groupings;
-        delete filters.transferred_at_date_groupings;
-      }
-
-      creditHistoryFilters = filters;
+      creditHistoryFilters = serializeCreditHistoryParams();
 
       displayCreditHistory();
       return false;
