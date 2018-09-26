@@ -438,15 +438,19 @@ function start () {
       subscriptions = subscriptions.concat([newSubscription]);
 
       rowIdSubscriptionMap[rowId] = newSubscription;
-      renderSubscriptionRow('view', newSubscription);
+      renderSubscriptionRow('view', newSubscription, null, true);
 
-      renderCreditHistoryTable($('#credit-history-table'), [newHistory]);
+      renderCreditHistoryTable($('#credit-history-table'), [newHistory], true);
       mainUtils.displayUserMessage('Successfully subscribed!', 'success');
     });
   };
 
-  function renderSubscriptionRow (mode, subscription, $row) {
+  // TODO refactor later
+  // eslint-disable-next-line max-params
+  function renderSubscriptionRow (mode, subscription, $row, insertBefore) {
     mainUtils.trace('renderSubscriptionRow');
+
+    insertBefore = insertBefore || false;
 
     assertApp(_.isObject(subscription), {
       msg: 'Expected subscription to be an object, but was ' + typeof subscription, // eslint-disable-line prefer-template
@@ -482,7 +486,11 @@ function start () {
       msg: 'Expected mode to be allowed mode, but was ' + mode, // eslint-disable-line prefer-template
     });
 
-    modes[mode](subscription, rowId, $row);
+    modes[mode](
+      subscription,
+      $row,
+      { rowId: rowId, insertBefore: insertBefore }
+    );
 
     applyDatePicker();
     // applyAutocomplete(airports.map(function (airport) { // eslint-disable-line prefer-arrow-callback
@@ -490,8 +498,18 @@ function start () {
     // }));
   }
 
-  function renderSubscriptionRowViewMode (subscription, rowId, $row) {
+  function renderSubscriptionRowViewMode (
+    subscription,
+    $row,
+    options,
+  ) {
     mainUtils.trace('renderSubscriptionRowViewMode');
+    const rowId = options.rowId;
+    const insertBefore = options.insertBefore || false;
+
+    assertApp(_.isObject(options));
+    assertApp(typeof rowId === 'string');
+    assertApp(typeof insertBefore === 'boolean');
 
     const $subscriptionViewModeClone = $('#subscription-view-mode').clone()
       .removeAttr('hidden')
@@ -519,22 +537,38 @@ function start () {
 
     $subscriptionViewModeClone.find('#subscription-view-mode-search-btn')
       .attr('id', 'subscription-view-mode-search-btn-' + rowId)
-      .click(onSearchClick)
+      .click(onSearchClick);
     $subscriptionViewModeClone.find('#subscription-view-mode-edit-btn')
       .attr('id', 'subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditClick);
 
     if ($row == null) {
-      $subscriptionViewModeClone.appendTo(
-        $('#subscriptions-table tbody')
-      );
+      if (insertBefore) {
+        $subscriptionViewModeClone.prependTo(
+          $('#subscriptions-table tbody'),
+        );
+      } else {
+        $subscriptionViewModeClone.appendTo(
+          $('#subscriptions-table tbody'),
+        );
+      }
     } else {
       $row.replaceWith($subscriptionViewModeClone);
     }
   }
 
-  function renderSubscriptionRowEditMode (subscription, rowId, $row) {
+  function renderSubscriptionRowEditMode (
+    subscription,
+    $row,
+    options,
+  ) {
     mainUtils.trace('renderSubscriptionRowEditMode');
+    const rowId = options.rowId;
+    const insertBefore = options.insertBefore || false;
+
+    assertApp(_.isObject(options));
+    assertApp(typeof rowId === 'string');
+    assertApp(typeof insertBefore === 'boolean');
 
     const $subscriptionEditModeClone = $('#subscription-edit-mode').clone()
       .removeAttr('hidden')
@@ -683,15 +717,21 @@ function start () {
   }
 
   function switchTab (tabID) {
-    const tabs = ['#credit-history-tab', '#subscriptions-tab', '#deposit-history-tab'];
+    const tabs = {
+      '#credit-history-tab': '#display-credit-history-btn',
+      '#subscriptions-tab': '#display-subscriptions-btn',
+      '#deposit-history-tab': '#display-deposit-history-btn',
+    };
 
-    for (const tab of tabs) {
+    for (const tab of Object.keys(tabs)) {
       if (tab !== tabID) {
         $(tab).hide();
+        $(tabs[tab]).removeClass('active');
       }
     }
 
     $(tabID).show();
+    $(tabs[tabID]).addClass('active');
   }
 
   function loadMoreCreditHistory (callbackOnFinish) {
@@ -731,7 +771,7 @@ function start () {
     });
   }
 
-  function renderCreditHistoryTable ($table, historyResult) {
+  function renderCreditHistoryTable ($table, historyResult, insertBefore) {
     const history = historyResult.credit_history;
 
     function formatDate (date, accuracy, seperator) {
@@ -840,7 +880,12 @@ function start () {
         transfer_amount: transferAmount,
         reason: reason,
       });
-      $table.find('tbody tr:last').after($tableRow);
+
+      if (insertBefore) {
+        $table.find('tbody tr:first').before($tableRow);
+      } else {
+        $table.find('tbody tr:last').after($tableRow);
+      }
     }
 
     function renderRow ($tableRow, historyHash) {
@@ -939,6 +984,34 @@ function start () {
     }
   }
 
+  function serializeCreditHistoryParams () {
+    return mainUtils.serializeFormInput(
+      '#search-credit-history',
+      {
+        status: function (value) {
+          if (value !== 'any') {
+            return value === 'active';
+          }
+        },
+        transfer_amount: function (value) {
+          return -Math.abs(+value);
+        },
+        group_by_active: function (value, serialized) {
+          serialized.group_by = serialized.group_by || {};
+          serialized.group_by.active = value;
+        },
+        group_by_reason: function (value, serialized) {
+          serialized.group_by = serialized.group_by || {};
+          serialized.group_by.reason = value;
+        },
+        transferred_at_date_groupings: function (value, serialized) {
+          serialized.group_by = serialized.group_by || {};
+          serialized.group_by.transferred_at = value;
+        },
+      }
+    );
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $('#display-subscriptions-btn').click(displaySubscriptions);
     $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
@@ -954,50 +1027,29 @@ function start () {
     });
 
     $('#display-credit-history-btn').click(displayCreditHistory);
+    $('#export-credit-history-btn').click(function exportCreditHistory () {
+      api.exportCreditHistory(
+        serializeCreditHistoryParams(),
+        PROTOCOL_NAME,
+        function () {},
+      );
+    });
+    $('#export-credit-history-table-btn').click(
+      function exportCreditHistoryTable () {
+        api.exportCreditHistory(
+          creditHistoryFilters,
+          PROTOCOL_NAME,
+          function () {},
+        );
+      }
+    );
     $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
     const creditHistoryFiltersForm = $('#search-credit-history');
     creditHistoryFiltersForm.submit(function (event) {
       event.preventDefault();
       resetCreditHistory();
 
-      const filters = creditHistoryFiltersForm.serializeArray()
-        .filter(function isEntered (serialized) {
-          return serialized.value.length !== 0;
-        })
-        .reduce(function (hash, serialized) {
-          if (serialized.name === 'group_by') {
-            hash[serialized.name] = hash[serialized.name] || [];
-            hash[serialized.name].push(serialized.value);
-          } else {
-            hash[serialized.name] = serialized.value;
-          }
-          return hash;
-        }, {});
-
-      if (filters.status === 'any') {
-        delete filters.status;
-      } else {
-        filters.status = filters.status === 'active';
-      }
-
-      if (filters.transfer_amount) {
-        filters.transfer_amount = -Math.abs(+filters.transfer_amount);
-      }
-      if (filters.group_by_active) {
-        filters.group_by = filters.group_by || {};
-        filters.group_by.active = filters.group_by_active;
-      }
-      if (filters.group_by_reason) {
-        filters.group_by = filters.group_by || {};
-        filters.group_by.reason = filters.group_by_reason;
-      }
-      if (filters.transferred_at_date_groupings) {
-        filters.group_by = filters.group_by || {};
-        filters.group_by.transferred_at = filters.transferred_at_date_groupings;
-        delete filters.transferred_at_date_groupings;
-      }
-
-      creditHistoryFilters = filters;
+      creditHistoryFilters = serializeCreditHistoryParams();
 
       displayCreditHistory();
       return false;

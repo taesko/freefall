@@ -1,3 +1,4 @@
+/* eslint-disable prefer-arrow-callback,prefer-template,no-console */
 function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
   const PeerError = mainUtils.PeerError;
   const assertPeer = mainUtils.assertPeer;
@@ -136,6 +137,80 @@ function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
         callback(result);
       }, 0);
     });
+  };
+
+  const exportCreditHistory = function (params, protocolName, callback) {
+    assertApp(_.isObject(params));
+
+    params.api_key = mainUtils.APIKeyRef.APIKey;
+    params.v = '2.0';
+    callback = callback || function () {};
+
+    mainUtils.trace('exportCreditHistory(' + JSON.stringify(params) + '), typeof arg=' + typeof params + ''); // eslint-disable-line prefer-template
+
+    const xhr = new window.XMLHttpRequest();
+    xhr.open('POST', mainUtils.EXPORT_SERVER_URL, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = function savingExport () {
+      if (this.status === 200) {
+        // eslint-disable-next-line no-var
+        var filename = '';
+        const disposition = xhr.getResponseHeader('Content-Disposition');
+        if (disposition && disposition.indexOf('filename') !== -1) {
+          const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+          const matches = filenameRegex.exec(disposition);
+          if (matches != null && matches[1]) {
+            filename = matches[1].replace(/['"]/g, '');
+          }
+        }
+
+        const type = xhr.getResponseHeader('Content-Type');
+
+        if (type === 'application/json') {
+          return callback(
+            new PeerError({ userMessage: 'Exporting failed.' }),
+            JSON.parse(xhr.responseText)
+          );
+        }
+
+        const blob = new window.File([this.response], filename, { type: type });
+        const URL = window.URL;
+        const objectURL = URL.createObjectURL(blob);
+        if (filename) {
+          const link = document.createElement('a');
+
+          link.href = objectURL;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+        } else {
+          window.location = objectURL;
+        }
+        setTimeout(function () {
+          URL.revokeObjectURL(objectURL);
+          // eslint-disable-next-line no-console
+          console.log(
+            'Revoked object url %s for file %s',
+            objectURL,
+            filename,
+          );
+        }, 2000);
+        setTimeout(callback, 0);
+      } else {
+        callback(new PeerError({
+          userMessage: 'Could not export your file. Please try again later.',
+        }));
+      }
+    };
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(JSON.stringify(
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'export_credit_history',
+        params: params,
+      }
+    ));
   };
 
   const depositHistory = function (params, protocolName, callback) {
@@ -374,6 +449,7 @@ function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
     listSubscriptions: listSubscriptions,
     creditHistory: creditHistory,
     depositHistory: depositHistory,
+    exportCreditHistory: exportCreditHistory,
     getAPIKey: getAPIKey,
     unsubscribe: unsubscribe,
     subscribe: subscribe,

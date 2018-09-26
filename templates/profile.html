@@ -13,40 +13,52 @@
   {{> menu }}
   <div class="row container">
     <h3 class="row">Add new subscription:</h3>
-    <form class="row" id="subscribe-form">
-      <div class="col-md-2">
-        <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text"
-               placeholder="Airport from" list="airports-list" required>
+    <form class="row form" id="subscribe-form">
+      <div class="form-group form-horizontal row">
+        <div class="col-md-6">
+          <label for="subscribe-airport-from">From airport:</label>
+          <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text"
+                 placeholder="Sofia Airport" list="airports-list" required>
+        </div>
+        <div class="col-md-6">
+          <label for="subscribe-airport-to">To airport:</label>
+          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text"
+                 placeholder="Haneda" list="airports-list" required>
+        </div>
       </div>
-      <div class="col-md-2">
-        <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text"
-               placeholder="Airport to" list="airports-list" required>
+      <div class="form-group form-horizontal row">
+        <div class="col-md-6">
+          <label for="subscribe-date-from">Earliest departure date:</label>
+          <input id="subscribe-date-from" class="form-control date-select" name="date-from" type="text"
+                 placeholder="{{today}}" required>
+        </div>
+        <div class="col-md-6">
+          <label for="subscribe-date-to">Latest arrival date:</label>
+          <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text"
+                 placeholder="{{next_month}}" required>
+        </div>
       </div>
-      <div class="col-md-2">
-        <input id="subscribe-date-from" class="form-control date-select" name="date-from" type="text"
-               placeholder="Date from" required>
+      <div class="form-group form-horizontal row">
+        <div class="col-md-4">
+          <label for="subscribe-plan">Subscription plan:</label>
+          <select id="subscribe-plan" name="plan" class="form-control" required>
+            <option>daily</option>
+            <option>weekly</option>
+            <option>monthly</option>
+          </select>
+        </div>
+        <div class="col-md-8">
+        </div>
       </div>
-      <div class="col-md-2">
-        <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to"
-               required>
-      </div>
-      <div class="col-md-2">
-        <label class="sr-only" for="subscribe-plan">Subscription plan</label>
-        <select id="subscribe-plan" name="plan" class="form-control" required>
-          <option>daily</option>
-          <option>weekly</option>
-          <option>monthly</option>
-        </select>
-      </div>
-      <div class="col-md-2 btn-toolbar">
+      <div class="text-center">
         <button id="subscribe-clear-btn" class="col-md-4 btn btn-danger" type="button">Clear</button>
-        <button id="subscribe-submit-btn" class="col-md-7 btn btn-primary" type="submit">Subscribe</button>
+        <button id="subscribe-submit-btn" class="col-md-8 btn btn-primary" type="submit">Subscribe</button>
       </div>
     </form>
   </div>
   <hr>
   {{> messages }}
-  <ul class="nav nav-tabs">
+  <ul class="nav nav-tabs row">
     <li role="presentation">
       <a id="display-subscriptions-btn" class="btn" role="button" href="#">Subscriptions</a>
     </li>
@@ -60,22 +72,22 @@
   <div class="row">
     <div id="subscriptions-tab" class="container collapse">
       <!--<h3>Your subscriptions:</h3>-->
-      <form id="search-subscriptions">
+      <form id="search-subscriptions" class="row">
         <div class="form-group">
           <label for="search-airport-from" class="sr-only">From</label>
           <input id="search-airport-from" class="form-control airport-select" name="from" type="text"
-                 placeholder="Airport from" list="airports-list">
+                 placeholder="Sofia" list="airports-list">
         </div>
         <div class="form-group">
           <label for="search-airport-to" class="sr-only">To</label>
           <input id="search-airport-to" name="to" class="form-control airport-select" type="text"
-                 placeholder="Airport to" list="airports-list">
+                 placeholder="Haneda" list="airports-list">
         </div>
         <div class="form-group">
-          <button id="search-subscriptions-btn" class="btn btn-primary">Search</button>
+          <button id="search-subscriptions-btn" class="btn btn-primary pull-right">Filter</button>
         </div>
       </form>
-      <table id="subscriptions-table" class="table table-bordered">
+      <table id="subscriptions-table" class="table table-bordered row">
         <thead>
         <tr>
           <th>Airport from</th>
@@ -90,23 +102,23 @@
         <tr id="subscription-edit-mode" hidden>
           <td>
             <input id="subscription-edit-mode-airport-from" class="form-control" name="from" type="text"
-                   list="airports-list" placeholder="Airport from" required>
+                   list="airports-list" placeholder="Sofia" required>
           </td>
           <td>
             <input id="subscription-edit-mode-airport-to" class="form-control" name="to" type="text"
-                   list="airports-list" placeholder="Airport to" required>
+                   list="airports-list" placeholder="Sofia" required>
           </td>
           <td>
             <input id="subscription-edit-mode-date-from" class="form-control" name="date-from" type="text"
-                   placeholder="Date from" value="" required>
+                   placeholder="{{today}}" value="" required>
           </td>
           <td>
             <input id="subscription-edit-mode-date-to" class="form-control" name="date-to" type="text"
-                   placeholder="Date to" value="" required>
+                   placeholder="{{next_month}}" value="" required>
           </td>
           <td>
             <input id="subscription-edit-mode-plan" class="form-control" name="plan" type="text"
-                   placeholder="Date to" value="" required>
+                   placeholder="daily" value="" required>
           </td>
           <td>
             <button id="subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
@@ -115,84 +127,91 @@
           </td>
         </tr>
         <tr id="subscription-view-mode" hidden>
+          <td id="subscription-view-mode-airport-from" class="text-left"></td>
+          <td id="subscription-view-mode-airport-to" class="text-left"></td>
+          <td id="subscription-view-mode-date-from" class="text-left"></td>
+          <td id="subscription-view-mode-date-to" class="text-left"></td>
+          <td id="subscription-view-mode-plan" class="text-left"></td>
           <td>
-            <span id="subscription-view-mode-airport-from"></span>
-          </td>
-          <td>
-            <span id="subscription-view-mode-airport-to"></span>
-          </td>
-          <td>
-            <span id="subscription-view-mode-date-from"></span>
-          </td>
-          <td>
-            <span id="subscription-view-mode-date-to"></span>
-          </td>
-          <td>
-            <span id="subscription-view-mode-plan"></span>
-          </td>
-          <td>
-            <button id="subscription-view-mode-search-btn" type="button" class="btn btn-primary btn-block">Search</button>
-            <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
+            <button id="subscription-view-mode-search-btn" type="button" class="btn btn-primary">Search</button>
+            <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary">Edit</button>
           </td>
         </tr>
         </tbody>
       </table>
-      <button id="subscriptions-load-more-btn" class="btn btn-primary btn-block">Load more</button>
-      <p id="no-subscriptions-msg" class="text-center collapse">No subscriptions found</p>
+      <button id="subscriptions-load-more-btn" class="btn btn-primary btn-block row">Load more</button>
+      <p id="no-subscriptions-msg" class="text-center collapse row">No subscriptions found</p>
     </div>
     <div id="credit-history-tab" class="container collapse">
-      <form id="search-credit-history">
-        <div class="form-group">
-          <input id="search-ch-fly-from" class="form-control airport-select" name="from" type="text"
-                 placeholder="Airport from" list="airports-list">
+      <form id="search-credit-history" class="row">
+        <div class="form-group form-horizontal row">
+          <div class="col-md-6">
+            <label for="search-ch-fly-from">Airport from:</label>
+            <input id="search-ch-fly-from" class="form-control airport-select" name="from" type="text"
+                   placeholder="Sofia" list="airports-list">
+          </div>
+          <div class="col-md-6">
+            <label for="search-ch-fly-to">Airport to:</label>
+            <input id="search-ch-fly-to" name="to" class="form-control airport-select" type="text"
+                   placeholder="Haneda" list="airports-list">
+          </div>
         </div>
-        <div class="form-group">
-          <input id="search-ch-fly-to" name="to" class="form-control airport-select" type="text"
-                 placeholder="Airport to" list="airports-list">
+        <div class="form-group form-horizontal row">
+          <div class="col-md-6">
+            <label for="search-ch-date-from">Earliest departure date:</label>
+            <input id="search-ch-date-from" class="form-control date-select" name="date-from"
+                   type="text" placeholder="{{last_month}}">
+          </div>
+          <div class="col-md-6">
+            <label for="search-ch-date-to">Latest arrival date:</label>
+            <input id="search-ch-date-to" name="date-to" class="form-control date-select"
+                   type="text" placeholder="{{today}}">
+          </div>
         </div>
-        <div class="form-group">
-          <input id="search-ch-date-from" class="form-control date-select" name="date-from" type="text"
-                 placeholder="Date from">
+        <div class="form-group form-horizontal row">
+          <div class="col-md-6">
+            <label for="search-ch-transferred_from">Transferred after</label>
+            <input id="search-ch-transferred_from" name="transferred_from" class="form-control date-select"
+                   type="text" placeholder="{{last_month}}">
+          </div>
+          <div class="col-md-6">
+            <label for="search-ch-transferred_to">Transferred until</label>
+            <input id="search-ch-transferred_to" name="transferred_to" class="form-control date-select"
+                   type="text" placeholder="{{today}}">
+          </div>
         </div>
-        <div class="form-group">
-          <input id="search-ch-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to">
-        </div>
-        <div class="form-group">
-          <input id="search-ch-transferred_from" name="transferred_from" class="form-control date-select"
-                 type="text" placeholder="Transferred from">
-        </div>
-        <div class="form-group">
-          <input id="search-ch-transferred_to" name="transferred_to" class="form-control date-select"
-                 type="text" placeholder="Transferred to">
-        </div>
-        <div class="form-group">
-          <label for="search-ch-status">Subscription status: </label>
-          <select id="search-ch-status" name="status">
-            <option value="any">Any</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="search-ch-transfer-amount-operator">Taxed amount</label>
-          <select id="search-ch-transfer-amount-operator"
-                  name="transfer_amount_operator" class="form-control">
-            <option value="<">Larger than</option>
-            <option value=">">Less than</option>
-            <option value="=">Equal to</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <input id="search-ch-transfer-amount" name="transfer_amount" class="form-control"
-                 type="number" placeholder="Transfer amount" min="0">
+        <div class="form-group form-horizontal row">
+          <div class="col-md-4">
+            <label for="search-ch-status">Subscription status: </label>
+            <select id="search-ch-status" name="status" class="form-control">
+              <option value="any">Any</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="search-ch-transfer-amount">Taxed amount:</label>
+            <input id="search-ch-transfer-amount" name="transfer_amount" class="form-control"
+                   type="number" min="0">
+          </div>
+          <div class="col-md-4">
+            <label for="search-ch-transfer-amount-operator">
+              Comparison for taxed amount
+            </label>
+            <select id="search-ch-transfer-amount-operator" name="transfer_amount_operator" class="form-control">
+              <option value="<">Larger than</option>
+              <option value=">">Less than</option>
+              <option value="=">Equal to</option>
+            </select>
+          </div>
         </div>
         <div class="form-group">
           <label for="search-ch-group-by-active">Group by status</label>
-          <input id="search-ch-group-by-active" name="group_by_active" class="form-control" type="checkbox" value="default">
+          <input id="search-ch-group-by-active" name="group_by_active" type="checkbox" value="default">
         </div>
         <div class="form-group">
           <label for="search-ch-group-by-reason">Group by reason</label>
-          <input id="search-ch-group-by-reason" name="group_by_reason" class="form-control" type="checkbox" value="default">
+          <input id="search-ch-group-by-reason" name="group_by_reason" type="checkbox" value="default">
         </div>
         <div class="form-group">
           <label for="search-ch-transferred-at-grouping">Group by transferred at</label>
@@ -203,9 +222,13 @@
             <option value="day">Day</option>
           </select>
         </div>
-        <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Search</button>
+        <div class="form-group">
+          <button id="export-credit-history-table-btn" class="btn pull-right" type="button">Export table</button>
+          <button id="export-credit-history-btn" class="btn pull-right" type="button">Export</button>
+          <button id="search-credit-history-btn" class="btn btn-primary pull-right" type="submit">Filter</button>
+        </div>
       </form>
-      <table id="credit-history-table" class="table table-bordered">
+      <table id="credit-history-table" class="table table-bordered row">
         <thead>
         <tr>
           <th>Transfer</th>
@@ -220,35 +243,35 @@
         </thead>
         <tbody>
         <tr id="credit-history-template-row" class="collapse">
-          <td id="credit-transferred-at"></td>
-          <td id="credit-airport-from"></td>
-          <td id="credit-airport-to"></td>
-          <td id="credit-date-from"></td>
-          <td id="credit-date-to"></td>
-          <td id="credit-subscr-status"></td>
-          <td id="credit-transfer-amount"></td>
-          <td id="credit-reason"></td>
+          <td id="credit-transferred-at" class="text-left"></td>
+          <td id="credit-airport-from" class="text-left"></td>
+          <td id="credit-airport-to" class="text-left"></td>
+          <td id="credit-date-from" class="text-left"></td>
+          <td id="credit-date-to" class="text-left"></td>
+          <td id="credit-subscr-status" class="text-left"></td>
+          <td id="credit-transfer-amount" class="text-right"></td>
+          <td id="credit-reason" class="text-left"></td>
         </tr>
         </tbody>
       </table>
-      <button id="credit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
-      <p id="no-credit-history-msg" class="text-center collapse">No credit transactions found.</p>
+      <button id="credit-history-load-more-btn" class="btn btn-primary btn-block row">Load more</button>
+      <p id="no-credit-history-msg" class="text-center collapse row">No credit transactions found.</p>
     </div>
     <div id="deposit-history-tab" class="container collapse">
-      <form id="search-deposit-history">
+      <form id="search-deposit-history" class="row">
         <div class="form-group">
           <input id="from-deposit-date" class="form-control date-select" name="from" type="text"
-                 placeholder="Date from">
+                 placeholder="{{last_month}}">
         </div>
         <div class="form-group">
           <input id="to-deposit-date" name="to" class="form-control date-select" type="text"
-                 placeholder="Date to">
+                 placeholder="{{today}}">
         </div>
         <div class="form-group">
-          <button id="search-deposit-history-btn" class="btn btn-primary" type="submit">Search</button>
+          <button id="search-deposit-history-btn" class="btn btn-primary pull-right" type="submit">Filter</button>
         </div>
       </form>
-      <table id="deposit-history-table" class="table table-bordered">
+      <table id="deposit-history-table" class="table table-bordered row">
         <thead>
           <tr>
             <td><b>Deposited on</b></td>
@@ -258,14 +281,14 @@
         </thead>
         <tbody>
           <tr id="deposit-history-template-row" class="collapse">
-            <td id="deposited-on"></td>
-            <td id="deposit-amount"></td>
-            <td id="deposit-reason"></td>
+            <td id="deposited-on" class="text-left"></td>
+            <td id="deposit-amount" class="text-right"></td>
+            <td id="deposit-reason" class="text-left"></td>
           </tr>
         </tbody>
       </table>
-      <button id="deposit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
-      <p id="no-deposit-history-msg" class="text-center collapse">No deposits found.</p>
+      <button id="deposit-history-load-more-btn" class="btn btn-primary btn-block row">Load more</button>
+      <p id="no-deposit-history-msg" class="text-center collapse row">No deposits found.</p>
     </div>
   </div>
 </div>

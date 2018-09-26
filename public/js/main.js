@@ -11,7 +11,8 @@ function main () { // eslint-disable-line no-unused-vars
   };
 
   const SERVER_URL = '/';
-  const PROTOCOL_NAME = 'yamlrpc';
+  const EXPORT_SERVER_URL = '/api/exports/';
+  const PROTOCOL_NAME = 'jsonrpc';
   const MAX_TRACE = 300;
   var $messagesList; // eslint-disable-line no-var
   const validateSendErrorReq = validators.getValidateSendErrorReq();
@@ -304,6 +305,39 @@ function main () { // eslint-disable-line no-unused-vars
     }
   }
 
+  function serializeFormInput (formID, config, skipEmptyString=true) {
+    config = config || Object.create(null);
+
+    assertApp(_.isObject(config));
+
+    if (formID[0] !== '#') {
+      formID = '#' + formID;
+    }
+
+    const $form = $(formID);
+    const serialized = {};
+
+    for (const input of $form.serializeArray()) {
+      const name = input.name;
+      const value = input.value;
+
+      if (skipEmptyString && value.trim() === '') {
+        continue;
+      }
+
+      if (name in config) {
+        const result = config[name](value, serialized, name);
+        if (typeof result !== 'undefined') {
+          serialized[name] = result;
+        }
+      } else {
+        serialized[name] = value;
+      }
+    }
+
+    return serialized;
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $messagesList = $('#messages-list');
   });
@@ -327,7 +361,9 @@ function main () { // eslint-disable-line no-unused-vars
     saveFormData,
     restoreFormData,
     clearFormData,
+    serializeFormInput,
     SERVER_URL: SERVER_URL,
+    EXPORT_SERVER_URL: EXPORT_SERVER_URL,
     PROTOCOL_NAME: PROTOCOL_NAME,
     APIKeyRef: APIKeyRef,
   };
