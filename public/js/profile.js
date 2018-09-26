@@ -1013,6 +1013,13 @@ function start () {
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
+    const userActions = new mainUtils.UserActions();
+    userActions.addAction(
+      'list_deposit_history',
+      {
+        asyncFunc:
+      }
+    );
     $('#display-subscriptions-btn').click(displaySubscriptions);
     $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
     $('#search-subscriptions').submit(function (event) {

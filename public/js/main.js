@@ -1,4 +1,4 @@
-/* eslint-disable prefer-template */
+/* eslint-disable prefer-template,prefer-arrow-callback,prefer-rest-params */
 'use strict';
 
 function main () { // eslint-disable-line no-unused-vars
@@ -305,7 +305,8 @@ function main () { // eslint-disable-line no-unused-vars
     }
   }
 
-  function serializeFormInput (formID, config, skipEmptyString=true) {
+  function serializeFormInput (formID, config, skipEmptyString) {
+    skipEmptyString = skipEmptyString || true;
     config = config || Object.create(null);
 
     assertApp(_.isObject(config));
@@ -338,6 +339,109 @@ function main () { // eslint-disable-line no-unused-vars
     return serialized;
   }
 
+  function UserActions () {
+    assertApp(this != null);
+
+    this.actions = {};
+    this.assertSetup = function () {
+      assertApp(this != null);
+
+      for (const name of Object.keys(this.actions)) {
+        const conflicting = this.actions[name].options.conflictingActions;
+        for (const conflictingName of conflicting) {
+          const conflictingAction = this.actions[conflictingName];
+
+          assertApp(conflictingAction != null);
+          assertApp(
+            conflictingAction.options.conflictingActions.includes(name)
+          );
+        }
+      }
+    };
+    this.addAction = function (name, options) {
+      options.lock = options.lock || function () {};
+      options.unlock = options.unlock || function () {};
+      options.conflictingActions = options.conflictingActions || [];
+
+      assertApp(typeof name === 'string');
+      assertApp(_.isObject(options));
+      assertApp(_.isFunction(options.asyncFunc));
+      assertApp(_.isFunction(options.callback));
+      assertApp(_.isSafeInteger(options.timeout));
+      assertApp(_.isFunction(options.lock));
+      assertApp(_.isArray(options.conflictingActions));
+      assertApp(options.conflictingActions.every(function (ca) {
+        return typeof ca === 'string';
+      }));
+      assertApp(options.conflictingActions.every(function (ca) {
+        return ca !== name;
+      }));
+      assertApp(options.$messagesLog instanceof jQuery);
+
+      this.actions[name] = {
+        options: options,
+        executing: false,
+      };
+    };
+    this.lockAction = function (name) {
+      assertApp(typeof name === 'string');
+      assertApp(this.actions.hasOwnProperty(name));
+
+      const action = this.actions[name];
+
+      assertApp(!action.executing);
+
+      action.options.lock();
+      action.executing = true;
+      let unlockCalled = false;
+
+      const unlockCallback = function () {
+        assertApp(!unlockCalled);
+        unlockCalled = true;
+        action.executing = false;
+        action.options.unlock();
+      };
+
+      setTimeout(function () {
+        unlockCallback(); // TODO unlock or assertApp ?
+      }, action.options.timeout);
+    };
+    this.runAction = function (name, event) {
+      assertApp(typeof name === 'string');
+      assertApp(this.actions.hasOwnProperty(name));
+
+      this.clearMessageLogOfAction(name);
+
+      const action = this.actions[name];
+      action.executing = true;
+
+      const unlockCallbacks = Object.keys(action.options.conflictingActions)
+        .map(function (name) {
+          assertApp(typeof name === 'string');
+
+          return this.lockAction(name);
+        }.bind(this));
+      unlockCallbacks.push(this.lockAction(name));
+
+      const wrappedCallback = function () {
+        try {
+          action.options.callback.apply(null, arguments);
+        } finally {
+          for (const cb of unlockCallbacks) {
+            cb();
+          }
+        }
+      };
+
+      return action.options.asyncFunc(wrappedCallback, event);
+    };
+    this.clearMessageLogOfAction = function (name) {
+      assertApp(typeof name === 'string');
+      assertApp(this.actions.hasOwnProperty(name));
+
+      this.actions[name].options.$messagesLog.empty();
+    };
+  }
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $messagesList = $('#messages-list');
   });
@@ -362,6 +466,7 @@ function main () { // eslint-disable-line no-unused-vars
     restoreFormData,
     clearFormData,
     serializeFormInput,
+    UserActions,
     SERVER_URL: SERVER_URL,
     EXPORT_SERVER_URL: EXPORT_SERVER_URL,
     PROTOCOL_NAME: PROTOCOL_NAME,
