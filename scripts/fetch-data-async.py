@@ -4,6 +4,7 @@ import aiohttp
 import asyncpg
 import sys
 import re
+import os
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
@@ -11,6 +12,7 @@ ROUTES_LIMIT = 30
 SERVER_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 KIWI_API_DATE_FORMAT = '%d/%m/%Y'
 TIMEOUT = 15
+SUBSCR_BATCH_SIZE = 10
 
 loop = None
 
@@ -744,7 +746,7 @@ async def insert_airline(pool, airline):
 
 async def start():
     try:
-        pool = await asyncpg.create_pool(database='freefall', user='freefall', password='freefall')
+        pool = await asyncpg.create_pool(password='freefall')
 
         async with aiohttp.ClientSession(conn_timeout=15) as http_client:
             airlines = await request(http_client, 'https://api.skypicker.com/airlines')
@@ -768,25 +770,61 @@ async def start():
 
                 fetch_id = await insert_data_fetch(conn)
 
-                for sub in subscriptions:
-                    assert_app(
-                        isinstance(sub, asyncpg.Record),
-                        'Expected subscription to be asyncpg.Record, but was "{0}"'.format(type(sub)))
+                subscriptions_batches = [subscriptions[x:x+SUBSCR_BATCH_SIZE]
+                                         for x in range(0, len(subscriptions), SUBSCR_BATCH_SIZE)]
 
-                    expect_subscription_keys = ['id', 'airport_from_id', 'airport_to_id']
+                for subscription_batch in subscriptions_batches:
+                    insert_subscriptions_fetches_tasks = []
 
-                    for key in expect_subscription_keys:
-                        assert_app(key in sub.keys(), 'Key "{0}" not found in subscription'.format(key))
+                    for sub in subscription_batch:
                         assert_app(
-                            isinstance(sub[key], int),
-                            'Expected sub[{0}] "{1}" to be int, but was "{2}"'.format(key, sub[key], type(sub[key])))
+                            isinstance(sub, asyncpg.Record),
+                            'Expected subscription to be asyncpg.Record, but was "{0}"'.format(type(sub)))
 
-                    subscription_fetch = await insert(conn, 'subscriptions_fetches', {
-                        'subscription_id': sub['id'],
-                        'fetch_id': fetch_id
-                    })
+                        expect_subscription_keys = ['id', 'airport_from_id', 'airport_to_id']
 
-                    assert_app(isinstance(subscription_fetch, asyncpg.Record), 'Expected subscription_fetch to be a asyncpg.Record, but was {0}'.format(type(subscription_fetch)))
+                        for key in expect_subscription_keys:
+                            assert_app(key in sub.keys(), 'Key "{0}" not found in subscription'.format(key))
+                            assert_app(
+                                isinstance(sub[key], int),
+                                'Expected sub[{0}] "{1}" to be int, but was "{2}"'.format(key, sub[key], type(sub[key])))
+
+                        insert_subscriptions_fetches_tasks.append(
+                            insert(conn, 'subscriptions_fetches', {
+                                'subscription_id': sub['id'],
+                                'fetch_id': fetch_id
+                            })
+                        )
+
+                    subscription_fetches = await asyncio.gather(insert_subscriptions_fetches_tasks)
+
+                    for subscription_fetch in subscription_fetches:
+                        assert_app(isinstance(subscription_fetch, asyncpg.Record), 'Expected subscription_fetch to be a asyncpg.Record, but was {0}'.format(type(subscription_fetch)))
+
+
+                    # TODO charge_fetch_tax
+
+
+
+                for sub in subscriptions:
+                    #assert_app(
+                    #    isinstance(sub, asyncpg.Record),
+                    #    'Expected subscription to be asyncpg.Record, but was "{0}"'.format(type(sub)))
+
+                    #expect_subscription_keys = ['id', 'airport_from_id', 'airport_to_id']
+
+                    #for key in expect_subscription_keys:
+                    #    assert_app(key in sub.keys(), 'Key "{0}" not found in subscription'.format(key))
+                    #    assert_app(
+                    #        isinstance(sub[key], int),
+                    #        'Expected sub[{0}] "{1}" to be int, but was "{2}"'.format(key, sub[key], type(sub[key])))
+
+                    #subscription_fetch = await insert(conn, 'subscriptions_fetches', {
+                    #    'subscription_id': sub['id'],
+                    #    'fetch_id': fetch_id
+                    #})
+
+                    #assert_app(isinstance(subscription_fetch, asyncpg.Record), 'Expected subscription_fetch to be a asyncpg.Record, but was {0}'.format(type(subscription_fetch)))
                     async with conn.transaction():
                         await charge_fetch_tax(conn, subscription_fetch)
 
@@ -822,11 +860,16 @@ async def start():
                 await pool.release(conn)
 
             log('Done.')
+    except Exception as e:
+        print(e) # TODO errors thrown in task can't be caught with the global error handling
     finally:
         await pool.close()
 
 
 try:
+    assert_user('PGUSER' in os.environ, 'Environment variable PGUSER not set')
+    assert_user('PGDATABASE' in os.environ, 'Environment variable PGDATABASE not set')
+    assert_user('PGHOST' in os.environ, 'Environment variable PGHOST not set')
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start())
 except Exception as e:
