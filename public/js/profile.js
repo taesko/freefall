@@ -438,15 +438,19 @@ function start () {
       subscriptions = subscriptions.concat([newSubscription]);
 
       rowIdSubscriptionMap[rowId] = newSubscription;
-      renderSubscriptionRow('view', newSubscription);
+      renderSubscriptionRow('view', newSubscription, null, true);
 
-      renderCreditHistoryTable($('#credit-history-table'), [newHistory]);
+      renderCreditHistoryTable($('#credit-history-table'), [newHistory], true);
       mainUtils.displayUserMessage('Successfully subscribed!', 'success');
     });
   };
 
-  function renderSubscriptionRow (mode, subscription, $row) {
+  // TODO refactor later
+  // eslint-disable-next-line max-params
+  function renderSubscriptionRow (mode, subscription, $row, insertBefore) {
     mainUtils.trace('renderSubscriptionRow');
+
+    insertBefore = insertBefore || false;
 
     assertApp(_.isObject(subscription), {
       msg: 'Expected subscription to be an object, but was ' + typeof subscription, // eslint-disable-line prefer-template
@@ -482,7 +486,11 @@ function start () {
       msg: 'Expected mode to be allowed mode, but was ' + mode, // eslint-disable-line prefer-template
     });
 
-    modes[mode](subscription, rowId, $row);
+    modes[mode](
+      subscription,
+      $row,
+      { rowId: rowId, insertBefore: insertBefore }
+    );
 
     applyDatePicker();
     // applyAutocomplete(airports.map(function (airport) { // eslint-disable-line prefer-arrow-callback
@@ -490,8 +498,18 @@ function start () {
     // }));
   }
 
-  function renderSubscriptionRowViewMode (subscription, rowId, $row) {
+  function renderSubscriptionRowViewMode (
+    subscription,
+    $row,
+    options,
+  ) {
     mainUtils.trace('renderSubscriptionRowViewMode');
+    const rowId = options.rowId;
+    const insertBefore = options.insertBefore || false;
+
+    assertApp(_.isObject(options));
+    assertApp(typeof rowId === 'string');
+    assertApp(typeof insertBefore === 'boolean');
 
     const $subscriptionViewModeClone = $('#subscription-view-mode').clone()
       .removeAttr('hidden')
@@ -525,16 +543,32 @@ function start () {
       .click(onEditClick);
 
     if ($row == null) {
-      $subscriptionViewModeClone.appendTo(
-        $('#subscriptions-table tbody')
-      );
+      if (insertBefore) {
+        $subscriptionViewModeClone.prependTo(
+          $('#subscriptions-table tbody'),
+        );
+      } else {
+        $subscriptionViewModeClone.appendTo(
+          $('#subscriptions-table tbody'),
+        );
+      }
     } else {
       $row.replaceWith($subscriptionViewModeClone);
     }
   }
 
-  function renderSubscriptionRowEditMode (subscription, rowId, $row) {
+  function renderSubscriptionRowEditMode (
+    subscription,
+    $row,
+    options,
+  ) {
     mainUtils.trace('renderSubscriptionRowEditMode');
+    const rowId = options.rowId;
+    const insertBefore = options.insertBefore || false;
+
+    assertApp(_.isObject(options));
+    assertApp(typeof rowId === 'string');
+    assertApp(typeof insertBefore === 'boolean');
 
     const $subscriptionEditModeClone = $('#subscription-edit-mode').clone()
       .removeAttr('hidden')
@@ -737,7 +771,7 @@ function start () {
     });
   }
 
-  function renderCreditHistoryTable ($table, historyResult) {
+  function renderCreditHistoryTable ($table, historyResult, insertBefore) {
     const history = historyResult.credit_history;
 
     function formatDate (date, accuracy, seperator) {
@@ -846,7 +880,12 @@ function start () {
         transfer_amount: transferAmount,
         reason: reason,
       });
-      $table.find('tbody tr:last').after($tableRow);
+
+      if (insertBefore) {
+        $table.find('tbody tr:first').before($tableRow);
+      } else {
+        $table.find('tbody tr:last').after($tableRow);
+      }
     }
 
     function renderRow ($tableRow, historyHash) {
