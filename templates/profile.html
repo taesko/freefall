@@ -72,7 +72,7 @@
                  placeholder="Airport to" list="airports-list">
         </div>
         <div class="form-group">
-          <button id="search-subscriptions-btn" class="btn btn-primary">Search</button>
+          <button id="search-subscriptions-btn" class="btn btn-primary">Filter</button>
         </div>
       </form>
       <table id="subscriptions-table" class="table table-bordered">
@@ -115,24 +115,14 @@
           </td>
         </tr>
         <tr id="subscription-view-mode" hidden>
+          <td id="subscription-view-mode-airport-from" class="text-left"></td>
+          <td id="subscription-view-mode-airport-to" class="text-left"></td>
+          <td id="subscription-view-mode-date-from" class="text-left"></td>
+          <td id="subscription-view-mode-date-to" class="text-left"></td>
+          <td id="subscription-view-mode-plan" class="text-left"></td>
           <td>
-            <span id="subscription-view-mode-airport-from"></span>
-          </td>
-          <td>
-            <span id="subscription-view-mode-airport-to"></span>
-          </td>
-          <td>
-            <span id="subscription-view-mode-date-from"></span>
-          </td>
-          <td>
-            <span id="subscription-view-mode-date-to"></span>
-          </td>
-          <td>
-            <span id="subscription-view-mode-plan"></span>
-          </td>
-          <td>
-            <button id="subscription-view-mode-search-btn" type="button" class="btn btn-primary btn-block">Search</button>
-            <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary btn-block">Edit</button>
+            <button id="subscription-view-mode-search-btn" type="button" class="btn btn-primary">Search</button>
+            <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary">Edit</button>
           </td>
         </tr>
         </tbody>
@@ -195,7 +185,7 @@
           </select>
         </div>
         <button id="export-credit-history-btn" class="btn" type="button">Export</button>
-        <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Search</button>
+        <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Filter</button>
         <button id="export-credit-history-table-btn" class="btn" type="button">Export table</button>
       </form>
       <table id="credit-history-table" class="table table-bordered">
@@ -213,14 +203,14 @@
         </thead>
         <tbody>
         <tr id="credit-history-template-row" class="collapse">
-          <td id="credit-transferred-at"></td>
-          <td id="credit-airport-from"></td>
-          <td id="credit-airport-to"></td>
-          <td id="credit-date-from"></td>
-          <td id="credit-date-to"></td>
-          <td id="credit-subscr-status"></td>
-          <td id="credit-transfer-amount"></td>
-          <td id="credit-reason"></td>
+          <td id="credit-transferred-at" class="text-left"></td>
+          <td id="credit-airport-from" class="text-left"></td>
+          <td id="credit-airport-to" class="text-left"></td>
+          <td id="credit-date-from" class="text-left"></td>
+          <td id="credit-date-to" class="text-left"></td>
+          <td id="credit-subscr-status" class="text-left"></td>
+          <td id="credit-transfer-amount" class="text-right"></td>
+          <td id="credit-reason" class="text-left"></td>
         </tr>
         </tbody>
       </table>
@@ -238,7 +228,7 @@
                  placeholder="Date to">
         </div>
         <div class="form-group">
-          <button id="search-deposit-history-btn" class="btn btn-primary" type="submit">Search</button>
+          <button id="search-deposit-history-btn" class="btn btn-primary" type="submit">Filter</button>
         </div>
       </form>
       <table id="deposit-history-table" class="table table-bordered">
@@ -251,9 +241,9 @@
         </thead>
         <tbody>
           <tr id="deposit-history-template-row" class="collapse">
-            <td id="deposited-on"></td>
-            <td id="deposit-amount"></td>
-            <td id="deposit-reason"></td>
+            <td id="deposited-on" class="text-left"></td>
+            <td id="deposit-amount" class="text-right"></td>
+            <td id="deposit-reason" class="text-left"></td>
           </tr>
         </tbody>
       </table>
