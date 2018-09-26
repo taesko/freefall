@@ -5,6 +5,7 @@ import asyncpg
 import sys
 import re
 import os
+import traceback
 from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 
@@ -623,7 +624,7 @@ async def charge_fetch_tax(conn, subscription_fetch):
         UPDATE users_subscriptions
         SET active = FALSE
         FROM subscription_plans
-        WHERE 
+        WHERE
             date_to < now() OR
             (
                 users_subscriptions.subscription_plan_id = subscription_plans.id AND
@@ -744,6 +745,56 @@ async def insert_airline(pool, airline):
         await pool.release(conn)
 
 
+async def get_subscription_data_batch_task(pool, http_client, sub, subscription_fetch):
+    assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
+    # TODO assert sub, subscription_fetch
+
+    try:
+        conn = await pool.acquire()
+        # TODO take airport_from and airport_to in paralel
+        airport_from = await select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
+            'id': sub['airport_from_id']
+        })
+        airport_to = await select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
+            'id': sub['airport_to_id']
+        })
+    finally:
+        await pool.release(conn)
+
+    assert_app(isinstance(airport_from, list), 'Expected airport_from to be a list, but was {0}'.format(type(airport_from)))
+    assert_app(len(airport_from) == 1, 'Expected the length of airport_from list to be 1, but was {0}'.format(len(airport_from)))
+    assert_app('iata_code' in airport_from[0], 'Key "iata_code" not found in airport_from[0]')
+    assert_app(isinstance(airport_from[0]['iata_code'], str), 'Expected airport_from[0]["iata_code"] to be str, but was {0}'.format(type(airport_from[0]['iata_code'])))
+    assert_app(isinstance(airport_to, list), 'Expected airport_to to be a list, but was {0}'.format(type(airport_to)))
+    assert_app(len(airport_to) == 1, 'Expected the length of airport_to list to be 1, but was {0}'.format(len(airport_to)))
+    assert_app('iata_code' in airport_to[0], 'Key "iata_code" not found in airport_to[0]')
+    assert_app(isinstance(airport_to[0]['iata_code'], str), 'Expected airport_to[0]["iata_code"] to be str, but was {0}'.format(type(airport_to[0]['iata_code'])))
+
+    await get_subscription_data(
+        pool,
+        http_client,
+        {
+            'airport_from': airport_from[0]['iata_code'],
+            'airport_to': airport_to[0]['iata_code']
+        },
+        subscription_fetch['id']
+    )
+
+
+async def insert_subscription_fetch_batch_task(pool, sub, fetch_id):
+    try:
+        conn = await pool.acquire()
+        inserted = await insert(conn, 'subscriptions_fetches', {
+            'subscription_id': sub['id'],
+            'fetch_id': fetch_id
+        })
+        assert_app(isinstance(inserted, asyncpg.Record), 'Expected inserted to be an asyncpg.Record, but was {0}'.format(type(inserted)))
+
+        return inserted
+    finally:
+        await pool.release(conn)
+
+
 async def start():
     try:
         pool = await asyncpg.create_pool(password='freefall')
@@ -790,78 +841,40 @@ async def start():
                                 'Expected sub[{0}] "{1}" to be int, but was "{2}"'.format(key, sub[key], type(sub[key])))
 
                         insert_subscriptions_fetches_tasks.append(
-                            insert(conn, 'subscriptions_fetches', {
-                                'subscription_id': sub['id'],
-                                'fetch_id': fetch_id
-                            })
+                            loop.create_task(
+                                insert_subscription_fetch_batch_task(pool, sub, fetch_id)
+                            )
                         )
 
-                    subscription_fetches = await asyncio.gather(insert_subscriptions_fetches_tasks)
+                    subscription_fetches = await asyncio.gather(*insert_subscriptions_fetches_tasks)
 
                     for subscription_fetch in subscription_fetches:
                         assert_app(isinstance(subscription_fetch, asyncpg.Record), 'Expected subscription_fetch to be a asyncpg.Record, but was {0}'.format(type(subscription_fetch)))
 
+                        async with conn.transaction():
+                            await charge_fetch_tax(conn, subscription_fetch)
 
-                    # TODO charge_fetch_tax
+                    get_subscription_data_batch_tasks = []
 
+                    for index, sub in enumerate(subscription_batch):
+                        get_subscription_data_batch_tasks.append(
+                            loop.create_task(
+                                get_subscription_data_batch_task(
+                                    pool,
+                                    http_client,
+                                    sub,
+                                    subscription_fetches[index]
+                                )
+                            )
+                        )
 
-
-                for sub in subscriptions:
-                    #assert_app(
-                    #    isinstance(sub, asyncpg.Record),
-                    #    'Expected subscription to be asyncpg.Record, but was "{0}"'.format(type(sub)))
-
-                    #expect_subscription_keys = ['id', 'airport_from_id', 'airport_to_id']
-
-                    #for key in expect_subscription_keys:
-                    #    assert_app(key in sub.keys(), 'Key "{0}" not found in subscription'.format(key))
-                    #    assert_app(
-                    #        isinstance(sub[key], int),
-                    #        'Expected sub[{0}] "{1}" to be int, but was "{2}"'.format(key, sub[key], type(sub[key])))
-
-                    #subscription_fetch = await insert(conn, 'subscriptions_fetches', {
-                    #    'subscription_id': sub['id'],
-                    #    'fetch_id': fetch_id
-                    #})
-
-                    #assert_app(isinstance(subscription_fetch, asyncpg.Record), 'Expected subscription_fetch to be a asyncpg.Record, but was {0}'.format(type(subscription_fetch)))
-                    async with conn.transaction():
-                        await charge_fetch_tax(conn, subscription_fetch)
-
-                    # TODO take airport_from and airport_to in paralel
-                    airport_from = await select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
-                        'id': sub['airport_from_id']
-                    })
-                    airport_to = await select_where(conn, 'airports', ['id', 'iata_code', 'name'], {
-                        'id': sub['airport_to_id']
-                    })
-
-                    assert_app(isinstance(airport_from, list), 'Expected airport_from to be a list, but was {0}'.format(type(airport_from)))
-                    assert_app(len(airport_from) == 1, 'Expected the length of airport_from list to be 1, but was {0}'.format(len(airport_from)))
-                    assert_app('iata_code' in airport_from[0], 'Key "iata_code" not found in airport_from[0]')
-                    assert_app(isinstance(airport_from[0]['iata_code'], str), 'Expected airport_from[0]["iata_code"] to be str, but was {0}'.format(type(airport_from[0]['iata_code'])))
-                    assert_app(isinstance(airport_to, list), 'Expected airport_to to be a list, but was {0}'.format(type(airport_to)))
-                    assert_app(len(airport_to) == 1, 'Expected the length of airport_to list to be 1, but was {0}'.format(len(airport_to)))
-                    assert_app('iata_code' in airport_to[0], 'Key "iata_code" not found in airport_to[0]')
-                    assert_app(isinstance(airport_to[0]['iata_code'], str), 'Expected airport_to[0]["iata_code"] to be str, but was {0}'.format(type(airport_to[0]['iata_code'])))
-
-                    await get_subscription_data(
-                        pool,
-                        http_client,
-                        {
-                            'airport_from': airport_from[0]['iata_code'],
-                            'airport_to': airport_to[0]['iata_code']
-                        },
-                        subscription_fetch['id']
-                    )
+                    await asyncio.wait(get_subscription_data_batch_tasks)
 
             #except: # TODO
             finally:
                 await pool.release(conn)
 
             log('Done.')
-    except Exception as e:
-        print(e) # TODO errors thrown in task can't be caught with the global error handling
     finally:
         await pool.close()
 
@@ -872,7 +885,7 @@ try:
     assert_user('PGHOST' in os.environ, 'Environment variable PGHOST not set')
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start())
-except Exception as e:
-    raise AppError(e)
+except:
+    raise AppError()
 finally:
     loop.close()
