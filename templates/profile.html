@@ -15,23 +15,27 @@
     <h3 class="row">Add new subscription:</h3>
     <form class="row" id="subscribe-form">
       <div class="col-md-2">
+        <label for="subscribe-airport-from">From:</label>
         <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text"
-               placeholder="Airport from" list="airports-list" required>
+               placeholder="Airport name" list="airports-list" required>
       </div>
       <div class="col-md-2">
+        <label for="subscribe-airport-to">To:</label>
         <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text"
-               placeholder="Airport to" list="airports-list" required>
+               placeholder="Airport name" list="airports-list" required>
       </div>
       <div class="col-md-2">
+        <label for="subscribe-date-from">After:</label>
         <input id="subscribe-date-from" class="form-control date-select" name="date-from" type="text"
                placeholder="Date from" required>
       </div>
       <div class="col-md-2">
+        <label for="subscribe-date-to">Until:</label>
         <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to"
                required>
       </div>
       <div class="col-md-2">
-        <label class="sr-only" for="subscribe-plan">Subscription plan</label>
+        <label for="subscribe-plan">Subscription plan</label>
         <select id="subscribe-plan" name="plan" class="form-control" required>
           <option>daily</option>
           <option>weekly</option>
