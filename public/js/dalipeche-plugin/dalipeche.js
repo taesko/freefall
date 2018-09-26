@@ -25,7 +25,9 @@ $.fn.getForecast = async function ({city, iataCode, APIKey}) {
   try {
     await displayImage(options, this[0]);
   } catch (err) {
-    this[0].innerHTML = err.message;
+    // eslint-disable-next-line no-console
+    console.error(err);
+    this[0].innerHTML = 'Could not display weather information.';
   }
 };
 
