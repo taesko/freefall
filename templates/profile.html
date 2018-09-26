@@ -13,38 +13,46 @@
   {{> menu }}
   <div class="row container">
     <h3 class="row">Add new subscription:</h3>
-    <form class="row" id="subscribe-form">
-      <div class="col-md-2">
-        <label for="subscribe-airport-from">From:</label>
-        <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text"
-               placeholder="Airport name" list="airports-list" required>
+    <form class="row form" id="subscribe-form">
+      <div class="form-group form-horizontal row">
+        <div class="col-md-6">
+          <label for="subscribe-airport-from">From airport:</label>
+          <input id="subscribe-airport-from" class="form-control airport-select" name="from" type="text"
+                 placeholder="Airport name" list="airports-list" required>
+        </div>
+        <div class="col-md-6">
+          <label for="subscribe-airport-to">To airport:</label>
+          <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text"
+                 placeholder="Airport name" list="airports-list" required>
+        </div>
       </div>
-      <div class="col-md-2">
-        <label for="subscribe-airport-to">To:</label>
-        <input id="subscribe-airport-to" name="to" class="form-control airport-select" type="text"
-               placeholder="Airport name" list="airports-list" required>
+      <div class="form-group form-horizontal row">
+        <div class="col-md-6">
+          <label for="subscribe-date-from">Earliest departure date:</label>
+          <input id="subscribe-date-from" class="form-control date-select" name="date-from" type="text"
+                 placeholder="Date from" required>
+        </div>
+        <div class="col-md-6">
+          <label for="subscribe-date-to">Latest arrival date:</label>
+          <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to"
+                 required>
+        </div>
       </div>
-      <div class="col-md-2">
-        <label for="subscribe-date-from">After:</label>
-        <input id="subscribe-date-from" class="form-control date-select" name="date-from" type="text"
-               placeholder="Date from" required>
+      <div class="form-group form-horizontal row">
+        <div class="col-md-4">
+          <label for="subscribe-plan">Subscription plan:</label>
+          <select id="subscribe-plan" name="plan" class="form-control" required>
+            <option>daily</option>
+            <option>weekly</option>
+            <option>monthly</option>
+          </select>
+        </div>
+        <div class="col-md-8">
+        </div>
       </div>
-      <div class="col-md-2">
-        <label for="subscribe-date-to">Until:</label>
-        <input id="subscribe-date-to" name="date-to" class="form-control date-select" type="text" placeholder="Date to"
-               required>
-      </div>
-      <div class="col-md-2">
-        <label for="subscribe-plan">Subscription plan</label>
-        <select id="subscribe-plan" name="plan" class="form-control" required>
-          <option>daily</option>
-          <option>weekly</option>
-          <option>monthly</option>
-        </select>
-      </div>
-      <div class="col-md-2 btn-toolbar">
+      <div class="row text-center">
         <button id="subscribe-clear-btn" class="col-md-4 btn btn-danger" type="button">Clear</button>
-        <button id="subscribe-submit-btn" class="col-md-7 btn btn-primary" type="submit">Subscribe</button>
+        <button id="subscribe-submit-btn" class="col-md-8 btn btn-primary" type="submit">Subscribe</button>
       </div>
     </form>
   </div>
