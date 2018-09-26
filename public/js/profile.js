@@ -519,7 +519,7 @@ function start () {
 
     $subscriptionViewModeClone.find('#subscription-view-mode-search-btn')
       .attr('id', 'subscription-view-mode-search-btn-' + rowId)
-      .click(onSearchClick)
+      .click(onSearchClick);
     $subscriptionViewModeClone.find('#subscription-view-mode-edit-btn')
       .attr('id', 'subscription-view-mode-edit-btn-' + rowId) // eslint-disable-line prefer-template
       .click(onEditClick);
@@ -683,15 +683,21 @@ function start () {
   }
 
   function switchTab (tabID) {
-    const tabs = ['#credit-history-tab', '#subscriptions-tab', '#deposit-history-tab'];
+    const tabs = {
+      '#credit-history-tab': '#display-credit-history-btn',
+      '#subscriptions-tab': '#display-subscriptions-btn',
+      '#deposit-history-tab': '#display-deposit-history-btn',
+    };
 
-    for (const tab of tabs) {
+    for (const tab of Object.keys(tabs)) {
       if (tab !== tabID) {
         $(tab).hide();
+        $(tabs[tab]).removeClass('active');
       }
     }
 
     $(tabID).show();
+    $(tabs[tabID]).addClass('active');
   }
 
   function loadMoreCreditHistory (callbackOnFinish) {
@@ -982,13 +988,12 @@ function start () {
     });
 
     $('#display-credit-history-btn').click(displayCreditHistory);
-    $('#export-credit-history-btn').click(
-      function exportCreditHistory () {
-        api.exportCreditHistory(
-          serializeCreditHistoryParams(),
-          PROTOCOL_NAME,
-          function () {},
-        );
+    $('#export-credit-history-btn').click(function exportCreditHistory () {
+      api.exportCreditHistory(
+        serializeCreditHistoryParams(),
+        PROTOCOL_NAME,
+        function () {},
+      );
     });
     $('#export-credit-history-table-btn').click(
       function exportCreditHistoryTable () {
