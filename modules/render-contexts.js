@@ -1,3 +1,5 @@
+const moment = require('moment');
+
 const log = require('./log');
 const auth = require('./auth');
 const config = require('./config');
@@ -37,6 +39,9 @@ async function defaultContext (appCtx) {
     result.user = user;
   }
 
+  result.last_month = moment().subtract(1, 'month').format('YYYY-MM-DD');
+  result.today = moment().format('YYYY-MM-DD');
+  result.next_month = moment().add(1, 'month').format('YYYY-MM-DD');
   result.routes = config.routes;
 
   return result;
