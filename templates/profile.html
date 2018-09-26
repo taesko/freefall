@@ -84,7 +84,7 @@
                  placeholder="Haneda" list="airports-list">
         </div>
         <div class="form-group">
-          <button id="search-subscriptions-btn" class="btn btn-primary">Filter</button>
+          <button id="search-subscriptions-btn" class="btn btn-primary pull-right">Filter</button>
         </div>
       </form>
       <table id="subscriptions-table" class="table table-bordered row">
@@ -222,9 +222,11 @@
             <option value="day">Day</option>
           </select>
         </div>
-        <button id="export-credit-history-btn" class="btn" type="button">Export</button>
-        <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Filter</button>
-        <button id="export-credit-history-table-btn" class="btn" type="button">Export table</button>
+        <div class="form-group">
+          <button id="export-credit-history-table-btn" class="btn pull-right" type="button">Export table</button>
+          <button id="export-credit-history-btn" class="btn pull-right" type="button">Export</button>
+          <button id="search-credit-history-btn" class="btn btn-primary pull-right" type="submit">Filter</button>
+        </div>
       </form>
       <table id="credit-history-table" class="table table-bordered row">
         <thead>
@@ -266,7 +268,7 @@
                  placeholder="{{today}}">
         </div>
         <div class="form-group">
-          <button id="search-deposit-history-btn" class="btn btn-primary" type="submit">Filter</button>
+          <button id="search-deposit-history-btn" class="btn btn-primary pull-right" type="submit">Filter</button>
         </div>
       </form>
       <table id="deposit-history-table" class="table table-bordered row">
