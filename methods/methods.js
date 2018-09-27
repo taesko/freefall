@@ -871,6 +871,10 @@ const depositHistory = defineAPIMethod(
     to = null,
     limit = CREDIT_HISTORY_DEFAULT_LIMIT,
     offset = 0,
+    sort = [
+      { column: 'transferred_at', order: 'DESC' },
+      { column: 'id', order: 'ASC' },
+    ],
   }, dbClient) => {
     const user = await users.fetchUser(dbClient, { apiKey });
 
@@ -879,6 +883,8 @@ const depositHistory = defineAPIMethod(
       'TH_NOT_ENOUGH_PERMISSIONS',
     );
 
+    const orderByColumns = sort.map(({ column, order }) => `${column} ${order}`)
+      .join(',');
     const { rows: depositHistory } = await dbClient.executeQuery(
       `
         SELECT transferred_at::text, transfer_amount, 'Freefall deposit' AS reason
@@ -888,7 +894,7 @@ const depositHistory = defineAPIMethod(
           id IN (SELECT account_transfer_id FROM account_transfers_by_employees) AND
           ($4::text IS NULL OR (transferred_at > $4::timestamp)) AND
           ($5::text IS NULL OR (transferred_at < $5::timestamp))
-        ORDER BY transferred_at DESC, id ASC
+        ORDER BY ${orderByColumns}
         LIMIT $2
         OFFSET $3
       `,

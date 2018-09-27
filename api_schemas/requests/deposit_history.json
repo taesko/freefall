@@ -27,6 +27,26 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 1000000
+    },
+    "sort": {
+      "type": "array",
+      "minLength": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "properties": {
+          "column": {
+            "type": "string",
+            "enum": ["transferred_at", "transfer_amount", "reason"]
+          },
+          "order": {
+            "type": "string",
+            "enum": ["ASC", "DESC"]
+          }
+        },
+        "required": ["column", "order"],
+        "additionalProperties": false
+      }
     }
   },
   "required": [
