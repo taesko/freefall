@@ -941,9 +941,10 @@ const listSubscriptions = defineAPIMethod(
 
     const orderByColumns = sort.map(({column, order}) => `${column} ${order}`)
       .join(',');
-    const { rows: subRows } = await dbClient.executeQuery(
+    const { rows: subscriptions } = await dbClient.executeQuery(
       `
       SELECT 
+        user_sub.updated_at AS updated_at,
         user_sub.id::text,
         airport_from_id::text AS fly_from,
         airport_to_id::text AS fly_to,
@@ -966,8 +967,12 @@ const listSubscriptions = defineAPIMethod(
       [user.id, limit, offset, fly_from, fly_to],
     );
 
+    for (const sub of subscriptions) {
+      sub.updated_at = sub.updated_at.toISOString();
+    }
+
     return {
-      subscriptions: subRows,
+      subscriptions
     };
   },
 );
