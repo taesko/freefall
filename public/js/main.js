@@ -359,6 +359,7 @@ function main () { // eslint-disable-line no-unused-vars
       }
     };
     this.addAction = function (name, options) {
+      options.callback = options.callback || function () {};
       options.lock = options.lock || function () {};
       options.unlock = options.unlock || function () {};
       options.conflictingActions = options.conflictingActions || [];
@@ -367,7 +368,7 @@ function main () { // eslint-disable-line no-unused-vars
       assertApp(_.isObject(options));
       assertApp(_.isFunction(options.asyncFunc));
       assertApp(_.isFunction(options.callback));
-      assertApp(_.isSafeInteger(options.timeout));
+      assertApp(Number.isInteger(options.timeout));
       assertApp(_.isFunction(options.lock));
       assertApp(_.isArray(options.conflictingActions));
       assertApp(options.conflictingActions.every(function (ca) {
@@ -382,6 +383,8 @@ function main () { // eslint-disable-line no-unused-vars
         options: options,
         executing: false,
       };
+
+      return this.runAction.bind(this, name);
     };
     this.lockAction = function (name) {
       assertApp(typeof name === 'string');
@@ -396,31 +399,42 @@ function main () { // eslint-disable-line no-unused-vars
       let unlockCalled = false;
 
       const unlockCallback = function () {
-        assertApp(!unlockCalled);
+        if (unlockCalled) {
+          return;
+        }
         unlockCalled = true;
         action.executing = false;
         action.options.unlock();
       };
 
-      setTimeout(function () {
-        unlockCallback(); // TODO unlock or assertApp ?
-      }, action.options.timeout);
+      // TODO unlock or assertApp ?
+      setTimeout(unlockCallback, action.options.timeout);
+
+      return unlockCallback;
     };
     this.runAction = function (name, event) {
       assertApp(typeof name === 'string');
       assertApp(this.actions.hasOwnProperty(name));
 
+      assertUser(
+        !this.actions[name].executing,
+        {
+          msg: 'User is submitting repeated async action ' + name,
+          userMessage: 'Calm down.',
+        },
+      );
+
       this.clearMessageLogOfAction(name);
 
       const action = this.actions[name];
-      action.executing = true;
 
-      const unlockCallbacks = Object.keys(action.options.conflictingActions)
-        .map(function (name) {
+      const unlockCallbacks = action.options.conflictingActions.map(
+        function (name) {
           assertApp(typeof name === 'string');
 
           return this.lockAction(name);
-        }.bind(this));
+        }.bind(this),
+      );
       unlockCallbacks.push(this.lockAction(name));
 
       const wrappedCallback = function () {

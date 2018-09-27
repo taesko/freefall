@@ -10,6 +10,7 @@ function start () {
   const assertApp = mainUtils.assertApp;
   const PROTOCOL_NAME = mainUtils.PROTOCOL_NAME;
   const CURRENT_PAGE_NAME = 'profile.html';
+  const ASYNC_TIMEOUT = 5000;
 
   const api = getAPIMethods(mainUtils);
 
@@ -638,16 +639,6 @@ function start () {
     subscriptions.length = 0;
   }
 
-  function displaySubscriptions () {
-    const rows = $('#subscriptions-table tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)');
-
-    if (rows.length === 0) {
-      loadMoreSubscriptions(switchTab.bind({}, '#subscriptions-tab'));
-    } else {
-      switchTab('#subscriptions-tab');
-    }
-  }
-
   function loadMoreSubscriptions (callbackOnFinish) {
     assertApp(_.isFunction(callbackOnFinish), { msg: `got ${callbackOnFinish}` });
     const $subscriptionsTable = $('#subscriptions-table');
@@ -696,24 +687,8 @@ function start () {
     $('#credit-history-table tbody tr:not(:first)').remove();
   }
 
-  function displayCreditHistory () {
-    if ($('#credit-history-table tbody tr:not(:first)').length === 0) {
-      loadMoreCreditHistory(switchTab.bind({}, '#credit-history-tab'));
-    } else {
-      switchTab('#credit-history-tab');
-    }
-  }
-
   function resetDepositHistory () {
     $('#deposit-history-table tbody tr:not(:first)').remove();
-  }
-
-  function displayDepositHistory () {
-    if ($('#deposit-history-table tbody tr:not(:first)').length === 0) {
-      loadMoreDepositHistory(switchTab.bind({}, '#deposit-history-tab'));
-    } else {
-      switchTab('#deposit-history-tab');
-    }
   }
 
   function switchTab (tabID) {
@@ -1014,68 +989,213 @@ function start () {
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const userActions = new mainUtils.UserActions();
-    userActions.addAction(
-      'list_deposit_history',
+    const $messagesLog = $('#messages-list');
+    const searchDepositHistoryRunner = userActions.addAction(
+      'searchDepositHistory',
       {
-        asyncFunc:
+        asyncFunc: function (callback) {
+          resetDepositHistory();
+          fromDepositDate = $('#from-deposit-date').val().trim();
+          fromDepositDate = fromDepositDate === '' ? null : new Date(fromDepositDate);
+          toDepositDate = $('#to-deposit-date').val().trim();
+          toDepositDate = toDepositDate === '' ? null : new Date(toDepositDate);
+          loadMoreDepositHistory(callback);
+          switchTab('#deposit-history-tab');
+        },
+        callback: function () {},
+        lock: function () {
+          $('#search-deposit-history :input').prop('disabled', true);
+        },
+        unlock: function () {
+          $('#search-deposit-history :input').prop('disabled', false);
+        },
+        conflictingActions: ['loadDepositHistory'],
+        timeout: ASYNC_TIMEOUT,
+        $messagesLog: $messagesLog,
       }
     );
-    $('#display-subscriptions-btn').click(displaySubscriptions);
-    $('#subscriptions-load-more-btn').click(loadMoreSubscriptions.bind({}, displaySubscriptions));
-    $('#search-subscriptions').submit(function (event) {
-      event.preventDefault();
-      return false;
-    });
-    $('#search-subscriptions-btn').click(function () {
-      resetSubscriptions();
-      searchFlyFrom = $('#search-airport-from').val().trim();
-      searchFlyTo = $('#search-airport-to').val().trim();
-      displaySubscriptions();
-    });
-
-    $('#display-credit-history-btn').click(displayCreditHistory);
-    $('#export-credit-history-btn').click(function exportCreditHistory () {
-      api.exportCreditHistory(
-        serializeCreditHistoryParams(),
-        PROTOCOL_NAME,
-        function () {},
-      );
-    });
-    $('#export-credit-history-table-btn').click(
-      function exportCreditHistoryTable () {
-        api.exportCreditHistory(
-          creditHistoryFilters,
-          PROTOCOL_NAME,
-          function () {},
-        );
-      }
-    );
-    $('#credit-history-load-more-btn').click(loadMoreCreditHistory.bind({}, displayCreditHistory));
-    const creditHistoryFiltersForm = $('#search-credit-history');
-    creditHistoryFiltersForm.submit(function (event) {
-      event.preventDefault();
-      resetCreditHistory();
-
-      creditHistoryFilters = serializeCreditHistoryParams();
-
-      displayCreditHistory();
-      return false;
-    });
-
-    $('#display-deposit-history-btn').click(displayDepositHistory);
-    $('#deposit-history-load-more-btn').click(loadMoreDepositHistory.bind({}, displayDepositHistory));
     $('#search-deposit-history').submit(function (event) {
       event.preventDefault();
+      searchDepositHistoryRunner(event);
       return false;
     });
-    $('#search-deposit-history-btn').click(function () {
-      resetDepositHistory();
-      fromDepositDate = $('#from-deposit-date').val().trim();
-      fromDepositDate = fromDepositDate === '' ? null : new Date(fromDepositDate);
-      toDepositDate = $('#to-deposit-date').val().trim();
-      toDepositDate = toDepositDate === '' ? null : new Date(toDepositDate);
-      displayDepositHistory();
+    $('#display-deposit-history-btn').click(function (event) {
+      if ($('#deposit-history-table tbody tr:not(:first)').length === 0) {
+        searchDepositHistoryRunner(event);
+      } else {
+        switchTab('#deposit-history-tab');
+      }
     });
+
+    const loadDepositHistoryRunner = userActions.addAction(
+      'loadDepositHistory',
+      {
+        asyncFunc: loadMoreDepositHistory,
+        callback: function () {},
+        lock: function () {
+          $('#deposit-history-load-more-btn').prop('disabled', true);
+        },
+        unlock: function () {
+          $('#deposit-history-load-more-btn').prop('disabled', false);
+        },
+        conflictingActions: ['searchDepositHistory'],
+        timeout: ASYNC_TIMEOUT,
+        $messagesLog: $messagesLog,
+      },
+    );
+    $('#deposit-history-load-more-btn').click(loadDepositHistoryRunner);
+
+    const searchSubscriptionsRunner = userActions.addAction(
+      'searchSubscriptions',
+      {
+        asyncFunc: function (callback) {
+          resetSubscriptions();
+          searchFlyFrom = $('#search-airport-from').val().trim();
+          searchFlyTo = $('#search-airport-to').val().trim();
+          switchTab('#subscriptions-tab');
+          loadMoreSubscriptions(callback);
+        },
+        lock: function () {
+          $('#search-subscriptions :input').prop('disabled', true);
+          $('#display-subscriptions-btn').prop('disabled', true);
+        },
+        unlock: function () {
+          $('#search-subscriptions :input').prop('disabled', false);
+          $('#display-subscriptions-btn').prop('disabled', false);
+        },
+        conflictingActions: ['loadSubscriptions'],
+        timeout: ASYNC_TIMEOUT,
+        $messagesLog: $messagesLog,
+      },
+    );
+    $('#display-subscriptions-btn').click(function (event) {
+      const rows = $('#subscriptions-table tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)');
+
+      if (rows.length === 0) {
+        searchSubscriptionsRunner(event);
+      } else {
+        switchTab('#subscriptions-tab');
+      }
+    });
+    $('#search-subscriptions').submit(function (event) {
+      event.preventDefault();
+      userActions.runAction('searchSubscriptions');
+      return false;
+    });
+
+    const loadSubscriptionsRunner = userActions.addAction(
+      'loadSubscriptions',
+      {
+        asyncFunc: loadMoreSubscriptions,
+        lock: function () {
+          $('#subscriptions-load-more-btn').prop('disabled', true);
+        },
+        unlock: function () {
+          $('#subscriptions-load-more-btn').prop('disabled', false);
+        },
+        conflictingActions: ['searchSubscriptions'],
+        timeout: ASYNC_TIMEOUT,
+        $messagesLog: $messagesLog,
+      }
+    );
+    $('#subscriptions-load-more-btn').click(loadSubscriptionsRunner);
+
+    const searchCreditHistoryRunner = userActions.addAction(
+      'searchCreditHistory',
+      {
+        asyncFunc: function (callback) {
+          resetCreditHistory();
+          creditHistoryFilters = serializeCreditHistoryParams();
+          loadMoreCreditHistory(callback);
+          switchTab('#credit-history-tab');
+        },
+        lock: function () {
+          $('#search-credit-history :input').prop('disabled', true);
+          $('#search-credit-history-btn').prop('disabled', true);
+        },
+        unlock: function () {
+          $('#search-credit-history :input').prop('disabled', false);
+          $('#search-credit-history-btn').prop('disabled', false);
+        },
+        conflictingActions: ['loadCreditHistory'],
+        timeout: ASYNC_TIMEOUT,
+        $messagesLog: $messagesLog,
+      },
+    );
+    $('#search-credit-history').submit(function (event) {
+      event.preventDefault();
+      searchCreditHistoryRunner(event);
+      return false;
+    });
+    $('#display-credit-history-btn').click(function (event) {
+      if ($('#credit-history-table tbody tr:not(:first)').length === 0) {
+        searchCreditHistoryRunner(event);
+      }
+      switchTab('#credit-history-tab');
+    });
+
+    const loadCreditHistoryAction = userActions.addAction(
+      'loadCreditHistory',
+      {
+        asyncFunc: loadMoreCreditHistory,
+        lock: function () {
+          $('#credit-history-load-more-btn').prop('disabled', true);
+        },
+        unlock: function () {
+          $('#credit-history-load-more-btn').prop('disabled', false);
+        },
+        conflictingActions: ['searchCreditHistory'],
+        timeout: ASYNC_TIMEOUT,
+        $messagesLog: $messagesLog,
+      }
+    );
+    $('#credit-history-load-more-btn').click(loadCreditHistoryAction);
+
+    const echRunner = userActions.addAction(
+      'exportCreditHistory',
+      {
+        asyncFunc: function exportCreditHistory () {
+          api.exportCreditHistory(
+            serializeCreditHistoryParams(),
+            PROTOCOL_NAME,
+            function () {},
+          );
+        },
+        lock: function () {
+          $('#export-credit-history-btn').prop('disabled', true);
+        },
+        unlock: function () {
+          $('#export-credit-history-btn').prop('disabled', false);
+        },
+        conflictingActions: ['exportCreditHistoryTable'],
+        timeout: ASYNC_TIMEOUT,
+        $messagesLog: $messagesLog,
+      },
+    );
+    $('#export-credit-history-btn').click(echRunner);
+
+    const echtRunner = userActions.addAction(
+      'exportCreditHistoryTable',
+      {
+        asyncFunc: function exportCreditHistoryTable () {
+          api.exportCreditHistory(
+            creditHistoryFilters,
+            PROTOCOL_NAME,
+            function () {},
+          );
+        },
+        lock: function () {
+          $('#export-credit-history-table-btn').prop('disabled', true);
+        },
+        unlock: function () {
+          $('#export-credit-history-table-btn').prop('disabled', false);
+        },
+        conflictingActions: ['exportCreditHistory'],
+        timeout: ASYNC_TIMEOUT,
+        $messagesLog: $messagesLog,
+      }
+    );
+    $('#export-credit-history-table-btn').click(echtRunner);
 
     $('#subscribe-submit-btn').click(onSubscribeSubmitClick);
     $('#subscribe-clear-btn').click(function () {
@@ -1111,7 +1231,7 @@ function start () {
 
           applyAutocomplete(airportNames);
 
-          displaySubscriptions();
+          $('#display-subscriptions-btn').click();
         });
 
         applyDatePicker();
