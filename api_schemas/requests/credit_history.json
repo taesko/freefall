@@ -67,6 +67,34 @@
           "type": "string",
           "enum": ["year", "month", "day", "default"]
         }
+      },
+      "additionalProperties": false
+    },
+    "sort": {
+      "type": "array",
+      "minLength": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "column": {
+            "type": "string",
+            "enum": [
+              "transferred_at",
+              "active",
+              "reason",
+              "transfer_amount",
+              "airport_from_id",
+              "airport_to_id",
+              "date_from",
+              "date_to",
+              "id"
+            ]
+          },
+          "order": {
+            "type": "string",
+            "enum": ["ASC", "DESC"]
+          }
+        }
       }
     }
   },

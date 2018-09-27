@@ -640,6 +640,7 @@ const creditHistory = defineAPIMethod(
       limit = CREDIT_HISTORY_DEFAULT_LIMIT,
       offset = 0,
       group_by = {},
+      sort = [{ column: 'transferred_at', order: 'DESC' }],
     },
     dbClient,
   ) => {
@@ -711,19 +712,23 @@ const creditHistory = defineAPIMethod(
 
     let selectedColumnsString;
     let groupByClause = '';
+    const orderByString = sort.map(({ column, order }) => `${column} ${order}`)
+      .join(',');
+    const selectColumnsConfig = [
+      ['transferred_at', 'transferred_at'],
+      ['active', 'active'],
+      ['reason', 'reason'],
+      ['transfer_amount', 'transfer_amount'],
+      ['airport_from_id', 'CAST(airport_from_id AS text)'],
+      ['airport_to_id', 'CAST(airport_to_id AS text)'],
+      ['date_from', 'date_from'],
+      ['date_to', 'date_to'],
+      ['user_subscr_id', 'CAST(user_subscr_id AS text) AS id'],
+    ];
 
     if (Object.keys(group_by).length === 0) {
-      selectedColumnsString = `
-        transferred_at,
-        active,
-        reason,
-        transfer_amount,
-        CAST(airport_from_id AS text),
-        CAST(airport_to_id AS text),
-        date_from,
-        date_to,
-        CAST(user_subscr_id AS text) AS id
-      `;
+      selectedColumnsString = selectColumnsConfig.map(entry => entry[1])
+        .join(',');
     } else {
       const selectColumns = [];
       const groupByColumns = [];
@@ -733,7 +738,16 @@ const creditHistory = defineAPIMethod(
         return groupByOrder.indexOf(a[0]) - groupByOrder.indexOf(b[0]);
       });
 
-      for (const [column, type] of entries) {
+      for (const [column, statement] of selectColumnsConfig) {
+        if (extraColumnsWhenGrouping[column]) {
+          selectColumns.push(extraColumnsWhenGrouping);
+          continue;
+        } else if (!Object.hasOwnProperty.call(group_by, column)) {
+          selectColumns.push(statement);
+          continue;
+        }
+
+        const type = group_by[column];
         const possibleGroupings = groupingConfig[column];
 
         assertApp(possibleGroupings != null, `got from ${column}`);
@@ -743,9 +757,8 @@ const creditHistory = defineAPIMethod(
         );
         assertApp(!column.includes('"') || !column.includes('\\'));
 
-        const selectCol = `${possibleGroupings[type]} AS "${column}"`;
-
-        selectColumns.push(selectCol);
+        const alternate = `${possibleGroupings[type]} AS "${column}"`;
+        selectColumns.push(alternate);
         groupByColumns.push(possibleGroupings[type]);
       }
 
@@ -818,7 +831,7 @@ const creditHistory = defineAPIMethod(
         ON taxes.airport_to_id=ap_to.id
           ${airportToFilter}
       ${groupByClause}
-      ORDER BY 1 DESC
+      ORDER BY ${orderByString}
       LIMIT $limit
       OFFSET $offset
       `,
@@ -972,7 +985,7 @@ const listSubscriptions = defineAPIMethod(
     }
 
     return {
-      subscriptions
+      subscriptions,
     };
   },
 );
