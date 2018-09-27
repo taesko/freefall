@@ -14,6 +14,7 @@ SERVER_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 KIWI_API_DATE_FORMAT = '%d/%m/%Y'
 TIMEOUT = 15
 SUBSCR_BATCH_SIZE = 10
+TASK_BATCH_SIZE = 10
 
 loop = None
 http_client = None
@@ -398,10 +399,21 @@ async def insert_route(route, subscription_fetch_id):
     finally:
         await pool.release(conn)
 
-    insert_route_flight_tasks = [loop.create_task(insert_route_flight(inserted_route, flight)) for flight in route['route']]
+    route_flights_batches = [route['route'][x:x+TASK_BATCH_SIZE]
+                      for x in range(0, len(route['route']), TASK_BATCH_SIZE)]
 
-    if len(insert_route_flight_tasks) > 0:
-        await asyncio.wait(insert_route_flight_tasks)
+    for route_flights_batch in route_flights_batches:
+        insert_route_flight_tasks = []
+
+        for flight in route_flights_batch:
+            insert_route_flight_tasks.append(
+                loop.create_task(
+                    insert_route_flight(inserted_route, flight)
+                )
+            )
+
+        if len(insert_route_flight_tasks) > 0:
+            await asyncio.wait(insert_route_flight_tasks)
 
 
 async def get_subscription_data(airport_end_points, subscription_fetch_id):
@@ -509,10 +521,22 @@ async def get_subscription_data(airport_end_points, subscription_fetch_id):
             offset,
             len(airports_set)))
 
-        get_airport_if_not_exists_tasks = [loop.create_task(get_airport_if_not_exists(airport_iata_code)) for airport_iata_code in airports_set]
+        airports = list(airports_set)
+        airport_iata_codes_batches = [airports[x:x+TASK_BATCH_SIZE]
+                                      for x in range(0, len(airports), TASK_BATCH_SIZE)]
 
-        if len(get_airport_if_not_exists_tasks) > 0:
-            await asyncio.wait(get_airport_if_not_exists_tasks)
+        for airport_iata_codes_batch in airport_iata_codes_batches:
+            get_airport_if_not_exists_tasks = []
+
+            for airport_iata_code in airport_iata_codes_batch:
+                get_airport_if_not_exists_tasks.append(
+                    loop.create_task(
+                        get_airport_if_not_exists(airport_iata_code)
+                    )
+                )
+
+            if len(get_airport_if_not_exists_tasks) > 0:
+                await asyncio.wait(get_airport_if_not_exists_tasks)
 
         log('Finished getting data for airports.')
         log('From {0} to {1} (offset: {2}): data for {3} flights. Getting data...'.format(
@@ -521,10 +545,22 @@ async def get_subscription_data(airport_end_points, subscription_fetch_id):
             offset,
             len(flights_dict)))
 
-        get_flight_tasks = [loop.create_task(get_flight(flight)) for flight in flights_dict.values()]
+        flights = list(flights_dict.values())
+        flights_batches = [flights[x:x+TASK_BATCH_SIZE]
+                           for x in range(0, len(flights), TASK_BATCH_SIZE)]
 
-        if len(get_flight_tasks) > 0:
-            await asyncio.wait(get_flight_tasks)
+        for flights_batch in flights_batches:
+            get_flight_tasks = []
+
+            for flight in flights_batch:
+                get_flight_tasks.append(
+                    loop.create_task(
+                        get_flight(flight)
+                    )
+                )
+
+            if len(get_flight_tasks) > 0:
+                await asyncio.wait(get_flight_tasks)
 
         log('Finished getting data for flights')
         log('From {0} to {1} (offset: {2}): data for {3} routes. Getting data...'.format(
@@ -533,10 +569,21 @@ async def get_subscription_data(airport_end_points, subscription_fetch_id):
             offset,
             len(response['data'])))
 
-        insert_route_tasks = [loop.create_task(insert_route(route, subscription_fetch_id)) for route in response['data']]
+        routes_batches = [response['data'][x:x+TASK_BATCH_SIZE]
+                          for x in range(0, len(response['data']), TASK_BATCH_SIZE)]
 
-        if len(insert_route_tasks) > 0:
-            await asyncio.wait(insert_route_tasks)
+        for routes_batch in routes_batches:
+            insert_route_tasks = []
+
+            for route in routes_batch:
+                insert_route_tasks.append(
+                    loop.create_task(
+                        insert_route(route, subscription_fetch_id)
+                    )
+                )
+
+            if len(insert_route_tasks) > 0:
+                await asyncio.wait(insert_route_tasks)
 
         if isinstance(response['_next'], str):
             next_page_available = True
@@ -805,10 +852,21 @@ async def start():
                 isinstance(airlines, list),
                 'Expected airlines to be a list, but was "{0}"'.format(type(airlines)))
 
-            insert_airline_tasks = [loop.create_task(insert_airline(airline)) for airline in airlines]
+            airlines_batches = [airlines[x:x+TASK_BATCH_SIZE]
+                                for x in range(0, len(airlines), TASK_BATCH_SIZE)]
 
-            if len(insert_airline_tasks) > 0:
-                await asyncio.wait(insert_airline_tasks)
+            for airlines_batch in airlines_batches:
+                insert_airline_tasks = []
+
+                for airline in airlines_batch:
+                    insert_airline_tasks.append(
+                        loop.create_task(
+                            insert_airline(airline)
+                        )
+                    )
+
+                if len(insert_airline_tasks) > 0:
+                    await asyncio.wait(insert_airline_tasks)
 
             try:
                 conn = await pool.acquire()
