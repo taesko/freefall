@@ -16,6 +16,8 @@ TIMEOUT = 15
 SUBSCR_BATCH_SIZE = 10
 
 loop = None
+http_client = None
+pool = None
 
 
 class BaseError(Exception):
@@ -64,7 +66,7 @@ def log(msg):
     print(msg)
 
 
-async def request(http_client, URL, params=None, max_retries=5):
+async def request(URL, params=None, max_retries=5):
     assert_app(
         isinstance(http_client, aiohttp.client.ClientSession),
         'Expected http_client to be aiohttp.client.ClientSession, but was "{0}"'.format(type(http_client)))
@@ -208,7 +210,7 @@ async def insert_if_not_exists(conn, table, data, exists_check):
     return True
 
 
-async def get_airport_id(pool, iata_code):
+async def get_airport_id(iata_code):
     assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
     assert_app(isinstance(iata_code, str), 'Expected iata_code to be a string, but was "{0}"'.format(type(iata_code)))
 
@@ -229,7 +231,7 @@ async def get_airport_id(pool, iata_code):
         await pool.release(conn)
 
 
-async def get_flight(pool, flight):
+async def get_flight(flight):
     assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
     assert_app(isinstance(flight, dict), 'Expected flight to be a dict, but was "{0}"'.format(type(flight)))
 
@@ -256,7 +258,7 @@ async def get_flight(pool, flight):
         flight['flyTo']
     ]
 
-    airport_id_tasks = [loop.create_task(get_airport_id(pool, iata_code)) for iata_code in airport_codes]
+    airport_id_tasks = [loop.create_task(get_airport_id(iata_code)) for iata_code in airport_codes]
 
     if len(airport_id_tasks) > 0:
         await asyncio.wait(airport_id_tasks)
@@ -302,7 +304,7 @@ async def get_flight(pool, flight):
         await pool.release(conn)
 
 
-async def insert_route_flight(pool, inserted_route, flight):
+async def insert_route_flight(inserted_route, flight):
     assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
     assert_app(isinstance(inserted_route, asyncpg.Record), 'Expected inserted_route to be asyncpg.Record, but was "{0}"'.format(type(inserted_route)))
 
@@ -363,7 +365,7 @@ async def insert_route_flight(pool, inserted_route, flight):
         await pool.release(conn)
 
 
-async def insert_route(pool, route, subscription_fetch_id):
+async def insert_route(route, subscription_fetch_id):
     assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
     assert_app(isinstance(route, dict), 'Expected route to be a dict, but was "{0}"'.format(type(route)))
 
@@ -396,18 +398,14 @@ async def insert_route(pool, route, subscription_fetch_id):
     finally:
         await pool.release(conn)
 
-    insert_route_flight_tasks = [loop.create_task(insert_route_flight(pool, inserted_route, flight)) for flight in route['route']]
+    insert_route_flight_tasks = [loop.create_task(insert_route_flight(inserted_route, flight)) for flight in route['route']]
 
     if len(insert_route_flight_tasks) > 0:
         await asyncio.wait(insert_route_flight_tasks)
 
 
-async def get_subscription_data(pool, http_client, airport_end_points, subscription_fetch_id):
+async def get_subscription_data(airport_end_points, subscription_fetch_id):
     assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
-    assert_app(
-        isinstance(http_client, aiohttp.client.ClientSession),
-        'Expected http_client to be aiohttp.client.ClientSession, but was "{0}"'.format(type(http_client)))
-
     assert_app(isinstance(airport_end_points, dict), 'Expected airport_end_points to be dict, but was "{0}"'.format(type(airport_end_points)))
 
     for label, end_point in airport_end_points.items():
@@ -456,7 +454,7 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
         finally:
             await pool.release(conn)
 
-        response = await request(http_client, 'https://api.skypicker.com/flights', query_params)
+        response = await request('https://api.skypicker.com/flights', query_params)
         query_params['offset'] += ROUTES_LIMIT
 
         assert_peer(
@@ -511,7 +509,7 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
             offset,
             len(airports_set)))
 
-        get_airport_if_not_exists_tasks = [loop.create_task(get_airport_if_not_exists(pool, http_client, airport_iata_code)) for airport_iata_code in airports_set]
+        get_airport_if_not_exists_tasks = [loop.create_task(get_airport_if_not_exists(airport_iata_code)) for airport_iata_code in airports_set]
 
         if len(get_airport_if_not_exists_tasks) > 0:
             await asyncio.wait(get_airport_if_not_exists_tasks)
@@ -523,7 +521,7 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
             offset,
             len(flights_dict)))
 
-        get_flight_tasks = [loop.create_task(get_flight(pool, flight)) for flight in flights_dict.values()]
+        get_flight_tasks = [loop.create_task(get_flight(flight)) for flight in flights_dict.values()]
 
         if len(get_flight_tasks) > 0:
             await asyncio.wait(get_flight_tasks)
@@ -535,7 +533,7 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
             offset,
             len(response['data'])))
 
-        insert_route_tasks = [loop.create_task(insert_route(pool, route, subscription_fetch_id)) for route in response['data']]
+        insert_route_tasks = [loop.create_task(insert_route(route, subscription_fetch_id)) for route in response['data']]
 
         if len(insert_route_tasks) > 0:
             await asyncio.wait(insert_route_tasks)
@@ -544,12 +542,9 @@ async def get_subscription_data(pool, http_client, airport_end_points, subscript
             next_page_available = True
 
 
-async def get_airport_if_not_exists(pool, http_client, iata_code):
+async def get_airport_if_not_exists(iata_code):
     assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
     # TODO ask if transaction here is necessary
-    assert_app(
-        isinstance(http_client, aiohttp.client.ClientSession),
-        'Expected http_client to be aiohttp.client.ClientSession, but was "{0}"'.format(type(http_client)))
     assert_app(isinstance(iata_code, str), 'Expected iata_code to be str, but was "{0}"'.format(type(iata_code)))
 
     try:
@@ -570,7 +565,7 @@ async def get_airport_if_not_exists(pool, http_client, iata_code):
 
             return airports[0]['id']
 
-        response = await request(http_client, 'https://api.skypicker.com/locations', {
+        response = await request('https://api.skypicker.com/locations', {
             'term': iata_code,
             'locale': 'en-US',
             'location_types': 'airport',
@@ -706,7 +701,7 @@ async def charge_fetch_tax(conn, subscription_fetch):
     log('End of transaction. Charged fetch taxes for subscription_id {0}'.format(subscription_fetch['subscription_id']))
 
 
-async def insert_airline(pool, airline):
+async def insert_airline(airline):
     assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
     # TODO ask if transaction is necessary
     try:
@@ -745,7 +740,7 @@ async def insert_airline(pool, airline):
         await pool.release(conn)
 
 
-async def get_subscription_data_batch_task(pool, http_client, sub, subscription_fetch):
+async def get_subscription_data_batch_task(sub, subscription_fetch):
     assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
     # TODO assert sub, subscription_fetch
 
@@ -771,8 +766,6 @@ async def get_subscription_data_batch_task(pool, http_client, sub, subscription_
     assert_app(isinstance(airport_to[0]['iata_code'], str), 'Expected airport_to[0]["iata_code"] to be str, but was {0}'.format(type(airport_to[0]['iata_code'])))
 
     await get_subscription_data(
-        pool,
-        http_client,
         {
             'airport_from': airport_from[0]['iata_code'],
             'airport_to': airport_to[0]['iata_code']
@@ -781,7 +774,9 @@ async def get_subscription_data_batch_task(pool, http_client, sub, subscription_
     )
 
 
-async def insert_subscription_fetch_batch_task(pool, sub, fetch_id):
+async def insert_subscription_fetch_batch_task(sub, fetch_id):
+    assert_app(isinstance(pool, asyncpg.pool.Pool), 'Expected pool to be asyncpg.pool.Pool, but was "{0}"'.format(type(pool)))
+
     try:
         conn = await pool.acquire()
         inserted = await insert(conn, 'subscriptions_fetches', {
@@ -797,16 +792,20 @@ async def insert_subscription_fetch_batch_task(pool, sub, fetch_id):
 
 async def start():
     try:
+        global pool
         pool = await asyncpg.create_pool(password='freefall')
 
-        async with aiohttp.ClientSession(conn_timeout=15) as http_client:
-            airlines = await request(http_client, 'https://api.skypicker.com/airlines')
+        async with aiohttp.ClientSession(conn_timeout=15) as client:
+            global http_client
+            http_client = client
+
+            airlines = await request('https://api.skypicker.com/airlines')
 
             assert_peer(
                 isinstance(airlines, list),
                 'Expected airlines to be a list, but was "{0}"'.format(type(airlines)))
 
-            insert_airline_tasks = [loop.create_task(insert_airline(pool, airline)) for airline in airlines]
+            insert_airline_tasks = [loop.create_task(insert_airline(airline)) for airline in airlines]
 
             if len(insert_airline_tasks) > 0:
                 await asyncio.wait(insert_airline_tasks)
@@ -842,7 +841,7 @@ async def start():
 
                         insert_subscriptions_fetches_tasks.append(
                             loop.create_task(
-                                insert_subscription_fetch_batch_task(pool, sub, fetch_id)
+                                insert_subscription_fetch_batch_task(sub, fetch_id)
                             )
                         )
 
@@ -860,8 +859,6 @@ async def start():
                         get_subscription_data_batch_tasks.append(
                             loop.create_task(
                                 get_subscription_data_batch_task(
-                                    pool,
-                                    http_client,
                                     sub,
                                     subscription_fetches[index]
                                 )
