@@ -987,6 +987,54 @@ function start () {
     );
   }
 
+  function setupFormValidation (airportNames) {
+    const validAirportNames = {};
+
+    for (const a of airportNames) {
+      validAirportNames[a] = true;
+    }
+
+    function airportIsCorrect (airport) {
+      assertUser(
+        airport in validAirportNames,
+        {
+          msg: 'User entered invalid airport',
+          userMessage: airport + ' is not an airport',
+        }
+      );
+    }
+    function dateValidator (minimum, maximum) {
+      return function (value) {
+        const passesMin = minimum <= new Date(value);
+        const passesMax = maximum >= new Date(value);
+        var passes;
+
+        if (minimum) {
+          passes = passesMin;
+        } else if (maximum) {
+          passes = passesMax;
+        } else {
+          passes = passesMin && passesMax;
+        }
+
+        return passes;
+      };
+    }
+
+    const lastMonth = new Date();
+    const today = new Date();
+    const nextMonth = new Date();
+
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    mainUtils.immediateFormValidator('#subscribe-form', {
+      'from': airportIsCorrect,
+      'to': airportIsCorrect,
+      'date-from': dateValidator(today),
+      'date-to': dateValidator(today),
+    });
+  }
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const userActions = new mainUtils.UserActions();
     const $messagesLog = $('#messages-list');

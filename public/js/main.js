@@ -456,6 +456,38 @@ function main () { // eslint-disable-line no-unused-vars
       this.actions[name].options.$messagesLog.empty();
     };
   }
+
+  function immediateFormValidator (formID, validators) {
+    assertApp(typeof formID === 'string');
+    assertApp(formID.startsWith('#'));
+    assertApp(_.isObject(validators));
+
+    const $form = $(formID);
+
+    $form.change(function (event) {
+      const target = event.target;
+      const value = target.value.trim();
+
+      if (
+        target.name &&
+        value &&
+        Object.hasOwnProperty.call(validators, target.name)
+      ) {
+        try {
+          validators[target.name](value, event);
+        } catch (e) {
+          if (!(e instanceof UserError)) {
+            throw e;
+          }
+
+          // TODO add helpers for screen readers and color blind people
+          target.classList.remove('has-success', 'has-warning', 'has-error');
+          target.classList.add('has-error');
+        }
+      }
+    });
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $messagesList = $('#messages-list');
   });
@@ -481,6 +513,7 @@ function main () { // eslint-disable-line no-unused-vars
     clearFormData,
     serializeFormInput,
     UserActions,
+    immediateFormValidator,
     SERVER_URL: SERVER_URL,
     EXPORT_SERVER_URL: EXPORT_SERVER_URL,
     PROTOCOL_NAME: PROTOCOL_NAME,
