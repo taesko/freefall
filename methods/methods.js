@@ -925,6 +925,7 @@ const listSubscriptions = defineAPIMethod(
       limit = LIST_SUBSCRIPTIONS_DEFAULT_LIMIT,
       offset = 0,
       api_key: apiKey,
+      sort = [{ column: 'updated_at', order: 'DESC' }],
     },
     dbClient,
   ) => {
@@ -932,6 +933,8 @@ const listSubscriptions = defineAPIMethod(
 
     assertPeer(user != null, `got ${user}`, 'LIST_SUBSCR_INVALID_API_KEY');
 
+    const orderByColumns = sort.map(({column, order}) => `${column} ${order}`)
+      .join(',');
     const { rows: subRows } = await dbClient.executeQuery(
       `
       SELECT 
@@ -950,7 +953,7 @@ const listSubscriptions = defineAPIMethod(
         user_sub.active=true AND
         ($4::text IS NULL OR ap_from.name=$4 OR ap_from.iata_code=$4) AND
         ($5::text IS NULL OR ap_to.name=$5 OR ap_to.iata_code=$5)
-      ORDER BY user_sub.updated_at DESC
+      ORDER BY ${orderByColumns}
       LIMIT $2
       OFFSET $3
       `,
