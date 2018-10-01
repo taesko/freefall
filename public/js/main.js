@@ -488,6 +488,69 @@ function main () { // eslint-disable-line no-unused-vars
     });
   }
 
+  function setupTableSortInput (tableID, eventHandler) {
+    assertApp(tableID.startsWith('#'));
+    const dataOrderTransitions = {
+      ASC: 'DESC',
+      DESC: 'null',
+      null: 'ASC',
+    };
+    const glyphiconTransitions = {
+      'glyphicon-arrow-up': 'glyphicon-arrow-down',
+      'glyphicon-arrow-down': 'glyphicon-sort',
+      'glyphicon-sort': 'glyphicon-arrow-up',
+    };
+    function resetSort ($header) {
+      $header.attr('data-order', 'null');
+      $header.removeClass('glyphicon-arrow-down');
+      $header.removeClass('glyphicon-arrow-up');
+      $header.addClass('glyphicon-sort');
+    }
+    function flipSort ($header) {
+      const order = $header.attr('data-order').trim();
+      assertApp(!order || Object.keys(dataOrderTransitions).includes(order));
+      $header.attr(
+        'data-order',
+        dataOrderTransitions[order || null]
+      );
+      assertApp(Object.keys(glyphiconTransitions).some(function (cls) {
+        return $header.find('span').hasClass(cls);
+      }));
+      for (const cls of Object.keys(glyphiconTransitions)) {
+        const $span = $header.find('span');
+        if ($span.hasClass(cls)) {
+          $span.removeClass(cls);
+          $span.addClass(glyphiconTransitions[cls]);
+          break;
+        }
+      }
+    }
+
+    const $columns = $(tableID).find('.sortable-column');
+    $columns.click(function (event) {
+      const clicked = event.target;
+      $columns.each(function () {
+        if (this === clicked) {
+          flipSort($(this));
+        } else {
+          resetSort($(this));
+        }
+      });
+    });
+  }
+
+  function serializeTableSort (tableID) {
+    assertApp(tableID.startsWith('#'));
+
+    const $columns = $(tableID).find('.sortable-column');
+    const sort = [];
+    $columns.each(function () {
+      if (this.attr('data-order') !== 'null') {
+        sort.push(this.attr('data-order'));
+      }
+    });
+  }
+
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     $messagesList = $('#messages-list');
   });
@@ -514,6 +577,8 @@ function main () { // eslint-disable-line no-unused-vars
     serializeFormInput,
     UserActions,
     immediateFormValidator,
+    serializeTableSort: serializeTableSort,
+    setupTableSortInput: setupTableSortInput,
     SERVER_URL: SERVER_URL,
     EXPORT_SERVER_URL: EXPORT_SERVER_URL,
     PROTOCOL_NAME: PROTOCOL_NAME,

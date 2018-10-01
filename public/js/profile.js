@@ -1036,6 +1036,7 @@ function start () {
     });
   }
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
+    mainUtils.setupTableSortInput('#subscriptions-table');
     const userActions = new mainUtils.UserActions();
     const $messagesLog = $('#messages-list');
     const searchDepositHistoryRunner = userActions.addAction(
