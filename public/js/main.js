@@ -489,7 +489,11 @@ function main () { // eslint-disable-line no-unused-vars
   }
 
   function setupTableSortInput (tableID, eventHandler) {
+    eventHandler = eventHandler || function () {};
+
     assertApp(tableID.startsWith('#'));
+    assertApp(_.isFunction(eventHandler));
+
     const dataOrderTransitions = {
       ASC: 'DESC',
       DESC: 'null',
@@ -501,8 +505,9 @@ function main () { // eslint-disable-line no-unused-vars
       'glyphicon-sort': 'glyphicon-arrow-up',
     };
     function resetSort ($header) {
+      $header.attr('data-order', 'null');
+
       const $span = $header.find('span');
-      $span.attr('data-order', 'null');
       $span.removeClass('glyphicon-arrow-down');
       $span.removeClass('glyphicon-arrow-up');
       $span.addClass('glyphicon-sort');
@@ -539,6 +544,8 @@ function main () { // eslint-disable-line no-unused-vars
           resetSort($(this));
         }
       });
+
+      eventHandler(event);
     });
   }
 
@@ -548,10 +555,18 @@ function main () { // eslint-disable-line no-unused-vars
     const $columns = $(tableID).find('.sortable-column');
     const sort = [];
     $columns.each(function () {
-      if (this.attr('data-order') !== 'null') {
-        sort.push(this.attr('data-order'));
+      const column = this.getAttribute('data-column').trim();
+      const order = this.getAttribute('data-order').trim();
+
+      if (column && order && order !== 'null') {
+        sort.push({
+          column: column,
+          order: order,
+        });
       }
     });
+
+    return sort;
   }
 
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback

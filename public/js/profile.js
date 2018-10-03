@@ -960,7 +960,7 @@ function start () {
   }
 
   function serializeCreditHistoryParams () {
-    return mainUtils.serializeFormInput(
+    const formSerialized = mainUtils.serializeFormInput(
       '#search-credit-history',
       {
         status: function (value) {
@@ -985,6 +985,13 @@ function start () {
         },
       }
     );
+    const sort = mainUtils.serializeTableSort('#credit-history-table');
+
+    if (sort.length !== 0) {
+      formSerialized.sort = sort;
+    }
+
+    return formSerialized;
   }
 
   function setupFormValidation (airportNames) {
@@ -1037,6 +1044,7 @@ function start () {
   }
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     mainUtils.setupTableSortInput('#subscriptions-table');
+
     const userActions = new mainUtils.UserActions();
     const $messagesLog = $('#messages-list');
     const searchDepositHistoryRunner = userActions.addAction(
@@ -1182,6 +1190,10 @@ function start () {
       }
       switchTab('#credit-history-tab');
     });
+    mainUtils.setupTableSortInput(
+      '#credit-history-table',
+      searchCreditHistoryRunner
+    );
 
     const loadCreditHistoryAction = userActions.addAction(
       'loadCreditHistory',
