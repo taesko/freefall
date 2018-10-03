@@ -30,7 +30,7 @@
     },
     "sort": {
       "type": "array",
-      "minLength": 1,
+      "minItems": 1,
       "uniqueItems": true,
       "items": {
         "type": "object",
