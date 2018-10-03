@@ -25,7 +25,3 @@ td {
 .table > tbody > tr > td {
   vertical-align: middle;
 }
-
-.sortable-column {
-    display: block;
-}

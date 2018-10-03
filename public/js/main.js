@@ -501,10 +501,11 @@ function main () { // eslint-disable-line no-unused-vars
       'glyphicon-sort': 'glyphicon-arrow-up',
     };
     function resetSort ($header) {
-      $header.attr('data-order', 'null');
-      $header.removeClass('glyphicon-arrow-down');
-      $header.removeClass('glyphicon-arrow-up');
-      $header.addClass('glyphicon-sort');
+      const $span = $header.find('span');
+      $span.attr('data-order', 'null');
+      $span.removeClass('glyphicon-arrow-down');
+      $span.removeClass('glyphicon-arrow-up');
+      $span.addClass('glyphicon-sort');
     }
     function flipSort ($header) {
       const order = $header.attr('data-order').trim();
@@ -513,9 +514,11 @@ function main () { // eslint-disable-line no-unused-vars
         'data-order',
         dataOrderTransitions[order || null]
       );
+
       assertApp(Object.keys(glyphiconTransitions).some(function (cls) {
         return $header.find('span').hasClass(cls);
       }));
+
       for (const cls of Object.keys(glyphiconTransitions)) {
         const $span = $header.find('span');
         if ($span.hasClass(cls)) {
