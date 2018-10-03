@@ -732,6 +732,7 @@ const creditHistory = defineAPIMethod(
     } else {
       const selectColumns = [];
       const groupByColumns = [];
+      const pushedExtraSelectColumns = [];
       const entries = Object.entries(group_by);
 
       entries.sort((a, b) => {
@@ -740,10 +741,11 @@ const creditHistory = defineAPIMethod(
 
       for (const [column, statement] of selectColumnsConfig) {
         if (extraColumnsWhenGrouping[column]) {
-          selectColumns.push(extraColumnsWhenGrouping);
+          selectColumns.push(extraColumnsWhenGrouping[column]);
+          pushedExtraSelectColumns.push(column);
           continue;
         } else if (!Object.hasOwnProperty.call(group_by, column)) {
-          selectColumns.push(statement);
+          selectColumns.push(`NULL AS ${column}`);
           continue;
         }
 
@@ -762,7 +764,10 @@ const creditHistory = defineAPIMethod(
         groupByColumns.push(possibleGroupings[type]);
       }
 
-      selectColumns.push(...Object.values(extraColumnsWhenGrouping));
+      const missing = Object.keys(extraColumnsWhenGrouping)
+        .filter(([column, value]) => pushedExtraSelectColumns.includes(column));
+
+      selectColumns.push(...missing);
 
       groupByClause = `GROUP BY ${groupByColumns}`;
       selectedColumnsString = selectColumns.join(', ');
@@ -853,6 +858,12 @@ const creditHistory = defineAPIMethod(
     const { rows: subscrTransfers } = pgResult;
 
     for (const transfer of subscrTransfers) {
+      for (const [key, value] of Object.entries(transfer)) {
+        if (value == null) {
+          delete transfer[key];
+        }
+      }
+
       if (transfer.date_from) {
         transfer.date_from = moment(transfer.date_from)
           .format(SERVER_DATE_FORMAT);
