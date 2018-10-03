@@ -18,10 +18,8 @@ function start () {
   var subscriptions = []; // eslint-disable-line no-var
   var rowIdSubscriptionMap = {}; // eslint-disable-line no-var
   var APIKeyRef = mainUtils.APIKeyRef; // eslint-disable-line no-var
-  var searchFlyFrom = null;
-  var searchFlyTo = null;
-  var fromDepositDate = null;
-  var toDepositDate = null;
+  var subscriptionsFilters = {};
+  var depositHistoryFilters = {};
   var creditHistoryFilters = {};
   const CREDIT_HISTORY_PAGE_LIMIT = 5;
   const SUBSCRIPTIONS_PAGE_LIMIT = 5;
@@ -646,16 +644,13 @@ function start () {
     const $noContentMsg = $('#no-subscriptions-msg');
     const rows = $subscriptionsTable.find('tbody tr:not(#subscription-edit-mode):not(#subscription-view-mode)');
     const offset = rows.length;
-    const params = {
-      offset: offset,
-      limit: SUBSCRIPTIONS_PAGE_LIMIT,
-    };
-    if (searchFlyFrom) {
-      params.fly_from = searchFlyFrom;
-    }
-    if (searchFlyTo) {
-      params.fly_to = searchFlyTo;
-    }
+    const params = Object.assign(
+      {
+        offset: offset,
+        limit: SUBSCRIPTIONS_PAGE_LIMIT,
+      },
+      subscriptionsFilters,
+    );
 
     api.listSubscriptions(params, PROTOCOL_NAME, function (result) { // eslint-disable-line prefer-arrow-callback
       const newSubscrs = result.subscriptions;
@@ -890,15 +885,18 @@ function start () {
     const $loadMoreBtn = $('#deposit-history-load-more-btn');
     const $noMoreResultsMsg = $('#no-deposit-history-msg');
     const offset = $depositsTable.find('tbody tr:not(:first)').length;
-    const params = {
-      limit: CREDIT_HISTORY_PAGE_LIMIT,
-      offset: offset,
-    };
-    if (fromDepositDate) {
-      params.from = fromDepositDate.toISOString();
+    const params = Object.assign(
+      {
+        limit: CREDIT_HISTORY_PAGE_LIMIT,
+        offset: offset,
+      },
+      depositHistoryFilters,
+    );
+    if (params.from) {
+      params.from = new Date(params.from).toISOString();
     }
-    if (toDepositDate) {
-      params.to = toDepositDate.toISOString();
+    if (params.to) {
+      params.to = new Date(params.to).toISOString();
     }
 
     api.depositHistory(params, PROTOCOL_NAME, function (result) {
@@ -994,6 +992,34 @@ function start () {
     return formSerialized;
   }
 
+  function serializeDepositHistoryParams () {
+    const params = mainUtils.serializeFormInput('#search-deposit-history');
+    // fromDepositDate = $('#from-deposit-date').val().trim();
+    // fromDepositDate = fromDepositDate === '' ? null : new Date(fromDepositDate);
+    // toDepositDate = $('#to-deposit-date').val().trim();
+    // toDepositDate = toDepositDate === '' ? null : new Date(toDepositDate);
+    const sort = mainUtils.serializeTableSort('#deposit-history-table');
+
+    if (sort.length !== 0) {
+      params.sort = sort;
+    }
+
+    return params;
+  }
+
+  function serializeSubscriptionsParams () {
+    const params = mainUtils.serializeFormInput('#search-subscriptions');
+    const sort = mainUtils.serializeTableSort('#subscriptions-table');
+    // searchFlyFrom = $('#search-airport-from').val().trim();
+    // searchFlyTo = $('#search-airport-to').val().trim();
+
+    if (sort.length !== 0) {
+      params.sort = sort;
+    }
+
+    return params;
+  }
+
   function setupFormValidation (airportNames) {
     const validAirportNames = {};
 
@@ -1043,8 +1069,6 @@ function start () {
     });
   }
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
-    mainUtils.setupTableSortInput('#subscriptions-table');
-
     const userActions = new mainUtils.UserActions();
     const $messagesLog = $('#messages-list');
     const searchDepositHistoryRunner = userActions.addAction(
@@ -1052,15 +1076,12 @@ function start () {
       {
         asyncFunc: function (callback) {
           resetDepositHistory();
-          fromDepositDate = $('#from-deposit-date').val().trim();
-          fromDepositDate = fromDepositDate === '' ? null : new Date(fromDepositDate);
-          toDepositDate = $('#to-deposit-date').val().trim();
-          toDepositDate = toDepositDate === '' ? null : new Date(toDepositDate);
           loadMoreDepositHistory(callback);
           switchTab('#deposit-history-tab');
         },
         callback: function () {},
         lock: function () {
+          depositHistoryFilters = serializeDepositHistoryParams();
           $('#search-deposit-history :input').prop('disabled', true);
         },
         unlock: function () {
@@ -1083,6 +1104,10 @@ function start () {
         switchTab('#deposit-history-tab');
       }
     });
+    mainUtils.setupTableSortInput(
+      '#deposit-history-table',
+      searchDepositHistoryRunner,
+    );
 
     const loadDepositHistoryRunner = userActions.addAction(
       'loadDepositHistory',
@@ -1107,12 +1132,11 @@ function start () {
       {
         asyncFunc: function (callback) {
           resetSubscriptions();
-          searchFlyFrom = $('#search-airport-from').val().trim();
-          searchFlyTo = $('#search-airport-to').val().trim();
           switchTab('#subscriptions-tab');
           loadMoreSubscriptions(callback);
         },
         lock: function () {
+          subscriptionsFilters = serializeSubscriptionsParams();
           $('#search-subscriptions :input').prop('disabled', true);
           $('#display-subscriptions-btn').prop('disabled', true);
         },
@@ -1139,6 +1163,10 @@ function start () {
       userActions.runAction('searchSubscriptions');
       return false;
     });
+    mainUtils.setupTableSortInput(
+      '#subscriptions-table',
+      searchSubscriptionsRunner,
+    );
 
     const loadSubscriptionsRunner = userActions.addAction(
       'loadSubscriptions',
@@ -1162,11 +1190,11 @@ function start () {
       {
         asyncFunc: function (callback) {
           resetCreditHistory();
-          creditHistoryFilters = serializeCreditHistoryParams();
           loadMoreCreditHistory(callback);
           switchTab('#credit-history-tab');
         },
         lock: function () {
+          creditHistoryFilters = serializeCreditHistoryParams();
           $('#search-credit-history :input').prop('disabled', true);
           $('#search-credit-history-btn').prop('disabled', true);
         },
@@ -1212,17 +1240,21 @@ function start () {
     );
     $('#credit-history-load-more-btn').click(loadCreditHistoryAction);
 
+    // bad hack to fix unforseen problem with serializeArray() not serializing
+    // disabled inputs
+    var exportCreditHistoryParams = {};
     const echRunner = userActions.addAction(
       'exportCreditHistory',
       {
         asyncFunc: function exportCreditHistory () {
           api.exportCreditHistory(
-            serializeCreditHistoryParams(),
+            exportCreditHistoryParams,
             PROTOCOL_NAME,
             function () {},
           );
         },
         lock: function () {
+          exportCreditHistoryParams = serializeCreditHistoryParams();
           $('#export-credit-history-btn').prop('disabled', true);
         },
         unlock: function () {

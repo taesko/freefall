@@ -75,12 +75,12 @@
       <form id="search-subscriptions" class="row">
         <div class="form-group">
           <label for="search-airport-from" class="sr-only">From</label>
-          <input id="search-airport-from" class="form-control airport-select" name="from" type="text"
+          <input id="search-airport-from" class="form-control airport-select" name="fly_from" type="text"
                  placeholder="Sofia" list="airports-list">
         </div>
         <div class="form-group">
           <label for="search-airport-to" class="sr-only">To</label>
-          <input id="search-airport-to" name="to" class="form-control airport-select" type="text"
+          <input id="search-airport-to" name="fly_to" class="form-control airport-select" type="text"
                  placeholder="Haneda" list="airports-list">
         </div>
         <div class="form-group">
@@ -250,14 +250,12 @@
             Transfer
             <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
           </a></th>
-          <th class="sortable-column text-center" data-column="airport_from_id" data-order=""><a>
+          <th class="text-center">
             Airport from
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-          <th class="sortable-column text-center" data-column="airport_to_id" data-order=""><a>
+          </th>
+          <th class="text-center">
             Airport to
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
+          </th>
           <th class="sortable-column text-center" data-column="date_from" data-order=""><a>
             Date from
             <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
@@ -313,9 +311,22 @@
       <table id="deposit-history-table" class="table table-bordered row">
         <thead>
           <tr>
-            <td><b>Deposited on</b></td>
-            <td><b>Amount</b></td>
-            <td><b>Reason</b></td>
+            <td class="text-center sortable-column" data-column="" data-order="null">
+              <a>
+                <b>Deposited on</b>
+                <span class="glyphicon glyphicon-sort"></span>
+              </a>
+            </td>
+            <td class="text-center sortable-column" data-column="" data-order="null">
+              <a>
+                <b>Amount</b><span class="glyphicon glyphicon-sort"></span>
+              </a>
+            </td>
+            <td class="text-center sortable-column" data-column="" data-order="null">
+              <a>
+                <b>Reason</b><span class="glyphicon glyphicon-sort"></span>
+              </a>
+            </td>
           </tr>
         </thead>
         <tbody>
