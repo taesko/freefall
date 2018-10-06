@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "babel-eslint": "^8.2.5",
+    "chokidar": "^2.0.4",
     "eslint-config-semistandard-react": "^4.2.0",
     "eslint-plugin-semistandard-react": "^4.1.0"
   }
