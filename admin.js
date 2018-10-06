@@ -94,6 +94,7 @@ app.use(views(path.join(__dirname, 'admin', 'templates'), {
       escape,
     },
     partials: {
+      footer: 'footer',
       menu: 'menu',
       heading: 'heading',
       messages: 'messages',

@@ -52,12 +52,25 @@ function start () {
   const watcher = chokidar.watch(scanRootDirPath);
 
   watcher.on('add', (filePath) => {
-    const basename = path.basename(filePath);
+    assertApp(typeof filePath === 'string');
 
-    if (basename.toUpperCase() === 'LICENSE') {
+    const basename = path.basename(filePath);
+    const basenameUpCase = basename.toUpperCase();
+
+    if (
+      basenameUpCase === 'LICENSE' ||
+      basenameUpCase === 'LICENSE.TXT' ||
+      basenameUpCase === 'LICENSE.MD' ||
+      basenameUpCase === 'LICENCE' ||
+      basenameUpCase === 'LICENSE.BSD' ||
+      basenameUpCase === 'LICENSE-MIT' ||
+      basenameUpCase === 'LICENSE-MIT.TXT'
+    ) {
       dirsLicenses[filePath.replace(basename, '')] = filePath;
     }
   }).on('addDir', (filePath) => {
+    assertApp(typeof filePath === 'string');
+
     dirs.push(`${filePath}/`);
   }).on('ready', () => {
     watcher.close();
@@ -78,6 +91,10 @@ function start () {
         })
       }
     }
+
+    fs.writeFileSync('./licenses.txt', licenseTexts.map((licenseText) => {
+      return `==========\n${licenseText.module}\n==========\n${licenseText.text}\n==========`;
+    }).join('\n'));
 
     console.log('Done');
   });
