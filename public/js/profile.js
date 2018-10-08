@@ -1250,7 +1250,11 @@ function start () {
           api.exportCreditHistory(
             exportCreditHistoryParams,
             PROTOCOL_NAME,
-            function () {},
+            function (err) {
+              if (err) {
+                mainUtils.handleError(err);
+              }
+            },
           );
         },
         lock: function () {
@@ -1274,7 +1278,11 @@ function start () {
           api.exportCreditHistory(
             creditHistoryFilters,
             PROTOCOL_NAME,
-            function () {},
+            function (err) {
+              if (err) {
+                mainUtils.handleError(err);
+              }
+            },
           );
         },
         lock: function () {
