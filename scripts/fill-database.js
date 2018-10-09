@@ -186,7 +186,7 @@ async function insertRandomData (
     await Promise.all(batch);
   }
   await dbClient.executeQuery(
-    `SELECT setval(${table}_id_seq, (SELECT MAX(id) FROM ${table}))`
+    `SELECT setval('${table}_id_seq', (SELECT MAX(id) FROM ${table}))`
   );
 }
 
@@ -550,6 +550,7 @@ async function insertRandomFlights (
   const amount = routeCount * flightsPerRoute;
 
   const rowGenerator = id => {
+    // subscriptionId = flightId / flightsPerRoute / routesPerSubscriptionFetch
     const routeID = Math.floor(id / flightsPerRoute); // 0
     const subscrFetchID = Math.floor(routeID / routesPerSubscriptionFetch); // 0
 
@@ -620,19 +621,22 @@ async function insertRandomRoutesFlights (
   {
     routeCount,
     flightsPerRoute,
+    routesPerSubscriptionFetch,
   }
 ) {
   assertApp(Number.isInteger(routeCount));
   assertApp(Number.isInteger(flightsPerRoute));
+  assertApp(Number.isInteger(routesPerSubscriptionFetch));
 
   const table = 'routes_flights';
   const columnsString = '(id, route_id, flight_id)';
   const amount = routeCount * flightsPerRoute;
   const rowGenerator = id => {
     const routeID = Math.floor(id / flightsPerRoute);
-    const flightID = id % flightsPerRoute;
 
-    return [id, routeID, flightID];
+    // flights.id is equal to routes_flights.id by design due to the way
+    // insertRandomRoutes and insertRandomFlights behave
+    return [id, routeID, id];
   };
 
   await insertRandomData(
@@ -1463,6 +1467,7 @@ async function fillDatabase (dbClient) {
     {
       routeCount: routeCount,
       flightsPerRoute: FLIGHTS_PER_ROUTE,
+      routesPerSubscriptionFetch: ROUTES_PER_SUBSCRIPTION_FETCH,
     },
   );
   await insertRandomUsers(dbClient, USERS_AMOUNT);
