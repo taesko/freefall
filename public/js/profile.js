@@ -1278,11 +1278,7 @@ function start () {
           api.exportCreditHistory(
             creditHistoryFilters,
             PROTOCOL_NAME,
-            function (err) {
-              if (err) {
-                mainUtils.handleError(err);
-              }
-            },
+            function () {},
           );
         },
         lock: function () {
