@@ -38,20 +38,22 @@ function assertUser (condition, msg) {
 }
 
 function start () {
-  assertUser(process.argv.length === 3, 'Expected argument scan root dir path.');
+  assertUser(process.argv.length === 3, 'Expected argument node_modules dir path.');
 
   scanRootDirPath = process.argv[2];
 
   assertUser(fs.existsSync(scanRootDirPath), `Provided argument "${scanRootDirPath}" is not a directory.`);
   assertUser(fs.lstatSync(scanRootDirPath).isDirectory(), `Provided argument "${scanRootDirPath}" not a directory`);
 
-  const dirsLicenses = {};
-  const dirs = [];
-  const licenseTexts = [];
+  const nodeModulesDirsLicenses = {};
+  const nodeModulesDirs = [];
+  const nodeModulesLicenseTexts = [];
 
-  const watcher = chokidar.watch(scanRootDirPath);
+  const nodeModulesWatcher = chokidar.watch(scanRootDirPath, {
+    persistent: false,
+  });
 
-  watcher.on('add', (filePath) => {
+  nodeModulesWatcher.on('add', (filePath) => {
     assertApp(typeof filePath === 'string');
 
     const basename = path.basename(filePath);
@@ -66,37 +68,59 @@ function start () {
       basenameUpCase === 'LICENSE-MIT' ||
       basenameUpCase === 'LICENSE-MIT.TXT'
     ) {
-      dirsLicenses[filePath.replace(basename, '')] = filePath;
+      nodeModulesDirsLicenses[filePath.replace(basename, '')] = filePath;
     }
   }).on('addDir', (filePath) => {
     assertApp(typeof filePath === 'string');
 
-    dirs.push(`${filePath}/`);
+    nodeModulesDirs.push(`${filePath}/`);
   }).on('ready', () => {
-    watcher.close();
+    nodeModulesWatcher.close();
 
-    const licenseDirs = Object.keys(dirsLicenses);
+    const nodeModulesLicenseDirs = Object.keys(nodeModulesDirsLicenses);
 
-    for (const dir of dirs) {
-      if (!licenseDirs.includes(dir)) {
-        console.log(`License not found in ${dir}"`);
+    for (const dir of nodeModulesDirs) {
+      if (!nodeModulesLicenseDirs.includes(dir)) {
+        console.log(`License not found in "${dir}"`);
       } else {
-        const data = fs.readFileSync(dirsLicenses[dir], {
+        const data = fs.readFileSync(nodeModulesDirsLicenses[dir], {
           encoding: 'utf-8',
         });
 
-        licenseTexts.push({
+        nodeModulesLicenseTexts.push({
           text: data,
           module: path.basename(dir),
-        })
+        });
       }
     }
 
-    fs.writeFileSync('./licenses.txt', licenseTexts.map((licenseText) => {
+    fs.writeFileSync('./node_modules_licenses.txt', nodeModulesLicenseTexts.map((licenseText) => {
       return `==========\n${licenseText.module}\n==========\n${licenseText.text}\n==========`;
     }).join('\n'));
 
-    console.log('Done');
+    const linuxPackages = fs.readdirSync('/usr/share/doc');
+    const linuxPackagesLicenseTexts = [];
+
+    for (linuxPackage of linuxPackages) {
+      const copyrightFileName = `/usr/share/doc/${linuxPackage}/copyright`;
+
+      if (fs.existsSync(copyrightFileName)) {
+        const data = fs.readFileSync(copyrightFileName, {
+          encoding: 'utf-8',
+        });
+
+        linuxPackagesLicenseTexts.push({
+          text: data,
+          module: linuxPackage,
+        });
+      } else {
+        console.log(`"copyright" not found in "/usr/share/doc/${linuxPackage}"`);
+      }
+    }
+
+    fs.writeFileSync('./linux_packages_licenses.txt', linuxPackagesLicenseTexts.map((licenseText) => {
+      return `==========\n${licenseText.module}\n==========\n${licenseText.text}\n==========`;
+    }).join('\n'));
   });
 }
 
