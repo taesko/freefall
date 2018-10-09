@@ -539,7 +539,7 @@ function main () { // eslint-disable-line no-unused-vars
     $columns.click(function (event) {
       const clicked = event.target;
       $columns.each(function () {
-        if (this === clicked) {
+        if ($.contains(this, clicked) || this === clicked) {
           flipSort($(this));
         } else {
           resetSort($(this));
