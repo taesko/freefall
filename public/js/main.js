@@ -50,6 +50,7 @@ function main () { // eslint-disable-line no-unused-vars
   const PeerError = function (messages) {
     messages.userMessage = messages.userMessage ||
       'Service is not available at the moment. Please refresh the page and try again later.';
+    messages.msg = 'Peer error occurred.';
 
     BaseError.call(this, messages, true);
   };
@@ -538,7 +539,7 @@ function main () { // eslint-disable-line no-unused-vars
     $columns.click(function (event) {
       const clicked = event.target;
       $columns.each(function () {
-        if (this === clicked) {
+        if ($.contains(this, clicked) || this === clicked) {
           flipSort($(this));
         } else {
           resetSort($(this));

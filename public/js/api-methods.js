@@ -168,8 +168,7 @@ function getAPIMethods (mainUtils) { // eslint-disable-line no-unused-vars
 
         if (type === 'application/json') {
           return callback(
-            new PeerError({ userMessage: 'Exporting failed.' }),
-            JSON.parse(xhr.responseText)
+            new PeerError({ userMessage: 'Exporting failed. ' }),
           );
         }
 
