@@ -439,7 +439,16 @@ function start () {
       rowIdSubscriptionMap[rowId] = newSubscription;
       renderSubscriptionRow('view', newSubscription, null, true);
 
-      renderCreditHistoryTable($('#credit-history-table'), [newHistory], true);
+      const mockCreditHistory = {
+        status_code: 1000,
+        credit_history: [newHistory],
+        grouped_by: {},
+      };
+      renderCreditHistoryTable(
+        $('#credit-history-table'),
+        mockCreditHistory,
+        true
+      );
       mainUtils.displayUserMessage('Successfully subscribed!', 'success');
     });
   };
