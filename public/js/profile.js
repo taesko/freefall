@@ -1303,7 +1303,10 @@ function start () {
     );
     $('#export-credit-history-table-btn').click(echtRunner);
 
-    $('#subscribe-submit-btn').click(onSubscribeSubmitClick);
+    $('#subscribe-submit-btn').click(function (event) {
+      $messagesLog.empty();
+      onSubscribeSubmitClick(event);
+    });
     $('#subscribe-clear-btn').click(function () {
       mainUtils.clearFormData('#subscribe-form');
       mainUtils.saveFormData(CURRENT_PAGE_NAME, 'subscribe-form');
