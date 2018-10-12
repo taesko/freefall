@@ -4,3 +4,4 @@ node_modules
 freefall.db
 logs
 *.swp
+public/licenses.txt
