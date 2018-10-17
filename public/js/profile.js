@@ -1269,15 +1269,11 @@ function start () {
     const echRunner = userActions.addAction(
       'exportCreditHistory',
       {
-        asyncFunc: function exportCreditHistory () {
+        asyncFunc: function exportCreditHistory (callback) {
           api.exportCreditHistory(
             exportCreditHistoryParams,
             PROTOCOL_NAME,
-            function (err) {
-              if (err) {
-                mainUtils.handleError(err);
-              }
-            },
+            callback,
           );
         },
         lock: function () {
@@ -1297,11 +1293,11 @@ function start () {
     const echtRunner = userActions.addAction(
       'exportCreditHistoryTable',
       {
-        asyncFunc: function exportCreditHistoryTable () {
+        asyncFunc: function exportCreditHistoryTable (callback) {
           api.exportCreditHistory(
             creditHistoryFilters,
             PROTOCOL_NAME,
-            function () {},
+            callback,
           );
         },
         lock: function () {
