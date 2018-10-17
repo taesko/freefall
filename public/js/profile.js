@@ -259,6 +259,16 @@ function start () {
   };
 
   const onRemoveClick = function (event) {
+    function airportNameFromID (id) {
+      const airport = airports.find(function (airport) {
+        return id === airport.id;
+      });
+      if (!airport) {
+        return null;
+      } else {
+        return airport.name;
+      }
+    }
     mainUtils.trace('remove button click');
 
     const removeButton = event.target;
@@ -266,8 +276,12 @@ function start () {
     const subscription = rowIdSubscriptionMap[rowId];
 
     const $modal = $('#confirm-unsubscribe-modal');
-    $modal.find('#cu-modal-fly-from').text(subscription.fly_from);
-    $modal.find('#cu-modal-fly-to').text(subscription.fly_to);
+    $modal.find('#cu-modal-fly-from').text(
+      airportNameFromID(subscription.fly_from)
+    );
+    $modal.find('#cu-modal-fly-to').text(
+      airportNameFromID(subscription.fly_to)
+    );
     $modal.find('#cu-modal-date-from').text(subscription.date_from);
     $modal.find('#cu-modal-date-to').text(subscription.date_to);
     $modal.find('#cu-modal-confirm-btn').unbind('click')
