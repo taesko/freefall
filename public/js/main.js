@@ -468,22 +468,26 @@ function main () { // eslint-disable-line no-unused-vars
     $form.change(function (event) {
       const target = event.target;
       const value = target.value.trim();
+      target.parentNode.classList
+        .remove('has-success', 'has-warning', 'has-error');
 
       if (
         target.name &&
         value &&
         Object.hasOwnProperty.call(validators, target.name)
       ) {
+        var passes = true;
         try {
-          validators[target.name](value, event);
+          passes = validators[target.name](value, event);
         } catch (e) {
           if (!(e instanceof UserError)) {
             throw e;
           }
-
+          passes = false;
+        }
+        if (!passes) {
           // TODO add helpers for screen readers and color blind people
-          target.classList.remove('has-success', 'has-warning', 'has-error');
-          target.classList.add('has-error');
+          target.parentNode.classList.add('has-error');
         }
       }
     });

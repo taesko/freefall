@@ -1053,15 +1053,7 @@ function start () {
       validAirportNames[a] = true;
     }
 
-    function airportIsCorrect (airport) {
-      assertUser(
-        airport in validAirportNames,
-        {
-          msg: 'User entered invalid airport',
-          userMessage: airport + ' is not an airport',
-        }
-      );
-    }
+    function airportIsCorrect (airport) { return airport in validAirportNames; }
     function dateValidator (minimum, maximum) {
       return function (value) {
         const passesMin = minimum <= new Date(value);
@@ -1351,6 +1343,7 @@ function start () {
           const airportNames = airports.map(toAirportName);
 
           applyAutocomplete(airportNames);
+          setupFormValidation(airportNames)
 
           $('#display-subscriptions-btn').click();
         });
