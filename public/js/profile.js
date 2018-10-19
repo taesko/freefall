@@ -1085,6 +1085,29 @@ function start () {
       'date-from': dateValidator(today),
       'date-to': dateValidator(today),
     });
+    mainUtils.immediateFormValidator(
+      '#search-subscriptions',
+      {
+        'fly_from': airportIsCorrect,
+        'fly_to': airportIsCorrect,
+      }
+    );
+    mainUtils.immediateFormValidator(
+      '#search-credit-history',
+      {
+        'from': airportIsCorrect,
+        'to': airportIsCorrect,
+        'transferred_from': dateValidator(null, today),
+        'transferred_to': dateValidator(null, today),
+      },
+    );
+    mainUtils.immediateFormValidator(
+      '#search-deposit-history',
+      {
+        'from': dateValidator(null, today),
+        'to': dateValidator(null, today),
+      }
+    );
   }
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const userActions = new mainUtils.UserActions();
