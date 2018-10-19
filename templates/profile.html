@@ -182,15 +182,24 @@
           </div>
         </div>
         <div class="form-group form-horizontal row">
-          <div class="col-md-6">
+          <div class="col-md-4">
             <label for="search-ch-transferred_from">Transferred after</label>
             <input id="search-ch-transferred_from" name="transferred_from" class="form-control date-select"
                    type="text" placeholder="{{last_month}}">
           </div>
-          <div class="col-md-6">
+          <div class="col-md-4">
             <label for="search-ch-transferred_to">Transferred until</label>
             <input id="search-ch-transferred_to" name="transferred_to" class="form-control date-select"
                    type="text" placeholder="{{today}}">
+          </div>
+          <div class="col-md-4">
+            <label for="search-ch-transferred-at-grouping">Group by transferred at</label>
+            <select id="search-ch-transferred-at-grouping" name="transferred_at_date_groupings" class="form-control">
+              <option value=""></option>
+              <option value="year">Year</option>
+              <option value="month">Month</option>
+              <option value="day">Day</option>
+            </select>
           </div>
         </div>
         <div class="form-group form-horizontal row">
@@ -203,13 +212,23 @@
             </select>
           </div>
           <div class="col-md-4">
+            <label for="search-ch-group-by-active">Group by status</label>
+            <input id="search-ch-group-by-active" name="group_by_active" type="checkbox" value="default">
+          </div>
+          <div class="col-md-4">
+            <label for="search-ch-group-by-reason">Group by reason</label>
+            <input id="search-ch-group-by-reason" name="group_by_reason" type="checkbox" value="default">
+          </div>
+        </div>
+        <div class="form-group form-horizontal row">
+          <div class="col-md-4">
             <label for="search-ch-transfer-amount">Taxed amount:</label>
             <input id="search-ch-transfer-amount" name="transfer_amount" class="form-control"
                    type="number" min="0">
           </div>
-          <div class="col-md-4">
+          <div class="col-md-2">
             <label for="search-ch-transfer-amount-operator">
-              Comparison for taxed amount
+              Comparison:
             </label>
             <select id="search-ch-transfer-amount-operator" name="transfer_amount_operator" class="form-control">
               <option value="<">Larger than</option>
@@ -217,23 +236,6 @@
               <option value="=">Equal to</option>
             </select>
           </div>
-        </div>
-        <div class="form-group">
-          <label for="search-ch-group-by-active">Group by status</label>
-          <input id="search-ch-group-by-active" name="group_by_active" type="checkbox" value="default">
-        </div>
-        <div class="form-group">
-          <label for="search-ch-group-by-reason">Group by reason</label>
-          <input id="search-ch-group-by-reason" name="group_by_reason" type="checkbox" value="default">
-        </div>
-        <div class="form-group">
-          <label for="search-ch-transferred-at-grouping">Group by transferred at</label>
-          <select id="search-ch-transferred-at-grouping" name="transferred_at_date_groupings" class="form-control">
-            <option value=""></option>
-            <option value="year">Year</option>
-            <option value="month">Month</option>
-            <option value="day">Day</option>
-          </select>
         </div>
         <div class="form-group">
           <button id="export-credit-history-table-btn" class="btn pull-right" type="button">Export table</button>
