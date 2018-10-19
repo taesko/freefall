@@ -29,6 +29,7 @@ function start () {
     weekly: { initialTax: 50 },
     monthly: { initialTax: 50 },
   };
+  const $messagesLog = $('#messages-list');
 
   function getAirportName (airports, id) {
     mainUtils.trace('getAirportName(airports, ' + id + '), typeof arg=' + typeof id + ''); // eslint-disable-line prefer-template
@@ -156,6 +157,7 @@ function start () {
   };
 
   const onSaveClick = function (event) {
+    $messagesLog.empty();
     mainUtils.trace('save button click');
 
     const saveButton = event.target;
@@ -259,6 +261,7 @@ function start () {
   };
 
   const onRemoveClick = function (event) {
+    $messagesLog.empty();
     function airportNameFromID (id) {
       const airport = airports.find(function (airport) {
         return id === airport.id;
@@ -1093,7 +1096,6 @@ function start () {
   }
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const userActions = new mainUtils.UserActions();
-    const $messagesLog = $('#messages-list');
     const searchDepositHistoryRunner = userActions.addAction(
       'searchDepositHistory',
       {
