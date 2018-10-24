@@ -445,7 +445,7 @@ function start () {
         airport_to_id: airportToId,
         date_from: dateFrom,
         date_to: dateTo,
-        subscription_status: true,
+        active: true,
         transferred_at: new Date().toLocaleString(),
         transfer_amount: SUBSCRIPTION_PLANS[plan].initialTax,
         reason: 'initial tax',
