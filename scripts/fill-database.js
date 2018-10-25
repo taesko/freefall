@@ -1519,7 +1519,7 @@ async function fillUserWithTransactionData (
     [userID],
   );
   assertApp(sfIDRows.length === 1);
-  const taxedAmount = 20
+  const taxedAmount = 20;
   const subscriptionFetchID = sfIDRows[0].id;
   log.info('Inserting into account_transfers.');
   const { rows: transferRows } = await dbClient.executeQuery(
