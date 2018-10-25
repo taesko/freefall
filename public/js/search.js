@@ -434,12 +434,14 @@ function start () {
   $(document).ready(function () { // eslint-disable-line prefer-arrow-callback
     const $loadMoreBtn = $('#load-more-btn');
     const $flightForm = $('#flight-form');
+    const $messagesList = $('#messages-list');
     mainUtils.restoreFormData(CURRENT_PAGE_NAME, 'flight-form');
 
     $flightForm.change(function () {
       mainUtils.saveFormData(CURRENT_PAGE_NAME, 'flight-form');
     });
     $flightForm.submit(function (event) {
+      $messagesList.empty();
       mainUtils.trace('Submitting flight form');
 
       event.preventDefault();
@@ -495,11 +497,13 @@ function start () {
     });
 
     $('#clear-button').click(function () {
+      $messagesList.empty();
       mainUtils.clearFormData('flight-form');
       mainUtils.saveFormData(CURRENT_PAGE_NAME, 'flight-form');
     });
 
     $loadMoreBtn.click(function (event) { // eslint-disable-line prefer-arrow-callback
+      $messagesList.empty();
       mainUtils.trace('Load more button clicked');
 
       const loadMoreBtnElement = event.target;

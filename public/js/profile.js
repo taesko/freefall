@@ -1366,7 +1366,7 @@ function start () {
           const airportNames = airports.map(toAirportName);
 
           applyAutocomplete(airportNames);
-          setupFormValidation(airportNames)
+          setupFormValidation(airportNames);
 
           $('#display-subscriptions-btn').click();
         });
