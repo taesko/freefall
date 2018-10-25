@@ -1,9 +1,11 @@
+#!/usr/bin/env node
 const { Client } = require('pg');
 const crypto = require('crypto');
 const _ = require('lodash');
 const moment = require('moment');
+const process = require('process');
 
-const { assertApp } = require('../modules/error-handling');
+const { assertApp, assertUser } = require('../modules/error-handling');
 const log = require('../modules/log');
 const db = require('../modules/db');
 const utils = require('../modules/utils');
@@ -1496,6 +1498,61 @@ async function fillDatabase (dbClient) {
   log.info('Fill database finished');
 }
 
+async function fillUserWithTransactionData (
+  dbClient,
+  userID,
+  fetchTaxCount = 40000,
+) {
+  assertApp(Number.isInteger(fetchTaxCount), `got ${fetchTaxCount}`);
+  assertApp(Number.isInteger(userID));
+
+  log.info(`Filling user ${userID} with ${fetchTaxCount} fetch taxes.`);
+
+  const { rows: sfIDRows } = await dbClient.executeQuery(
+    `
+    SELECT subscriptions_fetches.id FROM subscriptions_fetches
+    JOIN users_subscriptions ON subscriptions_fetches.subscription_id=users_subscriptions.subscription_id
+    JOIN users ON users_subscriptions.user_id=users.id
+    WHERE user_id = $1
+    LIMIT 1
+    `,
+    [userID],
+  );
+  assertApp(sfIDRows.length === 1);
+  const taxedAmount = 20
+  const subscriptionFetchID = sfIDRows[0].id;
+  log.info('Inserting into account_transfers.');
+  const { rows: transferRows } = await dbClient.executeQuery(
+    `
+    INSERT INTO account_transfers
+      (user_id, transfer_amount, transferred_at)
+    SELECT $1, $3, now() - make_interval(mins := generate_series)
+    FROM generate_series(1, $2)
+    RETURNING id;
+    `,
+    [ userID, fetchTaxCount, taxedAmount ],
+  );
+  log.info('Updating user credits.');
+  await dbClient.executeQuery(
+    `
+    UPDATE users
+    SET credits = credits - $2
+    WHERE id=$1
+    `,
+    [userID, taxedAmount * transferRows.length]
+  );
+  const transferIDs = transferRows.map(row => row.id);
+  const table = 'subscriptions_fetches_account_transfers';
+  const columnsString = '(account_transfer_id, subscription_fetch_id)';
+  const rowGenerator = id => {
+    return [transferIDs[id], subscriptionFetchID];
+  };
+  const amount = transferIDs.length;
+  return insertRandomData(
+    dbClient, { table, columnsString, rowGenerator, amount }
+  );
+}
+
 async function start () {
   log.info('Creating db client..');
 
@@ -1507,7 +1564,23 @@ async function start () {
 
   try {
     await dbClient.executeQuery('BEGIN');
-    await fillDatabase(dbClient);
+    if (process.argv[2] === 'fill-user') {
+      const userID = +process.argv[3];
+      assertUser(Number.isInteger(userID),
+        'Argument 3 must be a user ID',
+        'FU_INVALID_USER_ID'
+      );
+      const amount = +process.argv[4] || undefined;
+      await fillUserWithTransactionData(dbClient, userID, amount);
+    } else if (process.argv[2] === 'fill-db') {
+      await fillDatabase(dbClient);
+    } else {
+      assertUser(
+        false,
+        `First argument must be one of fill-db, fill-user. Got ${process.argv[2]}`,
+        'FU_INVALID_COMMAND_NAME',
+      );
+    }
     await dbClient.executeQuery('COMMIT');
     log.info('Success.');
   } catch (error) {
