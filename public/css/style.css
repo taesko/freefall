@@ -25,3 +25,11 @@ td {
 .table > tbody > tr > td {
   vertical-align: middle;
 }
+
+.top-buffer {
+    margin-top: 2%
+}
+
+.bottom-buffer {
+    margin-bottom: 2%;
+}

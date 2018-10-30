@@ -13,7 +13,7 @@
   {{> menu }}
   <div class="row container">
     <h3 class="row">Add new subscription:</h3>
-    <form class="row form" id="subscribe-form">
+    <form class="row container form" id="subscribe-form">
       <div class="form-group form-horizontal row">
         <div class="col-md-6">
           <label for="subscribe-airport-from">From airport:</label>
@@ -50,9 +50,11 @@
         <div class="col-md-8">
         </div>
       </div>
-      <div class="text-center">
-        <button id="subscribe-clear-btn" class="col-md-4 btn btn-danger" type="button">Clear</button>
-        <button id="subscribe-submit-btn" class="col-md-8 btn btn-primary" type="submit">Subscribe</button>
+      <div class="row text-center">
+        <div class="pull-right">
+          <button id="subscribe-submit-btn" class="btn btn-primary btn-lg" type="submit">Subscribe</button>
+          <button id="subscribe-clear-btn" class="btn btn-danger btn-lg" type="button">Clear</button>
+        </div>
       </div>
     </form>
   </div>
@@ -72,88 +74,90 @@
   <div class="row" style="min-height: 800px;">
     <div id="subscriptions-tab" class="container collapse">
       <!--<h3>Your subscriptions:</h3>-->
-      <form id="search-subscriptions" class="row">
+      <form id="search-subscriptions" class="row container top-buffer bottom-buffer">
         <div class="form-group">
-          <label for="search-airport-from" class="sr-only">From</label>
+          <label for="search-airport-from">From</label>
           <input id="search-airport-from" class="form-control airport-select" name="fly_from" type="text"
                  placeholder="Sofia" list="airports-list">
         </div>
         <div class="form-group">
-          <label for="search-airport-to" class="sr-only">To</label>
+          <label for="search-airport-to">To</label>
           <input id="search-airport-to" name="fly_to" class="form-control airport-select" type="text"
                  placeholder="Haneda" list="airports-list">
         </div>
-        <div class="form-group">
-          <button id="search-subscriptions-btn" class="btn btn-primary pull-right">Filter</button>
-        </div>
+        <button id="search-subscriptions-btn" class="btn btn-primary btn-lg pull-right">Filter</button>
       </form>
-      <table id="subscriptions-table" class="table table-bordered row">
-        <thead>
-        <tr>
-          <th>
-            Airport from
-          </th>
-          <th>
-            Airport to
-          </th>
-          <th class="sortable-column text-center" data-column="date_from" data-order=""><a>
-            Date from
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-          <th class="sortable-column text-center" data-column="date_to" data-order=""><a>
-            Date to
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-          <th class="sortable-column text-center" data-column="plan" data-order=""><a>
-            Plan
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-          <th><a>Options</a></th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr id="subscription-edit-mode" hidden>
-          <td>
-            <input id="subscription-edit-mode-airport-from" class="form-control" name="from" type="text"
-                   list="airports-list" placeholder="Sofia" required>
-          </td>
-          <td>
-            <input id="subscription-edit-mode-airport-to" class="form-control" name="to" type="text"
-                   list="airports-list" placeholder="Sofia" required>
-          </td>
-          <td>
-            <input id="subscription-edit-mode-date-from" class="form-control" name="date-from" type="text"
-                   placeholder="{{today}}" value="" required>
-          </td>
-          <td>
-            <input id="subscription-edit-mode-date-to" class="form-control" name="date-to" type="text"
-                   placeholder="{{next_month}}" value="" required>
-          </td>
-          <td>
-            <input id="subscription-edit-mode-plan" class="form-control" name="plan" type="text"
-                   placeholder="daily" value="" required>
-          </td>
-          <td>
-            <button id="subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
-            <button id="subscription-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
-            <button id="subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
-          </td>
-        </tr>
-        <tr id="subscription-view-mode" hidden>
-          <td id="subscription-view-mode-airport-from" class="text-left"></td>
-          <td id="subscription-view-mode-airport-to" class="text-left"></td>
-          <td id="subscription-view-mode-date-from" class="text-left"></td>
-          <td id="subscription-view-mode-date-to" class="text-left"></td>
-          <td id="subscription-view-mode-plan" class="text-left"></td>
-          <td>
-            <button id="subscription-view-mode-search-btn" type="button" class="btn btn-primary">Search</button>
-            <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary">Edit</button>
-          </td>
-        </tr>
-        </tbody>
-      </table>
-      <button id="subscriptions-load-more-btn" class="btn btn-primary btn-block row">Load more</button>
-      <p id="no-subscriptions-msg" class="text-center collapse row">No subscriptions found</p>
+      <div class="row">
+        <table id="subscriptions-table" class="table table-bordered">
+          <thead>
+          <tr>
+            <th>
+              Airport from
+            </th>
+            <th>
+              Airport to
+            </th>
+            <th class="sortable-column text-center" data-column="date_from" data-order=""><a>
+              Date from
+              <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
+            </a></th>
+            <th class="sortable-column text-center" data-column="date_to" data-order=""><a>
+              Date to
+              <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
+            </a></th>
+            <th class="sortable-column text-center" data-column="plan" data-order=""><a>
+              Plan
+              <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
+            </a></th>
+            <th><a>Options</a></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr id="subscription-edit-mode" hidden>
+            <td>
+              <input id="subscription-edit-mode-airport-from" class="form-control" name="from" type="text"
+                     list="airports-list" placeholder="Sofia" required>
+            </td>
+            <td>
+              <input id="subscription-edit-mode-airport-to" class="form-control" name="to" type="text"
+                     list="airports-list" placeholder="Sofia" required>
+            </td>
+            <td>
+              <input id="subscription-edit-mode-date-from" class="form-control" name="date-from" type="text"
+                     placeholder="{{today}}" value="" required>
+            </td>
+            <td>
+              <input id="subscription-edit-mode-date-to" class="form-control" name="date-to" type="text"
+                     placeholder="{{next_month}}" value="" required>
+            </td>
+            <td>
+              <input id="subscription-edit-mode-plan" class="form-control" name="plan" type="text"
+                     placeholder="daily" value="" required>
+            </td>
+            <td>
+              <button id="subscription-edit-mode-save-btn" type="button" class="btn btn-primary">Save</button>
+              <button id="subscription-edit-mode-cancel-btn" type="button" class="btn btn-default">Cancel</button>
+              <button id="subscription-edit-mode-remove-btn" type="button" class="btn btn-danger">Remove</button>
+            </td>
+          </tr>
+          <tr id="subscription-view-mode" hidden>
+            <td id="subscription-view-mode-airport-from" class="text-left"></td>
+            <td id="subscription-view-mode-airport-to" class="text-left"></td>
+            <td id="subscription-view-mode-date-from" class="text-left"></td>
+            <td id="subscription-view-mode-date-to" class="text-left"></td>
+            <td id="subscription-view-mode-plan" class="text-left"></td>
+            <td>
+              <button id="subscription-view-mode-search-btn" type="button" class="btn btn-primary">Search</button>
+              <button id="subscription-view-mode-edit-btn" type="button" class="btn btn-primary">Edit</button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row">
+        <button id="subscriptions-load-more-btn" class="btn btn-primary btn-block">Load more</button>
+        <p id="no-subscriptions-msg" class="text-center collapse">No subscriptions found</p>
+      </div>
     </div>
     <div id="credit-history-tab" class="container collapse">
       <form id="search-credit-history" class="row">
