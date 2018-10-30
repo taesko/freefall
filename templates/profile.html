@@ -199,7 +199,7 @@
           <div class="col-md-6">
             <label for="search-ch-transferred-at-grouping">Group by transferred at</label>
             <select id="search-ch-transferred-at-grouping" name="transferred_at_date_groupings" class="form-control">
-              <option value=""></option>
+              <option value="">Off</option>
               <option value="year">Year</option>
               <option value="month">Month</option>
               <option value="day">Day</option>
@@ -217,7 +217,10 @@
           </div>
           <div class="col-md-6">
             <label for="search-ch-group-by-active">Group by status</label>
-            <input id="search-ch-group-by-active" name="group_by_active" type="checkbox" value="default">
+            <select id="search-ch-group-by-active" name="group_by_active" class="form-control">
+              <option value="">Off</option>
+              <option value="default">On</option>
+            </select>
           </div>
         </div>
         <div class="form-group form-horizontal row">
@@ -238,14 +241,15 @@
           </div>
           <div class="col-md-6">
             <label for="search-ch-group-by-reason">Group by reason</label>
-            <input id="search-ch-group-by-reason" name="group_by_reason" type="checkbox" value="default">
+            <select id="search-ch-group-by-reason" name="group_by_reason" class="form-control">
+              <option value="">Off</option>
+              <option value="default">On</option>
+            </select>
           </div>
         </div>
-        <div class="row pull-right">
-          <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Filter</button>
-          <button id="export-credit-history-btn" class="btn" type="button">Export</button>
-          <button id="export-credit-history-table-btn" class="btn" type="button">Export table</button>
-        </div>
+        <button id="search-credit-history-btn" class="btn btn-primary pull-right left-buffer" type="submit">Filter</button>
+        <button id="export-credit-history-btn" class="btn pull-right left-buffer" type="button">Export</button>
+        <button id="export-credit-history-table-btn" class="btn pull-right" type="button">Export table</button>
       </form>
       <div class="row">
         <table id="credit-history-table" class="table table-bordered">

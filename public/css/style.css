@@ -30,6 +30,10 @@ td {
     margin-top: 2%
 }
 
+.left-buffer {
+    margin-left: 1%
+}
+
 .bottom-buffer {
     margin-bottom: 2%;
 }
