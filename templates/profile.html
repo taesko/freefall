@@ -303,21 +303,22 @@
       </div>
     </div>
     <div id="deposit-history-tab" class="container collapse">
-      <form id="search-deposit-history" class="row">
+      <form id="search-deposit-history" class="row container top-buffer bottom-buffer">
         <div class="form-group">
+          <label for="from-deposit-date">From</label>
           <input id="from-deposit-date" class="form-control date-select" name="from" type="text"
                  placeholder="{{last_month}}">
         </div>
         <div class="form-group">
+          <label for="to-deposit-date">Until</label>
           <input id="to-deposit-date" name="to" class="form-control date-select" type="text"
                  placeholder="{{today}}">
         </div>
-        <div class="form-group">
-          <button id="search-deposit-history-btn" class="btn btn-primary pull-right" type="submit">Filter</button>
-        </div>
+        <button id="search-deposit-history-btn" class="btn btn-primary pull-right" type="submit">Filter</button>
       </form>
-      <table id="deposit-history-table" class="table table-bordered row">
-        <thead>
+      <div class="row">
+        <table id="deposit-history-table" class="table table-bordered">
+          <thead>
           <tr>
             <td class="text-center sortable-column" data-column="" data-order="null">
               <a>
@@ -336,17 +337,20 @@
               </a>
             </td>
           </tr>
-        </thead>
-        <tbody>
+          </thead>
+          <tbody>
           <tr id="deposit-history-template-row" class="collapse">
             <td id="deposited-on" class="text-left"></td>
             <td id="deposit-amount" class="text-right"></td>
             <td id="deposit-reason" class="text-left"></td>
           </tr>
-        </tbody>
-      </table>
-      <button id="deposit-history-load-more-btn" class="btn btn-primary btn-block row">Load more</button>
-      <p id="no-deposit-history-msg" class="text-center collapse row">No deposits found.</p>
+          </tbody>
+        </table>
+      </div>
+      <div class="row">
+        <button id="deposit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
+        <p id="no-deposit-history-msg" class="text-center collapse">No deposits found.</p>
+      </div>
     </div>
   </div>
 </div>
