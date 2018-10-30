@@ -85,7 +85,7 @@
           <input id="search-airport-to" name="fly_to" class="form-control airport-select" type="text"
                  placeholder="Haneda" list="airports-list">
         </div>
-        <button id="search-subscriptions-btn" class="btn btn-primary btn-lg pull-right">Filter</button>
+        <button id="search-subscriptions-btn" class="btn btn-primary pull-right">Filter</button>
       </form>
       <div class="row">
         <table id="subscriptions-table" class="table table-bordered">
@@ -160,43 +160,43 @@
       </div>
     </div>
     <div id="credit-history-tab" class="container collapse">
-      <form id="search-credit-history" class="row">
+      <form id="search-credit-history" class="row container top-buffer bottom-buffer">
         <div class="form-group form-horizontal row">
           <div class="col-md-6">
-            <label for="search-ch-fly-from">Airport from:</label>
+            <label for="search-ch-fly-from">Airport from</label>
             <input id="search-ch-fly-from" class="form-control airport-select" name="from" type="text"
                    placeholder="Sofia" list="airports-list">
           </div>
           <div class="col-md-6">
-            <label for="search-ch-fly-to">Airport to:</label>
+            <label for="search-ch-fly-to">Airport to</label>
             <input id="search-ch-fly-to" name="to" class="form-control airport-select" type="text"
                    placeholder="Haneda" list="airports-list">
           </div>
         </div>
         <div class="form-group form-horizontal row">
           <div class="col-md-6">
-            <label for="search-ch-date-from">Earliest departure date:</label>
+            <label for="search-ch-date-from">Earliest departure date</label>
             <input id="search-ch-date-from" class="form-control date-select" name="date_from"
                    type="text" placeholder="{{last_month}}">
           </div>
           <div class="col-md-6">
-            <label for="search-ch-date-to">Latest arrival date:</label>
+            <label for="search-ch-date-to">Latest arrival date</label>
             <input id="search-ch-date-to" name="date_to" class="form-control date-select"
                    type="text" placeholder="{{today}}">
           </div>
         </div>
         <div class="form-group form-horizontal row">
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label for="search-ch-transferred_from">Transferred after</label>
             <input id="search-ch-transferred_from" name="transferred_from" class="form-control date-select"
                    type="text" placeholder="{{last_month}}">
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label for="search-ch-transferred_to">Transferred until</label>
             <input id="search-ch-transferred_to" name="transferred_to" class="form-control date-select"
                    type="text" placeholder="{{today}}">
           </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label for="search-ch-transferred-at-grouping">Group by transferred at</label>
             <select id="search-ch-transferred-at-grouping" name="transferred_at_date_groupings" class="form-control">
               <option value=""></option>
@@ -207,32 +207,28 @@
           </div>
         </div>
         <div class="form-group form-horizontal row">
-          <div class="col-md-4">
-            <label for="search-ch-status">Subscription status: </label>
+          <div class="col-md-6">
+            <label for="search-ch-status">Subscription status</label>
             <select id="search-ch-status" name="status" class="form-control">
               <option value="any">Any</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label for="search-ch-group-by-active">Group by status</label>
             <input id="search-ch-group-by-active" name="group_by_active" type="checkbox" value="default">
           </div>
-          <div class="col-md-4">
-            <label for="search-ch-group-by-reason">Group by reason</label>
-            <input id="search-ch-group-by-reason" name="group_by_reason" type="checkbox" value="default">
-          </div>
         </div>
         <div class="form-group form-horizontal row">
-          <div class="col-md-4">
-            <label for="search-ch-transfer-amount">Taxed amount:</label>
+          <div class="col-md-3">
+            <label for="search-ch-transfer-amount">Taxed amount</label>
             <input id="search-ch-transfer-amount" name="transfer_amount" class="form-control"
                    type="number" min="0">
           </div>
-          <div class="col-md-2">
+          <div class="col-md-3">
             <label for="search-ch-transfer-amount-operator">
-              Comparison:
+              Comparison
             </label>
             <select id="search-ch-transfer-amount-operator" name="transfer_amount_operator" class="form-control">
               <option value="<">Larger than</option>
@@ -240,63 +236,71 @@
               <option value="=">Equal to</option>
             </select>
           </div>
+          <div class="col-md-6">
+            <label for="search-ch-group-by-reason">Group by reason</label>
+            <input id="search-ch-group-by-reason" name="group_by_reason" type="checkbox" value="default">
+          </div>
         </div>
-        <div class="form-group">
-          <button id="export-credit-history-table-btn" class="btn pull-right" type="button">Export table</button>
-          <button id="export-credit-history-btn" class="btn pull-right" type="button">Export</button>
-          <button id="search-credit-history-btn" class="btn btn-primary pull-right" type="submit">Filter</button>
+        <div class="row pull-right">
+          <button id="search-credit-history-btn" class="btn btn-primary" type="submit">Filter</button>
+          <button id="export-credit-history-btn" class="btn" type="button">Export</button>
+          <button id="export-credit-history-table-btn" class="btn" type="button">Export table</button>
         </div>
       </form>
-      <table id="credit-history-table" class="table table-bordered row">
-        <thead>
-        <tr>
-          <th class="sortable-column text-center" data-column="transferred_at" data-order=""><a>
-            Transfer
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-          <th class="text-center">
-            Airport from
-          </th>
-          <th class="text-center">
-            Airport to
-          </th>
-          <th class="sortable-column text-center" data-column="date_from" data-order=""><a>
-            Date from
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-          <th class="sortable-column text-center" data-column="date_to" data-order=""><a>
-            Date to
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-          <th class="sortable-column text-center" data-column="active" data-order=""><a>
-            Status
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-          <th class="sortable-column text-center" data-column="transfer_amount" data-order=""><a>
-            Amount
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-          <th class="sortable-column text-center" data-column="reason" data-order=""><a>
-            Reason
-            <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
-          </a></th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr id="credit-history-template-row" class="collapse">
-          <td id="credit-transferred-at" class="text-left"></td>
-          <td id="credit-airport-from" class="text-left"></td>
-          <td id="credit-airport-to" class="text-left"></td>
-          <td id="credit-date-from" class="text-left"></td>
-          <td id="credit-date-to" class="text-left"></td>
-          <td id="credit-subscr-status" class="text-left"></td>
-          <td id="credit-transfer-amount" class="text-right"></td>
-          <td id="credit-reason" class="text-left"></td>
-        </tr>
-        </tbody>
-      </table>
-      <button id="credit-history-load-more-btn" class="btn btn-primary btn-block row">Load more</button>
-      <p id="no-credit-history-msg" class="text-center collapse row">No credit transactions found.</p>
+      <div class="row">
+        <table id="credit-history-table" class="table table-bordered">
+          <thead>
+          <tr>
+            <th class="sortable-column text-center" data-column="transferred_at" data-order=""><a>
+              Transfer
+              <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
+            </a></th>
+            <th class="text-center">
+              Airport from
+            </th>
+            <th class="text-center">
+              Airport to
+            </th>
+            <th class="sortable-column text-center" data-column="date_from" data-order=""><a>
+              Date from
+              <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
+            </a></th>
+            <th class="sortable-column text-center" data-column="date_to" data-order=""><a>
+              Date to
+              <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
+            </a></th>
+            <th class="sortable-column text-center" data-column="active" data-order=""><a>
+              Status
+              <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
+            </a></th>
+            <th class="sortable-column text-center" data-column="transfer_amount" data-order=""><a>
+              Amount
+              <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
+            </a></th>
+            <th class="sortable-column text-center" data-column="reason" data-order=""><a>
+              Reason
+              <span class="glyphicon glyphicon-sort" aria-hidden="true"></span>
+            </a></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr id="credit-history-template-row" class="collapse">
+            <td id="credit-transferred-at" class="text-left"></td>
+            <td id="credit-airport-from" class="text-left"></td>
+            <td id="credit-airport-to" class="text-left"></td>
+            <td id="credit-date-from" class="text-left"></td>
+            <td id="credit-date-to" class="text-left"></td>
+            <td id="credit-subscr-status" class="text-left"></td>
+            <td id="credit-transfer-amount" class="text-right"></td>
+            <td id="credit-reason" class="text-left"></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row">
+        <button id="credit-history-load-more-btn" class="btn btn-primary btn-block">Load more</button>
+        <p id="no-credit-history-msg" class="text-center collapse">No credit transactions found.</p>
+      </div>
     </div>
     <div id="deposit-history-tab" class="container collapse">
       <form id="search-deposit-history" class="row">
