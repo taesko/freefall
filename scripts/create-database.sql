@@ -545,6 +545,22 @@ CREATE TYPE api_methods AS ENUM (
   'export_credit_history'
 );
 
+
+CREATE OR REPLACE FUNCTION is_user_rate_limited(
+  user_id_          integer,
+  api_method_       api_methods,
+  allowed_interval interval
+)
+  RETURNS boolean AS $$
+BEGIN
+  RETURN now() - allowed_interval < (SELECT MAX(au.requested_on)
+                                     FROM api_usage AS au
+                                     WHERE user_id_ = au.user_id
+                                       AND api_method_ = au.api_method);
+END;
+$$
+LANGUAGE plpgsql;
+
 CREATE TABLE api_usage (
   id           serial PRIMARY KEY,
   user_id      integer     NOT NULL REFERENCES users,
@@ -561,21 +577,6 @@ CREATE TABLE api_usage (
       END
   ))
 );
-
-CREATE OR REPLACE FUNCTION is_user_rate_limited(
-  user_id_          integer,
-  api_method_       api_methods,
-  allowed_interval interval
-)
-  RETURNS boolean AS $$
-BEGIN
-  RETURN now() - allowed_interval < (SELECT MAX(au.requested_on)
-                                     FROM api_usage AS au
-                                     WHERE user_id_ = au.user_id
-                                       AND api_method_ = au.api_method);
-END;
-$$
-LANGUAGE plpgsql;
 
 END;
 
