@@ -759,6 +759,7 @@ function start () {
       } else {
         renderCreditHistoryTable($creditsTable, result);
         $loadMoreBtn.show();
+        $noContentMsg.hide();
       }
 
       if (callbackOnFinish) {
