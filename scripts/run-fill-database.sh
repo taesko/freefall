@@ -2,4 +2,4 @@
 PGUSER=freefall \
 PGPASSWORD=freefall \
 PGDATABASE=freefall \
-node ./scripts/fill-database.js
+node ./scripts/fill-database.js fill-db

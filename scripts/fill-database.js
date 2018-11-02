@@ -1208,7 +1208,7 @@ async function insertRandomLoginSessions (dbClient, amount) {
     INSERT INTO login_sessions
       (user_id, expiration_date)
     SELECT id, now() + (floor(random()*24)||' hours')::interval
-    FROM users 
+    FROM users
     LIMIT $1
     ON CONFLICT DO NOTHING;
     `,
@@ -1305,7 +1305,7 @@ async function insertRandomUserSubscriptionAccountTransfers (dbClient, amount) {
       (user_id, transfer_amount, transferred_at)
     SELECT users.id, $1, users_subscriptions.created_at
     FROM users
-    JOIN users_subscriptions 
+    JOIN users_subscriptions
       ON users.id=users_subscriptions.user_id
     ORDER BY random()
     RETURNING *;
@@ -1377,7 +1377,7 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient) {
       (account_transfer_id, subscription_fetch_id)
     SELECT account_transfers.id, subscriptions_fetches.id
     FROM account_transfers
-    JOIN users_subscriptions ON account_transfers.user_id = users_subscriptions.user_id 
+    JOIN users_subscriptions ON account_transfers.user_id = users_subscriptions.user_id
     JOIN subscriptions_fetches ON users_subscriptions.subscription_id = subscriptions_fetches.subscription_id
     ON CONFLICT DO NOTHING
     `,
@@ -1413,25 +1413,25 @@ async function insertRandomSubscriptionsFetchesAccountTransfers (dbClient) {
 }
 
 async function fillDatabase (dbClient) {
-  const AIRPORTS_AMOUNT = 1e4;
-  const AIRLINES_AMOUNT = 1e4;
-  const SUBSCRIPTIONS_AMOUNT = 1e5;
-  const FETCHES_AMOUNT = 1e2;
+  const AIRPORTS_AMOUNT = 1e3;
+  const AIRLINES_AMOUNT = 1e3;
+  const SUBSCRIPTIONS_AMOUNT = 1e4;
+  const FETCHES_AMOUNT = 1e1;
   const ROUTES_PER_SUBSCRIPTION_FETCH = 1e1;
   const FLIGHTS_PER_ROUTE = 4;
-  const USERS_AMOUNT = 100000;
-  const USERS_SUBSCRIPTIONS_AMOUNT = 500000;
+  const USERS_AMOUNT = 10000;
+  const USERS_SUBSCRIPTIONS_AMOUNT = 50000;
   // flights are more then possible routes, but not as much as the ratio of flights per route
   // because flights might be shared between routes;
-  const ROLES_AMOUNT = 1000;
-  const PERMISSIONS_AMOUNT = 10000;
-  const ROLES_PERMISSIONS_AMOUNT = 100000;
-  const DALIPECHE_FETCHES_AMOUNT = 100000;
-  const EMPLOYEES_AMOUNT = 5000;
+  const ROLES_AMOUNT = 100;
+  const PERMISSIONS_AMOUNT = 1000;
+  const ROLES_PERMISSIONS_AMOUNT = 10000;
+  const DALIPECHE_FETCHES_AMOUNT = 10000;
+  const EMPLOYEES_AMOUNT = 500;
   const ACTIVE_LOGIN_SESSIONS = Math.floor(USERS_AMOUNT / 2);
-  const ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT = 500000;
+  const ACCOUNT_TRANSFERS_BY_EMPLOYEES_AMOUNT = 50000;
   const USER_SUBSCRIPTION_ACCOUNT_TRANSFERS_AMOUNT = 100000;
-  const SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT = 1000000;
+  const SUBSCRIPTION_FETCHES_ACCOUNT_TRANSFERS_AMOUNT = 100000;
 
   log.info('Fill database started');
 
@@ -1519,7 +1519,7 @@ async function fillUserWithTransactionData (
     [userID],
   );
   assertApp(sfIDRows.length === 1);
-  const taxedAmount = 20;
+  const taxedAmount = -20;
   const subscriptionFetchID = sfIDRows[0].id;
   log.info('Inserting into account_transfers.');
   const { rows: transferRows } = await dbClient.executeQuery(
@@ -1539,7 +1539,7 @@ async function fillUserWithTransactionData (
     SET credits = credits - $2
     WHERE id=$1
     `,
-    [userID, taxedAmount * transferRows.length]
+    [userID, -(taxedAmount * transferRows.length)]
   );
   const transferIDs = transferRows.map(row => row.id);
   const table = 'subscriptions_fetches_account_transfers';
